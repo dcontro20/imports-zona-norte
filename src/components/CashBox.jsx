@@ -4,7 +4,7 @@ import { Modal, Card, Btn, Input, Select, Table, Badge, StatCard } from "./UI.js
 
 // -- CASH / CAJA --
 const INITIAL_BALANCES = {
-  lemonPesos: 327796.14,
+  lemonPesos: 276646.62,
   lemonUSDT: 40.12,
   mpDiego: 0,
   mpGustavo: 0,
