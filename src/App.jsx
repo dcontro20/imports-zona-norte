@@ -116,18 +116,9 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
   const [showGlobalResults, setShowGlobalResults] = useState(false);
+  const [dataReady, setDataReady] = useState(false);
 
-  const [products, setProducts] = useState(() => {
-    // Always use latest catalog - version check
-    const CATALOG_VERSION = "20260315b";
-    const savedVersion = loadData("catalog_version", "");
-    if (savedVersion !== CATALOG_VERSION) {
-      saveData("catalog_version", CATALOG_VERSION);
-      saveData("products", DEFAULT_PRODUCTS);
-      return DEFAULT_PRODUCTS;
-    }
-    return loadData("products", DEFAULT_PRODUCTS);
-  });
+  const [products, setProducts] = useState(() => loadData("products", DEFAULT_PRODUCTS));
   const [sales, setSales] = useState(() => loadData("sales", []));
   const [purchases, setPurchases] = useState(() => loadData("purchases", []));
   const [clients, setClients] = useState(() => loadData("clients", []));
@@ -156,17 +147,66 @@ export default function App() {
       }
     };
     fetchBlue();
-    // Refresh every 10 minutes
     const interval = setInterval(fetchBlue, 10 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 
-  // Save to localStorage + Firestore, but skip Firestore write if data came FROM Firestore
+  // ---- FIREBASE SYNC SYSTEM ----
+  // Track whether a state update came from Firestore (to avoid writing it back)
+  const fromFirestore = useRef({});
+  // Track whether initial Firestore load is done
+  const initialLoadDone = useRef({});
+
+  // Subscribe to Firestore real-time updates (runs once on mount)
+  useEffect(() => {
+    const keys = [
+      { key: "products", setter: setProducts },
+      { key: "sales", setter: setSales },
+      { key: "purchases", setter: setPurchases },
+      { key: "clients", setter: setClients },
+      { key: "expenses", setter: setExpenses },
+      { key: "withdrawals", setter: setWithdrawals },
+      { key: "cashMovements", setter: setCashMovements },
+      { key: "stockLog", setter: setStockLog },
+      { key: "priceLog", setter: setPriceLog },
+      { key: "monthlyClosures", setter: setMonthlyClosures },
+      { key: "partnerWithdrawals", setter: setPartnerWithdrawals },
+    ];
+
+    const unsubscribers = keys.map(({ key, setter }) => {
+      return subscribeToFirestore(key, (data) => {
+        // Always accept Firestore data — it's the source of truth
+        try { localStorage.setItem(`vapestock_${key}`, JSON.stringify(data)); } catch {}
+        fromFirestore.current[key] = true;
+        setter(data);
+        initialLoadDone.current[key] = true;
+        // Check if all initial loads are done
+        if (keys.every(k => initialLoadDone.current[k.key])) {
+          setDataReady(true);
+        }
+      });
+    });
+
+    const unsubRate = subscribeToFirestore("exchangeRate", (data) => {
+      if (typeof data === "number") {
+        try { localStorage.setItem("vapestock_exchangeRate", JSON.stringify(data)); } catch {}
+        fromFirestore.current["exchangeRate"] = true;
+        setExchangeRate(data);
+      }
+    });
+
+    // If Firestore takes too long (no data yet), show what we have from localStorage
+    const timeout = setTimeout(() => setDataReady(true), 3000);
+
+    return () => { unsubscribers.forEach(u => u()); unsubRate(); clearTimeout(timeout); };
+  }, []);
+
+  // Save to localStorage + Firestore when state changes locally
   const smartSave = useCallback((key, data) => {
     try { localStorage.setItem(`vapestock_${key}`, JSON.stringify(data)); } catch {}
     if (fromFirestore.current[key]) {
       fromFirestore.current[key] = false;
-      return; // Don't write back to Firestore
+      return; // Data came from Firestore, don't write it back
     }
     saveToFirestore(key, data);
   }, []);
@@ -183,43 +223,6 @@ export default function App() {
   useEffect(() => smartSave("monthlyClosures", monthlyClosures), [monthlyClosures]);
   useEffect(() => smartSave("partnerWithdrawals", partnerWithdrawals), [partnerWithdrawals]);
   useEffect(() => smartSave("exchangeRate", exchangeRate), [exchangeRate]);
-
-  // Firebase real-time sync - subscribe to changes from other devices
-  const fromFirestore = useRef({});
-  
-  useEffect(() => {
-    const keys = [
-      { key: "products", setter: setProducts },
-      { key: "sales", setter: setSales },
-      { key: "purchases", setter: setPurchases },
-      { key: "clients", setter: setClients },
-      { key: "expenses", setter: setExpenses },
-      { key: "withdrawals", setter: setWithdrawals },
-      { key: "cashMovements", setter: setCashMovements },
-      { key: "stockLog", setter: setStockLog },
-      { key: "priceLog", setter: setPriceLog },
-      { key: "monthlyClosures", setter: setMonthlyClosures },
-      { key: "partnerWithdrawals", setter: setPartnerWithdrawals },
-    ];
-    
-    const unsubscribers = keys.map(({ key, setter }) => {
-      return subscribeToFirestore(key, (data) => {
-        try { localStorage.setItem(`vapestock_${key}`, JSON.stringify(data)); } catch {}
-        fromFirestore.current[key] = true;
-        setter(data);
-      });
-    });
-    
-    const unsubRate = subscribeToFirestore("exchangeRate", (data) => {
-      if (typeof data === "number") {
-        try { localStorage.setItem("vapestock_exchangeRate", JSON.stringify(data)); } catch {}
-        fromFirestore.current["exchangeRate"] = true;
-        setExchangeRate(data);
-      }
-    });
-    
-    return () => { unsubscribers.forEach(u => u()); unsubRate(); };
-  }, []);
 
   // Stock log helper
   const logStock = useCallback((entries) => {
