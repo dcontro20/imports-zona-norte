@@ -156,6 +156,8 @@ export default function App() {
   const fromFirestore = useRef({});
   // Track whether initial Firestore load is done
   const initialLoadDone = useRef({});
+  // CRITICAL: Block ALL writes to Firestore until initial load completes
+  const firestoreReady = useRef(false);
 
   // Subscribe to Firestore real-time updates (runs once on mount)
   useEffect(() => {
@@ -183,6 +185,8 @@ export default function App() {
         // Check if all initial loads are done
         if (keys.every(k => initialLoadDone.current[k.key])) {
           setDataReady(true);
+          // Allow writes to Firestore only AFTER we received all data
+          setTimeout(() => { firestoreReady.current = true; }, 2000);
         }
       });
     });
@@ -196,7 +200,10 @@ export default function App() {
     });
 
     // If Firestore takes too long (no data yet), show what we have from localStorage
-    const timeout = setTimeout(() => setDataReady(true), 3000);
+    const timeout = setTimeout(() => {
+      setDataReady(true);
+      firestoreReady.current = true;
+    }, 5000);
 
     return () => { unsubscribers.forEach(u => u()); unsubRate(); clearTimeout(timeout); };
   }, []);
@@ -204,9 +211,12 @@ export default function App() {
   // Save to localStorage + Firestore when state changes locally
   const smartSave = useCallback((key, data) => {
     try { localStorage.setItem(`vapestock_${key}`, JSON.stringify(data)); } catch {}
+    // NEVER write to Firestore if initial load hasn't completed
+    if (!firestoreReady.current) return;
+    // Don't write back data that came FROM Firestore
     if (fromFirestore.current[key]) {
       fromFirestore.current[key] = false;
-      return; // Data came from Firestore, don't write it back
+      return;
     }
     saveToFirestore(key, data);
   }, []);
