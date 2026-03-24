@@ -86,32 +86,32 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
-        <h2 style={{ color: "#e0e0ff", margin: 0, fontSize: 22 }}>Caja Multi-Moneda</h2>
+        <h2 style={{ color: "#1a1a2e", margin: 0, fontSize: 22 }}>Caja Multi-Moneda</h2>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ color: "#8888aa", fontSize: 13 }}>Blue:</span>
+          <span style={{ color: "#6b7280", fontSize: 13 }}>Blue:</span>
           <input type="number" value={exchangeRate} onChange={e => setExchangeRate(Number(e.target.value))}
-            style={{ width: 90, padding: "6px 10px", background: "#12122a", border: "1px solid #2a2a4a", borderRadius: 8, color: "#00b894", fontSize: 14, fontWeight: 700 }} />
+            style={{ width: 90, padding: "6px 10px", background: "#f7f8fa", border: "1px solid #e2e4e9", borderRadius: 8, color: "#00b894", fontSize: 14, fontWeight: 700 }} />
           <Btn onClick={() => setModal(true)} style={{ padding: "8px 14px" }}>💱 Movimiento</Btn>
         </div>
       </div>
 
       {/* Totals */}
-      <Card style={{ marginBottom: 14, background: "#0d0d1a", border: "1px solid #a855f733" }}>
+      <Card style={{ marginBottom: 14, background: "#f7f8fa", border: "1px solid #6366f133" }}>
         <div style={{ display: "flex", justifyContent: "space-around", flexWrap: "wrap", gap: 16, textAlign: "center" }}>
           <div>
-            <div style={{ color: "#6666aa", fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>Total Pesos</div>
-            <div style={{ color: "#a855f7", fontSize: 22, fontWeight: 800 }}>{formatMoney(totalARS)}</div>
+            <div style={{ color: "#6b7280", fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>Total Pesos</div>
+            <div style={{ color: "#6366f1", fontSize: 22, fontWeight: 800 }}>{formatMoney(totalARS)}</div>
           </div>
           <div>
-            <div style={{ color: "#6666aa", fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>Total USD</div>
+            <div style={{ color: "#6b7280", fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>Total USD</div>
             <div style={{ color: "#00cec9", fontSize: 22, fontWeight: 800 }}>{formatMoney(totalUSD, "USD")}</div>
           </div>
           <div>
-            <div style={{ color: "#6666aa", fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>Total USDT</div>
+            <div style={{ color: "#6b7280", fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>Total USDT</div>
             <div style={{ color: "#26de81", fontSize: 22, fontWeight: 800 }}>{formatMoney(totalUSDT, "USDT")}</div>
           </div>
           <div>
-            <div style={{ color: "#6666aa", fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>Todo en ARS</div>
+            <div style={{ color: "#6b7280", fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>Todo en ARS</div>
             <div style={{ color: "#fdcb6e", fontSize: 22, fontWeight: 800 }}>{formatMoney(totalARS + (totalUSD * exchangeRate) + (totalUSDT * exchangeRate))}</div>
           </div>
         </div>
@@ -126,12 +126,12 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
 
       {/* Recent movements */}
       <Card>
-        <h4 style={{ color: "#a855f7", margin: "0 0 14px", fontSize: 14, textTransform: "uppercase" }}>💱 Movimientos de caja</h4>
+        <h4 style={{ color: "#6366f1", margin: "0 0 14px", fontSize: 14, textTransform: "uppercase" }}>💱 Movimientos de caja</h4>
         <Table columns={[
           { key: "date", label: "Fecha", render: r => formatDate(r.date) },
           { key: "type", label: "Tipo", render: r => {
             const t = MOVEMENT_TYPES.find(mt => mt.value === r.type);
-            return <Badge color={r.type === "crypto_buy" ? "#26de81" : r.type === "deposit" ? "#00b894" : r.type === "withdrawal" ? "#e74c3c" : "#a855f7"}>{t?.label || r.type}</Badge>;
+            return <Badge color={r.type === "crypto_buy" ? "#26de81" : r.type === "deposit" ? "#00b894" : r.type === "withdrawal" ? "#e74c3c" : "#6366f1"}>{t?.label || r.type}</Badge>;
           }},
           { key: "from", label: "Desde", render: r => r.from ? getAccountLabel(r.from) : "—" },
           { key: "to", label: "Hacia", render: r => r.to ? getAccountLabel(r.to) : "—" },
