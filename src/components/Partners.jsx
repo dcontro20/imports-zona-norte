@@ -45,7 +45,7 @@ export const Partners = ({ partnerWithdrawals, setPartnerWithdrawals, sales, pur
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
         <h2 style={{ color: "#1a1a2e", margin: 0, fontSize: 22 }}>Socios — Diego & Gustavo</h2>
-        <Btn onClick={() => setModal(true)}>Registrar Retiro</Btn>
+        <Btn onClick={() => setModal(true)}>💸 Registrar Retiro</Btn>
       </div>
 
       {/* Profit overview */}
@@ -66,7 +66,7 @@ export const Partners = ({ partnerWithdrawals, setPartnerWithdrawals, sales, pur
         </div>
         <div style={{ borderTop: "1px solid #e2e4e9", paddingTop: 14, display: "flex", justifyContent: "space-around", flexWrap: "wrap", gap: 20, textAlign: "center" }}>
           <div style={{ flex: 1, minWidth: 200 }}>
-            <div style={{ color: "#6366f1", fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Diego (50%)</div>
+            <div style={{ color: "#6366f1", fontSize: 14, fontWeight: 700, marginBottom: 8 }}>💜 Diego (50%)</div>
             <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}>
               <span style={{ color: "#6b7280", fontSize: 13 }}>Le corresponde</span>
               <span style={{ color: "#1a1a2e", fontWeight: 600 }}>{formatMoney(halfProfit)}</span>
@@ -82,7 +82,7 @@ export const Partners = ({ partnerWithdrawals, setPartnerWithdrawals, sales, pur
           </div>
           <div style={{ width: 1, background: "#e2e4e9" }} />
           <div style={{ flex: 1, minWidth: 200 }}>
-            <div style={{ color: "#00b894", fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Gustavo (50%)</div>
+            <div style={{ color: "#00b894", fontSize: 14, fontWeight: 700, marginBottom: 8 }}>💙 Gustavo (50%)</div>
             <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}>
               <span style={{ color: "#6b7280", fontSize: 13 }}>Le corresponde</span>
               <span style={{ color: "#1a1a2e", fontWeight: 600 }}>{formatMoney(halfProfit)}</span>
@@ -111,13 +111,13 @@ export const Partners = ({ partnerWithdrawals, setPartnerWithdrawals, sales, pur
           { key: "actions", label: "", render: r => (
             confirmDel === r.id
               ? <button onClick={() => deleteW(r.id)} style={{ background: "#e74c3c22", border: "1px solid #e74c3c55", color: "#e74c3c", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Confirmar</button>
-              : <button onClick={() => deleteW(r.id)} style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontSize: 14 }}>Trash</button>
+              : <button onClick={() => deleteW(r.id)} style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontSize: 14 }}>🗑️</button>
           )},
         ]} data={partnerWithdrawals || []} emptyMsg="No hay retiros registrados" />
       </Card>
 
       {/* New withdrawal modal */}
-      <Modal open={modal} onClose={() => setModal(false)} title="Registrar Retiro de Socio">
+      <Modal open={modal} onClose={() => setModal(false)} title="💸 Registrar Retiro de Socio">
         <Input label="Fecha" type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
         <Select label="Socio" options={["Diego", "Gustavo"]} value={form.person} onChange={e => setForm(f => ({ ...f, person: e.target.value }))} />
         <div style={{ display: "flex", gap: 12 }}>
