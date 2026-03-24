@@ -39,8 +39,8 @@ export const Expenses = ({ expenses, setExpenses, currentUser }) => {
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
-        <h2 style={{ color: "#e0e0ff", margin: 0, fontSize: 22 }}>
-          Gastos <span style={{ fontSize: 14, color: "#6666aa" }}>— Este mes: {formatMoney(totalMonth)}</span>
+        <h2 style={{ color: "#1a1a2e", margin: 0, fontSize: 22 }}>
+          Gastos <span style={{ fontSize: 14, color: "#6b7280" }}>— Este mes: {formatMoney(totalMonth)}</span>
         </h2>
         <Btn onClick={openNew}>+ Nuevo Gasto</Btn>
       </div>
