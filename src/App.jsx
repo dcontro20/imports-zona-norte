@@ -30,27 +30,27 @@ const LoadingSpinner = () => (
 // MAIN APP
 // ============================================
 const NAV_ITEMS = [
-  { key: "dashboard", label: "Dashboard", icon: "ð" },
-  { key: "products", label: "Stock", icon: "ð¦" },
-  { key: "sales", label: "Ventas", icon: "ð" },
-  { key: "purchases", label: "Compras", icon: "ð" },
-  { key: "clients", label: "Clientes", icon: "ð¥" },
-  { key: "expenses", label: "Gastos", icon: "ð¸" },
-  { key: "withdrawals", label: "Mermas", icon: "ð" },
-  { key: "cash", label: "Caja", icon: "ð°" },
-  { key: "whatsapp", label: "WhatsApp", icon: "ð²" },
-  { key: "stocklog", label: "Historial", icon: "ð" },
-  { key: "pricelog", label: "Precios", icon: "ð²" },
-  { key: "partners", label: "Socios", icon: "ð¤" },
-  { key: "closures", label: "Cierres", icon: "ð" },
-  { key: "export", label: "Exportar", icon: "ð¥" },
-  { key: "reports", label: "Reportes", icon: "ð" },
+  { key: "dashboard", label: "Dashboard", icon: "📊" },
+  { key: "products", label: "Stock", icon: "📦" },
+  { key: "sales", label: "Ventas", icon: "🛒" },
+  { key: "purchases", label: "Compras", icon: "🚚" },
+  { key: "clients", label: "Clientes", icon: "👥" },
+  { key: "expenses", label: "Gastos", icon: "💸" },
+  { key: "withdrawals", label: "Mermas", icon: "📉" },
+  { key: "cash", label: "Caja", icon: "💰" },
+  { key: "whatsapp", label: "WhatsApp", icon: "📲" },
+  { key: "stocklog", label: "Historial", icon: "📋" },
+  { key: "pricelog", label: "Precios", icon: "💲" },
+  { key: "partners", label: "Socios", icon: "🤝" },
+  { key: "closures", label: "Cierres", icon: "📅" },
+  { key: "export", label: "Exportar", icon: "📥" },
+  { key: "reports", label: "Reportes", icon: "📈" },
 ];
 
 export default function App() {
   const USERS = [
-    { name: "Diego", password: "Poncharelo20!", color: "#6366f1", icon: "ð" },
-    { name: "Gustavo", password: "Gus2026!", color: "#10b981", icon: "ð" },
+    { name: "Diego", password: "Poncharelo20!", color: "#6366f1", icon: "💜" },
+    { name: "Gustavo", password: "Gus2026!", color: "#10b981", icon: "💙" },
   ];
 
   const [currentUser, setCurrentUser] = useState(() => {
@@ -83,15 +83,15 @@ export default function App() {
     return (
       <div style={{ minHeight: "100vh", background: "#e5e7eb", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Inter', 'Segoe UI', -apple-system, sans-serif" }}>
         <div style={{ background: "#fff", border: "1px solid #e2e4e9", borderRadius: 16, padding: "40px 32px", width: "100%", maxWidth: 360, textAlign: "center", boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
-          <span style={{ fontSize: 48 }}>ð¨</span>
+          <span style={{ fontSize: 48 }}>💨</span>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: "#1a1a2e", margin: "12px 0 6px" }}>IMPORTS ZONA NORTE</h1>
-          <p style={{ color: "#9ca3af", fontSize: 13, marginBottom: 24 }}>Sistema de GestiÃ³n</p>
+          <p style={{ color: "#9ca3af", fontSize: 13, marginBottom: 24 }}>Sistema de Gestión</p>
           <input
             type="password"
             value={loginPass}
             onChange={e => setLoginPass(e.target.value)}
             onKeyDown={e => e.key === "Enter" && handleLogin()}
-            placeholder="ContraseÃ±a"
+            placeholder="Contraseña"
             style={{
               width: "100%", padding: "14px 18px", background: "#f7f8fa",
               border: `1px solid ${loginError ? "#ef4444" : "#e2e4e9"}`,
@@ -106,7 +106,7 @@ export default function App() {
             border: "none", borderRadius: 10, color: "#fff", fontSize: 16, fontWeight: 700,
             cursor: "pointer"
           }}>Entrar</button>
-          {loginError && <p style={{ color: "#ef4444", fontSize: 13, marginTop: 10 }}>ContraseÃ±a incorrecta</p>}
+          {loginError && <p style={{ color: "#ef4444", fontSize: 13, marginTop: 10 }}>Contraseña incorrecta</p>}
         </div>
       </div>
     );
@@ -143,7 +143,7 @@ export default function App() {
           setRateAutoLoaded(true);
         }
       } catch (e) {
-        console.log("No se pudo obtener cotizaciÃ³n automÃ¡tica, usando valor manual");
+        console.log("No se pudo obtener cotización automática, usando valor manual");
       }
     };
     fetchBlue();
@@ -157,7 +157,7 @@ export default function App() {
   // Track whether initial Firestore load is done per key
   const initialLoadDone = useRef({});
   // CRITICAL: Block ALL writes to Firestore until initial load completes
-  // Unlike before, this is NEVER set to true by a timeout â only by actual Firebase data
+  // Unlike before, this is NEVER set to true by a timeout — only by actual Firebase data
   const firestoreReady = useRef(false);
   // Track sync status for UI indicator
   const [syncStatus, setSyncStatus] = useState("syncing"); // "syncing" | "online" | "offline"
@@ -180,7 +180,7 @@ export default function App() {
 
     const unsubscribers = keys.map(({ key, setter }) => {
       return subscribeToFirestore(key, (data) => {
-        // Always accept Firestore data â it's the source of truth
+        // Always accept Firestore data — it's the source of truth
         try { localStorage.setItem(`vapestock_${key}`, JSON.stringify(data)); } catch {}
         fromFirestore.current[key] = true;
         setter(data);
@@ -211,7 +211,7 @@ export default function App() {
       if (!firestoreReady.current) {
         setDataReady(true); // Let user see cached data (read-only effectively)
         setSyncStatus("offline");
-        console.warn("[SYNC] Firebase no respondiÃ³ en 8s. Datos visibles son de cachÃ©. Escrituras bloqueadas hasta sincronizar.");
+        console.warn("[SYNC] Firebase no respondió en 8s. Datos visibles son de caché. Escrituras bloqueadas hasta sincronizar.");
       }
     }, 8000);
 
@@ -261,25 +261,25 @@ export default function App() {
     
     // Search products
     products.filter(p => `${p.brand} ${p.model} ${p.flavor}`.toLowerCase().includes(q)).slice(0, 5)
-      .forEach(p => results.push({ type: "product", icon: "ð¦", label: `${p.brand} ${p.model} - ${p.flavor}`, sub: `Stock: ${p.stock} Â· ${p.puffs}p`, page: "products" }));
+      .forEach(p => results.push({ type: "product", icon: "📦", label: `${p.brand} ${p.model} - ${p.flavor}`, sub: `Stock: ${p.stock} · ${p.puffs}p`, page: "products" }));
     
     // Search sales
     sales.filter(s => {
       const items = (s.items || []).map(i => { const p = products.find(pr => pr.id === i.productId); return p ? `${p.brand} ${p.model} ${p.flavor}` : ""; }).join(" ");
       return items.toLowerCase().includes(q) || (s.clientName || "").toLowerCase().includes(q);
-    }).slice(0, 5).forEach(s => results.push({ type: "sale", icon: "ð", label: `Venta ${s.clientName || ""}`, sub: `${formatDate(s.date)} Â· ${formatMoney(s.total, s.currency)}`, page: "sales" }));
+    }).slice(0, 5).forEach(s => results.push({ type: "sale", icon: "🛒", label: `Venta ${s.clientName || ""}`, sub: `${formatDate(s.date)} · ${formatMoney(s.total, s.currency)}`, page: "sales" }));
     
     // Search clients
     (clients || []).filter(c => `${c.name} ${c.phone} ${c.instagram}`.toLowerCase().includes(q)).slice(0, 3)
-      .forEach(c => results.push({ type: "client", icon: "ð¥", label: c.name, sub: c.phone || c.instagram || "", page: "clients" }));
+      .forEach(c => results.push({ type: "client", icon: "👥", label: c.name, sub: c.phone || c.instagram || "", page: "clients" }));
     
     // Search purchases
     purchases.filter(p => (p.supplier || "").toLowerCase().includes(q)).slice(0, 3)
-      .forEach(p => results.push({ type: "purchase", icon: "ð", label: `Pedido - ${p.supplier}`, sub: `${formatDate(p.date)} Â· ${p.status}`, page: "purchases" }));
+      .forEach(p => results.push({ type: "purchase", icon: "🚚", label: `Pedido - ${p.supplier}`, sub: `${formatDate(p.date)} · ${p.status}`, page: "purchases" }));
     
     // Search expenses
     expenses.filter(e => `${e.category} ${e.description}`.toLowerCase().includes(q)).slice(0, 3)
-      .forEach(e => results.push({ type: "expense", icon: "ð¸", label: `${e.category}`, sub: `${formatDate(e.date)} Â· ${formatMoney(e.amountARS)}`, page: "expenses" }));
+      .forEach(e => results.push({ type: "expense", icon: "💸", label: `${e.category}`, sub: `${formatDate(e.date)} · ${formatMoney(e.amountARS)}`, page: "expenses" }));
 
     return results;
   }, [globalSearch, products, sales, clients, purchases, expenses]);
@@ -326,9 +326,9 @@ export default function App() {
           <button onClick={() => setMenuOpen(!menuOpen)} style={{
             background: "none", border: "none", color: "#6366f1", fontSize: 22, cursor: "pointer",
             display: "none", ...(window.innerWidth < 768 ? { display: "block" } : {})
-          }}>â°</button>
+          }}>☰</button>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 22 }}>ð¨</span>
+            <span style={{ fontSize: 22 }}>💨</span>
             <span style={{ fontSize: 18, fontWeight: 800, color: "#1a1a2e", letterSpacing: "-0.3px" }}>IMPORTS ZONA NORTE</span>
           </div>
         </div>
@@ -339,7 +339,7 @@ export default function App() {
               onFocus={() => setShowGlobalResults(true)}
               placeholder="Buscar..."
               style={{ padding: "7px 14px 7px 32px", background: "#f7f8fa", border: "1px solid #e2e4e9", borderRadius: 8, color: "#1a1a2e", fontSize: 13, width: 180, outline: "none" }} />
-            <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "#9ca3af", pointerEvents: "none" }}>ð</span>
+            <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "#9ca3af", pointerEvents: "none" }}>🔍</span>
             {showGlobalResults && globalResults.length > 0 && (
               <div style={{
                 position: "absolute", top: "100%", right: 0, marginTop: 6, background: "#fff",
@@ -390,7 +390,7 @@ export default function App() {
           <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#f7f8fa", border: "1px solid #e2e4e9", borderRadius: 8, padding: "5px 12px" }}>
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: currentUser.color, display: "inline-block" }} />
             <span style={{ color: "#1a1a2e", fontSize: 13, fontWeight: 600 }}>{currentUser.name}</span>
-            <button onClick={handleLogout} style={{ background: "none", border: "none", color: "#9ca3af", cursor: "pointer", fontSize: 12, marginLeft: 4 }} title="Cerrar sesiÃ³n">â</button>
+            <button onClick={handleLogout} style={{ background: "none", border: "none", color: "#9ca3af", cursor: "pointer", fontSize: 12, marginLeft: 4 }} title="Cerrar sesión">✕</button>
           </div>
         </div>
       </div>
@@ -424,8 +424,8 @@ export default function App() {
         <main style={{ flex: 1, padding: "24px", maxWidth: 1100 }} onClick={() => setShowGlobalResults(false)}>
           {syncStatus === "offline" && (
             <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#dc2626" }}>
-              <span>â ï¸</span>
-              <span>Sin conexiÃ³n a Firebase. EstÃ¡s viendo datos de cachÃ©. Los cambios que hagas <b>no se guardarÃ¡n</b> hasta que se restablezca la conexiÃ³n.</span>
+              <span>⚠️</span>
+              <span>Sin conexión a Firebase. Estás viendo datos de caché. Los cambios que hagas <b>no se guardarán</b> hasta que se restablezca la conexión.</span>
             </div>
           )}
           <Suspense fallback={<LoadingSpinner />}>
