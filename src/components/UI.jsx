@@ -4,18 +4,18 @@ export const Modal = ({ open, onClose, title, children }) => {
   if (!open) return null;
   return (
     <div style={{
-      position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex",
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.3)", display: "flex",
       alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "16px",
       backdropFilter: "blur(4px)"
     }} onClick={onClose}>
       <div style={{
-        background: "#1a1a2e", borderRadius: 16, padding: "24px", maxWidth: 520,
-        width: "100%", maxHeight: "85vh", overflowY: "auto", border: "1px solid #2a2a4a",
-        boxShadow: "0 24px 48px rgba(0,0,0,0.4)"
+        background: "#fff", borderRadius: 16, padding: "24px", maxWidth: 520,
+        width: "100%", maxHeight: "85vh", overflowY: "auto", border: "1px solid #e2e4e9",
+        boxShadow: "0 24px 48px rgba(0,0,0,0.12)"
       }} onClick={e => e.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <h3 style={{ margin: 0, color: "#e0e0ff", fontSize: 18, fontWeight: 700 }}>{title}</h3>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#888", fontSize: 22, cursor: "pointer" }}>✕</button>
+          <h3 style={{ margin: 0, color: "#1a1a2e", fontSize: 18, fontWeight: 700 }}>{title}</h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#9ca3af", fontSize: 22, cursor: "pointer" }}>â</button>
         </div>
         {children}
       </div>
@@ -25,17 +25,17 @@ export const Modal = ({ open, onClose, title, children }) => {
 
 export const Card = ({ children, style }) => (
   <div style={{
-    background: "#1a1a2e", borderRadius: 14, padding: "20px", border: "1px solid #2a2a4a",
+    background: "#fff", borderRadius: 14, padding: "20px", border: "1px solid #e2e4e9",
     ...style
   }}>{children}</div>
 );
 
 export const Btn = ({ children, variant = "primary", ...props }) => {
   const styles = {
-    primary: { background: "linear-gradient(135deg, #6c5ce7, #a855f7)", color: "#fff" },
-    secondary: { background: "#2a2a4a", color: "#c0c0e0" },
-    danger: { background: "#e74c3c33", color: "#e74c3c", border: "1px solid #e74c3c55" },
-    success: { background: "#00b89433", color: "#00b894", border: "1px solid #00b89455" },
+    primary: { background: "#6366f1", color: "#fff" },
+    secondary: { background: "#f0f1f5", color: "#4b5563" },
+    danger: { background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca" },
+    success: { background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0" },
   };
   return (
     <button {...props} style={{
@@ -47,10 +47,10 @@ export const Btn = ({ children, variant = "primary", ...props }) => {
 
 export const Input = ({ label, ...props }) => (
   <div style={{ marginBottom: 14 }}>
-    {label && <label style={{ display: "block", fontSize: 12, color: "#8888aa", marginBottom: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</label>}
+    {label && <label style={{ display: "block", fontSize: 12, color: "#6b7280", marginBottom: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</label>}
     <input {...props} style={{
-      width: "100%", padding: "10px 12px", background: "#12122a", border: "1px solid #2a2a4a",
-      borderRadius: 8, color: "#e0e0ff", fontSize: 14, outline: "none", boxSizing: "border-box",
+      width: "100%", padding: "10px 12px", background: "#f7f8fa", border: "1px solid #e2e4e9",
+      borderRadius: 8, color: "#1a1a2e", fontSize: 14, outline: "none", boxSizing: "border-box",
       ...props.style
     }} />
   </div>
@@ -58,10 +58,10 @@ export const Input = ({ label, ...props }) => (
 
 export const Select = ({ label, options, ...props }) => (
   <div style={{ marginBottom: 14 }}>
-    {label && <label style={{ display: "block", fontSize: 12, color: "#8888aa", marginBottom: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</label>}
+    {label && <label style={{ display: "block", fontSize: 12, color: "#6b7280", marginBottom: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</label>}
     <select {...props} style={{
-      width: "100%", padding: "10px 12px", background: "#12122a", border: "1px solid #2a2a4a",
-      borderRadius: 8, color: "#e0e0ff", fontSize: 14, outline: "none", boxSizing: "border-box"
+      width: "100%", padding: "10px 12px", background: "#f7f8fa", border: "1px solid #e2e4e9",
+      borderRadius: 8, color: "#1a1a2e", fontSize: 14, outline: "none", boxSizing: "border-box"
     }}>
       <option value="">Seleccionar...</option>
       {options.map(o => <option key={typeof o === "string" ? o : o.value} value={typeof o === "string" ? o : o.value}>
@@ -78,8 +78,8 @@ export const Table = ({ columns, data, onRowClick, emptyMsg = "Sin datos" }) => 
         <tr>
           {columns.map(c => (
             <th key={c.key} style={{
-              textAlign: "left", padding: "10px 12px", fontSize: 11, color: "#6666aa",
-              textTransform: "uppercase", letterSpacing: 0.5, borderBottom: "1px solid #2a2a4a",
+              textAlign: "left", padding: "10px 12px", fontSize: 11, color: "#6b7280",
+              textTransform: "uppercase", letterSpacing: 0.5, borderBottom: "1px solid #e2e4e9",
               fontWeight: 700
             }}>{c.label}</th>
           ))}
@@ -87,14 +87,14 @@ export const Table = ({ columns, data, onRowClick, emptyMsg = "Sin datos" }) => 
       </thead>
       <tbody>
         {data.length === 0 ? (
-          <tr><td colSpan={columns.length} style={{ padding: 32, textAlign: "center", color: "#555" }}>{emptyMsg}</td></tr>
+          <tr><td colSpan={columns.length} style={{ padding: 32, textAlign: "center", color: "#9ca3af" }}>{emptyMsg}</td></tr>
         ) : data.map((row, i) => (
           <tr key={row.id || i} onClick={() => onRowClick?.(row)} style={{
             cursor: onRowClick ? "pointer" : "default", transition: "background 0.15s"
-          }} onMouseEnter={e => e.currentTarget.style.background = "#1f1f3a"}
+          }} onMouseEnter={e => e.currentTarget.style.background = "#f7f8fa"}
              onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
             {columns.map(c => (
-              <td key={c.key} style={{ padding: "10px 12px", fontSize: 13, color: "#c0c0e0", borderBottom: "1px solid #1a1a30" }}>
+              <td key={c.key} style={{ padding: "10px 12px", fontSize: 13, color: "#4b5563", borderBottom: "1px solid #edf0f2" }}>
                 {c.render ? c.render(row) : row[c.key]}
               </td>
             ))}
@@ -109,9 +109,9 @@ export const StatCard = ({ label, value, sub, color = "#a855f7", icon }) => (
   <Card style={{ flex: 1, minWidth: 150 }}>
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
       <div>
-        <div style={{ fontSize: 12, color: "#8888aa", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>{label}</div>
+        <div style={{ fontSize: 12, color: "#6b7280", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>{label}</div>
         <div style={{ fontSize: 26, fontWeight: 800, color, lineHeight: 1 }}>{value}</div>
-        {sub && <div style={{ fontSize: 12, color: "#6666aa", marginTop: 6 }}>{sub}</div>}
+        {sub && <div style={{ fontSize: 12, color: "#6b7280", marginTop: 6 }}>{sub}</div>}
       </div>
       {icon && <div style={{ fontSize: 28, opacity: 0.5 }}>{icon}</div>}
     </div>
@@ -127,8 +127,8 @@ export const Badge = ({ children, color = "#a855f7" }) => (
 
 export const SearchBar = ({ value, onChange, placeholder = "Buscar..." }) => (
   <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={{
-    padding: "10px 16px", background: "#12122a", border: "1px solid #2a2a4a", borderRadius: 10,
-    color: "#e0e0ff", fontSize: 14, outline: "none", width: "100%", maxWidth: 300, boxSizing: "border-box"
+    padding: "10px 16px", background: "#f7f8fa", border: "1px solid #e2e4e9", borderRadius: 10,
+    color: "#1a1a2e", fontSize: 14, outline: "none", width: "100%", maxWidth: 300, boxSizing: "border-box"
   }} />
 );
 
