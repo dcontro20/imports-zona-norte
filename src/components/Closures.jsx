@@ -35,8 +35,7 @@ export const MonthlyClosures = ({ monthlyClosures, setMonthlyClosures, sales, pu
     const totalExpensesARS = monthExpenses.reduce((s, e) => s + (e.amountARS || 0), 0);
     const totalConsumo = monthWithdrawals.reduce((s, w) => s + w.qty, 0);
     const totalConsumoUSD = monthWithdrawals.reduce((s, w) => s + (w.costEstimateUSD || 0), 0);
-    const stockTotal = products.reduce((s, p) => s + (p.stock || 0), 0);
-    const stockValue = products.reduce((s, p) => s + (p.stock || 0) * (p.priceUSD || 0), 0);
+    const stockTotal = products.reduce((s, p) => s + (p.stock || 0), 0);  const stockValue = products.reduce((s, p) => s + (p.stock || 0) * (p.priceUSD || 0), 0);
 
     return {
       totalSalesCount, totalUnits, totalRevenue, totalDiscounts, totalExtras,
@@ -70,22 +69,22 @@ export const MonthlyClosures = ({ monthlyClosures, setMonthlyClosures, sales, pu
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
         <div>
           <h2 style={{ color: "#1a1a2e", margin: 0, fontSize: 22 }}>Cierres Mensuales</h2>
-          <span style={{ color: "#6b7280", fontSize: 13 }}>Foto financiera de cada mes para comparar evoluciÃ³n</span>
+          <span style={{ color: "#6b7280", fontSize: 13 }}>Foto financiera de cada mes para comparar evolución</span>
         </div>
         {!alreadyClosed ? (
-          <Btn onClick={() => setShowConfirm(true)}>ð Cerrar {currentMonthLabel}</Btn>
+          <Btn onClick={() => setShowConfirm(true)}>📅 Cerrar {currentMonthLabel}</Btn>
         ) : (
-          <Badge color="#00b894">â {currentMonthLabel} cerrado</Badge>
+          <Badge color="#00b894">✅ {currentMonthLabel} cerrado</Badge>
         )}
       </div>
 
       {/* Confirm closure */}
       {showConfirm && (
         <Card style={{ marginBottom: 14, background: "#f7f8fa", border: "1px solid #6366f144" }}>
-          <h4 style={{ color: "#6366f1", margin: "0 0 10px", fontSize: 14 }}>Â¿Cerrar {currentMonthLabel}?</h4>
-          <span style={{ color: "#6b7280", fontSize: 13 }}>Se va a guardar una foto con todos los nÃºmeros del mes. PodÃ©s seguir registrando ventas normalmente despuÃ©s del cierre.</span>
+          <h4 style={{ color: "#6366f1", margin: "0 0 10px", fontSize: 14 }}>¿Cerrar {currentMonthLabel}?</h4>
+          <span style={{ color: "#6b7280", fontSize: 13 }}>Se va a guardar una foto con todos los números del mes. Podés seguir registrando ventas normalmente después del cierre.</span>
           <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
-            <Btn variant="success" onClick={closeCurrent}>â Confirmar cierre</Btn>
+            <Btn variant="success" onClick={closeCurrent}>✅ Confirmar cierre</Btn>
             <Btn variant="secondary" onClick={() => setShowConfirm(false)}>Cancelar</Btn>
           </div>
         </Card>
@@ -93,12 +92,12 @@ export const MonthlyClosures = ({ monthlyClosures, setMonthlyClosures, sales, pu
 
       {/* Current month preview */}
       <Card style={{ marginBottom: 14 }}>
-        <h4 style={{ color: "#fdcb6e", margin: "0 0 14px", fontSize: 14, textTransform: "uppercase" }}>ð {currentMonthLabel} (en curso)</h4>
+        <h4 style={{ color: "#fdcb6e", margin: "0 0 14px", fontSize: 14, textTransform: "uppercase" }}>📊 {currentMonthLabel} (en curso)</h4>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 12 }}>
           <div><span style={{ color: "#6b7280", fontSize: 11 }}>Ventas</span><div style={{ color: "#00b894", fontSize: 18, fontWeight: 700 }}>{preview.totalSalesCount}</div><span style={{ color: "#9ca3af", fontSize: 11 }}>{preview.totalUnits} uds</span></div>
           <div><span style={{ color: "#6b7280", fontSize: 11 }}>Ingresos</span><div style={{ color: "#00b894", fontSize: 18, fontWeight: 700 }}>{formatMoney(preview.totalRevenue)}</div></div>
           <div><span style={{ color: "#6b7280", fontSize: 11 }}>Compras (USDT)</span><div style={{ color: "#6366f1", fontSize: 18, fontWeight: 700 }}>{formatMoney(preview.totalCostUSDT, "USDT")}</div><span style={{ color: "#9ca3af", fontSize: 11 }}>{preview.purchasesCount} pedidos</span></div>
-          <div><span style={{ color: "#6b7280", fontSize: 11 }}>Pasero + EnvÃ­o</span><div style={{ color: "#fdcb6e", fontSize: 18, fontWeight: 700 }}>{formatMoney(preview.totalPasero + preview.totalEnvio)}</div></div>
+          <div><span style={{ color: "#6b7280", fontSize: 11 }}>Pasero + Envío</span><div style={{ color: "#fdcb6e", fontSize: 18, fontWeight: 700 }}>{formatMoney(preview.totalPasero + preview.totalEnvio)}</div></div>
           <div><span style={{ color: "#6b7280", fontSize: 11 }}>Gastos</span><div style={{ color: "#e74c3c", fontSize: 18, fontWeight: 700 }}>{formatMoney(preview.totalExpensesARS)}</div><span style={{ color: "#9ca3af", fontSize: 11 }}>{preview.expensesCount} registros</span></div>
           <div><span style={{ color: "#6b7280", fontSize: 11 }}>Descuentos</span><div style={{ color: "#fdcb6e", fontSize: 18, fontWeight: 700 }}>{formatMoney(preview.totalDiscounts)}</div></div>
           <div><span style={{ color: "#6b7280", fontSize: 11 }}>Extras</span><div style={{ color: "#00b894", fontSize: 18, fontWeight: 700 }}>{formatMoney(preview.totalExtras)}</div></div>
@@ -115,7 +114,7 @@ export const MonthlyClosures = ({ monthlyClosures, setMonthlyClosures, sales, pu
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr>
-                  {["Mes", "Ventas", "Uds", "Ingresos", "Compras USDT", "Pasero+EnvÃ­o", "Gastos", "Descuentos", "Merma", "Stock", "Blue", ""].map(h => (
+                  {["Mes", "Ventas", "Uds", "Ingresos", "Compras USDT", "Pasero+Envío", "Gastos", "Descuentos", "Merma", "Stock", "Blue", ""].map(h => (
                     <th key={h} style={{ textAlign: "left", padding: "8px 10px", fontSize: 10, color: "#6b7280", textTransform: "uppercase", borderBottom: "1px solid #e2e4e9", fontWeight: 700 }}>{h}</th>
                   ))}
                 </tr>
@@ -135,7 +134,7 @@ export const MonthlyClosures = ({ monthlyClosures, setMonthlyClosures, sales, pu
                     <td style={{ padding: "8px 10px", fontSize: 13, color: "#6366f1", borderBottom: "1px solid #edf0f2" }}>{c.stockTotal} uds</td>
                     <td style={{ padding: "8px 10px", fontSize: 13, color: "#00b894", borderBottom: "1px solid #edf0f2" }}>${c.exchangeRate}</td>
                     <td style={{ padding: "8px 10px", borderBottom: "1px solid #edf0f2" }}>
-                      <button onClick={() => deleteClosure(c.id)} style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontSize: 14 }}>ðï¸</button>
+                      <button onClick={() => deleteClosure(c.id)} style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontSize: 14 }}>🗑️</button>
                     </td>
                   </tr>
                 ))}
