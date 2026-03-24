@@ -179,12 +179,12 @@ export const Sales = ({ sales, setSales, products, setProducts, logStock, exchan
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h2 style={{ color: "#e0e0ff", margin: 0, fontSize: 22 }}>Ventas ({filtered.length}{filtered.length !== sales.length ? `/${sales.length}` : ""})</h2>
-          {filtered.length > 0 && <span style={{ color: "#6666aa", fontSize: 13 }}>Total filtrado: {formatMoney(filteredRevenue)}</span>}
+          <h2 style={{ color: "#1a1a2e", margin: 0, fontSize: 22 }}>Ventas ({filtered.length}{filtered.length !== sales.length ? `/${sales.length}` : ""})</h2>
+          {filtered.length > 0 && <span style={{ color: "#6b7280", fontSize: 13 }}>Total filtrado: {formatMoney(filteredRevenue)}</span>}
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <SearchBar value={search} onChange={setSearch} placeholder="Buscar producto o cliente..." />
-          <Btn variant="secondary" onClick={() => setShowFilters(!showFilters)} style={{ padding: "10px 14px", border: hasActiveFilters ? "1px solid #a855f7" : undefined }}>
+          <Btn variant="secondary" onClick={() => setShowFilters(!showFilters)} style={{ padding: "10px 14px", border: hasActiveFilters ? "1px solid #6366f1" : undefined }}>
             🔍 Filtros {hasActiveFilters ? "●" : ""}
           </Btn>
           <Btn onClick={openNew}>+ Nueva Venta</Btn>
@@ -193,7 +193,7 @@ export const Sales = ({ sales, setSales, products, setProducts, logStock, exchan
 
       {/* Filter bar */}
       {showFilters && (
-        <Card style={{ marginBottom: 14, background: "#12122a", border: "1px solid #2a2a4a" }}>
+        <Card style={{ marginBottom: 14, background: "#f7f8fa", border: "1px solid #e2e4e9" }}>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
             <div style={{ flex: 1, minWidth: 130 }}>
               <Input label="Desde" type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} />
@@ -217,7 +217,7 @@ export const Sales = ({ sales, setSales, products, setProducts, logStock, exchan
       )}
 
       {totalDiscountsMonth > 0 && (
-        <Card style={{ marginBottom: 14, background: "#1a1a2e", borderColor: "#fdcb6e33" }}>
+        <Card style={{ marginBottom: 14, background: "#fff", borderColor: "#fdcb6e33" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ fontSize: 20 }}>🏷️</span>
             <span style={{ color: "#fdcb6e", fontSize: 13 }}>Descuentos otorgados este mes: <strong>{formatMoney(totalDiscountsMonth)}</strong></span>
@@ -238,12 +238,12 @@ export const Sales = ({ sales, setSales, products, setProducts, logStock, exchan
             { key: "payment", label: "Pago", render: r => r.paymentMethod + (r.mpAccount ? ` (${r.mpAccount})` : "") },
             { key: "discount", label: "Desc.", render: r => (r.discountAmount || 0) > 0
               ? <Badge color="#fdcb6e">-{formatMoney(r.discountAmount, r.currency)}</Badge>
-              : <span style={{ color: "#444" }}>—</span>
+              : <span style={{ color: "#9ca3af" }}>—</span>
             },
             { key: "total", label: "Total", render: r => formatMoney(r.total, r.currency) },
             { key: "actions", label: "", render: r => (
               <div style={{ display: "flex", gap: 6 }}>
-                <button onClick={(e) => { e.stopPropagation(); openEdit(r); }} style={{ background: "none", border: "none", color: "#a855f7", cursor: "pointer", fontSize: 16 }} title="Editar">✏️</button>
+                <button onClick={(e) => { e.stopPropagation(); openEdit(r); }} style={{ background: "none", border: "none", color: "#6366f1", cursor: "pointer", fontSize: 16 }} title="Editar">✏️</button>
                 {confirmDeleteSale === r.id
                 ? <button onClick={(e) => { e.stopPropagation(); deleteSale(r); }} style={{ background: "#e74c3c22", border: "1px solid #e74c3c55", color: "#e74c3c", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Confirmar</button>
                 : <button onClick={(e) => { e.stopPropagation(); deleteSale(r); }} style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontSize: 16 }} title="Eliminar">🗑️</button>
@@ -259,7 +259,7 @@ export const Sales = ({ sales, setSales, products, setProducts, logStock, exchan
       <Modal open={modal} onClose={() => { setModal(false); setEditing(null); }} title={editing ? "Editar Venta" : "Nueva Venta"}>
         <Input label="Fecha" type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
         
-        <label style={{ display: "block", fontSize: 12, color: "#8888aa", marginBottom: 8, fontWeight: 600, textTransform: "uppercase" }}>Productos</label>
+        <label style={{ display: "block", fontSize: 12, color: "#6b7280", marginBottom: 8, fontWeight: 600, textTransform: "uppercase" }}>Productos</label>
         {form.items.map((item, i) => (
           <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "flex-end" }}>
             <div style={{ flex: 2 }}>
@@ -272,7 +272,7 @@ export const Sales = ({ sales, setSales, products, setProducts, logStock, exchan
             {form.items.length > 1 && <button onClick={() => removeItem(i)} style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontSize: 18, marginBottom: 14 }}>✕</button>}
           </div>
         ))}
-        <button onClick={addItem} style={{ background: "none", border: "1px dashed #2a2a4a", color: "#a855f7", padding: "6px 14px", borderRadius: 8, cursor: "pointer", fontSize: 12, marginBottom: 14 }}>+ Agregar producto</button>
+        <button onClick={addItem} style={{ background: "none", border: "1px dashed #e2e4e9", color: "#6366f1", padding: "6px 14px", borderRadius: 8, cursor: "pointer", fontSize: 12, marginBottom: 14 }}>+ Agregar producto</button>
 
         {autoVolume && (
           <div style={{
@@ -302,10 +302,10 @@ export const Sales = ({ sales, setSales, products, setProducts, logStock, exchan
 
         {/* DISCOUNT SECTION */}
         <div style={{
-          background: "#12122a", border: "1px solid #2a2a4a", borderRadius: 10, padding: 14, marginBottom: 14
+          background: "#f7f8fa", border: "1px solid #e2e4e9", borderRadius: 10, padding: 14, marginBottom: 14
         }}>
           <label style={{ display: "block", fontSize: 12, color: "#fdcb6e", marginBottom: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>🏷️ Descuento</label>
-          
+
           <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
             {[
               { value: "none", label: "Sin descuento" },
@@ -316,9 +316,9 @@ export const Sales = ({ sales, setSales, products, setProducts, logStock, exchan
               <button key={opt.value} onClick={() => setForm(f => ({ ...f, discountType: opt.value, discountValue: opt.value === "none" ? "" : f.discountValue }))}
                 style={{
                   padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                  border: `1px solid ${form.discountType === opt.value ? "#fdcb6e" : "#2a2a4a"}`,
+                  border: `1px solid ${form.discountType === opt.value ? "#fdcb6e" : "#e2e4e9"}`,
                   background: form.discountType === opt.value ? "#fdcb6e22" : "transparent",
-                  color: form.discountType === opt.value ? "#fdcb6e" : "#6666aa"
+                  color: form.discountType === opt.value ? "#fdcb6e" : "#6b7280"
                 }}>{opt.label}</button>
             ))}
           </div>
@@ -348,7 +348,7 @@ export const Sales = ({ sales, setSales, products, setProducts, logStock, exchan
 
         {/* EXTRAS SECTION */}
         <div style={{
-          background: "#12122a", border: "1px solid #2a2a4a", borderRadius: 10, padding: 14, marginBottom: 14
+          background: "#f7f8fa", border: "1px solid #e2e4e9", borderRadius: 10, padding: 14, marginBottom: 14
         }}>
           <label style={{ display: "block", fontSize: 12, color: "#00b894", marginBottom: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>➕ Extras</label>
           {(form.extras || []).map((extra, i) => (
@@ -371,12 +371,12 @@ export const Sales = ({ sales, setSales, products, setProducts, logStock, exchan
 
         {/* TOTALS */}
         <div style={{
-          background: "#0d0d1a", borderRadius: 10, padding: 14, marginBottom: 14,
-          border: "1px solid #2a2a4a"
+          background: "#f7f8fa", borderRadius: 10, padding: 14, marginBottom: 14,
+          border: "1px solid #e2e4e9"
         }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-            <span style={{ color: "#6666aa", fontSize: 13 }}>Subtotal</span>
-            <span style={{ color: "#c0c0e0", fontSize: 14 }}>{formatMoney(subtotal, form.currency)}</span>
+            <span style={{ color: "#6b7280", fontSize: 13 }}>Subtotal</span>
+            <span style={{ color: "#4b5563", fontSize: 14 }}>{formatMoney(subtotal, form.currency)}</span>
           </div>
           {discountAmount > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
@@ -390,8 +390,8 @@ export const Sales = ({ sales, setSales, products, setProducts, logStock, exchan
               <span style={{ color: "#00b894", fontSize: 14 }}>+{formatMoney(extrasTotal, form.currency)}</span>
             </div>
           )}
-          <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #2a2a4a", paddingTop: 8 }}>
-            <span style={{ color: "#e0e0ff", fontSize: 15, fontWeight: 700 }}>Total</span>
+          <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #e2e4e9", paddingTop: 8 }}>
+            <span style={{ color: "#1a1a2e", fontSize: 15, fontWeight: 700 }}>Total</span>
             <span style={{ color: "#00b894", fontSize: 18, fontWeight: 800 }}>{formatMoney(finalTotal, form.currency)}</span>
           </div>
         </div>
