@@ -154,10 +154,13 @@ export default function App() {
   // ---- FIREBASE SYNC SYSTEM ----
   // Track whether a state update came from Firestore (to avoid writing it back)
   const fromFirestore = useRef({});
-  // Track whether initial Firestore load is done
+  // Track whether initial Firestore load is done per key
   const initialLoadDone = useRef({});
   // CRITICAL: Block ALL writes to Firestore until initial load completes
+  // Unlike before, this is NEVER set to true by a timeout — only by actual Firebase data
   const firestoreReady = useRef(false);
+  // Track sync status for UI indicator
+  const [syncStatus, setSyncStatus] = useState("syncing"); // "syncing" | "online" | "offline"
 
   // Subscribe to Firestore real-time updates (runs once on mount)
   useEffect(() => {
@@ -185,7 +188,9 @@ export default function App() {
         // Check if all initial loads are done
         if (keys.every(k => initialLoadDone.current[k.key])) {
           setDataReady(true);
+          setSyncStatus("online");
           // Allow writes to Firestore only AFTER we received all data
+          // Small delay to let React finish processing all state updates
           setTimeout(() => { firestoreReady.current = true; }, 2000);
         }
       });
@@ -199,11 +204,16 @@ export default function App() {
       }
     });
 
-    // If Firestore takes too long (no data yet), show what we have from localStorage
+    // If Firestore takes too long, show localStorage data for READING ONLY
+    // CRITICAL FIX: Do NOT set firestoreReady=true on timeout!
+    // This prevents stale localStorage data from overwriting Firebase
     const timeout = setTimeout(() => {
-      setDataReady(true);
-      firestoreReady.current = true;
-    }, 5000);
+      if (!firestoreReady.current) {
+        setDataReady(true); // Let user see cached data (read-only effectively)
+        setSyncStatus("offline");
+        console.warn("[SYNC] Firebase no respondió en 8s. Datos visibles son de caché. Escrituras bloqueadas hasta sincronizar.");
+      }
+    }, 8000);
 
     return () => { unsubscribers.forEach(u => u()); unsubRate(); clearTimeout(timeout); };
   }, []);
@@ -360,6 +370,13 @@ export default function App() {
               }}>Sin resultados</div>
             )}
           </div>
+          {/* Sync status indicator */}
+          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: syncStatus === "online" ? "#00b894" : syncStatus === "offline" ? "#e74c3c" : "#f39c12" }}
+            title={syncStatus === "online" ? "Sincronizado con Firebase" : syncStatus === "offline" ? "Sin conexión — cambios no se guardan en la nube" : "Sincronizando..."}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: syncStatus === "online" ? "#00b894" : syncStatus === "offline" ? "#e74c3c" : "#f39c12", display: "inline-block", animation: syncStatus === "syncing" ? "pulse 1.5s infinite" : "none" }} />
+            {syncStatus === "offline" && "Sin conexión"}
+            {syncStatus === "syncing" && "Sync..."}
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#6666aa" }}>
             {rateAutoLoaded && <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#00b894", display: "inline-block" }} />}
             Blue: <span style={{ color: "#00b894", fontWeight: 700 }}>${exchangeRate}</span>
@@ -399,6 +416,12 @@ export default function App() {
 
         {/* Content */}
         <main style={{ flex: 1, padding: "24px", maxWidth: 1100 }} onClick={() => setShowGlobalResults(false)}>
+          {syncStatus === "offline" && (
+            <div style={{ background: "#2a1a1a", border: "1px solid #e74c3c33", borderRadius: 10, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#e74c3c" }}>
+              <span>⚠️</span>
+              <span>Sin conexión a Firebase. Estás viendo datos de caché. Los cambios que hagas <b>no se guardarán</b> hasta que se restablezca la conexión.</span>
+            </div>
+          )}
           <Suspense fallback={<LoadingSpinner />}>
             {renderPage()}
           </Suspense>
