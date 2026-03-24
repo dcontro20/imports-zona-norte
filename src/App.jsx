@@ -22,7 +22,7 @@ const StockLog = lazy(() => import("./components/StockLog.jsx").then(m => ({ def
 
 const LoadingSpinner = () => (
   <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: 60 }}>
-    <span style={{ color: "#a855f7", fontSize: 16 }}>Cargando...</span>
+    <span style={{ color: "#6366f1", fontSize: 15, fontWeight: 500 }}>Cargando...</span>
   </div>
 );
 
@@ -38,7 +38,7 @@ const NAV_ITEMS = [
   { key: "expenses", label: "Gastos", icon: "💸" },
   { key: "withdrawals", label: "Mermas", icon: "📉" },
   { key: "cash", label: "Caja", icon: "💰" },
-  { key: "whatsapp", label: "WhatsApp", icon: "📲" },
+  { key: "whatsapp", label: "WhatsApp", icon: "📱" },
   { key: "stocklog", label: "Historial", icon: "📋" },
   { key: "pricelog", label: "Precios", icon: "💲" },
   { key: "partners", label: "Socios", icon: "🤝" },
@@ -49,8 +49,8 @@ const NAV_ITEMS = [
 
 export default function App() {
   const USERS = [
-    { name: "Diego", password: "Poncharelo20!", color: "#a855f7", icon: "💜" },
-    { name: "Gustavo", password: "Gus2026!", color: "#00b894", icon: "💙" },
+    { name: "Diego", password: "Poncharelo20!", color: "#6366f1", icon: "💜" },
+    { name: "Gustavo", password: "Gus2026!", color: "#10b981", icon: "💙" },
   ];
 
   const [currentUser, setCurrentUser] = useState(() => {
@@ -81,11 +81,11 @@ export default function App() {
 
   if (!currentUser) {
     return (
-      <div style={{ minHeight: "100vh", background: "#0d0d1a", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Segoe UI', -apple-system, sans-serif" }}>
-        <div style={{ background: "#12122a", border: "1px solid #2a2a4a", borderRadius: 16, padding: "40px 32px", width: "100%", maxWidth: 360, textAlign: "center" }}>
+      <div style={{ minHeight: "100vh", background: "#f0f1f5", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Inter', 'Segoe UI', -apple-system, sans-serif" }}>
+        <div style={{ background: "#fff", border: "1px solid #e2e4e9", borderRadius: 16, padding: "40px 32px", width: "100%", maxWidth: 360, textAlign: "center", boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
           <span style={{ fontSize: 48 }}>💨</span>
-          <h1 style={{ fontSize: 22, fontWeight: 800, background: "linear-gradient(135deg, #a855f7, #6c5ce7)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", margin: "12px 0 6px" }}>IMPORTS ZONA NORTE</h1>
-          <p style={{ color: "#6666aa", fontSize: 13, marginBottom: 24 }}>Sistema de Gestión</p>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: "#1a1a2e", margin: "12px 0 6px" }}>IMPORTS ZONA NORTE</h1>
+          <p style={{ color: "#9ca3af", fontSize: 13, marginBottom: 24 }}>Sistema de Gestión</p>
           <input
             type="password"
             value={loginPass}
@@ -93,20 +93,20 @@ export default function App() {
             onKeyDown={e => e.key === "Enter" && handleLogin()}
             placeholder="Contraseña"
             style={{
-              width: "100%", padding: "14px 18px", background: "#0d0d1a",
-              border: `1px solid ${loginError ? "#e74c3c" : "#2a2a4a"}`,
-              borderRadius: 10, color: "#e0e0ff", fontSize: 16, outline: "none",
+              width: "100%", padding: "14px 18px", background: "#f7f8fa",
+              border: `1px solid ${loginError ? "#ef4444" : "#e2e4e9"}`,
+              borderRadius: 10, color: "#1a1a2e", fontSize: 16, outline: "none",
               marginBottom: 14, textAlign: "center", boxSizing: "border-box",
               transition: "border-color 0.3s"
             }}
             autoFocus
           />
           <button onClick={handleLogin} style={{
-            width: "100%", padding: "14px", background: "linear-gradient(135deg, #a855f7, #6c5ce7)",
+            width: "100%", padding: "14px", background: "#6366f1",
             border: "none", borderRadius: 10, color: "#fff", fontSize: 16, fontWeight: 700,
             cursor: "pointer"
           }}>Entrar</button>
-          {loginError && <p style={{ color: "#e74c3c", fontSize: 13, marginTop: 10 }}>Contraseña incorrecta</p>}
+          {loginError && <p style={{ color: "#ef4444", fontSize: 13, marginTop: 10 }}>Contraseña incorrecta</p>}
         </div>
       </div>
     );
@@ -313,50 +313,49 @@ export default function App() {
 
   return (
     <div style={{
-      minHeight: "100vh", background: "#0d0d1a", fontFamily: "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif",
-      color: "#c0c0e0"
+      minHeight: "100vh", background: "#f0f1f5", fontFamily: "'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif",
+      color: "#1a1a2e"
     }}>
       {/* Top bar */}
       <div style={{
-        background: "#12122a", borderBottom: "1px solid #2a2a4a", padding: "12px 20px",
-        display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 100
+        background: "#fff", borderBottom: "1px solid #e2e4e9", padding: "10px 20px",
+        display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 100,
+        boxShadow: "0 1px 3px rgba(0,0,0,0.04)"
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button onClick={() => setMenuOpen(!menuOpen)} style={{
-            background: "none", border: "none", color: "#a855f7", fontSize: 22, cursor: "pointer",
+            background: "none", border: "none", color: "#6366f1", fontSize: 22, cursor: "pointer",
             display: "none", ...(window.innerWidth < 768 ? { display: "block" } : {})
           }}>☰</button>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 24 }}>💨</span>
-            <span style={{
-              fontSize: 20, fontWeight: 800, background: "linear-gradient(135deg, #a855f7, #6c5ce7)",
-              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent"
-            }}>IMPORTS ZONA NORTE</span>
+            <span style={{ fontSize: 22 }}>💨</span>
+            <span style={{ fontSize: 18, fontWeight: 800, color: "#1a1a2e", letterSpacing: "-0.3px" }}>IMPORTS ZONA NORTE</span>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {/* Global Search */}
           <div style={{ position: "relative" }}>
             <input value={globalSearch} onChange={e => { setGlobalSearch(e.target.value); setShowGlobalResults(true); }}
               onFocus={() => setShowGlobalResults(true)}
-              placeholder="🔍 Buscar en todo..."
-              style={{ padding: "8px 14px", background: "#0d0d1a", border: "1px solid #2a2a4a", borderRadius: 10, color: "#e0e0ff", fontSize: 13, width: 200, outline: "none" }} />
+              placeholder="Buscar..."
+              style={{ padding: "7px 14px 7px 32px", background: "#f7f8fa", border: "1px solid #e2e4e9", borderRadius: 8, color: "#1a1a2e", fontSize: 13, width: 180, outline: "none" }} />
+            <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "#9ca3af", pointerEvents: "none" }}>🔍</span>
             {showGlobalResults && globalResults.length > 0 && (
               <div style={{
-                position: "absolute", top: "100%", right: 0, marginTop: 6, background: "#1a1a2e",
-                border: "1px solid #2a2a4a", borderRadius: 12, width: 350, maxHeight: 400, overflowY: "auto",
-                boxShadow: "0 16px 40px rgba(0,0,0,0.5)", zIndex: 200
+                position: "absolute", top: "100%", right: 0, marginTop: 6, background: "#fff",
+                border: "1px solid #e2e4e9", borderRadius: 12, width: 350, maxHeight: 400, overflowY: "auto",
+                boxShadow: "0 12px 32px rgba(0,0,0,0.1)", zIndex: 200
               }}>
                 {globalResults.map((r, i) => (
                   <div key={i} onClick={() => { setPage(r.page); setGlobalSearch(""); setShowGlobalResults(false); }}
                     style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", cursor: "pointer",
-                      borderBottom: i < globalResults.length - 1 ? "1px solid #1a1a30" : "none" }}
-                    onMouseEnter={e => e.currentTarget.style.background = "#1f1f3a"}
+                      borderBottom: i < globalResults.length - 1 ? "1px solid #f0f1f5" : "none" }}
+                    onMouseEnter={e => e.currentTarget.style.background = "#f7f8fa"}
                     onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                     <span style={{ fontSize: 18 }}>{r.icon}</span>
                     <div style={{ flex: 1 }}>
-                      <div style={{ color: "#e0e0ff", fontSize: 13, fontWeight: 600 }}>{r.label}</div>
-                      <div style={{ color: "#6666aa", fontSize: 11 }}>{r.sub}</div>
+                      <div style={{ color: "#1a1a2e", fontSize: 13, fontWeight: 600 }}>{r.label}</div>
+                      <div style={{ color: "#9ca3af", fontSize: 11 }}>{r.sub}</div>
                     </div>
                   </div>
                 ))}
@@ -364,27 +363,34 @@ export default function App() {
             )}
             {showGlobalResults && globalSearch.length >= 2 && globalResults.length === 0 && (
               <div style={{
-                position: "absolute", top: "100%", right: 0, marginTop: 6, background: "#1a1a2e",
-                border: "1px solid #2a2a4a", borderRadius: 12, width: 250, padding: "16px",
-                boxShadow: "0 16px 40px rgba(0,0,0,0.5)", zIndex: 200, textAlign: "center", color: "#555", fontSize: 13
+                position: "absolute", top: "100%", right: 0, marginTop: 6, background: "#fff",
+                border: "1px solid #e2e4e9", borderRadius: 12, width: 250, padding: "16px",
+                boxShadow: "0 12px 32px rgba(0,0,0,0.1)", zIndex: 200, textAlign: "center", color: "#9ca3af", fontSize: 13
               }}>Sin resultados</div>
             )}
           </div>
-          {/* Sync status indicator */}
-          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: syncStatus === "online" ? "#00b894" : syncStatus === "offline" ? "#e74c3c" : "#f39c12" }}
-            title={syncStatus === "online" ? "Sincronizado con Firebase" : syncStatus === "offline" ? "Sin conexión — cambios no se guardan en la nube" : "Sincronizando..."}>
-            <span style={{ width: 7, height: 7, borderRadius: "50%", background: syncStatus === "online" ? "#00b894" : syncStatus === "offline" ? "#e74c3c" : "#f39c12", display: "inline-block", animation: syncStatus === "syncing" ? "pulse 1.5s infinite" : "none" }} />
-            {syncStatus === "offline" && "Sin conexión"}
+          {/* Sync status badge - clear Online/Offline text */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600,
+            padding: "4px 10px", borderRadius: 20,
+            background: syncStatus === "online" ? "#ecfdf5" : syncStatus === "offline" ? "#fef2f2" : "#fffbeb",
+            color: syncStatus === "online" ? "#059669" : syncStatus === "offline" ? "#dc2626" : "#d97706",
+            border: `1px solid ${syncStatus === "online" ? "#a7f3d0" : syncStatus === "offline" ? "#fecaca" : "#fde68a"}`
+          }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: syncStatus === "online" ? "#059669" : syncStatus === "offline" ? "#dc2626" : "#d97706", display: "inline-block" }} />
+            {syncStatus === "online" && "Online"}
+            {syncStatus === "offline" && "Offline"}
             {syncStatus === "syncing" && "Sync..."}
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#6666aa" }}>
-            {rateAutoLoaded && <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#00b894", display: "inline-block" }} />}
-            Blue: <span style={{ color: "#00b894", fontWeight: 700 }}>${exchangeRate}</span>
+          {/* Dolar Blue - clean, no confusing dot */}
+          <div style={{ fontSize: 13, color: "#6b7280", fontWeight: 500 }}>
+            Blue: <span style={{ color: "#1a1a2e", fontWeight: 700 }}>${exchangeRate}</span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, background: `${currentUser.color}15`, border: `1px solid ${currentUser.color}33`, borderRadius: 10, padding: "5px 12px" }}>
-            <span style={{ fontSize: 14 }}>{currentUser.icon}</span>
-            <span style={{ color: currentUser.color, fontSize: 13, fontWeight: 700 }}>{currentUser.name}</span>
-            <button onClick={handleLogout} style={{ background: "none", border: "none", color: "#555", cursor: "pointer", fontSize: 12, marginLeft: 4 }} title="Cerrar sesión">✕</button>
+          {/* User badge */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#f7f8fa", border: "1px solid #e2e4e9", borderRadius: 8, padding: "5px 12px" }}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: currentUser.color, display: "inline-block" }} />
+            <span style={{ color: "#1a1a2e", fontSize: 13, fontWeight: 600 }}>{currentUser.name}</span>
+            <button onClick={handleLogout} style={{ background: "none", border: "none", color: "#9ca3af", cursor: "pointer", fontSize: 12, marginLeft: 4 }} title="Cerrar sesión">✕</button>
           </div>
         </div>
       </div>
@@ -392,23 +398,23 @@ export default function App() {
       <div style={{ display: "flex" }}>
         {/* Sidebar */}
         <nav style={{
-          width: 220, minHeight: "calc(100vh - 52px)", background: "#12122a", borderRight: "1px solid #2a2a4a",
+          width: 220, minHeight: "calc(100vh - 52px)", background: "#fff", borderRight: "1px solid #e2e4e9",
           padding: "12px 0", flexShrink: 0,
           ...(window.innerWidth < 768 ? {
             position: "fixed", top: 52, left: menuOpen ? 0 : -240, zIndex: 99,
-            transition: "left 0.3s", boxShadow: menuOpen ? "4px 0 20px rgba(0,0,0,0.5)" : "none"
+            transition: "left 0.3s", boxShadow: menuOpen ? "4px 0 20px rgba(0,0,0,0.08)" : "none"
           } : {})
         }}>
           {NAV_ITEMS.map(item => (
             <button key={item.key} onClick={() => { setPage(item.key); setMenuOpen(false); }} style={{
-              display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "12px 20px",
-              background: page === item.key ? "#1a1a3a" : "transparent",
-              border: "none", borderLeft: page === item.key ? "3px solid #a855f7" : "3px solid transparent",
-              color: page === item.key ? "#e0e0ff" : "#6666aa", cursor: "pointer",
-              fontSize: 14, fontWeight: page === item.key ? 700 : 500, textAlign: "left",
+              display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 20px",
+              background: page === item.key ? "#f0f0ff" : "transparent",
+              border: "none", borderLeft: page === item.key ? "3px solid #6366f1" : "3px solid transparent",
+              color: page === item.key ? "#1a1a2e" : "#6b7280", cursor: "pointer",
+              fontSize: 13, fontWeight: page === item.key ? 700 : 500, textAlign: "left",
               transition: "all 0.2s"
             }}>
-              <span style={{ fontSize: 18 }}>{item.icon}</span>
+              <span style={{ fontSize: 16 }}>{item.icon}</span>
               {item.label}
             </button>
           ))}
@@ -417,7 +423,7 @@ export default function App() {
         {/* Content */}
         <main style={{ flex: 1, padding: "24px", maxWidth: 1100 }} onClick={() => setShowGlobalResults(false)}>
           {syncStatus === "offline" && (
-            <div style={{ background: "#2a1a1a", border: "1px solid #e74c3c33", borderRadius: 10, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#e74c3c" }}>
+            <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#dc2626" }}>
               <span>⚠️</span>
               <span>Sin conexión a Firebase. Estás viendo datos de caché. Los cambios que hagas <b>no se guardarán</b> hasta que se restablezca la conexión.</span>
             </div>
