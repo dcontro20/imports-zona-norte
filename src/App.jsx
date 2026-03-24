@@ -53,6 +53,7 @@ export default function App() {
     { name: "Gustavo", password: "Gus2026!", color: "#10b981", icon: "💙" },
   ];
 
+  // ---- ALL HOOKS MUST BE DECLARED BEFORE ANY CONDITIONAL RETURN ----
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       const u = sessionStorage.getItem("vapestock_user");
@@ -61,57 +62,6 @@ export default function App() {
   });
   const [loginPass, setLoginPass] = useState("");
   const [loginError, setLoginError] = useState(false);
-
-  const handleLogin = () => {
-    const user = USERS.find(u => u.password === loginPass);
-    if (user) {
-      setCurrentUser(user);
-      try { sessionStorage.setItem("vapestock_user", JSON.stringify(user)); } catch {}
-      setLoginError(false);
-    } else {
-      setLoginError(true);
-      setTimeout(() => setLoginError(false), 2000);
-    }
-  };
-
-  const handleLogout = () => {
-    setCurrentUser(null);
-    try { sessionStorage.removeItem("vapestock_user"); } catch {}
-  };
-
-  if (!currentUser) {
-    return (
-      <div style={{ minHeight: "100vh", background: "#e5e7eb", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Inter', 'Segoe UI', -apple-system, sans-serif" }}>
-        <div style={{ background: "#fff", border: "1px solid #e2e4e9", borderRadius: 16, padding: "40px 32px", width: "100%", maxWidth: 360, textAlign: "center", boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
-          <span style={{ fontSize: 48 }}>💨</span>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: "#1a1a2e", margin: "12px 0 6px" }}>IMPORTS ZONA NORTE</h1>
-          <p style={{ color: "#9ca3af", fontSize: 13, marginBottom: 24 }}>Sistema de Gestión</p>
-          <input
-            type="password"
-            value={loginPass}
-            onChange={e => setLoginPass(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && handleLogin()}
-            placeholder="Contraseña"
-            style={{
-              width: "100%", padding: "14px 18px", background: "#f7f8fa",
-              border: `1px solid ${loginError ? "#ef4444" : "#e2e4e9"}`,
-              borderRadius: 10, color: "#1a1a2e", fontSize: 16, outline: "none",
-              marginBottom: 14, textAlign: "center", boxSizing: "border-box",
-              transition: "border-color 0.3s"
-            }}
-            autoFocus
-          />
-          <button onClick={handleLogin} style={{
-            width: "100%", padding: "14px", background: "#6366f1",
-            border: "none", borderRadius: 10, color: "#fff", fontSize: 16, fontWeight: 700,
-            cursor: "pointer"
-          }}>Entrar</button>
-          {loginError && <p style={{ color: "#ef4444", fontSize: 13, marginTop: 10 }}>Contraseña incorrecta</p>}
-        </div>
-      </div>
-    );
-  }
-
   const [page, setPage] = useState("dashboard");
   const [menuOpen, setMenuOpen] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
@@ -289,6 +239,58 @@ export default function App() {
     if (oldPrice === newPrice) return;
     setPriceLog(prev => [{ id: uid(), date: new Date().toISOString(), productId, field, oldPrice, newPrice }, ...prev]);
   }, []);
+
+  // ---- LOGIN HANDLERS ----
+  const handleLogin = () => {
+    const user = USERS.find(u => u.password === loginPass);
+    if (user) {
+      setCurrentUser(user);
+      try { sessionStorage.setItem("vapestock_user", JSON.stringify(user)); } catch {}
+      setLoginError(false);
+    } else {
+      setLoginError(true);
+      setTimeout(() => setLoginError(false), 2000);
+    }
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    try { sessionStorage.removeItem("vapestock_user"); } catch {}
+  };
+
+  // ---- LOGIN SCREEN (shown when no user is authenticated) ----
+  if (!currentUser) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#e5e7eb", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Inter', 'Segoe UI', -apple-system, sans-serif" }}>
+        <div style={{ background: "#fff", border: "1px solid #e2e4e9", borderRadius: 16, padding: "40px 32px", width: "100%", maxWidth: 360, textAlign: "center", boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
+          <span style={{ fontSize: 48 }}>💨</span>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: "#1a1a2e", margin: "12px 0 6px" }}>IMPORTS ZONA NORTE</h1>
+          <p style={{ color: "#9ca3af", fontSize: 13, marginBottom: 24 }}>Sistema de Gestión</p>
+          <input
+            type="password"
+            value={loginPass}
+            onChange={e => setLoginPass(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleLogin()}
+            placeholder="Contraseña"
+            style={{
+              width: "100%", padding: "14px 18px", background: "#f7f8fa",
+              border: `1px solid ${loginError ? "#ef4444" : "#e2e4e9"}`,
+              borderRadius: 10, color: "#1a1a2e", fontSize: 16, outline: "none",
+              marginBottom: 14, textAlign: "center", boxSizing: "border-box",
+              transition: "border-color 0.3s"
+            }}
+            autoFocus
+          />
+          <button onClick={handleLogin} style={{
+            width: "100%", padding: "14px", background: "#6366f1",
+            border: "none", borderRadius: 10, color: "#fff", fontSize: 16, fontWeight: 700,
+            cursor: "pointer"
+          }}>Entrar</button>
+          {loginError && <p style={{ color: "#ef4444", fontSize: 13, marginTop: 10 }}>Contraseña incorrecta</p>}
+        </div>
+      </div>
+    );
+  }
 
   const renderPage = () => {
     switch (page) {
