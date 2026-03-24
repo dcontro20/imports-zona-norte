@@ -4,11 +4,11 @@ import { Card, Input, Select, Table, Badge, StatCard } from "./UI.jsx";
 
 // -- STOCK LOG --
 const STOCK_LOG_TYPES = {
-  "venta": { label: "Venta", color: "#00b894", icon: "🛒" },
-  "compra": { label: "Compra", color: "#6c5ce7", icon: "🚚" },
-  "consumo": { label: "Consumo", color: "#e17055", icon: "🚬" },
-  "ajuste": { label: "Ajuste", color: "#fdcb6e", icon: "⚡" },
-  "devolucion": { label: "Devolución", color: "#00cec9", icon: "↩️" },
+  "venta": { label: "Venta", color: "#00b894", icon: "ð" },
+  "compra": { label: "Compra", color: "#6366f1", icon: "ð" },
+  "consumo": { label: "Consumo", color: "#e17055", icon: "ð¬" },
+  "ajuste": { label: "Ajuste", color: "#fdcb6e", icon: "â¡" },
+  "devolucion": { label: "DevoluciÃ³n", color: "#00cec9", icon: "â©ï¸" },
 };
 
 export const StockLog = ({ stockLog, setStockLog, products }) => {
@@ -36,15 +36,15 @@ export const StockLog = ({ stockLog, setStockLog, products }) => {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h2 style={{ color: "#e0e0ff", margin: 0, fontSize: 22 }}>Historial de Stock</h2>
-          <span style={{ color: "#6666aa", fontSize: 13 }}>{filtered.length} movimientos{hasFilters ? " (filtrados)" : ""}</span>
+          <h2 style={{ color: "#1a1a2e", margin: 0, fontSize: 22 }}>Historial de Stock</h2>
+          <span style={{ color: "#6b7280", fontSize: 13 }}>{filtered.length} movimientos{hasFilters ? " (filtrados)" : ""}</span>
         </div>
       </div>
 
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 16 }}>
-        <StatCard label="Entradas" value={`+${totalIn}`} icon="📥" color="#00b894" />
-        <StatCard label="Salidas" value={`-${totalOut}`} icon="📤" color="#e74c3c" />
-        <StatCard label="Neto" value={totalIn - totalOut >= 0 ? `+${totalIn - totalOut}` : `${totalIn - totalOut}`} icon="📊" color="#a855f7" />
+        <StatCard label="Entradas" value={`+${totalIn}`} icon="ð¥" color="#00b894" />
+        <StatCard label="Salidas" value={`-${totalOut}`} icon="ð¤" color="#e74c3c" />
+        <StatCard label="Neto" value={totalIn - totalOut >= 0 ? `+${totalIn - totalOut}` : `${totalIn - totalOut}`} icon="ð" color="#6366f1" />
       </div>
 
       {/* Filters */}
@@ -66,7 +66,7 @@ export const StockLog = ({ stockLog, setStockLog, products }) => {
             }).sort((a, b) => a.label.localeCompare(b.label))} value={filterProduct} onChange={e => setFilterProduct(e.target.value)} />
           </div>
           {hasFilters && <button onClick={() => { setFilterType(""); setFilterProduct(""); setFilterDateFrom(""); setFilterDateTo(""); }}
-            style={{ background: "none", border: "1px solid #e74c3c55", color: "#e74c3c", padding: "8px 14px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, marginBottom: 14 }}>✕ Limpiar</button>}
+            style={{ background: "none", border: "1px solid #e74c3c55", color: "#e74c3c", padding: "8px 14px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, marginBottom: 14 }}>â Limpiar</button>}
         </div>
       </Card>
 
