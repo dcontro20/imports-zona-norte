@@ -69,23 +69,23 @@ export const MonthlyClosures = ({ monthlyClosures, setMonthlyClosures, sales, pu
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h2 style={{ color: "#e0e0ff", margin: 0, fontSize: 22 }}>Cierres Mensuales</h2>
-          <span style={{ color: "#6666aa", fontSize: 13 }}>Foto financiera de cada mes para comparar evolución</span>
+          <h2 style={{ color: "#1a1a2e", margin: 0, fontSize: 22 }}>Cierres Mensuales</h2>
+          <span style={{ color: "#6b7280", fontSize: 13 }}>Foto financiera de cada mes para comparar evoluciÃ³n</span>
         </div>
         {!alreadyClosed ? (
-          <Btn onClick={() => setShowConfirm(true)}>📅 Cerrar {currentMonthLabel}</Btn>
+          <Btn onClick={() => setShowConfirm(true)}>ð Cerrar {currentMonthLabel}</Btn>
         ) : (
-          <Badge color="#00b894">✅ {currentMonthLabel} cerrado</Badge>
+          <Badge color="#00b894">â {currentMonthLabel} cerrado</Badge>
         )}
       </div>
 
       {/* Confirm closure */}
       {showConfirm && (
-        <Card style={{ marginBottom: 14, background: "#0d0d1a", border: "1px solid #a855f744" }}>
-          <h4 style={{ color: "#a855f7", margin: "0 0 10px", fontSize: 14 }}>¿Cerrar {currentMonthLabel}?</h4>
-          <span style={{ color: "#6666aa", fontSize: 13 }}>Se va a guardar una foto con todos los números del mes. Podés seguir registrando ventas normalmente después del cierre.</span>
+        <Card style={{ marginBottom: 14, background: "#f7f8fa", border: "1px solid #6366f144" }}>
+          <h4 style={{ color: "#6366f1", margin: "0 0 10px", fontSize: 14 }}>Â¿Cerrar {currentMonthLabel}?</h4>
+          <span style={{ color: "#6b7280", fontSize: 13 }}>Se va a guardar una foto con todos los nÃºmeros del mes. PodÃ©s seguir registrando ventas normalmente despuÃ©s del cierre.</span>
           <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
-            <Btn variant="success" onClick={closeCurrent}>✅ Confirmar cierre</Btn>
+            <Btn variant="success" onClick={closeCurrent}>â Confirmar cierre</Btn>
             <Btn variant="secondary" onClick={() => setShowConfirm(false)}>Cancelar</Btn>
           </div>
         </Card>
@@ -93,17 +93,17 @@ export const MonthlyClosures = ({ monthlyClosures, setMonthlyClosures, sales, pu
 
       {/* Current month preview */}
       <Card style={{ marginBottom: 14 }}>
-        <h4 style={{ color: "#fdcb6e", margin: "0 0 14px", fontSize: 14, textTransform: "uppercase" }}>📊 {currentMonthLabel} (en curso)</h4>
+        <h4 style={{ color: "#fdcb6e", margin: "0 0 14px", fontSize: 14, textTransform: "uppercase" }}>ð {currentMonthLabel} (en curso)</h4>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 12 }}>
-          <div><span style={{ color: "#6666aa", fontSize: 11 }}>Ventas</span><div style={{ color: "#00b894", fontSize: 18, fontWeight: 700 }}>{preview.totalSalesCount}</div><span style={{ color: "#555", fontSize: 11 }}>{preview.totalUnits} uds</span></div>
-          <div><span style={{ color: "#6666aa", fontSize: 11 }}>Ingresos</span><div style={{ color: "#00b894", fontSize: 18, fontWeight: 700 }}>{formatMoney(preview.totalRevenue)}</div></div>
-          <div><span style={{ color: "#6666aa", fontSize: 11 }}>Compras (USDT)</span><div style={{ color: "#6c5ce7", fontSize: 18, fontWeight: 700 }}>{formatMoney(preview.totalCostUSDT, "USDT")}</div><span style={{ color: "#555", fontSize: 11 }}>{preview.purchasesCount} pedidos</span></div>
-          <div><span style={{ color: "#6666aa", fontSize: 11 }}>Pasero + Envío</span><div style={{ color: "#fdcb6e", fontSize: 18, fontWeight: 700 }}>{formatMoney(preview.totalPasero + preview.totalEnvio)}</div></div>
-          <div><span style={{ color: "#6666aa", fontSize: 11 }}>Gastos</span><div style={{ color: "#e74c3c", fontSize: 18, fontWeight: 700 }}>{formatMoney(preview.totalExpensesARS)}</div><span style={{ color: "#555", fontSize: 11 }}>{preview.expensesCount} registros</span></div>
-          <div><span style={{ color: "#6666aa", fontSize: 11 }}>Descuentos</span><div style={{ color: "#fdcb6e", fontSize: 18, fontWeight: 700 }}>{formatMoney(preview.totalDiscounts)}</div></div>
-          <div><span style={{ color: "#6666aa", fontSize: 11 }}>Extras</span><div style={{ color: "#00b894", fontSize: 18, fontWeight: 700 }}>{formatMoney(preview.totalExtras)}</div></div>
-          <div><span style={{ color: "#6666aa", fontSize: 11 }}>Consumo/Merma</span><div style={{ color: "#e17055", fontSize: 18, fontWeight: 700 }}>{preview.totalConsumo} uds</div></div>
-          <div><span style={{ color: "#6666aa", fontSize: 11 }}>Stock actual</span><div style={{ color: "#a855f7", fontSize: 18, fontWeight: 700 }}>{preview.stockTotal} uds</div><span style={{ color: "#555", fontSize: 11 }}>~{formatMoney(preview.stockValue, "USD")}</span></div>
+          <div><span style={{ color: "#6b7280", fontSize: 11 }}>Ventas</span><div style={{ color: "#00b894", fontSize: 18, fontWeight: 700 }}>{preview.totalSalesCount}</div><span style={{ color: "#9ca3af", fontSize: 11 }}>{preview.totalUnits} uds</span></div>
+          <div><span style={{ color: "#6b7280", fontSize: 11 }}>Ingresos</span><div style={{ color: "#00b894", fontSize: 18, fontWeight: 700 }}>{formatMoney(preview.totalRevenue)}</div></div>
+          <div><span style={{ color: "#6b7280", fontSize: 11 }}>Compras (USDT)</span><div style={{ color: "#6366f1", fontSize: 18, fontWeight: 700 }}>{formatMoney(preview.totalCostUSDT, "USDT")}</div><span style={{ color: "#9ca3af", fontSize: 11 }}>{preview.purchasesCount} pedidos</span></div>
+          <div><span style={{ color: "#6b7280", fontSize: 11 }}>Pasero + EnvÃ­o</span><div style={{ color: "#fdcb6e", fontSize: 18, fontWeight: 700 }}>{formatMoney(preview.totalPasero + preview.totalEnvio)}</div></div>
+          <div><span style={{ color: "#6b7280", fontSize: 11 }}>Gastos</span><div style={{ color: "#e74c3c", fontSize: 18, fontWeight: 700 }}>{formatMoney(preview.totalExpensesARS)}</div><span style={{ color: "#9ca3af", fontSize: 11 }}>{preview.expensesCount} registros</span></div>
+          <div><span style={{ color: "#6b7280", fontSize: 11 }}>Descuentos</span><div style={{ color: "#fdcb6e", fontSize: 18, fontWeight: 700 }}>{formatMoney(preview.totalDiscounts)}</div></div>
+          <div><span style={{ color: "#6b7280", fontSize: 11 }}>Extras</span><div style={{ color: "#00b894", fontSize: 18, fontWeight: 700 }}>{formatMoney(preview.totalExtras)}</div></div>
+          <div><span style={{ color: "#6b7280", fontSize: 11 }}>Consumo/Merma</span><div style={{ color: "#e17055", fontSize: 18, fontWeight: 700 }}>{preview.totalConsumo} uds</div></div>
+          <div><span style={{ color: "#6b7280", fontSize: 11 }}>Stock actual</span><div style={{ color: "#6366f1", fontSize: 18, fontWeight: 700 }}>{preview.stockTotal} uds</div><span style={{ color: "#9ca3af", fontSize: 11 }}>~{formatMoney(preview.stockValue, "USD")}</span></div>
         </div>
       </Card>
 
@@ -115,27 +115,27 @@ export const MonthlyClosures = ({ monthlyClosures, setMonthlyClosures, sales, pu
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr>
-                  {["Mes", "Ventas", "Uds", "Ingresos", "Compras USDT", "Pasero+Envío", "Gastos", "Descuentos", "Merma", "Stock", "Blue", ""].map(h => (
-                    <th key={h} style={{ textAlign: "left", padding: "8px 10px", fontSize: 10, color: "#6666aa", textTransform: "uppercase", borderBottom: "1px solid #2a2a4a", fontWeight: 700 }}>{h}</th>
+                  {["Mes", "Ventas", "Uds", "Ingresos", "Compras USDT", "Pasero+EnvÃ­o", "Gastos", "Descuentos", "Merma", "Stock", "Blue", ""].map(h => (
+                    <th key={h} style={{ textAlign: "left", padding: "8px 10px", fontSize: 10, color: "#6b7280", textTransform: "uppercase", borderBottom: "1px solid #e2e4e9", fontWeight: 700 }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {monthlyClosures.map(c => (
                   <tr key={c.id}>
-                    <td style={{ padding: "8px 10px", fontSize: 13, color: "#e0e0ff", borderBottom: "1px solid #1a1a30", fontWeight: 600, textTransform: "capitalize" }}>{c.label}</td>
-                    <td style={{ padding: "8px 10px", fontSize: 13, color: "#c0c0e0", borderBottom: "1px solid #1a1a30" }}>{c.totalSalesCount}</td>
-                    <td style={{ padding: "8px 10px", fontSize: 13, color: "#c0c0e0", borderBottom: "1px solid #1a1a30" }}>{c.totalUnits}</td>
-                    <td style={{ padding: "8px 10px", fontSize: 13, color: "#00b894", borderBottom: "1px solid #1a1a30", fontWeight: 600 }}>{formatMoney(c.totalRevenue)}</td>
-                    <td style={{ padding: "8px 10px", fontSize: 13, color: "#6c5ce7", borderBottom: "1px solid #1a1a30" }}>{formatMoney(c.totalCostUSDT, "USDT")}</td>
-                    <td style={{ padding: "8px 10px", fontSize: 13, color: "#fdcb6e", borderBottom: "1px solid #1a1a30" }}>{formatMoney((c.totalPasero || 0) + (c.totalEnvio || 0))}</td>
-                    <td style={{ padding: "8px 10px", fontSize: 13, color: "#e74c3c", borderBottom: "1px solid #1a1a30" }}>{formatMoney(c.totalExpensesARS)}</td>
-                    <td style={{ padding: "8px 10px", fontSize: 13, color: "#fdcb6e", borderBottom: "1px solid #1a1a30" }}>{formatMoney(c.totalDiscounts)}</td>
-                    <td style={{ padding: "8px 10px", fontSize: 13, color: "#e17055", borderBottom: "1px solid #1a1a30" }}>{c.totalConsumo} uds</td>
-                    <td style={{ padding: "8px 10px", fontSize: 13, color: "#a855f7", borderBottom: "1px solid #1a1a30" }}>{c.stockTotal} uds</td>
-                    <td style={{ padding: "8px 10px", fontSize: 13, color: "#00b894", borderBottom: "1px solid #1a1a30" }}>${c.exchangeRate}</td>
-                    <td style={{ padding: "8px 10px", borderBottom: "1px solid #1a1a30" }}>
-                      <button onClick={() => deleteClosure(c.id)} style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontSize: 14 }}>🗑️</button>
+                    <td style={{ padding: "8px 10px", fontSize: 13, color: "#1a1a2e", borderBottom: "1px solid #edf0f2", fontWeight: 600, textTransform: "capitalize" }}>{c.label}</td>
+                    <td style={{ padding: "8px 10px", fontSize: 13, color: "#4b5563", borderBottom: "1px solid #edf0f2" }}>{c.totalSalesCount}</td>
+                    <td style={{ padding: "8px 10px", fontSize: 13, color: "#4b5563", borderBottom: "1px solid #edf0f2" }}>{c.totalUnits}</td>
+                    <td style={{ padding: "8px 10px", fontSize: 13, color: "#00b894", borderBottom: "1px solid #edf0f2", fontWeight: 600 }}>{formatMoney(c.totalRevenue)}</td>
+                    <td style={{ padding: "8px 10px", fontSize: 13, color: "#6366f1", borderBottom: "1px solid #edf0f2" }}>{formatMoney(c.totalCostUSDT, "USDT")}</td>
+                    <td style={{ padding: "8px 10px", fontSize: 13, color: "#fdcb6e", borderBottom: "1px solid #edf0f2" }}>{formatMoney((c.totalPasero || 0) + (c.totalEnvio || 0))}</td>
+                    <td style={{ padding: "8px 10px", fontSize: 13, color: "#e74c3c", borderBottom: "1px solid #edf0f2" }}>{formatMoney(c.totalExpensesARS)}</td>
+                    <td style={{ padding: "8px 10px", fontSize: 13, color: "#fdcb6e", borderBottom: "1px solid #edf0f2" }}>{formatMoney(c.totalDiscounts)}</td>
+                    <td style={{ padding: "8px 10px", fontSize: 13, color: "#e17055", borderBottom: "1px solid #edf0f2" }}>{c.totalConsumo} uds</td>
+                    <td style={{ padding: "8px 10px", fontSize: 13, color: "#6366f1", borderBottom: "1px solid #edf0f2" }}>{c.stockTotal} uds</td>
+                    <td style={{ padding: "8px 10px", fontSize: 13, color: "#00b894", borderBottom: "1px solid #edf0f2" }}>${c.exchangeRate}</td>
+                    <td style={{ padding: "8px 10px", borderBottom: "1px solid #edf0f2" }}>
+                      <button onClick={() => deleteClosure(c.id)} style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontSize: 14 }}>ðï¸</button>
                     </td>
                   </tr>
                 ))}
