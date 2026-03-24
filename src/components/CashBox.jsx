@@ -96,32 +96,40 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
       </div>
 
       {/* Totals */}
-      <Card style={{ marginBottom: 14, background: "#f7f8fa", border: "1px solid #6366f133" }}>
-        <div style={{ display: "flex", justifyContent: "space-around", flexWrap: "wrap", gap: 16, textAlign: "center" }}>
-          <div>
-            <div style={{ color: "#6b7280", fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>Total Pesos</div>
-            <div style={{ color: "#6366f1", fontSize: 22, fontWeight: 800 }}>{formatMoney(totalARS)}</div>
+      <Card style={{ marginBottom: 16, background: "linear-gradient(135deg, #f8f9fc 0%, #f0f1f8 100%)", border: "1px solid #e2e4e9" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 0, textAlign: "center" }}>
+          <div style={{ padding: "8px 12px" }}>
+            <div style={{ color: "#6b7280", fontSize: 10, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, fontWeight: 600 }}>Total Pesos</div>
+            <div style={{ color: "#6366f1", fontSize: 20, fontWeight: 800 }}>{formatMoney(totalARS)}</div>
           </div>
-          <div>
-            <div style={{ color: "#6b7280", fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>Total USD</div>
-            <div style={{ color: "#00cec9", fontSize: 22, fontWeight: 800 }}>{formatMoney(totalUSD, "USD")}</div>
+          <div style={{ padding: "8px 12px", borderLeft: "1px solid #e2e4e9" }}>
+            <div style={{ color: "#6b7280", fontSize: 10, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, fontWeight: 600 }}>Total USD</div>
+            <div style={{ color: "#00b8a9", fontSize: 20, fontWeight: 800 }}>{formatMoney(totalUSD, "USD")}</div>
           </div>
-          <div>
-            <div style={{ color: "#6b7280", fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>Total USDT</div>
-            <div style={{ color: "#26de81", fontSize: 22, fontWeight: 800 }}>{formatMoney(totalUSDT, "USDT")}</div>
+          <div style={{ padding: "8px 12px", borderLeft: "1px solid #e2e4e9" }}>
+            <div style={{ color: "#6b7280", fontSize: 10, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, fontWeight: 600 }}>Total USDT</div>
+            <div style={{ color: "#26de81", fontSize: 20, fontWeight: 800 }}>{formatMoney(totalUSDT, "USDT")}</div>
           </div>
-          <div>
-            <div style={{ color: "#6b7280", fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>Todo en ARS</div>
-            <div style={{ color: "#fdcb6e", fontSize: 22, fontWeight: 800 }}>{formatMoney(totalARS + (totalUSD * exchangeRate) + (totalUSDT * exchangeRate))}</div>
+          <div style={{ padding: "8px 12px", borderLeft: "1px solid #e2e4e9" }}>
+            <div style={{ color: "#6b7280", fontSize: 10, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, fontWeight: 600 }}>Todo en ARS</div>
+            <div style={{ color: "#f59e0b", fontSize: 20, fontWeight: 800 }}>{formatMoney(totalARS + (totalUSD * exchangeRate) + (totalUSDT * exchangeRate))}</div>
           </div>
         </div>
       </Card>
 
       {/* Account cards */}
-      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 20 }}>
-        {ACCOUNTS.map(a => (
-          <StatCard key={a.id} label={a.label} value={formatMoney(balances[a.id], a.currency)} icon={a.icon} color={a.color} />
-        ))}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14, marginBottom: 20 }}>
+        {ACCOUNTS.map(a => {
+          const val = formatMoney(balances[a.id], a.currency);
+          const isLong = val.length > 12;
+          return (
+            <Card key={a.id} style={{ position: "relative", overflow: "hidden", padding: "16px 18px" }}>
+              <div style={{ position: "absolute", top: 12, right: 14, fontSize: 24, opacity: 0.15 }}>{a.icon}</div>
+              <div style={{ fontSize: 11, color: "#6b7280", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8, fontWeight: 600, whiteSpace: "nowrap" }}>{a.label}</div>
+              <div style={{ fontSize: isLong ? 20 : 24, fontWeight: 800, color: a.color, lineHeight: 1.1 }}>{val}</div>
+            </Card>
+          );
+        })}
       </div>
 
       {/* Recent movements */}
