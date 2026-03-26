@@ -39,7 +39,7 @@ export const Clients = ({ clients, setClients, sales, products }) => {
         <Table
           columns={[
             { key: "name", label: "Nombre" },
-            { key: "phone", label: "TelÃ©fono" },
+            { key: "phone", label: "Teléfono" },
             { key: "instagram", label: "Instagram" },
             { key: "purchases", label: "Compras", render: r => <Badge color="#00b894">{clientSales(r.id).length}</Badge> },
             { key: "total", label: "Total gastado", render: r => {
@@ -47,7 +47,7 @@ export const Clients = ({ clients, setClients, sales, products }) => {
               return formatMoney(total);
             }},
             { key: "actions", label: "", render: r => (
-              <button onClick={(e) => { e.stopPropagation(); openEdit(r); }} style={{ background: "none", border: "none", color: "#a855f7", cursor: "pointer" }}>âï¸</button>
+              <button onClick={(e) => { e.stopPropagation(); openEdit(r); }} style={{ background: "none", border: "none", color: "#a855f7", cursor: "pointer" }}>✏️</button>
             )}
           ]}
           data={filtered}
@@ -57,7 +57,7 @@ export const Clients = ({ clients, setClients, sales, products }) => {
 
       <Modal open={modal} onClose={() => setModal(false)} title={editing ? "Editar Cliente" : "Nuevo Cliente"}>
         <Input label="Nombre" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
-        <Input label="TelÃ©fono" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
+        <Input label="Teléfono" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
         <Input label="Instagram" value={form.instagram} onChange={e => setForm(f => ({ ...f, instagram: e.target.value }))} placeholder="@usuario" />
         <Input label="Notas" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 16 }}>
