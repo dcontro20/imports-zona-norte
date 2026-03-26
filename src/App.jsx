@@ -299,7 +299,7 @@ export default function App() {
       case "sales": return <Sales sales={sales} setSales={setSales} products={products} setProducts={setProducts} logStock={logStock} exchangeRate={exchangeRate} currentUser={currentUser} />;
       case "purchases": return <Purchases purchases={purchases} setPurchases={setPurchases} products={products} setProducts={setProducts} exchangeRate={exchangeRate} logStock={logStock} currentUser={currentUser} />;
       case "clients": return <Clients clients={clients} setClients={setClients} sales={sales} products={products} />;
-      case "expenses": return <Expenses expenses={expenses} setExpenses={setExpenses} currentUser={currentUser} />;
+      case "expenses": return <Expenses expenses={expenses} setExpenses={setExpenses} currentUser={currentUser} exchangeRate={exchangeRate} />;
       case "withdrawals": return <Withdrawals withdrawals={withdrawals} setWithdrawals={setWithdrawals} products={products} setProducts={setProducts} logStock={logStock} currentUser={currentUser} />;
       case "cash": return <CashBox sales={sales} purchases={purchases} expenses={expenses} withdrawals={withdrawals} cashMovements={cashMovements} setCashMovements={setCashMovements} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} currentUser={currentUser} />;
       case "whatsapp": return <WhatsAppMessage products={products} exchangeRate={exchangeRate} />;
