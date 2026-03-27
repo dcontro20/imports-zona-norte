@@ -311,14 +311,14 @@ export default function App() {
       case "closures": return <MonthlyClosures monthlyClosures={monthlyClosures} setMonthlyClosures={setMonthlyClosures} sales={sales} purchases={purchases} expenses={expenses} withdrawals={withdrawals} products={products} exchangeRate={exchangeRate} />;
       case "export": return <ExportData products={products} sales={sales} purchases={purchases} expenses={expenses} withdrawals={withdrawals} cashMovements={cashMovements} stockLog={stockLog} exchangeRate={exchangeRate} />;
       case "reports": return <Reports products={products} sales={sales} purchases={purchases} expenses={expenses} withdrawals={withdrawals} exchangeRate={exchangeRate} />;
+      case "exchange": return <ExchangeMonitor exchangeRate={exchangeRate} />;
       default: return null;
     }
   };
 
   return (
     <div style={{
-      minHeight: "100vh", background: "#e5e7eb", fontFamily: "'I
-      case "exchange": return <ExchangeMonitor exchangeRate={exchangeRate} />;nter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif",
+      minHeight: "100vh", background: "#e5e7eb", fontFamily: "'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif",
       color: "#1a1a2e"
     }}>
       {/* Top bar */}
