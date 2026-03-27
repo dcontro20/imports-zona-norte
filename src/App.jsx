@@ -19,7 +19,7 @@ const MonthlyClosures = lazy(() => import("./components/Closures.jsx").then(m =>
 const ExportData = lazy(() => import("./components/Export.jsx").then(m => ({ default: m.ExportData })));
 const PriceLog = lazy(() => import("./components/PriceLog.jsx").then(m => ({ default: m.PriceLog })));
 const StockLog = lazy(() => import("./components/StockLog.jsx").then(m => ({ default: m.StockLog })));
-const ExchangeMonitor = lazy(() => import("./components/ExchangeMonitor"));
+const ExchangeMonitor = lazy(() => import("./components/ExchangeMonitor.jsx").then(m => ({ default: m.ExchangeMonitor })));
 
 const LoadingSpinner = () => (
   <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: 60 }}>
