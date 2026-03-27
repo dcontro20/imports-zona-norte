@@ -46,12 +46,12 @@ const NAV_ITEMS = [
   { key: "closures", label: "Cierres", icon: "📅" },
   { key: "export", label: "Exportar", icon: "📥" },
   { key: "reports", label: "Reportes", icon: "📈" },
+    { key: "exchange", label: "Cotizaciones", icon: "💱" },
 ];
 
 export default function App() {
   const USERS = [
-    { name: "Diego", 
-  { key: "exchange", label: "Cotizaciones", icon: "💱" },password: "Poncharelo20!", color: "#6366f1", icon: "💜" },
+    { name: "Diego", password: "Poncharelo20!", color: "#6366f1", icon: "💜" },
     { name: "Gustavo", password: "Gus2026!", color: "#10b981", icon: "💙" },
   ];
 
