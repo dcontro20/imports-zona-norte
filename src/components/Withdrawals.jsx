@@ -91,7 +91,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
         <div>
           <h2 style={{ fontSize: 22, fontWeight: 800, color: "#1a1a2e", margin: 0 }}>Mermas y Retiros</h2>
           <p style={{ fontSize: 13, color: "#6b7280", margin: "4px 0 0" }}>
-            Control de consumo propio, garant\u00edas y regalos
+            Control de consumo propio, garantías y regalos
           </p>
         </div>
         <Btn onClick={() => setShowModal(true)}>+ Nueva Merma</Btn>
@@ -101,7 +101,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 20 }}>
         <StatCard label="Este mes" value={stats.thisMonth} sub={`${stats.totalUnits} unidades`} color="#6366f1" />
         <StatCard label="Consumo propio" value={stats.byType["Consumo propio"] || 0} sub="unidades" color="#6366f1" />
-        <StatCard label="Garant\u00edas" value={stats.byType["Garant\u00eda / Devoluci\u00f3n"] || 0} sub="unidades" color="#f59e0b" />
+        <StatCard label="Garantías" value={stats.byType["Garantía / Devolución"] || 0} sub="unidades" color="#f59e0b" />
         <StatCard label="Regalos" value={stats.byType["Regalo / Canje"] || 0} sub="unidades" color="#10b981" />
       </div>
 
@@ -183,7 +183,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
 
       {/* Modal nueva merma */}
       {showModal && (
-        <Modal title="Registrar Merma" onClose={() => setShowModal(false)}>
+        <Modal open={true} title="Registrar Merma" onClose={() => setShowModal(false)}>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <select value={form.product} onChange={e => setForm(f => ({ ...f, product: e.target.value }))} style={{ padding: "8px 12px", borderRadius: 8, border: "1.5px solid #e2e4e9", fontSize: 14, background: "#fff", width: "100%" }}>
               <option value="">Seleccionar producto...</option>
