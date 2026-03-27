@@ -19,6 +19,7 @@ const MonthlyClosures = lazy(() => import("./components/Closures.jsx").then(m =>
 const ExportData = lazy(() => import("./components/Export.jsx").then(m => ({ default: m.ExportData })));
 const PriceLog = lazy(() => import("./components/PriceLog.jsx").then(m => ({ default: m.PriceLog })));
 const StockLog = lazy(() => import("./components/StockLog.jsx").then(m => ({ default: m.StockLog })));
+const ExchangeMonitor = lazy(() => import("./components/ExchangeMonitor"));
 
 const LoadingSpinner = () => (
   <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: 60 }}>
@@ -49,7 +50,8 @@ const NAV_ITEMS = [
 
 export default function App() {
   const USERS = [
-    { name: "Diego", password: "Poncharelo20!", color: "#6366f1", icon: "💜" },
+    { name: "Diego", 
+  { key: "exchange", label: "Cotizaciones", icon: "💱" },password: "Poncharelo20!", color: "#6366f1", icon: "💜" },
     { name: "Gustavo", password: "Gus2026!", color: "#10b981", icon: "💙" },
   ];
 
@@ -315,7 +317,8 @@ export default function App() {
 
   return (
     <div style={{
-      minHeight: "100vh", background: "#e5e7eb", fontFamily: "'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif",
+      minHeight: "100vh", background: "#e5e7eb", fontFamily: "'I
+      case "exchange": return <ExchangeMonitor exchangeRate={exchangeRate} />;nter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif",
       color: "#1a1a2e"
     }}>
       {/* Top bar */}
