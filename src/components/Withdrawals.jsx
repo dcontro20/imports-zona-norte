@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { uid, formatMoney, formatDate } from "../helpers.js";
-import { Modal, Card, Btn, Input, Select, Table, Badge, StatCard } from "./UI.jsx";
+import { Modal, Card, Btn, Input, Select, Badge, StatCard } from "./UI.jsx";
 
 // -- CONSUMO PROPIO --
 const TYPES = ["Consumo propio", "Garantía / Devolución", "Regalo / Canje"];
@@ -138,7 +138,15 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
             {withdrawals.length === 0 ? "No hay mermas registradas" : "No hay resultados con estos filtros"}
           </div>
         ) : (
-          <Table headers={["Fecha", "Producto", "Cant.", "Tipo", "Persona", "Notas", ""]}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <thead>
+              <tr style={{ borderBottom: "2px solid #e2e4e9" }}>
+                {["Fecha", "Producto", "Cant.", "Tipo", "Persona", "Notas", ""].map((h, i) => (
+                  <th key={i} style={{ padding: "8px 12px", textAlign: "left", color: "#6b7280", fontWeight: 600 }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
             {filtered.map(w => (
               <tr key={w.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
                 <td style={{ padding: "10px 12px", fontSize: 13, color: "#6b7280", whiteSpace: "nowrap" }}>
@@ -168,7 +176,8 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                 </td>
               </tr>
             ))}
-          </Table>
+            </tbody>
+          </table>
         )}
       </Card>
 
