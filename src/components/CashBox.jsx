@@ -4,12 +4,12 @@ import { Modal, Card, Btn, Input, Select, Table, Badge, StatCard } from "./UI.js
 
 // -- CASH / CAJA --
 const INITIAL_BALANCES = {
-  lemonPesos: 273646.62,
+  lemonPesos: 270857.49,
   lemonUSDT: 40.12,
   mpDiego: 0,
   mpGustavo: 0,
   usdCash: 0,
-  pesosCash: 0,
+  pesosCash: 120000,
 };
 
 const ACCOUNTS = [
