@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { uid, formatMoney, formatDate } from "../helpers.js";
-import { Modal, Card, Btn, Input, Select, Badge, StatCard } from "./UI.jsx";
+import { Modal, Card, Btn, Input, Badge, StatCard } from "./UI.jsx";
 
 // -- CONSUMO PROPIO --
 const TYPES = ["Consumo propio", "Garantía / Devolución", "Regalo / Canje"];
@@ -113,15 +113,15 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
           onChange={e => setSearch(e.target.value)}
           style={{ flex: "1 1 200px", minWidth: 180 }}
         />
-        <Select value={filterType} onChange={e => setFilterType(e.target.value)} style={{ minWidth: 160 }}>
+        <select value={filterType} onChange={e => setFilterType(e.target.value)} style={{ minWidth: 160, padding: "8px 12px", borderRadius: 8, border: "1.5px solid #e2e4e9", fontSize: 14, background: "#fff" }}>
           <option value="all">Todos los tipos</option>
           {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-        </Select>
+        </select>
         {uniquePersons.length > 0 && (
-          <Select value={filterPerson} onChange={e => setFilterPerson(e.target.value)} style={{ minWidth: 140 }}>
+          <select value={filterPerson} onChange={e => setFilterPerson(e.target.value)} style={{ minWidth: 140, padding: "8px 12px", borderRadius: 8, border: "1.5px solid #e2e4e9", fontSize: 14, background: "#fff" }}>
             <option value="">Todas las personas</option>
             {uniquePersons.map(p => <option key={p} value={p}>{p}</option>)}
-          </Select>
+          </select>
         )}
         {(filterType !== "all" || filterPerson || search) && (
           <Btn onClick={() => { setFilterType("all"); setFilterPerson(""); setSearch(""); }}
@@ -185,12 +185,12 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
       {showModal && (
         <Modal title="Registrar Merma" onClose={() => setShowModal(false)}>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <Select value={form.product} onChange={e => setForm(f => ({ ...f, product: e.target.value }))}>
+            <select value={form.product} onChange={e => setForm(f => ({ ...f, product: e.target.value }))} style={{ padding: "8px 12px", borderRadius: 8, border: "1.5px solid #e2e4e9", fontSize: 14, background: "#fff", width: "100%" }}>
               <option value="">Seleccionar producto...</option>
               {products.filter(p => p.stock > 0).map(p => (
                 <option key={p.id} value={p.id}>{p.name} (stock: {p.stock})</option>
               ))}
-            </Select>
+            </select>
             <div style={{ display: "flex", gap: 10 }}>
               <Input
                 type="number"
@@ -200,9 +200,9 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                 placeholder="Cantidad"
                 style={{ flex: 1 }}
               />
-              <Select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))} style={{ flex: 2 }}>
+              <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))} style={{ flex: 2, padding: "8px 12px", borderRadius: 8, border: "1.5px solid #e2e4e9", fontSize: 14, background: "#fff" }}>
                 {TYPES.map(t => <option key={t} value={t}>{TYPE_ICONS[t]} {t}</option>)}
-              </Select>
+              </select>
             </div>
             <Input
               placeholder="Persona (opcional)"
