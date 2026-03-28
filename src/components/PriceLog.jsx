@@ -74,7 +74,19 @@ export const PriceLog = ({ priceLog, products, setProducts, logPrice, exchangeRa
   };
 
   const saveAll = () => {
-    const changedModels = new Set();
+    // 1. Collect price change logs BEFORE updating state
+    const priceLogs = [];
+    const loggedKeys = new Set();
+    products.forEach(p => {
+      const key = `${p.brand}|||${p.model}`;
+      const np = Number(newPrices[key]);
+      if (np && np !== p.priceUSD && !loggedKeys.has(key)) {
+        priceLogs.push({ productId: p.id, oldPrice: p.priceUSD, newPrice: np });
+        loggedKeys.add(key);
+      }
+    });
+
+    // 2. Update products state (triggers auto-sync to Firestore)
     setProducts(prev => prev.map(p => {
       const key = `${p.brand}|||${p.model}`;
       const np = Number(newPrices[key]);
@@ -82,10 +94,6 @@ export const PriceLog = ({ priceLog, products, setProducts, logPrice, exchangeRa
       let changed = false;
       const updates = {};
       if (np && np !== p.priceUSD) {
-        if (!changedModels.has(key + "_price")) {
-          logPrice(p.id, p.priceUSD, np, "USD");
-          changedModels.add(key + "_price");
-        }
         updates.priceUSD = np;
         changed = true;
       }
@@ -95,6 +103,12 @@ export const PriceLog = ({ priceLog, products, setProducts, logPrice, exchangeRa
       }
       return changed ? { ...p, ...updates } : p;
     }));
+
+    // 3. Log price changes AFTER updating products (separate state update)
+    priceLogs.forEach(({ productId, oldPrice, newPrice }) => {
+      logPrice(productId, oldPrice, newPrice, "USD");
+    });
+
     setEditMode(false);
     setNewPrices({});
     setNewCosts({});
