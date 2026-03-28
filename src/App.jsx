@@ -257,6 +257,15 @@ export default function App() {
     setPriceLog(prev => [{ id: uid(), date: new Date().toISOString(), productId, field, oldPrice, newPrice }, ...prev]);
   }, []);
 
+  // Filtered data (excluding soft-deleted items) for read-only components
+  // IMPORTANT: Must be declared here (before any conditional return) to respect Rules of Hooks
+  const activeProducts = useMemo(() => products.filter(p => !p.isDeleted), [products]);
+  const activeSales = useMemo(() => sales.filter(s => !s.isDeleted), [sales]);
+  const activePurchases = useMemo(() => purchases.filter(p => !p.isDeleted), [purchases]);
+  const activeExpenses = useMemo(() => expenses.filter(e => !e.isDeleted), [expenses]);
+  const activeCashMovements = useMemo(() => cashMovements.filter(m => !m.isDeleted), [cashMovements]);
+  const activePartnerWithdrawals = useMemo(() => partnerWithdrawals.filter(w => !w.isDeleted), [partnerWithdrawals]);
+
   // ---- LOGIN HANDLERS ----
   const handleLogin = () => {
     const user = USERS.find(u => u.password === loginPass);
@@ -308,14 +317,6 @@ export default function App() {
       </div>
     );
   }
-
-  // Filtered data (excluding soft-deleted items) for read-only components
-  const activeProducts = useMemo(() => products.filter(p => !p.isDeleted), [products]);
-  const activeSales = useMemo(() => sales.filter(s => !s.isDeleted), [sales]);
-  const activePurchases = useMemo(() => purchases.filter(p => !p.isDeleted), [purchases]);
-  const activeExpenses = useMemo(() => expenses.filter(e => !e.isDeleted), [expenses]);
-  const activeCashMovements = useMemo(() => cashMovements.filter(m => !m.isDeleted), [cashMovements]);
-  const activePartnerWithdrawals = useMemo(() => partnerWithdrawals.filter(w => !w.isDeleted), [partnerWithdrawals]);
 
   const renderPage = () => {
     switch (page) {
