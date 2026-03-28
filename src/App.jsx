@@ -334,7 +334,7 @@ export default function App() {
 
   const renderPage = () => {
     switch (page) {
-      case "dashboard": return <Dashboard products={products} sales={sales} purchases={purchases} expenses={expenses} withdrawals={withdrawals} exchangeRate={exchangeRate} />;
+      case "dashboard": return <Dashboard products={products} sales={sales} purchases={purchases} expenses={expenses} withdrawals={withdrawals} exchangeRate={exchangeRate} clients={clients} cashMovements={cashMovements} />;
       case "products": return <Products products={products} setProducts={setProducts} exchangeRate={exchangeRate} logStock={logStock} logPrice={logPrice} currentUser={currentUser} />;
       case "sales": return <Sales sales={sales} setSales={setSales} products={products} setProducts={setProducts} clients={clients} setClients={setClients} cashMovements={cashMovements} setCashMovements={setCashMovements} logStock={logStock} exchangeRate={exchangeRate} currentUser={currentUser} />;
       case "purchases": return <Purchases purchases={purchases} setPurchases={setPurchases} products={products} setProducts={setProducts} exchangeRate={exchangeRate} logStock={logStock} currentUser={currentUser} />;
@@ -347,7 +347,7 @@ export default function App() {
       case "pricelog": return <PriceLog priceLog={priceLog} products={products} setProducts={setProducts} logPrice={logPrice} exchangeRate={exchangeRate} />;
       case "partners": return <Partners partnerWithdrawals={partnerWithdrawals} setPartnerWithdrawals={setPartnerWithdrawals} sales={sales} purchases={purchases} expenses={expenses} withdrawals={withdrawals} exchangeRate={exchangeRate} currentUser={currentUser} />;
       case "closures": return <MonthlyClosures monthlyClosures={monthlyClosures} setMonthlyClosures={setMonthlyClosures} sales={sales} purchases={purchases} expenses={expenses} withdrawals={withdrawals} products={products} exchangeRate={exchangeRate} />;
-      case "export": return <ExportData products={products} sales={sales} purchases={purchases} expenses={expenses} withdrawals={withdrawals} cashMovements={cashMovements} stockLog={stockLog} exchangeRate={exchangeRate} />;
+      case "export": return <ExportData products={products} sales={sales} purchases={purchases} expenses={expenses} withdrawals={withdrawals} cashMovements={cashMovements} stockLog={stockLog} priceLog={priceLog} clients={clients} partnerWithdrawals={partnerWithdrawals} monthlyClosures={monthlyClosures} exchangeRate={exchangeRate} />;
       case "reports": return <Reports products={products} sales={sales} purchases={purchases} expenses={expenses} withdrawals={withdrawals} exchangeRate={exchangeRate} />;
       case "exchange": return <ExchangeMonitor exchangeRate={exchangeRate} />;
       default: return null;
