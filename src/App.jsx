@@ -211,13 +211,14 @@ export default function App() {
   // Save to localStorage + Firestore when state changes locally
   const smartSave = useCallback((key, data) => {
     try { localStorage.setItem(`vapestock_${key}`, JSON.stringify(data)); } catch {}
-    // NEVER write to Firestore if initial load hasn't completed
-    if (!firestoreReady.current) return;
-    // Don't write back data that came FROM Firestore
+    // CRITICAL: Always clear fromFirestore flag FIRST, regardless of firestoreReady
+    // This prevents the flag from getting "stuck" during the initial 2s wait period
     if (fromFirestore.current[key]) {
       fromFirestore.current[key] = false;
       return;
     }
+    // NEVER write to Firestore if initial load hasn't completed
+    if (!firestoreReady.current) return;
     saveToFirestore(key, data);
   }, []);
 
@@ -296,6 +297,36 @@ export default function App() {
   const handleLogout = () => {
     setCurrentUser(null);
     try { sessionStorage.removeItem("vapestock_user"); } catch {}
+  };
+
+  // Force sync all local data to Firestore (emergency repair)
+  const forceSync = async () => {
+    if (!window.confirm("¿Forzar sincronización de todos los datos locales a Firestore? Esto sobreescribirá los datos en la nube con los datos de este dispositivo.")) return;
+    setSyncStatus("syncing");
+    const allData = [
+      { key: "products", data: products },
+      { key: "sales", data: sales },
+      { key: "purchases", data: purchases },
+      { key: "clients", data: clients },
+      { key: "expenses", data: expenses },
+      { key: "withdrawals", data: withdrawals },
+      { key: "cashMovements", data: cashMovements },
+      { key: "stockLog", data: stockLog },
+      { key: "priceLog", data: priceLog },
+      { key: "monthlyClosures", data: monthlyClosures },
+      { key: "partnerWithdrawals", data: partnerWithdrawals },
+      { key: "exchangeRate", data: exchangeRate },
+    ];
+    let ok = 0;
+    for (const { key, data } of allData) {
+      try {
+        fromFirestore.current[key] = true; // prevent echo-back
+        await saveToFirestore(key, data);
+        ok++;
+      } catch (e) { console.error(`Force sync failed for ${key}:`, e); }
+    }
+    setSyncStatus("online");
+    alert(`Sincronización completa: ${ok}/${allData.length} colecciones actualizadas en Firestore.`);
   };
 
   // ---- LOGIN SCREEN (shown when no user is authenticated) ----
@@ -412,10 +443,10 @@ export default function App() {
               }}>Sin resultados</div>
             )}
           </div>
-          {/* Sync status badge */}
-          <div style={{
+          {/* Sync status badge — click to force sync */}
+          <div onClick={forceSync} title="Click para forzar sincronización" style={{
             display: "flex", alignItems: "center", gap: 5, fontSize: isMobile ? 10 : 11, fontWeight: 600,
-            padding: isMobile ? "3px 8px" : "4px 10px", borderRadius: 20,
+            padding: isMobile ? "3px 8px" : "4px 10px", borderRadius: 20, cursor: "pointer",
             background: syncStatus === "online" ? "#ecfdf5" : syncStatus === "offline" ? "#fef2f2" : "#fffbeb",
             color: syncStatus === "online" ? "#059669" : syncStatus === "offline" ? "#dc2626" : "#d97706",
             border: `1px solid ${syncStatus === "online" ? "#a7f3d0" : syncStatus === "offline" ? "#fecaca" : "#fde68a"}`
