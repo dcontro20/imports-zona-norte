@@ -1,18 +1,15 @@
 import { useState, useMemo } from "react";
 import { formatMoney, formatDate } from "../helpers.js";
 import { Card, StatCard, Badge } from "./UI.jsx";
-import { BRAND_COLORS, MP_ACCOUNTS } from "../constants.js";
-import { useResponsive } from "../App.jsx";
+import { BRAND_COLORS } from "../constants.js";
 
-// -- DASHBOARD PROFESIONAL v2 --
-export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, exchangeRate, clients, cashMovements }) => {
-  const { isMobile } = useResponsive();
+// -- DASHBOARD PROFESIONAL --
+export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, exchangeRate }) => {
   const now = new Date();
   const today = now.toDateString();
   const thisMonth = now.getMonth();
   const thisYear = now.getFullYear();
-  const [period, setPeriod] = useState("month");
-  const [showAllAlerts, setShowAllAlerts] = useState(false);
+  const [period, setPeriod] = useState("month"); // "today" | "week" | "month"
 
   // ---- Date filters ----
   const isToday = (d) => new Date(d).toDateString() === today;
@@ -40,9 +37,10 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, e
   const periodPurchases = filterByPeriod(purchases);
   const periodWithdrawals = filterByPeriod(withdrawals || []);
 
+  // Revenue in USD (normalize everything to USD)
   const revenueUSD = periodSales.reduce((sum, s) => {
     if (s.currency === "ARS") return sum + (s.total / exchangeRate);
-    return sum + s.total;
+    return sum + s.total; // USD or USDT
   }, 0);
 
   const revenueARS = periodSales.reduce((sum, s) => {
@@ -50,10 +48,12 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, e
     return sum + s.total;
   }, 0);
 
+  // Cost of goods sold (from items sold)
   const cogsUSD = periodSales.reduce((sum, s) => {
     return sum + (s.items || []).reduce((isum, item) => {
       const prod = products.find(p => p.id === item.productId);
       if (!prod) return isum;
+      // Estimate cost using the pricing formula from RESUMEN
       const costUSDT = prod.costUSDT || 0;
       const realCost = costUSDT > 0 ? (costUSDT * 1.01 * 1.05) + 0.40 : (prod.priceUSD || 0) * 0.52;
       return isum + realCost * item.qty;
@@ -66,34 +66,32 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, e
   }, 0);
 
   const purchasesUSDT = periodPurchases.reduce((sum, p) => sum + (p.totalUSDT || 0), 0);
+
   const grossProfitUSD = revenueUSD - cogsUSD;
   const netProfitUSD = revenueUSD - cogsUSD - expensesUSD;
 
+  // Stock metrics
   const totalStock = products.reduce((sum, p) => sum + (p.stock || 0), 0);
   const stockValueUSD = products.reduce((sum, p) => sum + (p.stock || 0) * (p.priceUSD || 0), 0);
   const lowStock = products.filter(p => p.stock > 0 && p.stock <= 3);
-  const outOfStock = products.filter(p => (p.stock || 0) <= 0);
 
+  // Sales by payment method
   const salesByMethod = useMemo(() => {
     const methods = {};
     periodSales.forEach(s => {
-      (s.payments || []).forEach(pay => {
-        const m = pay.method || s.paymentMethod || "Otro";
-        if (!methods[m]) methods[m] = { count: 0, totalARS: 0 };
-        methods[m].count += 1;
-        const amt = Number(pay.amount) || 0;
-        methods[m].totalARS += (s.currency === "USD" || s.currency === "USDT") ? amt * exchangeRate : amt;
-      });
-      if (!(s.payments || []).length) {
-        const m = s.paymentMethod || "Otro";
-        if (!methods[m]) methods[m] = { count: 0, totalARS: 0 };
-        methods[m].count += 1;
-        methods[m].totalARS += (s.currency === "USD" || s.currency === "USDT") ? s.total * exchangeRate : s.total;
+      const m = s.paymentMethod || "Otro";
+      if (!methods[m]) methods[m] = { count: 0, totalARS: 0 };
+      methods[m].count += 1;
+      if (s.currency === "USD" || s.currency === "USDT") {
+        methods[m].totalARS += s.total * exchangeRate;
+      } else {
+        methods[m].totalARS += s.total;
       }
     });
     return Object.entries(methods).sort((a, b) => b[1].totalARS - a[1].totalARS);
   }, [periodSales, exchangeRate]);
 
+  // Sales by brand
   const salesByBrand = useMemo(() => {
     const brands = {};
     periodSales.forEach(s => {
@@ -108,6 +106,7 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, e
     return Object.entries(brands).sort((a, b) => b[1].qty - a[1].qty);
   }, [periodSales, products]);
 
+  // Top products
   const topProducts = useMemo(() => {
     const counts = {};
     periodSales.forEach(s => (s.items || []).forEach(item => {
@@ -119,120 +118,41 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, e
     });
   }, [periodSales, products]);
 
+  // Partner metrics
   const diegoSales = periodSales.filter(s => s.createdBy === "Diego");
   const gustavoSales = periodSales.filter(s => s.createdBy === "Gustavo");
-  const diegoRevenue = diegoSales.reduce((sum, s) => s.currency === "ARS" ? sum + (s.total / exchangeRate) : sum + s.total, 0);
-  const gustavoRevenue = gustavoSales.reduce((sum, s) => s.currency === "ARS" ? sum + (s.total / exchangeRate) : sum + s.total, 0);
+  const diegoRevenue = diegoSales.reduce((sum, s) => {
+    if (s.currency === "ARS") return sum + (s.total / exchangeRate);
+    return sum + s.total;
+  }, 0);
+  const gustavoRevenue = gustavoSales.reduce((sum, s) => {
+    if (s.currency === "ARS") return sum + (s.total / exchangeRate);
+    return sum + s.total;
+  }, 0);
 
+  // Mermas
   const totalMermas = periodWithdrawals.reduce((s, w) => s + w.qty, 0);
   const mermasValueUSD = periodWithdrawals.reduce((s, w) => s + (w.costEstimateUSD || 0), 0);
+
+  // Discounts given
   const totalDiscounts = periodSales.reduce((s, sale) => s + (sale.discountAmount || 0), 0);
 
+  // Sales velocity
   const daysInPeriod = period === "today" ? 1 : period === "week" ? 7 : now.getDate();
   const avgSalesPerDay = periodSales.length > 0 ? (periodSales.length / daysInPeriod).toFixed(1) : "0";
   const avgUnitsPerDay = periodSales.reduce((s, sale) => s + (sale.items || []).reduce((is, i) => is + i.qty, 0), 0) / daysInPeriod;
 
+  // Recent sales (last 5)
   const recentSales = [...sales].slice(0, 5);
-
-  // ===== SMART ALERTS =====
-  const alerts = useMemo(() => {
-    const list = [];
-    // Stock agotado
-    if (outOfStock.length > 0) {
-      list.push({ type: "danger", icon: "🔴", title: `${outOfStock.length} producto${outOfStock.length > 1 ? "s" : ""} agotado${outOfStock.length > 1 ? "s" : ""}`, detail: outOfStock.slice(0, 3).map(p => `${p.brand} ${p.model} - ${p.flavor}`).join(", ") + (outOfStock.length > 3 ? ` +${outOfStock.length - 3} más` : "") });
-    }
-    // Stock bajo
-    if (lowStock.length > 0) {
-      list.push({ type: "warning", icon: "⚠️", title: `${lowStock.length} producto${lowStock.length > 1 ? "s" : ""} con stock bajo (≤3)`, detail: lowStock.slice(0, 3).map(p => `${p.brand} ${p.model} (${p.stock})`).join(", ") + (lowStock.length > 3 ? ` +${lowStock.length - 3} más` : "") });
-    }
-    // Clientes con deuda (balance negativo = nos deben)
-    const debtors = (clients || []).filter(c => (c.balance || 0) < 0);
-    if (debtors.length > 0) {
-      const totalDebt = debtors.reduce((s, c) => s + Math.abs(c.balance), 0);
-      list.push({ type: "info", icon: "💳", title: `${debtors.length} cliente${debtors.length > 1 ? "s" : ""} con deuda pendiente`, detail: `Total: ${formatMoney(totalDebt)} — ` + debtors.slice(0, 3).map(c => `${c.name}: ${formatMoney(Math.abs(c.balance))}`).join(", ") });
-    }
-    // Clientes con saldo a favor (les debemos)
-    const creditors = (clients || []).filter(c => (c.balance || 0) > 0);
-    if (creditors.length > 0) {
-      const totalCredit = creditors.reduce((s, c) => s + c.balance, 0);
-      list.push({ type: "info", icon: "💰", title: `${creditors.length} cliente${creditors.length > 1 ? "s" : ""} con saldo a favor`, detail: `Total: ${formatMoney(totalCredit)} — ` + creditors.slice(0, 3).map(c => `${c.name}: ${formatMoney(c.balance)}`).join(", ") });
-    }
-    // Backup reminder
-    const lastBackup = localStorage.getItem("vapestock_lastBackup");
-    const daysSince = lastBackup ? Math.floor((Date.now() - new Date(lastBackup).getTime()) / 86400000) : null;
-    if (daysSince === null || daysSince >= 7) {
-      list.push({ type: "danger", icon: "🛡️", title: daysSince === null ? "Nunca se hizo un backup" : `Último backup hace ${daysSince} días`, detail: "Andá a Exportar para descargar un respaldo completo de tu data" });
-    } else if (daysSince >= 3) {
-      list.push({ type: "warning", icon: "🛡️", title: `Último backup hace ${daysSince} días`, detail: "Considerá hacer un backup pronto" });
-    }
-    // Sin ventas hoy
-    const todaySales = sales.filter(s => isToday(s.date));
-    if (todaySales.length === 0 && now.getHours() >= 12) {
-      list.push({ type: "neutral", icon: "📊", title: "Sin ventas hoy todavía", detail: "Registrá ventas cuando se concreten" });
-    }
-    return list;
-  }, [outOfStock, lowStock, clients, sales, now]);
-
-  // ===== ACCOUNT BALANCES =====
-  const accountBalances = useMemo(() => {
-    const accts = {
-      pesosCash: { label: "Pesos Cash", icon: "💵", color: "#059669", balance: 0 },
-      usdCash: { label: "USD Cash", icon: "💲", color: "#00b894", balance: 0 },
-      mpDiego: { label: "MP Diego", icon: "📱", color: "#6366f1", balance: 0 },
-      mpGustavo: { label: "MP Gustavo", icon: "📱", color: "#818cf8", balance: 0 },
-      lemonPesos: { label: "Lemon $", icon: "🍋", color: "#f9ca24", balance: 0 },
-      lemonUSDT: { label: "Lemon USDT", icon: "₮", color: "#26de81", balance: 0 },
-    };
-
-    // Process sales payments
-    sales.forEach(s => {
-      (s.payments || []).forEach(pay => {
-        const amt = Number(pay.amount) || 0;
-        if (pay.method === "Pesos Cash") accts.pesosCash.balance += amt;
-        else if (pay.method === "USD Cash") accts.usdCash.balance += amt;
-        else if (pay.method === "USDT") accts.lemonUSDT.balance += amt;
-        else if (pay.method === "Mercado Pago") {
-          if (pay.account === "MP Diego") accts.mpDiego.balance += amt;
-          else if (pay.account === "MP Gustavo") accts.mpGustavo.balance += amt;
-          else accts.mpDiego.balance += amt; // default
-        }
-        else if (pay.method === "Lemon") accts.lemonPesos.balance += amt;
-      });
-      // Balance actions (vuelto)
-      if (s.balanceAction === "cash_change" && s.paymentDiff > 0) accts.pesosCash.balance -= s.paymentDiff;
-      if (s.balanceAction === "transfer_change" && s.paymentDiff > 0) {
-        const acc = s.balanceChangeAccount;
-        if (acc === "MP Diego") accts.mpDiego.balance -= s.paymentDiff;
-        else if (acc === "MP Gustavo") accts.mpGustavo.balance -= s.paymentDiff;
-      }
-    });
-
-    // Process expenses
-    expenses.forEach(e => {
-      accts.pesosCash.balance -= (e.amountARS || 0);
-    });
-
-    // Process cash movements (transfers between accounts)
-    (cashMovements || []).forEach(m => {
-      const amt = Number(m.amount) || 0;
-      if (m.from && accts[m.from]) accts[m.from].balance -= amt;
-      if (m.to && accts[m.to]) accts[m.to].balance += amt;
-    });
-
-    return Object.values(accts).filter(a => a.balance !== 0 || ["pesosCash", "usdCash", "mpDiego", "mpGustavo"].includes(a.key));
-  }, [sales, expenses, cashMovements]);
 
   const periodLabels = { today: "Hoy", week: "Esta semana", month: "Este mes" };
 
+  // Simple bar component
   const Bar = ({ value, max, color }) => (
     <div style={{ flex: 1, height: 6, background: "#f0f1f5", borderRadius: 3, overflow: "hidden" }}>
       <div style={{ width: `${max > 0 ? (value / max) * 100 : 0}%`, height: "100%", background: color, borderRadius: 3, transition: "width 0.5s ease" }} />
     </div>
   );
-
-  const alertColors = { danger: { bg: "#fef2f2", border: "#fecaca", text: "#dc2626" }, warning: { bg: "#fffbeb", border: "#fed7aa", text: "#d97706" }, info: { bg: "#eff6ff", border: "#bfdbfe", text: "#2563eb" }, neutral: { bg: "#f9fafb", border: "#e5e7eb", text: "#6b7280" } };
-
-  const visibleAlerts = showAllAlerts ? alerts : alerts.slice(0, 3);
 
   return (
     <div>
@@ -247,8 +167,7 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, e
         <div style={{ display: "flex", gap: 4, background: "#f0f1f5", borderRadius: 8, padding: 3 }}>
           {["today", "week", "month"].map(p => (
             <button key={p} onClick={() => setPeriod(p)} style={{
-              padding: isMobile ? "5px 10px" : "6px 14px",
-              border: "none", borderRadius: 6, fontSize: isMobile ? 11 : 12, fontWeight: 600,
+              padding: "6px 14px", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600,
               cursor: "pointer", transition: "all 0.2s",
               background: period === p ? "#fff" : "transparent",
               color: period === p ? "#6366f1" : "#6b7280",
@@ -258,66 +177,37 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, e
         </div>
       </div>
 
-      {/* ===== SMART ALERTS ===== */}
-      {alerts.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {visibleAlerts.map((alert, i) => {
-              const c = alertColors[alert.type];
-              return (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: c.bg, border: `1px solid ${c.border}`, borderRadius: 10 }}>
-                  <span style={{ fontSize: 18 }}>{alert.icon}</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: c.text }}>{alert.title}</div>
-                    <div style={{ fontSize: 11, color: "#6b7280" }}>{alert.detail}</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          {alerts.length > 3 && (
-            <button onClick={() => setShowAllAlerts(!showAllAlerts)} style={{ background: "none", border: "none", color: "#6366f1", fontSize: 12, cursor: "pointer", marginTop: 6, fontWeight: 600 }}>
-              {showAllAlerts ? "Ver menos" : `Ver ${alerts.length - 3} alerta${alerts.length - 3 > 1 ? "s" : ""} más`}
-            </button>
-          )}
-        </div>
-      )}
-
       {/* KPI Cards - Row 1 */}
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit, minmax(200px, 1fr))", gap: isMobile ? 10 : 14, marginBottom: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 16 }}>
         <Card style={{ background: "linear-gradient(135deg, #6366f1 0%, #818cf8 100%)", border: "none" }}>
           <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 11, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 8 }}>Ventas</div>
-          <div style={{ color: "#fff", fontSize: isMobile ? 22 : 28, fontWeight: 800, lineHeight: 1 }}>{periodSales.length}</div>
-          <div style={{ color: "rgba(255,255,255,0.8)", fontSize: isMobile ? 11 : 12, marginTop: 6 }}>{formatMoney(revenueUSD, "USD")} · {formatMoney(revenueARS)}</div>
+          <div style={{ color: "#fff", fontSize: 28, fontWeight: 800, lineHeight: 1 }}>{periodSales.length}</div>
+          <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 12, marginTop: 6 }}>{formatMoney(revenueUSD, "USD")} · {formatMoney(revenueARS)}</div>
         </Card>
 
         <Card style={{ background: "linear-gradient(135deg, #059669 0%, #34d399 100%)", border: "none" }}>
           <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 11, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 8 }}>Ganancia Neta</div>
-          <div style={{ color: "#fff", fontSize: isMobile ? 22 : 28, fontWeight: 800, lineHeight: 1 }}>{formatMoney(netProfitUSD, "USD")}</div>
-          <div style={{ color: "rgba(255,255,255,0.8)", fontSize: isMobile ? 11 : 12, marginTop: 6 }}>{formatMoney(netProfitUSD * exchangeRate)} ARS</div>
+          <div style={{ color: "#fff", fontSize: 28, fontWeight: 800, lineHeight: 1 }}>{formatMoney(netProfitUSD, "USD")}</div>
+          <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 12, marginTop: 6 }}>{formatMoney(netProfitUSD * exchangeRate)} ARS</div>
         </Card>
 
-        {!isMobile && (
-          <>
-            <Card style={{ position: "relative", overflow: "hidden" }}>
-              <div style={{ position: "absolute", top: 10, right: 14, fontSize: 28, opacity: 0.1 }}>📦</div>
-              <div style={{ fontSize: 11, color: "#6b7280", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 8 }}>Stock</div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: "#f59e0b", lineHeight: 1 }}>{totalStock}</div>
-              <div style={{ fontSize: 12, color: "#6b7280", marginTop: 6 }}>Valor: {formatMoney(stockValueUSD, "USD")}</div>
-            </Card>
+        <Card style={{ position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", top: 10, right: 14, fontSize: 28, opacity: 0.1 }}>📦</div>
+          <div style={{ fontSize: 11, color: "#6b7280", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 8 }}>Stock</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: "#f59e0b", lineHeight: 1 }}>{totalStock}</div>
+          <div style={{ fontSize: 12, color: "#6b7280", marginTop: 6 }}>Valor: {formatMoney(stockValueUSD, "USD")}</div>
+        </Card>
 
-            <Card style={{ position: "relative", overflow: "hidden" }}>
-              <div style={{ position: "absolute", top: 10, right: 14, fontSize: 28, opacity: 0.1 }}>📊</div>
-              <div style={{ fontSize: 11, color: "#6b7280", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 8 }}>Velocidad</div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: "#6366f1", lineHeight: 1 }}>{avgSalesPerDay}</div>
-              <div style={{ fontSize: 12, color: "#6b7280", marginTop: 6 }}>ventas/día · {avgUnitsPerDay.toFixed(1)} uds/día</div>
-            </Card>
-          </>
-        )}
+        <Card style={{ position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", top: 10, right: 14, fontSize: 28, opacity: 0.1 }}>📊</div>
+          <div style={{ fontSize: 11, color: "#6b7280", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 8 }}>Velocidad</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: "#6366f1", lineHeight: 1 }}>{avgSalesPerDay}</div>
+          <div style={{ fontSize: 12, color: "#6b7280", marginTop: 6 }}>ventas/día · {avgUnitsPerDay.toFixed(1)} uds/día</div>
+        </Card>
       </div>
 
       {/* KPI Cards - Row 2: Financials */}
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit, minmax(160px, 1fr))", gap: 14, marginBottom: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 14, marginBottom: 20 }}>
         <Card style={{ padding: "14px 18px" }}>
           <div style={{ fontSize: 10, color: "#6b7280", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 6 }}>Gastos</div>
           <div style={{ fontSize: 20, fontWeight: 800, color: "#e74c3c" }}>{formatMoney(expensesUSD, "USD")}</div>
@@ -326,43 +216,19 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, e
           <div style={{ fontSize: 10, color: "#6b7280", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 6 }}>Compras USDT</div>
           <div style={{ fontSize: 20, fontWeight: 800, color: "#e17055" }}>{formatMoney(purchasesUSDT, "USDT")}</div>
         </Card>
-        {!isMobile && (
-          <>
-            <Card style={{ padding: "14px 18px" }}>
-              <div style={{ fontSize: 10, color: "#6b7280", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 6 }}>Mermas</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: "#f59e0b" }}>{totalMermas} <span style={{ fontSize: 12, fontWeight: 600 }}>uds</span></div>
-              <div style={{ fontSize: 11, color: "#6b7280" }}>{formatMoney(mermasValueUSD, "USD")} perdido</div>
-            </Card>
-            <Card style={{ padding: "14px 18px" }}>
-              <div style={{ fontSize: 10, color: "#6b7280", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 6 }}>Descuentos</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: "#8b5cf6" }}>{formatMoney(totalDiscounts)}</div>
-            </Card>
-          </>
-        )}
+        <Card style={{ padding: "14px 18px" }}>
+          <div style={{ fontSize: 10, color: "#6b7280", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 6 }}>Mermas</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: "#f59e0b" }}>{totalMermas} <span style={{ fontSize: 12, fontWeight: 600 }}>uds</span></div>
+          <div style={{ fontSize: 11, color: "#6b7280" }}>{formatMoney(mermasValueUSD, "USD")} perdido</div>
+        </Card>
+        <Card style={{ padding: "14px 18px" }}>
+          <div style={{ fontSize: 10, color: "#6b7280", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 6 }}>Descuentos</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: "#8b5cf6" }}>{formatMoney(totalDiscounts)}</div>
+        </Card>
       </div>
 
-      {/* ===== ACCOUNT BALANCES ===== */}
-      <Card style={{ marginBottom: 14 }}>
-        <h4 style={{ color: "#1a1a2e", margin: "0 0 14px", fontSize: 13, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>Balance de Cuentas (estimado)</h4>
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fill, minmax(140px, 1fr))", gap: 10 }}>
-          {accountBalances.map((acc, i) => (
-            <div key={i} style={{ padding: "10px 14px", background: "#f9fafb", borderRadius: 10, border: "1px solid #f0f1f5" }}>
-              <div style={{ fontSize: 11, color: "#6b7280", fontWeight: 600, marginBottom: 4, display: "flex", alignItems: "center", gap: 4 }}>
-                <span>{acc.icon}</span> {acc.label}
-              </div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: acc.balance >= 0 ? acc.color : "#e74c3c" }}>
-                {formatMoney(Math.abs(acc.balance))}
-              </div>
-            </div>
-          ))}
-        </div>
-        <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 10, fontStyle: "italic" }}>
-          Estimado basado en ventas, gastos y movimientos de caja registrados. Para saldos exactos, consultá cada cuenta.
-        </div>
-      </Card>
-
       {/* Main content grid */}
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14, marginBottom: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
         {/* Ventas por socio */}
         <Card>
           <h4 style={{ color: "#1a1a2e", margin: "0 0 16px", fontSize: 13, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>Ventas por socio</h4>
@@ -398,7 +264,7 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, e
         </Card>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14, marginBottom: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
         {/* Top productos */}
         <Card>
           <h4 style={{ color: "#1a1a2e", margin: "0 0 14px", fontSize: 13, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>Más vendidos</h4>
@@ -433,7 +299,7 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, e
       </div>
 
       {/* Bottom row */}
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "2fr 1fr", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 14 }}>
         {/* Últimas ventas */}
         <Card>
           <h4 style={{ color: "#1a1a2e", margin: "0 0 14px", fontSize: 13, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>Últimas ventas</h4>
