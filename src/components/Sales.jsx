@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useResponsive } from "../App.jsx";
 import { uid, formatMoney, formatDate } from "../helpers.js";
 import { Modal, Card, Btn, Input, Select, Table, Badge, SearchBar, StatCard } from "./UI.jsx";
 import { CHANNELS, PAYMENT_METHODS, MP_ACCOUNTS, DISCOUNT_REASONS } from "../constants.js";
@@ -14,6 +15,7 @@ const emptyForm = () => ({
 });
 
 export const Sales = ({ sales, setSales, products, setProducts, logStock, exchangeRate, currentUser }) => {
+  const { isMobile } = useResponsive();
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [search, setSearch] = useState("");
@@ -82,7 +84,7 @@ export const Sales = ({ sales, setSales, products, setProducts, logStock, exchan
 
   const save = () => {
     if (form.items.some(i => !i.productId)) return;
-    
+
     // Validate stock availability
     const stockCheck = {};
     // If editing, account for restored stock from original sale
@@ -177,38 +179,61 @@ export const Sales = ({ sales, setSales, products, setProducts, logStock, exchan
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
+      {/* Header area - stack vertically on mobile */}
+      <div style={{
+        display: isMobile ? "flex" : "flex",
+        flexDirection: isMobile ? "column" : "row",
+        justifyContent: "space-between",
+        alignItems: isMobile ? "flex-start" : "center",
+        marginBottom: 16,
+        gap: 12
+      }}>
         <div>
-          <h2 style={{ color: "#1a1a2e", margin: 0, fontSize: 22 }}>Ventas ({filtered.length}{filtered.length !== sales.length ? `/${sales.length}` : ""})</h2>
+          <h2 style={{ color: "#1a1a2e", margin: 0, fontSize: isMobile ? 18 : 22 }}>Ventas ({filtered.length}{filtered.length !== sales.length ? `/${sales.length}` : ""})</h2>
           {filtered.length > 0 && <span style={{ color: "#6b7280", fontSize: 13 }}>Total filtrado: {formatMoney(filteredRevenue)}</span>}
         </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <SearchBar value={search} onChange={setSearch} placeholder="Buscar producto o cliente..." />
-          <Btn variant="secondary" onClick={() => setShowFilters(!showFilters)} style={{ padding: "10px 14px", border: hasActiveFilters ? "1px solid #6366f1" : undefined }}>
-            🔍 Filtros {hasActiveFilters ? "●" : ""}
-          </Btn>
-          <Btn onClick={openNew}>+ Nueva Venta</Btn>
+        <div style={{
+          display: "flex",
+          flexDirection: isMobile ? "column" : "row",
+          gap: 10,
+          alignItems: isMobile ? "stretch" : "center",
+          width: isMobile ? "100%" : "auto"
+        }}>
+          <div style={{ width: isMobile ? "100%" : "auto" }}>
+            <SearchBar value={search} onChange={setSearch} placeholder="Buscar producto o cliente..." />
+          </div>
+          <div style={{ display: "flex", gap: 10, width: isMobile ? "100%" : "auto" }}>
+            <Btn variant="secondary" onClick={() => setShowFilters(!showFilters)} style={{ padding: "10px 14px", border: hasActiveFilters ? "1px solid #6366f1" : undefined, flex: isMobile ? 1 : "auto" }}>
+              🔍 Filtros {hasActiveFilters ? "●" : ""}
+            </Btn>
+            <Btn onClick={openNew} style={{ flex: isMobile ? 1 : "auto" }}>+ Nueva Venta</Btn>
+          </div>
         </div>
       </div>
 
-      {/* Filter bar */}
+      {/* Filter bar - 2-column grid on mobile */}
       {showFilters && (
         <Card style={{ marginBottom: 14, background: "#f7f8fa", border: "1px solid #e2e4e9" }}>
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
-            <div style={{ flex: 1, minWidth: 130 }}>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 1fr 1fr",
+            gap: 12,
+            alignItems: "flex-end"
+          }}>
+            <div>
               <Input label="Desde" type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} />
             </div>
-            <div style={{ flex: 1, minWidth: 130 }}>
+            <div>
               <Input label="Hasta" type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} />
             </div>
-            <div style={{ flex: 1, minWidth: 130 }}>
+            <div>
               <Select label="Canal" options={CHANNELS} value={filterChannel} onChange={e => setFilterChannel(e.target.value)} />
             </div>
-            <div style={{ flex: 1, minWidth: 130 }}>
+            <div>
               <Select label="Método de pago" options={PAYMENT_METHODS} value={filterPayment} onChange={e => setFilterPayment(e.target.value)} />
             </div>
             {hasActiveFilters && (
-              <button onClick={clearFilters} style={{ background: "none", border: "1px solid #e74c3c55", color: "#e74c3c", padding: "8px 14px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, marginBottom: 14 }}>
+              <button onClick={clearFilters} style={{ background: "none", border: "1px solid #e74c3c55", color: "#e74c3c", padding: "8px 14px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, gridColumn: isMobile ? "1 / -1" : "auto" }}>
                 ✕ Limpiar
               </button>
             )}
@@ -225,6 +250,7 @@ export const Sales = ({ sales, setSales, products, setProducts, logStock, exchan
         </Card>
       )}
 
+      {/* Sales Table with mobileColumns */}
       <Card>
         <Table
           columns={[
@@ -251,6 +277,7 @@ export const Sales = ({ sales, setSales, products, setProducts, logStock, exchan
               </div>
             )},
           ]}
+          mobileColumns={isMobile ? ["date", "items", "total", "actions"] : undefined}
           data={filtered}
           emptyMsg="No hay ventas registradas"
         />
@@ -258,18 +285,24 @@ export const Sales = ({ sales, setSales, products, setProducts, logStock, exchan
 
       <Modal open={modal} onClose={() => { setModal(false); setEditing(null); }} title={editing ? "Editar Venta" : "Nueva Venta"}>
         <Input label="Fecha" type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
-        
+
         <label style={{ display: "block", fontSize: 12, color: "#6b7280", marginBottom: 8, fontWeight: 600, textTransform: "uppercase" }}>Productos</label>
         {form.items.map((item, i) => (
-          <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "flex-end" }}>
-            <div style={{ flex: 2 }}>
+          <div key={i} style={{
+            display: "flex",
+            flexWrap: isMobile ? "wrap" : "nowrap",
+            gap: 8,
+            marginBottom: 8,
+            alignItems: "flex-end"
+          }}>
+            <div style={{ flex: isMobile ? "1 100%" : 2 }}>
               <Select options={[...products].filter(p => p.stock > 0).sort((a, b) => a.brand.localeCompare(b.brand) || a.model.localeCompare(b.model) || a.flavor.localeCompare(b.flavor)).map(p => ({ value: p.id, label: `${p.brand} ${p.model} - ${p.flavor} (${p.puffs}p) [${p.stock}]` }))}
                 value={item.productId} onChange={e => updateItem(i, "productId", e.target.value)} />
             </div>
-            <div style={{ flex: 0.5 }}>
+            <div style={{ flex: isMobile ? "1" : 0.5 }}>
               <Input type="number" value={item.qty} min={1} onChange={e => updateItem(i, "qty", Number(e.target.value))} />
             </div>
-            {form.items.length > 1 && <button onClick={() => removeItem(i)} style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontSize: 18, marginBottom: 14 }}>✕</button>}
+            {form.items.length > 1 && <button onClick={() => removeItem(i)} style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontSize: 18, marginBottom: isMobile ? 0 : 14 }}>✕</button>}
           </div>
         ))}
         <button onClick={addItem} style={{ background: "none", border: "1px dashed #e2e4e9", color: "#6366f1", padding: "6px 14px", borderRadius: 8, cursor: "pointer", fontSize: 12, marginBottom: 14 }}>+ Agregar producto</button>
@@ -277,12 +310,12 @@ export const Sales = ({ sales, setSales, products, setProducts, logStock, exchan
         {autoVolume && (
           <div style={{
             background: "#fdcb6e15", border: "1px solid #fdcb6e33", borderRadius: 10, padding: "10px 14px",
-            marginBottom: 14, display: "flex", alignItems: "center", gap: 8
+            marginBottom: 14, display: "flex", alignItems: "center", gap: 8, flexWrap: isMobile ? "wrap" : "nowrap"
           }}>
             <span style={{ fontSize: 16 }}>💡</span>
             <span style={{ color: "#fdcb6e", fontSize: 13 }}>Comprando {totalQty} unidades — ¿aplicar descuento por volumen?</span>
             <button onClick={() => setForm(f => ({ ...f, discountType: "percent", discountReason: "Volumen (3+)" }))}
-              style={{ marginLeft: "auto", background: "#fdcb6e22", border: "1px solid #fdcb6e55", color: "#fdcb6e", padding: "4px 12px", borderRadius: 6, cursor: "pointer", fontSize: 12 }}>
+              style={{ marginLeft: isMobile ? 0 : "auto", background: "#fdcb6e22", border: "1px solid #fdcb6e55", color: "#fdcb6e", padding: "4px 12px", borderRadius: 6, cursor: "pointer", fontSize: 12 }}>
               Aplicar
             </button>
           </div>
@@ -291,10 +324,19 @@ export const Sales = ({ sales, setSales, products, setProducts, logStock, exchan
         <Input label="Cliente" placeholder="Nombre del cliente..." value={form.clientName || ""} onChange={e => setForm(f => ({ ...f, clientName: e.target.value }))} />
         <Select label="Canal" options={CHANNELS} value={form.channel} onChange={e => setForm(f => ({ ...f, channel: e.target.value }))} />
 
-        <div style={{ display: "flex", gap: 12 }}>
-          <Select label="Forma de pago" options={PAYMENT_METHODS} value={form.paymentMethod} onChange={e => setForm(f => ({ ...f, paymentMethod: e.target.value }))} />
+        {/* Payment + MP Account - stack vertically on mobile */}
+        <div style={{
+          display: isMobile ? "flex" : "flex",
+          flexDirection: isMobile ? "column" : "row",
+          gap: 12
+        }}>
+          <div style={{ flex: 1 }}>
+            <Select label="Forma de pago" options={PAYMENT_METHODS} value={form.paymentMethod} onChange={e => setForm(f => ({ ...f, paymentMethod: e.target.value }))} />
+          </div>
           {form.paymentMethod === "Mercado Pago" && (
-            <Select label="Cuenta MP" options={MP_ACCOUNTS} value={form.mpAccount} onChange={e => setForm(f => ({ ...f, mpAccount: e.target.value }))} />
+            <div style={{ flex: 1 }}>
+              <Select label="Cuenta MP" options={MP_ACCOUNTS} value={form.mpAccount} onChange={e => setForm(f => ({ ...f, mpAccount: e.target.value }))} />
+            </div>
           )}
         </div>
 
@@ -306,7 +348,7 @@ export const Sales = ({ sales, setSales, products, setProducts, logStock, exchan
         }}>
           <label style={{ display: "block", fontSize: 12, color: "#fdcb6e", marginBottom: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>🏷️ Descuento</label>
 
-          <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: isMobile ? 4 : 8, marginBottom: 10, flexWrap: "wrap" }}>
             {[
               { value: "none", label: "Sin descuento" },
               { value: "percent", label: "% Porcentaje" },
@@ -315,7 +357,11 @@ export const Sales = ({ sales, setSales, products, setProducts, logStock, exchan
             ].map(opt => (
               <button key={opt.value} onClick={() => setForm(f => ({ ...f, discountType: opt.value, discountValue: opt.value === "none" ? "" : f.discountValue }))}
                 style={{
-                  padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                  padding: isMobile ? "4px 8px" : "6px 12px",
+                  borderRadius: 8,
+                  fontSize: isMobile ? 11 : 12,
+                  fontWeight: 600,
+                  cursor: "pointer",
                   border: `1px solid ${form.discountType === opt.value ? "#fdcb6e" : "#e2e4e9"}`,
                   background: form.discountType === opt.value ? "#fdcb6e22" : "transparent",
                   color: form.discountType === opt.value ? "#fdcb6e" : "#6b7280"
@@ -325,7 +371,7 @@ export const Sales = ({ sales, setSales, products, setProducts, logStock, exchan
 
           {form.discountType !== "none" && (
             <>
-              <div style={{ display: "flex", gap: 12 }}>
+              <div style={{ display: "flex", gap: 12, flexDirection: isMobile ? "column" : "row" }}>
                 <Input
                   label={form.discountType === "percent" ? "Porcentaje (%)" : form.discountType === "per_unit" ? `Descuento por unidad (${form.currency})` : `Monto fijo (${form.currency})`}
                   type="number" value={form.discountValue}
@@ -352,14 +398,14 @@ export const Sales = ({ sales, setSales, products, setProducts, logStock, exchan
         }}>
           <label style={{ display: "block", fontSize: 12, color: "#00b894", marginBottom: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>➕ Extras</label>
           {(form.extras || []).map((extra, i) => (
-            <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "flex-end" }}>
-              <div style={{ flex: 2 }}>
+            <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "flex-end", flexWrap: isMobile ? "wrap" : "nowrap" }}>
+              <div style={{ flex: isMobile ? "1 100%" : 2 }}>
                 <Input placeholder="Concepto (envío, propina, etc.)" value={extra.concept} onChange={e => setForm(f => ({ ...f, extras: f.extras.map((ex, j) => j === i ? { ...ex, concept: e.target.value } : ex) }))} />
               </div>
-              <div style={{ flex: 0.7 }}>
+              <div style={{ flex: isMobile ? "1" : 0.7 }}>
                 <Input type="number" placeholder="Monto" value={extra.amount} onChange={e => setForm(f => ({ ...f, extras: f.extras.map((ex, j) => j === i ? { ...ex, amount: e.target.value } : ex) }))} />
               </div>
-              <button onClick={() => setForm(f => ({ ...f, extras: f.extras.filter((_, j) => j !== i) }))} style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontSize: 16, marginBottom: 14 }}>✕</button>
+              <button onClick={() => setForm(f => ({ ...f, extras: f.extras.filter((_, j) => j !== i) }))} style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontSize: 16, marginBottom: isMobile ? 0 : 14 }}>✕</button>
             </div>
           ))}
           <button onClick={() => setForm(f => ({ ...f, extras: [...(f.extras || []), { concept: "", amount: "" }] }))}
@@ -398,9 +444,9 @@ export const Sales = ({ sales, setSales, products, setProducts, logStock, exchan
 
         <Input label="Notas" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Opcional..." />
 
-        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 16 }}>
-          <Btn variant="secondary" onClick={() => { setModal(false); setEditing(null); }}>Cancelar</Btn>
-          <Btn variant="success" onClick={save}>{editing ? "Guardar Cambios" : "Registrar Venta"}</Btn>
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 16, flexWrap: isMobile ? "wrap" : "nowrap" }}>
+          <Btn variant="secondary" onClick={() => { setModal(false); setEditing(null); }} style={{ flex: isMobile ? "1" : "auto" }}>Cancelar</Btn>
+          <Btn variant="success" onClick={save} style={{ flex: isMobile ? "1" : "auto" }}>{editing ? "Guardar Cambios" : "Registrar Venta"}</Btn>
         </div>
       </Modal>
     </div>
