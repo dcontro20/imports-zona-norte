@@ -177,6 +177,7 @@ export const Sales = ({ sales, setSales, products, setProducts, clients, setClie
       if (paymentDiff < 0 && form.clientId) { alert(`Faltan ${formatMoney(Math.abs(paymentDiff), form.currency)}. Registralo como deuda o completa el pago.`); return; }
       if (paymentDiff < 0 && !form.clientId) { alert(`Faltan ${formatMoney(Math.abs(paymentDiff), form.currency)}. Completa el pago.`); return; }
     }
+    if (form.balanceAction === "transfer_change" && !form.balanceChangeAccount) { alert("Selecciona la cuenta de salida para el vuelto por transferencia."); return; }
     const saleId = editing || uid();
     const clientName = form.clientId ? ((clients || []).find(c => c.id === form.clientId)?.name || form.clientName) : form.clientName;
     const saleData = {
@@ -307,11 +308,14 @@ export const Sales = ({ sales, setSales, products, setProducts, clients, setClie
               if (r.payments && r.payments.length > 0) return r.payments.map((p, idx) => <span key={idx}>{idx > 0 ? " + " : ""}<Badge color="#6366f1">{p.method}{p.account ? ` (${p.account})` : ""}: {formatMoney(p.amount, r.currency)}</Badge></span>);
               return r.paymentMethod + (r.mpAccount ? ` (${r.mpAccount})` : "");
             }},
-            { key: "balance", label: "Saldo", render: r => {
-              if (r.balanceAction === "credit") return <Badge color="#00b894">+{formatMoney(r.paymentDiff)} credito</Badge>;
-              if (r.balanceAction === "debt") return <Badge color="#e74c3c">{formatMoney(r.paymentDiff)} deuda</Badge>;
-              if (r.creditApplied > 0) return <Badge color="#6366f1">-{formatMoney(r.creditApplied)} credito</Badge>;
-              return <span style={{ color: "#9ca3af" }}>—</span>;
+            { key: "balance", label: "Saldo/Vuelto", render: r => {
+              const parts = [];
+              if (r.balanceAction === "cash_change" && r.paymentDiff > 0) parts.push(<Badge key="cc" color="#f59e0b">💵 -{formatMoney(r.paymentDiff)} efectivo</Badge>);
+              if (r.balanceAction === "transfer_change" && r.paymentDiff > 0) parts.push(<Badge key="tc" color="#f59e0b">📱 -{formatMoney(r.paymentDiff)} {r.balanceChangeAccount || "transfer"}</Badge>);
+              if (r.balanceAction === "credit" && r.paymentDiff > 0) parts.push(<Badge key="cr" color="#00b894">⭐ +{formatMoney(r.paymentDiff)} credito</Badge>);
+              if (r.balanceAction === "debt") parts.push(<Badge key="db" color="#e74c3c">📋 {formatMoney(r.paymentDiff)} deuda</Badge>);
+              if (r.creditApplied > 0) parts.push(<Badge key="ca" color="#6366f1">-{formatMoney(r.creditApplied)} credito usado</Badge>);
+              return parts.length > 0 ? <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>{parts}</div> : <span style={{ color: "#9ca3af" }}>—</span>;
             }},
             { key: "total", label: "Total", render: r => <strong style={{ color: "#00b894" }}>{formatMoney(r.total, r.currency)}</strong> },
             { key: "actions", label: "", render: r => (
@@ -618,33 +622,110 @@ export const Sales = ({ sales, setSales, products, setProducts, clients, setClie
             </div>
           )}
 
-          {/* Overpaid + client */}
-          {paymentDiff > 0.5 && form.clientId && (
-            <div style={{ marginTop: 10, padding: "10px 12px", background: "#fff7ed", borderRadius: 8, border: "1px solid #f59e0b33" }}>
-              <div style={{ fontSize: 12, color: "#f59e0b", fontWeight: 700, marginBottom: 8 }}>Que hacer con los {formatMoney(paymentDiff, form.currency)} de vuelto?</div>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {[{ v: "cash_change", l: "💵 Vuelto efectivo" }, { v: "transfer_change", l: "📱 Vuelto transfer." }, { v: "credit", l: "⭐ Dejar como credito" }].map(o => (
-                  <button key={o.v} onClick={() => setForm(f => ({ ...f, balanceAction: o.v }))} style={{ padding: "6px 10px", borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: "pointer", border: `1px solid ${form.balanceAction === o.v ? "#f59e0b" : "#e2e4e9"}`, background: form.balanceAction === o.v ? "#f59e0b22" : "#fff", color: form.balanceAction === o.v ? "#f59e0b" : "#6b7280" }}>{o.l}</button>
-                ))}
+          {/* ===== VUELTO / CAMBIO ===== */}
+          {Math.abs(paymentDiff) > 0.5 && finalTotal > 0 && (
+            <div style={{ marginTop: 12, background: paymentDiff > 0 ? "#fffbeb" : "#fef2f2", borderRadius: 12, padding: 16, border: `1.5px solid ${paymentDiff > 0 ? "#f59e0b44" : "#e74c3c33"}` }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                <label style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: paymentDiff > 0 ? "#f59e0b" : "#e74c3c" }}>
+                  {paymentDiff > 0 ? "🔄 Vuelto / Cambio" : "⚠️ Monto Faltante"}
+                </label>
+                <span style={{ fontSize: 17, fontWeight: 800, color: paymentDiff > 0 ? "#f59e0b" : "#e74c3c", background: paymentDiff > 0 ? "#f59e0b15" : "#e74c3c15", padding: "4px 12px", borderRadius: 8 }}>
+                  {formatMoney(Math.abs(paymentDiff), form.currency)}
+                </span>
               </div>
-              {form.balanceAction === "transfer_change" && <div style={{ marginTop: 8 }}><Select label="Cuenta de salida" options={[...MP_ACCOUNTS, "Lemon"]} value={form.balanceChangeAccount} onChange={e => setForm(f => ({ ...f, balanceChangeAccount: e.target.value }))} /></div>}
-            </div>
-          )}
-          {paymentDiff > 0.5 && !form.clientId && (
-            <div style={{ marginTop: 10, padding: "10px 12px", background: "#fff7ed", borderRadius: 8, border: "1px solid #f59e0b33" }}>
-              <div style={{ fontSize: 12, color: "#f59e0b", fontWeight: 700, marginBottom: 6 }}>Vuelto: {formatMoney(paymentDiff, form.currency)}</div>
-              <div style={{ display: "flex", gap: 6 }}>
-                {[{ v: "cash_change", l: "💵 Efectivo" }, { v: "transfer_change", l: "📱 Transferencia" }].map(o => (
-                  <button key={o.v} onClick={() => setForm(f => ({ ...f, balanceAction: o.v }))} style={{ padding: "6px 10px", borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: "pointer", border: `1px solid ${form.balanceAction === o.v ? "#f59e0b" : "#e2e4e9"}`, background: form.balanceAction === o.v ? "#f59e0b22" : "#fff", color: form.balanceAction === o.v ? "#f59e0b" : "#6b7280" }}>{o.l}</button>
-                ))}
-              </div>
-            </div>
-          )}
-          {paymentDiff < -0.5 && form.clientId && (
-            <div style={{ marginTop: 10, padding: "10px 12px", background: "#fef2f2", borderRadius: 8, border: "1px solid #e74c3c33" }}>
-              <div style={{ fontSize: 12, color: "#e74c3c", fontWeight: 700, marginBottom: 8 }}>Faltan {formatMoney(Math.abs(paymentDiff), form.currency)}</div>
-              <button onClick={() => setForm(f => ({ ...f, balanceAction: "debt" }))}
-                style={{ padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", border: `1px solid ${form.balanceAction === "debt" ? "#e74c3c" : "#e2e4e9"}`, background: form.balanceAction === "debt" ? "#e74c3c22" : "#fff", color: form.balanceAction === "debt" ? "#e74c3c" : "#6b7280" }}>Registrar como deuda del cliente</button>
+
+              {paymentDiff > 0 && (
+                <>
+                  <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 12 }}>El cliente pago de mas. Elegi como manejar el vuelto:</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {/* Cash change */}
+                    <button onClick={() => setForm(f => ({ ...f, balanceAction: "cash_change", balanceChangeAccount: "" }))}
+                      style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, cursor: "pointer", border: `2px solid ${form.balanceAction === "cash_change" ? "#f59e0b" : "#e2e4e9"}`, background: form.balanceAction === "cash_change" ? "#f59e0b12" : "#fff", textAlign: "left", transition: "all .15s ease" }}>
+                      <span style={{ width: 22, height: 22, borderRadius: "50%", border: `2px solid ${form.balanceAction === "cash_change" ? "#f59e0b" : "#d1d5db"}`, background: form.balanceAction === "cash_change" ? "#f59e0b" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all .15s ease" }}>
+                        {form.balanceAction === "cash_change" && <span style={{ color: "#fff", fontSize: 12 }}>✓</span>}
+                      </span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "#1a1a2e" }}>Dar vuelto en efectivo</div>
+                        <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>Se restan {formatMoney(paymentDiff, form.currency)} de tu Caja de Pesos</div>
+                      </div>
+                      <span style={{ fontSize: 20 }}>💵</span>
+                    </button>
+
+                    {/* Transfer change */}
+                    <button onClick={() => setForm(f => ({ ...f, balanceAction: "transfer_change" }))}
+                      style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, cursor: "pointer", border: `2px solid ${form.balanceAction === "transfer_change" ? "#f59e0b" : "#e2e4e9"}`, background: form.balanceAction === "transfer_change" ? "#f59e0b12" : "#fff", textAlign: "left", transition: "all .15s ease" }}>
+                      <span style={{ width: 22, height: 22, borderRadius: "50%", border: `2px solid ${form.balanceAction === "transfer_change" ? "#f59e0b" : "#d1d5db"}`, background: form.balanceAction === "transfer_change" ? "#f59e0b" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all .15s ease" }}>
+                        {form.balanceAction === "transfer_change" && <span style={{ color: "#fff", fontSize: 12 }}>✓</span>}
+                      </span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "#1a1a2e" }}>Transferir vuelto al cliente</div>
+                        <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>Se descuentan {formatMoney(paymentDiff, form.currency)} de la cuenta que elijas</div>
+                      </div>
+                      <span style={{ fontSize: 20 }}>📱</span>
+                    </button>
+                    {form.balanceAction === "transfer_change" && (
+                      <div style={{ marginLeft: 36 }}>
+                        <Select label="Cuenta de salida" options={[...MP_ACCOUNTS, "Lemon"]} value={form.balanceChangeAccount} onChange={e => setForm(f => ({ ...f, balanceChangeAccount: e.target.value }))} />
+                      </div>
+                    )}
+
+                    {/* Credit to client - only with client */}
+                    {form.clientId && (
+                      <button onClick={() => setForm(f => ({ ...f, balanceAction: "credit", balanceChangeAccount: "" }))}
+                        style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, cursor: "pointer", border: `2px solid ${form.balanceAction === "credit" ? "#00b894" : "#e2e4e9"}`, background: form.balanceAction === "credit" ? "#00b89412" : "#fff", textAlign: "left", transition: "all .15s ease" }}>
+                        <span style={{ width: 22, height: 22, borderRadius: "50%", border: `2px solid ${form.balanceAction === "credit" ? "#00b894" : "#d1d5db"}`, background: form.balanceAction === "credit" ? "#00b894" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all .15s ease" }}>
+                          {form.balanceAction === "credit" && <span style={{ color: "#fff", fontSize: 12 }}>✓</span>}
+                        </span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: "#1a1a2e" }}>Dejar como credito a favor</div>
+                          <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>Se acreditan {formatMoney(paymentDiff, form.currency)} al saldo de {(clients || []).find(c => c.id === form.clientId)?.name || "cliente"}. Se aplica automaticamente en su proxima compra.</div>
+                        </div>
+                        <span style={{ fontSize: 20 }}>⭐</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Confirmation */}
+                  {form.balanceAction && form.balanceAction !== "none" && (
+                    <div style={{ marginTop: 12, padding: "10px 14px", background: "#fff", borderRadius: 8, border: "1px solid #e2e4e9", display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ color: "#00b894", fontSize: 15, flexShrink: 0 }}>✓</span>
+                      <span style={{ fontSize: 12, color: "#4b5563" }}>
+                        {form.balanceAction === "cash_change" && `Al guardar se registra un egreso de ${formatMoney(paymentDiff, form.currency)} en Caja Pesos.`}
+                        {form.balanceAction === "transfer_change" && form.balanceChangeAccount && `Al guardar se registra un egreso de ${formatMoney(paymentDiff, form.currency)} en ${form.balanceChangeAccount}.`}
+                        {form.balanceAction === "transfer_change" && !form.balanceChangeAccount && "Selecciona la cuenta de salida para continuar."}
+                        {form.balanceAction === "credit" && `Al guardar, ${(clients || []).find(c => c.id === form.clientId)?.name || "el cliente"} tendra ${formatMoney(paymentDiff + (selectedClientBalance > 0 ? selectedClientBalance : 0), form.currency)} de saldo a favor.`}
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {paymentDiff < -0.5 && (
+                <>
+                  <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 12 }}>
+                    {form.clientId ? "El pago no cubre el total. Podes registrar la diferencia como deuda:" : "El pago no cubre el total. Completa el monto o asocia un cliente para registrar deuda."}
+                  </div>
+                  {form.clientId && (
+                    <button onClick={() => setForm(f => ({ ...f, balanceAction: f.balanceAction === "debt" ? "none" : "debt" }))}
+                      style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, cursor: "pointer", border: `2px solid ${form.balanceAction === "debt" ? "#e74c3c" : "#e2e4e9"}`, background: form.balanceAction === "debt" ? "#e74c3c12" : "#fff", textAlign: "left", width: "100%", transition: "all .15s ease" }}>
+                      <span style={{ width: 22, height: 22, borderRadius: "50%", border: `2px solid ${form.balanceAction === "debt" ? "#e74c3c" : "#d1d5db"}`, background: form.balanceAction === "debt" ? "#e74c3c" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all .15s ease" }}>
+                        {form.balanceAction === "debt" && <span style={{ color: "#fff", fontSize: 12 }}>✓</span>}
+                      </span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "#1a1a2e" }}>Registrar como deuda del cliente</div>
+                        <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>{(clients || []).find(c => c.id === form.clientId)?.name || "El cliente"} queda debiendo {formatMoney(Math.abs(paymentDiff), form.currency)}. Se muestra automaticamente en su proxima compra.</div>
+                      </div>
+                      <span style={{ fontSize: 20 }}>📋</span>
+                    </button>
+                  )}
+                  {form.clientId && form.balanceAction === "debt" && (
+                    <div style={{ marginTop: 12, padding: "10px 14px", background: "#fff", borderRadius: 8, border: "1px solid #e2e4e9", display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ color: "#e74c3c", fontSize: 15, flexShrink: 0 }}>⚠</span>
+                      <span style={{ fontSize: 12, color: "#4b5563" }}>Al guardar, {(clients || []).find(c => c.id === form.clientId)?.name || "el cliente"} tendra una deuda de {formatMoney(Math.abs(paymentDiff) + (selectedClientBalance < 0 ? Math.abs(selectedClientBalance) : 0), form.currency)}.</span>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
         </div>
