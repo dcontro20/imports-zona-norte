@@ -32,20 +32,36 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
   const [modal, setModal] = useState(false);
   const [moveForm, setMoveForm] = useState({ type: "transfer", from: "", to: "", amount: "", amountUSDT: "", description: "", date: new Date().toISOString().slice(0, 10) });
 
+  // Map payment method+account to CashBox account id
+  const paymentToAccount = (method, account) => {
+    if (method === "Mercado Pago") return account === "MP Diego" ? "mpDiego" : "mpGustavo";
+    if (method === "Lemon") return "lemonPesos";
+    if (method === "USDT") return "lemonUSDT";
+    if (method === "USD Cash") return "usdCash";
+    if (method === "Pesos Cash") return "pesosCash";
+    return null;
+  };
+
   // Calculate account balances including movements
   const calcBalance = (accountId) => {
     let bal = INITIAL_BALANCES[accountId] || 0;
-    
-    // Add from sales
-    if (accountId === "mpDiego") bal += sales.filter(s => s.paymentMethod === "Mercado Pago" && s.mpAccount === "MP Diego").reduce((s, sale) => s + sale.total, 0);
-    if (accountId === "mpGustavo") bal += sales.filter(s => s.paymentMethod === "Mercado Pago" && s.mpAccount === "MP Gustavo").reduce((s, sale) => s + sale.total, 0);
-    if (accountId === "lemonPesos") bal += sales.filter(s => s.paymentMethod === "Lemon").reduce((s, sale) => s + sale.total, 0);
+
+    // Add from sales (supports both old single-payment and new split-payment format)
+    sales.forEach(sale => {
+      if (sale.payments && sale.payments.length > 0) {
+        // New format: split payments array
+        sale.payments.forEach(p => {
+          if (paymentToAccount(p.method, p.account) === accountId) bal += Number(p.amount) || 0;
+        });
+      } else {
+        // Old format: single paymentMethod
+        if (paymentToAccount(sale.paymentMethod, sale.mpAccount) === accountId) bal += sale.total || 0;
+      }
+    });
+
     if (accountId === "lemonUSDT") {
-      bal += sales.filter(s => s.paymentMethod === "USDT").reduce((s, sale) => s + sale.total, 0);
       bal -= purchases.filter(p => p.status === "verificado" || !p.status).reduce((s, p) => s + (p.totalUSDT || 0), 0);
     }
-    if (accountId === "usdCash") bal += sales.filter(s => s.paymentMethod === "USD Cash").reduce((s, sale) => s + sale.total, 0);
-    if (accountId === "pesosCash") bal += sales.filter(s => s.paymentMethod === "Pesos Cash").reduce((s, sale) => s + sale.total, 0);
     
     // Apply cash movements
     (cashMovements || []).forEach(m => {
