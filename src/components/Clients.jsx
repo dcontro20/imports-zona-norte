@@ -19,7 +19,6 @@ export const Clients = ({ clients, setClients, sales, products }) => {
       const totalSpent = cs.reduce((sum, s) => sum + (s.total || 0), 0);
       const totalUnits = cs.reduce((sum, s) => sum + (s.items || []).reduce((a, i) => a + (i.qty || 1), 0), 0);
       const lastPurchase = cs.length > 0 ? cs.sort((a, b) => new Date(b.date) - new Date(a.date))[0].date : null;
-      // Product frequency
       const prodFreq = {};
       cs.forEach(s => {
         (s.items || []).forEach(item => {
@@ -32,8 +31,6 @@ export const Clients = ({ clients, setClients, sales, products }) => {
     });
     return map;
   }, [clients, sales]);
-
-  // Global stats
   const globalStats = useMemo(() => {
     const now = new Date();
     const thisMonth = sales.filter(s => {
@@ -45,7 +42,7 @@ export const Clients = ({ clients, setClients, sales, products }) => {
     const topClient = clients.reduce((best, c) => {
       const st = clientStats[c.id];
       return st && st.totalSpent > (best.spent || 0) ? { name: c.name, spent: st.totalSpent } : best;
-    }, { name: "-", spent: 0 });
+    }, { nname: "-", spent: 0 });
     return { total: clients.length, activeThisMonth, totalRevenue, topClient: topClient.name };
   }, [clients, sales, clientStats]);
 
@@ -187,6 +184,16 @@ export const Clients = ({ clients, setClients, sales, products }) => {
                   <div style={{ fontSize: 11, color: "#9ca3af" }}>
                     {st.salesCount || 0} compras
                   </div>
+                  {(c.balance || 0) !== 0 && (
+                    <div style={{
+                      marginTop: 4, padding: "2px 8px", borderRadius: 6, display: "inline-block",
+                      background: (c.balance || 0) > 0 ? "#ecfdf5" : "#fef2f2",
+                      color: (c.balance || 0) > 0 ? "#00b894" : "#e74c3c",
+                      fontSize: 11, fontWeight: 700
+                    }}>
+                      {(c.balance || 0) > 0 ? `Saldo: +${formatMoney(c.balance)}` : `Deuda: ${formatMoney(c.balance)}`}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -252,6 +259,14 @@ export const Clients = ({ clients, setClients, sales, products }) => {
               <span style={{ color: "#6b7280" }}>Unidades: </span>
               <span style={{ fontWeight: 700 }}>{detailStats.totalUnits}</span>
             </div>
+            {(detailClient.balance || 0) !== 0 && (
+              <div style={{ fontSize: 13 }}>
+                <span style={{ color: "#6b7280" }}>{(detailClient.balance || 0) > 0 ? "Saldo a favor: " : "Deuda: "}</span>
+                <span style={{ fontWeight: 700, color: (detailClient.balance || 0) > 0 ? "#00b894" : "#e74c3c" }}>
+                  {(detailClient.balance || 0) > 0 ? `+${formatMoney(detailClient.balance)}` : formatMoney(detailClient.balance)}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Purchase history table */}
