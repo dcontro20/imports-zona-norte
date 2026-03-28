@@ -361,7 +361,7 @@ export const PriceLog = ({ priceLog, products, setProducts, logPrice, exchangeRa
                                       width: 28, height: 28, borderRadius: 6, border: "1px solid #e2e4e9",
                                       background: "#f7f8fa", color: "#6b7280", fontSize: 16, cursor: "pointer",
                                       display: "flex", alignItems: "center", justifyContent: "center"
-                                    }}>+
+                                    }}>+</button>
                                   </div>
                                 </td>
                                 <td style={{ padding: "8px 4px", borderBottom: "1px solid #f0f1f5", fontSize: 11, color: "#9ca3af" }}>
