@@ -120,7 +120,16 @@ export default function App() {
         const res = await fetch("https://dolarapi.com/v1/dolares/blue");
         const data = await res.json();
         if (data && data.venta) {
-          setExchangeRate(data.venta);
+          const newRate = data.venta;
+          setExchangeRate(prev => {
+            if (prev !== newRate) {
+              // Save directly to Firestore to avoid smartSave race condition
+              // (Firestore subscription can overwrite API value before smartSave runs)
+              fromFirestore.current["exchangeRate"] = true; // prevent echo back
+              saveToFirestore("exchangeRate", newRate);
+            }
+            return newRate;
+          });
           setRateAutoLoaded(true);
         }
       } catch (e) {
