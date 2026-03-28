@@ -18,7 +18,8 @@ const emptyForm = () => ({
   balanceAction: "none",
   balanceChangeAccount: "",
   notes: "",
-  date: new Date().toISOString().slice(0, 10)
+  date: new Date().toISOString().slice(0, 10),
+  saleExchangeRate: ""
 });
 
 export const Sales = ({ sales, setSales, products, setProducts, clients, setClients, cashMovements, setCashMovements, logStock, exchangeRate, currentUser }) => {
@@ -116,11 +117,12 @@ export const Sales = ({ sales, setSales, products, setProducts, clients, setClie
   };
 
   // ---- calculations ----
+  const activeRate = Number(form.saleExchangeRate) || exchangeRate;
   const totalQty = form.items.reduce((s, i) => s + (Number(i.qty) || 0), 0);
   const getPrice = (prodId) => {
     const p = products.find(x => x.id === prodId);
     if (!p) return 0;
-    return form.currency === "USD" ? (p.priceUSD || 0) : Math.round((p.priceUSD || 0) * exchangeRate);
+    return form.currency === "USD" ? (p.priceUSD || 0) : Math.round((p.priceUSD || 0) * activeRate);
   };
   const subtotal = form.items.reduce((s, i) => s + getPrice(i.productId) * (i.qty || 0), 0);
   const calcDiscount = (sub) => {
@@ -154,7 +156,8 @@ export const Sales = ({ sales, setSales, products, setProducts, clients, setClie
       payments: sale.payments || (sale.paymentMethod ? [{ method: sale.paymentMethod, account: sale.mpAccount || "", amount: sale.total || "" }] : []),
       creditApplied: sale.creditApplied || 0, balanceAction: sale.balanceAction || "none",
       balanceChangeAccount: sale.balanceChangeAccount || "", notes: sale.notes || "",
-      date: sale.date ? sale.date.slice(0, 10) : new Date().toISOString().slice(0, 10)
+      date: sale.date ? sale.date.slice(0, 10) : new Date().toISOString().slice(0, 10),
+      saleExchangeRate: sale.saleExchangeRate || ""
     });
     setEditing(sale.id); setModal(true);
   };
@@ -511,11 +514,17 @@ export const Sales = ({ sales, setSales, products, setProducts, clients, setClie
             style={{ width: "100%", background: "none", border: "1px dashed #f59e0b44", color: "#f59e0b", padding: "8px 14px", borderRadius: 8, cursor: "pointer", fontSize: 12, marginBottom: 14 }}>+ Agregar info de entrega</button>
         )}
 
-        {/* Channel + Currency */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
+        {/* Channel + Currency + TC */}
+        <div style={{ display: "grid", gridTemplateColumns: form.currency === "ARS" ? "1fr 1fr 1fr" : "1fr 1fr", gap: 10, marginBottom: 14 }}>
           <Select label="Canal" options={CHANNELS} value={form.channel} onChange={e => setForm(f => ({ ...f, channel: e.target.value }))} />
           <Select label="Moneda" options={["ARS", "USD", "USDT"]} value={form.currency} onChange={e => setForm(f => ({ ...f, currency: e.target.value }))} />
+          {form.currency === "ARS" && (
+            <Input label="TC Blue" type="number" value={form.saleExchangeRate} onChange={e => setForm(f => ({ ...f, saleExchangeRate: e.target.value }))} placeholder={String(exchangeRate)} />
+          )}
         </div>
+        {form.currency === "ARS" && form.saleExchangeRate && Number(form.saleExchangeRate) !== exchangeRate && (
+          <div style={{ fontSize: 12, color: "#f59e0b", marginBottom: 10, marginTop: -8 }}>⚠️ Usando TC manual: <strong>${form.saleExchangeRate}</strong> (actual: ${exchangeRate})</div>
+        )}
 
         {/* ===== DISCOUNT ===== */}
         <div style={sec}>
