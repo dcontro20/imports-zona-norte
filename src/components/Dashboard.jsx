@@ -2,9 +2,11 @@ import { useState, useMemo } from "react";
 import { formatMoney, formatDate } from "../helpers.js";
 import { Card, StatCard, Badge } from "./UI.jsx";
 import { BRAND_COLORS } from "../constants.js";
+import { useResponsive } from "../App.jsx";
 
 // -- DASHBOARD PROFESIONAL --
 export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, exchangeRate }) => {
+  const { isMobile } = useResponsive();
   const now = new Date();
   const today = now.toDateString();
   const thisMonth = now.getMonth();
@@ -167,8 +169,13 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, e
         <div style={{ display: "flex", gap: 4, background: "#f0f1f5", borderRadius: 8, padding: 3 }}>
           {["today", "week", "month"].map(p => (
             <button key={p} onClick={() => setPeriod(p)} style={{
-              padding: "6px 14px", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600,
-              cursor: "pointer", transition: "all 0.2s",
+              padding: isMobile ? "5px 10px" : "6px 14px",
+              border: "none",
+              borderRadius: 6,
+              fontSize: isMobile ? 11 : 12,
+              fontWeight: 600,
+              cursor: "pointer",
+              transition: "all 0.2s",
               background: period === p ? "#fff" : "transparent",
               color: period === p ? "#6366f1" : "#6b7280",
               boxShadow: period === p ? "0 1px 3px rgba(0,0,0,0.08)" : "none"
@@ -178,36 +185,50 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, e
       </div>
 
       {/* KPI Cards - Row 1 */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14, marginBottom: 16 }}>
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit, minmax(200px, 1fr))",
+        gap: isMobile ? 10 : 14,
+        marginBottom: 16
+      }}>
         <Card style={{ background: "linear-gradient(135deg, #6366f1 0%, #818cf8 100%)", border: "none" }}>
           <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 11, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 8 }}>Ventas</div>
-          <div style={{ color: "#fff", fontSize: 28, fontWeight: 800, lineHeight: 1 }}>{periodSales.length}</div>
-          <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 12, marginTop: 6 }}>{formatMoney(revenueUSD, "USD")} · {formatMoney(revenueARS)}</div>
+          <div style={{ color: "#fff", fontSize: isMobile ? 22 : 28, fontWeight: 800, lineHeight: 1 }}>{periodSales.length}</div>
+          <div style={{ color: "rgba(255,255,255,0.8)", fontSize: isMobile ? 11 : 12, marginTop: 6 }}>{formatMoney(revenueUSD, "USD")} · {formatMoney(revenueARS)}</div>
         </Card>
 
         <Card style={{ background: "linear-gradient(135deg, #059669 0%, #34d399 100%)", border: "none" }}>
           <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 11, textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 8 }}>Ganancia Neta</div>
-          <div style={{ color: "#fff", fontSize: 28, fontWeight: 800, lineHeight: 1 }}>{formatMoney(netProfitUSD, "USD")}</div>
-          <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 12, marginTop: 6 }}>{formatMoney(netProfitUSD * exchangeRate)} ARS</div>
+          <div style={{ color: "#fff", fontSize: isMobile ? 22 : 28, fontWeight: 800, lineHeight: 1 }}>{formatMoney(netProfitUSD, "USD")}</div>
+          <div style={{ color: "rgba(255,255,255,0.8)", fontSize: isMobile ? 11 : 12, marginTop: 6 }}>{formatMoney(netProfitUSD * exchangeRate)} ARS</div>
         </Card>
 
-        <Card style={{ position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", top: 10, right: 14, fontSize: 28, opacity: 0.1 }}>📦</div>
-          <div style={{ fontSize: 11, color: "#6b7280", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 8 }}>Stock</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: "#f59e0b", lineHeight: 1 }}>{totalStock}</div>
-          <div style={{ fontSize: 12, color: "#6b7280", marginTop: 6 }}>Valor: {formatMoney(stockValueUSD, "USD")}</div>
-        </Card>
+        {!isMobile && (
+          <>
+            <Card style={{ position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", top: 10, right: 14, fontSize: 28, opacity: 0.1 }}>📦</div>
+              <div style={{ fontSize: 11, color: "#6b7280", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 8 }}>Stock</div>
+              <div style={{ fontSize: 28, fontWeight: 800, color: "#f59e0b", lineHeight: 1 }}>{totalStock}</div>
+              <div style={{ fontSize: 12, color: "#6b7280", marginTop: 6 }}>Valor: {formatMoney(stockValueUSD, "USD")}</div>
+            </Card>
 
-        <Card style={{ position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", top: 10, right: 14, fontSize: 28, opacity: 0.1 }}>📊</div>
-          <div style={{ fontSize: 11, color: "#6b7280", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 8 }}>Velocidad</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: "#6366f1", lineHeight: 1 }}>{avgSalesPerDay}</div>
-          <div style={{ fontSize: 12, color: "#6b7280", marginTop: 6 }}>ventas/día · {avgUnitsPerDay.toFixed(1)} uds/día</div>
-        </Card>
+            <Card style={{ position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", top: 10, right: 14, fontSize: 28, opacity: 0.1 }}>📊</div>
+              <div style={{ fontSize: 11, color: "#6b7280", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 8 }}>Velocidad</div>
+              <div style={{ fontSize: 28, fontWeight: 800, color: "#6366f1", lineHeight: 1 }}>{avgSalesPerDay}</div>
+              <div style={{ fontSize: 12, color: "#6b7280", marginTop: 6 }}>ventas/día · {avgUnitsPerDay.toFixed(1)} uds/día</div>
+            </Card>
+          </>
+        )}
       </div>
 
       {/* KPI Cards - Row 2: Financials */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 14, marginBottom: 20 }}>
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit, minmax(160px, 1fr))",
+        gap: 14,
+        marginBottom: 20
+      }}>
         <Card style={{ padding: "14px 18px" }}>
           <div style={{ fontSize: 10, color: "#6b7280", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 6 }}>Gastos</div>
           <div style={{ fontSize: 20, fontWeight: 800, color: "#e74c3c" }}>{formatMoney(expensesUSD, "USD")}</div>
@@ -216,19 +237,28 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, e
           <div style={{ fontSize: 10, color: "#6b7280", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 6 }}>Compras USDT</div>
           <div style={{ fontSize: 20, fontWeight: 800, color: "#e17055" }}>{formatMoney(purchasesUSDT, "USDT")}</div>
         </Card>
-        <Card style={{ padding: "14px 18px" }}>
-          <div style={{ fontSize: 10, color: "#6b7280", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 6 }}>Mermas</div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: "#f59e0b" }}>{totalMermas} <span style={{ fontSize: 12, fontWeight: 600 }}>uds</span></div>
-          <div style={{ fontSize: 11, color: "#6b7280" }}>{formatMoney(mermasValueUSD, "USD")} perdido</div>
-        </Card>
-        <Card style={{ padding: "14px 18px" }}>
-          <div style={{ fontSize: 10, color: "#6b7280", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 6 }}>Descuentos</div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: "#8b5cf6" }}>{formatMoney(totalDiscounts)}</div>
-        </Card>
+        {!isMobile && (
+          <>
+            <Card style={{ padding: "14px 18px" }}>
+              <div style={{ fontSize: 10, color: "#6b7280", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 6 }}>Mermas</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: "#f59e0b" }}>{totalMermas} <span style={{ fontSize: 12, fontWeight: 600 }}>uds</span></div>
+              <div style={{ fontSize: 11, color: "#6b7280" }}>{formatMoney(mermasValueUSD, "USD")} perdido</div>
+            </Card>
+            <Card style={{ padding: "14px 18px" }}>
+              <div style={{ fontSize: 10, color: "#6b7280", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 6 }}>Descuentos</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: "#8b5cf6" }}>{formatMoney(totalDiscounts)}</div>
+            </Card>
+          </>
+        )}
       </div>
 
       {/* Main content grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+        gap: 14,
+        marginBottom: 14
+      }}>
         {/* Ventas por socio */}
         <Card>
           <h4 style={{ color: "#1a1a2e", margin: "0 0 16px", fontSize: 13, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>Ventas por socio</h4>
@@ -264,7 +294,12 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, e
         </Card>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+        gap: 14,
+        marginBottom: 14
+      }}>
         {/* Top productos */}
         <Card>
           <h4 style={{ color: "#1a1a2e", margin: "0 0 14px", fontSize: 13, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>Más vendidos</h4>
@@ -299,7 +334,11 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, e
       </div>
 
       {/* Bottom row */}
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 14 }}>
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: isMobile ? "1fr" : "2fr 1fr",
+        gap: 14
+      }}>
         {/* Últimas ventas */}
         <Card>
           <h4 style={{ color: "#1a1a2e", margin: "0 0 14px", fontSize: 13, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>Últimas ventas</h4>
