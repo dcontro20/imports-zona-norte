@@ -2,13 +2,11 @@ import { useState, useMemo } from "react";
 import { uid, formatMoney } from "../helpers.js";
 import { Modal, Card, Btn, Input, Select, Table, Badge, SearchBar } from "./UI.jsx";
 import { BRANDS, BRAND_COLORS } from "../constants.js";
-import { useResponsive } from "../App.jsx";
 
 // -- PRODUCTS / STOCK --
 
 
-export const Products = ({ products, setProducts, exchangeRate, logStock, logPrice, currentUser }) => {
-  const { isMobile } = useResponsive();
+export const Products = ({ products, setProducts, exchangeRate, logStock, logPrice, currentUser, logAudit }) => {
   const [search, setSearch] = useState("");
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -48,7 +46,8 @@ export const Products = ({ products, setProducts, exchangeRate, logStock, logPri
 
   const cancelQuickEdit = () => { setQuickEdit(false); setQuickStocks({}); };
 
-  const filtered = products.filter(p => {
+  const activeProducts = products.filter(p => !p.isDeleted);
+  const filtered = activeProducts.filter(p => {
     const matchSearch = `${p.brand} ${p.model} ${p.flavor} ${p.puffs}`.toLowerCase().includes(search.toLowerCase());
     const matchBrand = !brandFilter || p.brand === brandFilter;
     const matchStock = stockFilter === "all" || (stockFilter === "instock" && p.stock > 0) || (stockFilter === "nostock" && p.stock === 0);
@@ -86,8 +85,11 @@ export const Products = ({ products, setProducts, exchangeRate, logStock, logPri
       const old = products.find(p => p.id === editing);
       if (old && Number(old.priceUSD) !== Number(form.priceUSD)) logPrice(editing, old.priceUSD, Number(form.priceUSD), "USD");
       setProducts(prev => prev.map(p => p.id === editing ? { ...form, id: editing } : p));
+      if (logAudit) logAudit("update", "product", editing, `Editó producto: ${form.brand} ${form.model} - ${form.flavor}`);
     } else {
-      setProducts(prev => [...prev, { ...form, id: uid(), stock: Number(form.stock) || 0 }]);
+      const newId = uid();
+      setProducts(prev => [...prev, { ...form, id: newId, stock: Number(form.stock) || 0 }]);
+      if (logAudit) logAudit("create", "product", newId, `Creó producto: ${form.brand} ${form.model} - ${form.flavor}`);
     }
     setModal(false);
   };
@@ -95,85 +97,52 @@ export const Products = ({ products, setProducts, exchangeRate, logStock, logPri
   const [confirmDeleteProd, setConfirmDeleteProd] = useState(null);
   const remove = (id) => {
     if (confirmDeleteProd !== id) { setConfirmDeleteProd(id); setTimeout(() => setConfirmDeleteProd(null), 3000); return; }
-    setProducts(prev => prev.filter(p => p.id !== id));
+    const p = products.find(p => p.id === id);
+    setProducts(prev => prev.map(x => x.id === id ? { ...x, isDeleted: true, deletedAt: new Date().toISOString(), deletedBy: currentUser?.name || "?" } : x));
+    if (logAudit && p) logAudit("delete", "product", id, `Eliminó producto: ${p.brand} ${p.model} - ${p.flavor}`);
     setConfirmDeleteProd(null);
   };
 
   return (
     <div>
-      {/* Header - Stack on mobile */}
-      <div style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: isMobile ? "flex-start" : "center",
-        marginBottom: 16,
-        flexDirection: isMobile ? "column" : "row",
-        gap: 12
-      }}>
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
         <div>
           <h2 style={{ color: "#1a1a2e", margin: 0, fontSize: 22 }}>Stock</h2>
           <span style={{ color: "#6b7280", fontSize: 13 }}>{totalWithStock} productos con stock · {totalInStock} unidades totales · {filtered.length} productos listados</span>
         </div>
-        <div style={{
-          display: "flex",
-          gap: 10,
-          alignItems: "center",
-          flexWrap: "wrap",
-          width: isMobile ? "100%" : "auto",
-          flexDirection: isMobile ? "column" : "row"
-        }}>
-          <div style={{ width: isMobile ? "100%" : "auto" }}>
-            <SearchBar value={search} onChange={setSearch} placeholder="Buscar producto..." />
-          </div>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <SearchBar value={search} onChange={setSearch} placeholder="Buscar producto..." />
           {quickEdit ? (
-            <div style={{ display: "flex", gap: 10, width: isMobile ? "100%" : "auto", flexDirection: isMobile ? "column" : "row" }}>
-              <Btn variant="success" onClick={saveQuickEdit} style={{ flex: isMobile ? 1 : "initial" }}>✅ Guardar todo</Btn>
-              <Btn variant="secondary" onClick={cancelQuickEdit} style={{ flex: isMobile ? 1 : "initial" }}>Cancelar</Btn>
-            </div>
+            <>
+              <Btn variant="success" onClick={saveQuickEdit}>✅ Guardar todo</Btn>
+              <Btn variant="secondary" onClick={cancelQuickEdit}>Cancelar</Btn>
+            </>
           ) : (
-            <div style={{ display: "flex", gap: 10, width: isMobile ? "100%" : "auto", flexDirection: isMobile ? "column" : "row" }}>
-              <Btn variant="secondary" onClick={startQuickEdit} style={{ padding: "10px 14px", flex: isMobile ? 1 : "initial" }}>⚡ Edición rápida</Btn>
-              <Btn onClick={openNew} style={{ flex: isMobile ? 1 : "initial" }}>+ Nuevo</Btn>
-            </div>
+            <>
+              <Btn variant="secondary" onClick={startQuickEdit} style={{ padding: "10px 14px" }}>⚡ Edición rápida</Btn>
+              <Btn onClick={openNew}>+ Nuevo</Btn>
+            </>
           )}
         </div>
       </div>
 
-      {/* Filters - Scrollable horizontally on mobile */}
-      <div style={{
-        display: "flex",
-        gap: 8,
-        marginBottom: 16,
-        flexWrap: isMobile ? "nowrap" : "wrap",
-        overflowX: isMobile ? "auto" : "visible",
-        alignItems: "center",
-        paddingBottom: isMobile ? 8 : 0
-      }}>
+      {/* Filters */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
         {["", ...BRANDS].map(b => (
           <button key={b} onClick={() => setBrandFilter(b)} style={{
-            padding: isMobile ? "4px 10px" : "6px 14px",
-            borderRadius: 20,
-            border: "1px solid " + (brandFilter === b ? (BRAND_COLORS[b] || "#6366f1") : "#e2e4e9"),
+            padding: "6px 14px", borderRadius: 20, border: "1px solid " + (brandFilter === b ? (BRAND_COLORS[b] || "#6366f1") : "#e2e4e9"),
             background: brandFilter === b ? (BRAND_COLORS[b] || "#6366f1") + "22" : "transparent",
             color: brandFilter === b ? (BRAND_COLORS[b] || "#6366f1") : "#6b7280",
-            cursor: "pointer",
-            fontSize: isMobile ? 11 : 12,
-            fontWeight: 600,
-            flexShrink: 0
+            cursor: "pointer", fontSize: 12, fontWeight: 600
           }}>{b || "Todas"}</button>
         ))}
-        <span style={{ color: "#e2e4e9", margin: "0 2px", flexShrink: 0 }}>|</span>
+        <span style={{ color: "#e2e4e9", margin: "0 2px" }}>|</span>
         {[["all", "Todos"], ["instock", "Con stock"], ["nostock", "Sin stock"]].map(([val, label]) => (
           <button key={val} onClick={() => setStockFilter(val)} style={{
-            padding: isMobile ? "4px 10px" : "6px 14px",
-            borderRadius: 20,
-            border: "1px solid " + (stockFilter === val ? "#00b894" : "#e2e4e9"),
-            background: stockFilter === val ? "#00b89422" : "transparent",
-            color: stockFilter === val ? "#00b894" : "#6b7280",
-            cursor: "pointer",
-            fontSize: isMobile ? 11 : 12,
-            fontWeight: 600,
-            flexShrink: 0
+            padding: "6px 14px", borderRadius: 20, border: "1px solid " + (stockFilter === val ? "#00b894" : "#e2e4e9"),
+            background: stockFilter === val ? "#00b89422" : "transparent", color: stockFilter === val ? "#00b894" : "#6b7280",
+            cursor: "pointer", fontSize: 12, fontWeight: 600
           }}>{label}</button>
         ))}
       </div>
@@ -203,48 +172,24 @@ export const Products = ({ products, setProducts, exchangeRate, logStock, logPri
 
         return (
           <div key={key} style={{ marginBottom: 12 }}>
-            {/* Group Header - Simplified on mobile */}
+            {/* Group Header */}
             <div onClick={() => toggleCollapse(key)} style={{
-              background: "#f7f8fa",
-              borderRadius: isCollapsed ? 12 : "12px 12px 0 0",
-              padding: isMobile ? "12px 14px" : "14px 18px",
-              border: `1px solid ${brandColor}33`,
-              borderBottom: isCollapsed ? `1px solid ${brandColor}33` : "none",
-              cursor: "pointer",
-              display: "flex",
-              flexDirection: isMobile ? "column" : "row",
-              justifyContent: "space-between",
-              alignItems: isMobile ? "flex-start" : "center",
-              gap: isMobile ? 10 : 0,
+              background: "#f7f8fa", borderRadius: isCollapsed ? 12 : "12px 12px 0 0", padding: "14px 18px",
+              border: `1px solid ${brandColor}33`, borderBottom: isCollapsed ? `1px solid ${brandColor}33` : "none",
+              cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center",
               transition: "all 0.2s"
             }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, width: isMobile ? "100%" : "auto" }}>
-                <span style={{ fontSize: 18, transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)", transition: "transform 0.2s", display: "inline-block", flexShrink: 0 }}>▼</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <span style={{ fontSize: 18, transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)", transition: "transform 0.2s", display: "inline-block" }}>▼</span>
                 <Badge color={brandColor}>{group.brand}</Badge>
-                <span style={{ color: "#1a1a2e", fontWeight: 700, fontSize: isMobile ? 14 : 15 }}>{group.model}</span>
+                <span style={{ color: "#1a1a2e", fontWeight: 700, fontSize: 15 }}>{group.model}</span>
+                <span style={{ color: "#6b7280", fontSize: 13 }}>· {puffsFormatted} puffs</span>
+                <span style={{ color: "#6b7280", fontSize: 13 }}>· {formatMoney(group.priceUSD, "USD")} / {formatMoney(Math.round(group.priceUSD * exchangeRate))}</span>
               </div>
-
-              {/* Mobile: Show price and stock on second line */}
-              {isMobile && (
-                <div style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", paddingLeft: 32 }}>
-                  <span style={{ color: "#6b7280", fontSize: 12 }}>{formatMoney(group.priceUSD, "USD")}</span>
-                  <Badge color={groupStock > 0 ? "#00b894" : "#e74c3c"}>{groupStock} uds</Badge>
-                </div>
-              )}
-
-              {/* Desktop: Show all info on one line */}
-              {!isMobile && (
-                <>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <span style={{ color: "#6b7280", fontSize: 13 }}>· {puffsFormatted} puffs</span>
-                    <span style={{ color: "#6b7280", fontSize: 13 }}>· {formatMoney(group.priceUSD, "USD")} / {formatMoney(Math.round(group.priceUSD * exchangeRate))}</span>
-                  </div>
-                  <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                    <span style={{ color: "#6b7280", fontSize: 12 }}>{groupInStock}/{group.items.length} sabores</span>
-                    <Badge color={groupStock > 0 ? "#00b894" : "#e74c3c"}>{groupStock} uds</Badge>
-                  </div>
-                </>
-              )}
+              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                <span style={{ color: "#6b7280", fontSize: 12 }}>{groupInStock}/{group.items.length} sabores</span>
+                <Badge color={groupStock > 0 ? "#00b894" : "#e74c3c"}>{groupStock} uds</Badge>
+              </div>
             </div>
 
             {/* Flavors List */}
@@ -256,8 +201,7 @@ export const Products = ({ products, setProducts, exchangeRate, logStock, logPri
                 {group.items.map((p, i) => (
                   <div key={p.id} style={{
                     display: "flex", alignItems: "center", justifyContent: "space-between",
-                    padding: isMobile ? "8px 14px" : "10px 18px",
-                    borderBottom: i < group.items.length - 1 ? "1px solid #edf0f2" : "none",
+                    padding: "10px 18px", borderBottom: i < group.items.length - 1 ? "1px solid #edf0f2" : "none",
                     opacity: p.stock === 0 ? 0.4 : 1, transition: "opacity 0.2s"
                   }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
@@ -268,7 +212,7 @@ export const Products = ({ products, setProducts, exchangeRate, logStock, logPri
                       }} />
                       <span style={{
                         color: p.stock > 0 ? "#1a1a2e" : "#9ca3af",
-                        fontSize: isMobile ? 13 : 14,
+                        fontSize: 14,
                         textDecoration: p.stock === 0 ? "line-through" : "none"
                       }}>{p.flavor}</span>
                     </div>
@@ -310,14 +254,14 @@ export const Products = ({ products, setProducts, exchangeRate, logStock, logPri
         <Input label="Modelo" placeholder="ej: BC5000, A16000..." value={form.model} onChange={e => setForm(f => ({ ...f, model: e.target.value }))} />
         <Input label="Sabor" placeholder="ej: Watermelon Ice, Grape..." value={form.flavor} onChange={e => setForm(f => ({ ...f, flavor: e.target.value }))} />
         <Input label="Puffs" placeholder="ej: 5000, 8000, 16000..." value={form.puffs} onChange={e => setForm(f => ({ ...f, puffs: e.target.value }))} />
-        <div style={{ display: "flex", gap: 12, flexDirection: isMobile ? "column" : "row" }}>
+        <div style={{ display: "flex", gap: 12 }}>
           <Input label="Precio venta USD" type="number" value={form.priceUSD} onChange={e => setForm(f => ({ ...f, priceUSD: e.target.value }))} />
           <Input label="Precio venta ARS" type="number" value={form.priceARS} onChange={e => setForm(f => ({ ...f, priceARS: e.target.value }))} />
         </div>
         <Input label="Stock" type="number" value={form.stock} onChange={e => setForm(f => ({ ...f, stock: Number(e.target.value) }))} />
-        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 16, flexDirection: isMobile ? "column-reverse" : "row" }}>
-          <Btn variant="secondary" onClick={() => setModal(false)} style={{ flex: isMobile ? 1 : "initial" }}>Cancelar</Btn>
-          <Btn onClick={save} style={{ flex: isMobile ? 1 : "initial" }}>{editing ? "Guardar" : "Crear"}</Btn>
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 16 }}>
+          <Btn variant="secondary" onClick={() => setModal(false)}>Cancelar</Btn>
+          <Btn onClick={save}>{editing ? "Guardar" : "Crear"}</Btn>
         </div>
       </Modal>
     </div>

@@ -4,12 +4,12 @@ import { Modal, Card, Btn, Input, Select, Table, Badge, StatCard } from "./UI.js
 
 // -- CASH / CAJA --
 const INITIAL_BALANCES = {
-  lemonPesos: 270857.49,
+  lemonPesos: 273646.62,
   lemonUSDT: 40.12,
   mpDiego: 0,
   mpGustavo: 0,
   usdCash: 0,
-  pesosCash: 120000,
+  pesosCash: 0,
 };
 
 const ACCOUNTS = [
@@ -28,43 +28,27 @@ const MOVEMENT_TYPES = [
   { value: "withdrawal", label: "Retiro / Extracción" },
 ];
 
-export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements, setCashMovements, exchangeRate, setExchangeRate, currentUser }) => {
+export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements, setCashMovements, exchangeRate, setExchangeRate, currentUser, logAudit }) => {
   const [modal, setModal] = useState(false);
   const [moveForm, setMoveForm] = useState({ type: "transfer", from: "", to: "", amount: "", amountUSDT: "", description: "", date: new Date().toISOString().slice(0, 10) });
-
-  // Map payment method+account to CashBox account id
-  const paymentToAccount = (method, account) => {
-    if (method === "Mercado Pago") return account === "MP Diego" ? "mpDiego" : "mpGustavo";
-    if (method === "Lemon") return "lemonPesos";
-    if (method === "USDT") return "lemonUSDT";
-    if (method === "USD Cash") return "usdCash";
-    if (method === "Pesos Cash") return "pesosCash";
-    return null;
-  };
 
   // Calculate account balances including movements
   const calcBalance = (accountId) => {
     let bal = INITIAL_BALANCES[accountId] || 0;
-
-    // Add from sales (supports both old single-payment and new split-payment format)
-    sales.forEach(sale => {
-      if (sale.payments && sale.payments.length > 0) {
-        // New format: split payments array
-        sale.payments.forEach(p => {
-          if (paymentToAccount(p.method, p.account) === accountId) bal += Number(p.amount) || 0;
-        });
-      } else {
-        // Old format: single paymentMethod
-        if (paymentToAccount(sale.paymentMethod, sale.mpAccount) === accountId) bal += sale.total || 0;
-      }
-    });
-
+    
+    // Add from sales
+    if (accountId === "mpDiego") bal += sales.filter(s => s.paymentMethod === "Mercado Pago" && s.mpAccount === "MP Diego").reduce((s, sale) => s + sale.total, 0);
+    if (accountId === "mpGustavo") bal += sales.filter(s => s.paymentMethod === "Mercado Pago" && s.mpAccount === "MP Gustavo").reduce((s, sale) => s + sale.total, 0);
+    if (accountId === "lemonPesos") bal += sales.filter(s => s.paymentMethod === "Lemon").reduce((s, sale) => s + sale.total, 0);
     if (accountId === "lemonUSDT") {
+      bal += sales.filter(s => s.paymentMethod === "USDT").reduce((s, sale) => s + sale.total, 0);
       bal -= purchases.filter(p => p.status === "verificado" || !p.status).reduce((s, p) => s + (p.totalUSDT || 0), 0);
     }
+    if (accountId === "usdCash") bal += sales.filter(s => s.paymentMethod === "USD Cash").reduce((s, sale) => s + sale.total, 0);
+    if (accountId === "pesosCash") bal += sales.filter(s => s.paymentMethod === "Pesos Cash").reduce((s, sale) => s + sale.total, 0);
     
-    // Apply cash movements
-    (cashMovements || []).forEach(m => {
+    // Apply cash movements (exclude deleted)
+    (cashMovements || []).filter(m => !m.isDeleted).forEach(m => {
       if (m.from === accountId) bal -= Number(m.amount) || 0;
       if (m.to === accountId) {
         if (m.type === "crypto_buy" && accountId === "lemonUSDT") bal += Number(m.amountUSDT) || 0;
@@ -84,8 +68,10 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
 
   const saveMovement = () => {
     if (!moveForm.amount || (!moveForm.from && !moveForm.to)) return;
-    const movement = { ...moveForm, id: uid(), amount: Number(moveForm.amount), amountUSDT: Number(moveForm.amountUSDT) || 0, createdBy: currentUser?.name || "" };
+    const newId = uid();
+    const movement = { ...moveForm, id: newId, amount: Number(moveForm.amount), amountUSDT: Number(moveForm.amountUSDT) || 0, createdBy: currentUser?.name || "" };
     setCashMovements(prev => [movement, ...prev]);
+    if (logAudit) logAudit("create", "cashMovement", newId, `Creó movimiento: ${moveForm.type} $${moveForm.amount} ${moveForm.from ? getAccountLabel(moveForm.from) : ""} → ${moveForm.to ? getAccountLabel(moveForm.to) : ""}`);
     setModal(false);
     setMoveForm({ type: "transfer", from: "", to: "", amount: "", amountUSDT: "", description: "", date: new Date().toISOString().slice(0, 10) });
   };
@@ -93,7 +79,9 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
   const [confirmDeleteMov, setConfirmDeleteMov] = useState(null);
   const deleteMovement = (id) => {
     if (confirmDeleteMov !== id) { setConfirmDeleteMov(id); setTimeout(() => setConfirmDeleteMov(null), 3000); return; }
-    setCashMovements(prev => prev.filter(m => m.id !== id));
+    const mov = (cashMovements || []).find(m => m.id === id);
+    setCashMovements(prev => prev.map(m => m.id === id ? { ...m, isDeleted: true, deletedAt: new Date().toISOString(), deletedBy: currentUser?.name || "?" } : m));
+    if (logAudit && mov) logAudit("delete", "cashMovement", id, `Eliminó movimiento: ${mov.type} $${mov.amount}`);
     setConfirmDeleteMov(null);
   };
 
@@ -170,7 +158,7 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
             ? <button onClick={() => deleteMovement(r.id)} style={{ background: "#e74c3c22", border: "1px solid #e74c3c55", color: "#e74c3c", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Confirmar</button>
             : <button onClick={() => deleteMovement(r.id)} style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontSize: 14 }}>🗑️</button>
           )},
-        ]} data={cashMovements || []} emptyMsg="No hay movimientos registrados" />
+        ]} data={(cashMovements || []).filter(m => !m.isDeleted)} emptyMsg="No hay movimientos registrados" />
       </Card>
 
       {/* Movement Modal */}

@@ -3,7 +3,7 @@ import { uid, formatMoney, formatDate } from "../helpers.js";
 import { Modal, Card, Btn, Input, Select, Table, Badge, StatCard } from "./UI.jsx";
 
 // -- PARTNERS --
-export const Partners = ({ partnerWithdrawals, setPartnerWithdrawals, sales, purchases, expenses, withdrawals, exchangeRate, currentUser }) => {
+export const Partners = ({ partnerWithdrawals, setPartnerWithdrawals, sales, purchases, expenses, withdrawals, exchangeRate, currentUser, logAudit }) => {
   const [modal, setModal] = useState(false);
   const [confirmDel, setConfirmDel] = useState(null);
   const [form, setForm] = useState({ person: "Diego", amount: "", currency: "ARS", source: "", description: "", date: new Date().toISOString().slice(0, 10) });
@@ -12,14 +12,18 @@ export const Partners = ({ partnerWithdrawals, setPartnerWithdrawals, sales, pur
 
   const save = () => {
     if (!form.amount || !form.person) return;
-    setPartnerWithdrawals(prev => [{ ...form, id: uid(), amount: Number(form.amount), createdBy: currentUser?.name || "" }, ...prev]);
+    const newId = uid();
+    setPartnerWithdrawals(prev => [{ ...form, id: newId, amount: Number(form.amount), createdBy: currentUser?.name || "" }, ...prev]);
+    if (logAudit) logAudit("create", "partnerWithdrawal", newId, `Creó retiro socio: ${form.person} · $${form.amount}`);
     setModal(false);
     setForm({ person: "Diego", amount: "", currency: "ARS", source: "", description: "", date: new Date().toISOString().slice(0, 10) });
   };
 
   const deleteW = (id) => {
     if (confirmDel !== id) { setConfirmDel(id); setTimeout(() => setConfirmDel(null), 3000); return; }
-    setPartnerWithdrawals(prev => prev.filter(w => w.id !== id));
+    const w = (partnerWithdrawals || []).find(x => x.id === id);
+    setPartnerWithdrawals(prev => prev.map(x => x.id === id ? { ...x, isDeleted: true, deletedAt: new Date().toISOString(), deletedBy: currentUser?.name || "?" } : x));
+    if (logAudit && w) logAudit("delete", "partnerWithdrawal", id, `Eliminó retiro socio: ${w.person} · $${w.amount}`);
     setConfirmDel(null);
   };
 
@@ -31,8 +35,8 @@ export const Partners = ({ partnerWithdrawals, setPartnerWithdrawals, sales, pur
   const netProfit = totalRevenue - totalCosts - totalExpenses - consumoValue;
 
   // Calculate withdrawals per partner
-  const diegoWithdrawals = (partnerWithdrawals || []).filter(w => w.person === "Diego");
-  const gustavoWithdrawals = (partnerWithdrawals || []).filter(w => w.person === "Gustavo");
+  const diegoWithdrawals = (partnerWithdrawals || []).filter(w => !w.isDeleted && w.person === "Diego");
+  const gustavoWithdrawals = (partnerWithdrawals || []).filter(w => !w.isDeleted && w.person === "Gustavo");
   const diegoTotal = diegoWithdrawals.reduce((s, w) => s + (w.currency === "USD" ? w.amount * exchangeRate : w.currency === "USDT" ? w.amount * exchangeRate : w.amount), 0);
   const gustavoTotal = gustavoWithdrawals.reduce((s, w) => s + (w.currency === "USD" ? w.amount * exchangeRate : w.currency === "USDT" ? w.amount * exchangeRate : w.amount), 0);
   const totalWithdrawn = diegoTotal + gustavoTotal;
@@ -113,7 +117,7 @@ export const Partners = ({ partnerWithdrawals, setPartnerWithdrawals, sales, pur
               ? <button onClick={() => deleteW(r.id)} style={{ background: "#e74c3c22", border: "1px solid #e74c3c55", color: "#e74c3c", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Confirmar</button>
               : <button onClick={() => deleteW(r.id)} style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontSize: 14 }}>🗑️</button>
           )},
-        ]} data={partnerWithdrawals || []} emptyMsg="No hay retiros registrados" />
+        ]} data={(partnerWithdrawals || []).filter(w => !w.isDeleted)} emptyMsg="No hay retiros registrados" />
       </Card>
 
       {/* New withdrawal modal */}

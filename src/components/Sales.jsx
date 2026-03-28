@@ -1,29 +1,19 @@
 import { useState, useMemo } from "react";
-import { useResponsive } from "../App.jsx";
 import { uid, formatMoney, formatDate } from "../helpers.js";
-import { Modal, Card, Btn, Input, Select, Table, Badge, SearchBar } from "./UI.jsx";
-import { BRANDS, BRAND_COLORS, CHANNELS, PAYMENT_METHODS, MP_ACCOUNTS, DISCOUNT_REASONS } from "../constants.js";
+import { Modal, Card, Btn, Input, Select, Table, Badge, SearchBar, StatCard } from "./UI.jsx";
+import { CHANNELS, PAYMENT_METHODS, MP_ACCOUNTS, DISCOUNT_REASONS } from "../constants.js";
 
-// -- SALES (v3 — inline client creation, delivery info, toggle payments) --
+// -- SALES --
 
 const emptyForm = () => ({
-  items: [],
-  clientId: "", clientName: "",
-  channel: "", currency: "ARS",
-  deliveryBarrio: "", deliveryAddress: "", deliveryRef: "",
+  items: [{ productId: "", qty: 1 }],
+  clientName: "", channel: "", paymentMethod: "", mpAccount: "", currency: "ARS", total: "",
   discountType: "none", discountValue: "", discountReason: "",
   extras: [],
-  payments: [],
-  creditApplied: 0,
-  balanceAction: "none",
-  balanceChangeAccount: "",
-  notes: "",
-  date: new Date().toISOString().slice(0, 10),
-  saleExchangeRate: ""
+  notes: "", date: new Date().toISOString().slice(0, 10)
 });
 
-export const Sales = ({ sales, setSales, products, setProducts, clients, setClients, cashMovements, setCashMovements, logStock, exchangeRate, currentUser }) => {
-  const { isMobile } = useResponsive();
+export const Sales = ({ sales, setSales, products, setProducts, logStock, exchangeRate, currentUser, logAudit }) => {
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [search, setSearch] = useState("");
@@ -34,258 +24,198 @@ export const Sales = ({ sales, setSales, products, setProducts, clients, setClie
   const [showFilters, setShowFilters] = useState(false);
   const [form, setForm] = useState(emptyForm());
 
-  const [prodSearch, setProdSearch] = useState("");
-  const [brandFilter, setBrandFilter] = useState("");
-  const [modelFilter, setModelFilter] = useState("");
-  const [showProdPicker, setShowProdPicker] = useState(false);
-
-  const [clientSearch, setClientSearch] = useState("");
-  const [showClientPicker, setShowClientPicker] = useState(false);
-
-  const [showNewClient, setShowNewClient] = useState(false);
-  const [newClientForm, setNewClientForm] = useState({ name: "", phone: "", instagram: "", barrio: "", notes: "" });
-
-  // ---- helpers ----
-  const getClientBalance = (cId) => {
-    const c = (clients || []).find(x => x.id === cId);
-    return c?.balance || 0;
-  };
-
-  const availableModels = useMemo(() => {
-    if (!brandFilter) return [];
-    return [...new Set(products.filter(p => p.brand === brandFilter && p.stock > 0).map(p => p.model))].sort();
-  }, [products, brandFilter]);
-
-  const filteredProducts = useMemo(() => {
-    let list = products.filter(p => p.stock > 0);
-    if (brandFilter) list = list.filter(p => p.brand === brandFilter);
-    if (modelFilter) list = list.filter(p => p.model === modelFilter);
-    if (prodSearch) {
-      const q = prodSearch.toLowerCase();
-      list = list.filter(p => `${p.brand} ${p.model} ${p.flavor} ${p.puffs}`.toLowerCase().includes(q));
-    }
-    return list.sort((a, b) => a.brand.localeCompare(b.brand) || a.model.localeCompare(b.model) || a.flavor.localeCompare(b.flavor));
-  }, [products, brandFilter, modelFilter, prodSearch]);
-
-  const filteredClients = useMemo(() => {
-    if (!clientSearch) return clients || [];
-    const q = clientSearch.toLowerCase();
-    return (clients || []).filter(c => c.name.toLowerCase().includes(q) || (c.phone || "").includes(q) || (c.instagram || "").toLowerCase().includes(q));
-  }, [clients, clientSearch]);
-
-  const brandsWithStock = useMemo(() => {
-    const bs = new Set(products.filter(p => p.stock > 0).map(p => p.brand));
-    return BRANDS.filter(b => bs.has(b));
-  }, [products]);
-
-  // ---- item actions ----
-  const addProduct = (product) => {
-    setForm(f => {
-      const existing = f.items.find(i => i.productId === product.id);
-      if (existing) return { ...f, items: f.items.map(i => i.productId === product.id ? { ...i, qty: i.qty + 1 } : i) };
-      return { ...f, items: [...f.items, { productId: product.id, qty: 1 }] };
-    });
-    setProdSearch("");
-  };
+  const addItem = () => setForm(f => ({ ...f, items: [...f.items, { productId: "", qty: 1 }] }));
   const removeItem = (i) => setForm(f => ({ ...f, items: f.items.filter((_, idx) => idx !== i) }));
-  const updateItemQty = (i, qty) => setForm(f => ({ ...f, items: f.items.map((item, idx) => idx === i ? { ...item, qty: Math.max(1, Number(qty) || 1) } : item) }));
+  const updateItem = (i, field, val) => setForm(f => ({
+    ...f, items: f.items.map((item, idx) => idx === i ? { ...item, [field]: val } : item)
+  }));
 
-  // ---- payment toggle ----
-  const togglePaymentMethod = (method) => {
-    setForm(f => {
-      const existing = f.payments.find(p => p.method === method);
-      if (existing) return { ...f, payments: f.payments.filter(p => p.method !== method) };
-      return { ...f, payments: [...f.payments, { method, account: "", amount: "" }] };
-    });
-  };
-  const updatePayment = (method, field, val) => {
-    setForm(f => ({ ...f, payments: f.payments.map(p => p.method === method ? { ...p, [field]: val } : p) }));
-  };
-
-  // ---- inline client creation ----
-  const createClientInline = () => {
-    if (!newClientForm.name.trim()) return alert("El nombre es obligatorio");
-    const nc = {
-      id: uid(), name: newClientForm.name.trim(), phone: newClientForm.phone.trim(),
-      instagram: newClientForm.instagram.trim().replace(/^@/, ""),
-      barrio: newClientForm.barrio.trim(), notes: newClientForm.notes.trim(), balance: 0
-    };
-    setClients(prev => [nc, ...prev]);
-    setForm(f => ({ ...f, clientId: nc.id, clientName: nc.name, deliveryBarrio: nc.barrio || f.deliveryBarrio, creditApplied: 0 }));
-    setShowNewClient(false); setShowClientPicker(false);
-    setNewClientForm({ name: "", phone: "", instagram: "", barrio: "", notes: "" });
-  };
-
-  // ---- calculations ----
-  const activeRate = Number(form.saleExchangeRate) || exchangeRate;
   const totalQty = form.items.reduce((s, i) => s + (Number(i.qty) || 0), 0);
-  const getPrice = (prodId) => {
-    const p = products.find(x => x.id === prodId);
-    if (!p) return 0;
-    return form.currency === "USD" ? (p.priceUSD || 0) : Math.round((p.priceUSD || 0) * activeRate);
+
+  const calcSubtotal = () => {
+    let total = 0;
+    form.items.forEach(item => {
+      const prod = products.find(p => p.id === item.productId);
+      if (prod) {
+        const price = form.currency === "USD" ? (prod.priceUSD || 0) : Math.round((prod.priceUSD || 0) * exchangeRate);
+        total += price * item.qty;
+      }
+    });
+    return total;
   };
-  const subtotal = form.items.reduce((s, i) => s + getPrice(i.productId) * (i.qty || 0), 0);
-  const calcDiscount = (sub) => {
-    if (form.discountType === "percent") return sub * (Number(form.discountValue) || 0) / 100;
+
+  const calcDiscount = (subtotal) => {
+    if (form.discountType === "percent") return subtotal * (Number(form.discountValue) || 0) / 100;
     if (form.discountType === "fixed") return Number(form.discountValue) || 0;
     if (form.discountType === "per_unit") return (Number(form.discountValue) || 0) * totalQty;
     return 0;
   };
+
+  const subtotal = calcSubtotal();
   const discountAmount = calcDiscount(subtotal);
   const extrasTotal = (form.extras || []).reduce((s, e) => s + (Number(e.amount) || 0), 0);
   const finalTotal = Math.max(0, subtotal - discountAmount + extrasTotal);
-  const amountToPay = Math.max(0, finalTotal - (Number(form.creditApplied) || 0));
-  const totalPaid = form.payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
-  const paymentDiff = totalPaid - amountToPay;
-  const autoVolume = totalQty >= 3 && form.discountType === "none";
-  const selectedClientBalance = getClientBalance(form.clientId);
 
-  // ---- open / close ----
-  const openNew = () => {
-    setForm(emptyForm()); setEditing(null); setModal(true); setClientSearch("");
-    setProdSearch(""); setBrandFilter(""); setModelFilter("");
-    setShowProdPicker(false); setShowClientPicker(false); setShowNewClient(false);
-  };
+  // Auto-suggest volume discount
+  const autoVolume = totalQty >= 3 && form.discountType === "none";
+
+  const openNew = () => { setForm(emptyForm()); setEditing(null); setModal(true); };
+
   const openEdit = (sale) => {
     setForm({
-      items: sale.items || [], clientId: sale.clientId || "", clientName: sale.clientName || "",
-      channel: sale.channel || "", currency: sale.currency || "ARS",
-      deliveryBarrio: sale.deliveryBarrio || "", deliveryAddress: sale.deliveryAddress || "", deliveryRef: sale.deliveryRef || "",
-      discountType: sale.discountType || "none", discountValue: sale.discountValue || "", discountReason: sale.discountReason || "",
-      extras: sale.extras || [],
-      payments: sale.payments || (sale.paymentMethod ? [{ method: sale.paymentMethod, account: sale.mpAccount || "", amount: sale.total || "" }] : []),
-      creditApplied: sale.creditApplied || 0, balanceAction: sale.balanceAction || "none",
-      balanceChangeAccount: sale.balanceChangeAccount || "", notes: sale.notes || "",
-      date: sale.date ? sale.date.slice(0, 10) : new Date().toISOString().slice(0, 10),
-      saleExchangeRate: sale.saleExchangeRate || ""
+      items: sale.items || [{ productId: "", qty: 1 }],
+      clientName: sale.clientName || "",
+      channel: sale.channel || "",
+      paymentMethod: sale.paymentMethod || "",
+      mpAccount: sale.mpAccount || "",
+      currency: sale.currency || "ARS",
+      total: sale.total || "",
+      discountType: sale.discountType || "none",
+      discountValue: sale.discountValue || "",
+      discountReason: sale.discountReason || "",
+      notes: sale.notes || "",
+      date: sale.date ? sale.date.slice(0, 10) : new Date().toISOString().slice(0, 10)
     });
-    setEditing(sale.id); setModal(true);
+    setEditing(sale.id);
+    setModal(true);
   };
 
-  // ---- save ----
   const save = () => {
-    if (form.items.length === 0) return alert("Agrega al menos un producto");
-    if (form.payments.length === 0) return alert("Selecciona al menos un metodo de pago");
-    if (form.payments.some(p => !p.method)) return alert("Completa el metodo de pago en todos los pagos");
-    const stockRestore = {};
-    if (editing) { const orig = sales.find(s => s.id === editing); if (orig) (orig.items || []).forEach(it => { stockRestore[it.productId] = (stockRestore[it.productId] || 0) + it.qty; }); }
+    if (form.items.some(i => !i.productId)) return;
+    
+    // Validate stock availability
+    const stockCheck = {};
+    // If editing, account for restored stock from original sale
+    if (editing) {
+      const original = sales.find(s => s.id === editing);
+      if (original) (original.items || []).forEach(item => { stockCheck[item.productId] = (stockCheck[item.productId] || 0) + item.qty; });
+    }
     for (const item of form.items) {
       const prod = products.find(p => p.id === item.productId);
       if (!prod) continue;
-      const avail = (prod.stock || 0) + (stockRestore[item.productId] || 0);
-      if (item.qty > avail) { alert(`Sin stock suficiente de ${prod.brand} ${prod.model} - ${prod.flavor}. Disponible: ${avail}`); return; }
+      const available = (prod.stock || 0) + (stockCheck[item.productId] || 0);
+      if (item.qty > available) {
+        alert(`No hay suficiente stock de ${prod.brand} ${prod.model} - ${prod.flavor}. Disponible: ${available}, pedido: ${item.qty}`);
+        return;
+      }
     }
-    if (Math.abs(paymentDiff) > 0.5 && finalTotal > 0 && form.balanceAction === "none") {
-      if (paymentDiff > 0) { alert(`Sobran ${formatMoney(paymentDiff, form.currency)}. Elegi que hacer con el vuelto.`); return; }
-      if (paymentDiff < 0 && form.clientId) { alert(`Faltan ${formatMoney(Math.abs(paymentDiff), form.currency)}. Registralo como deuda o completa el pago.`); return; }
-      if (paymentDiff < 0 && !form.clientId) { alert(`Faltan ${formatMoney(Math.abs(paymentDiff), form.currency)}. Completa el pago.`); return; }
-    }
-    if (form.balanceAction === "transfer_change" && !form.balanceChangeAccount) { alert("Selecciona la cuenta de salida para el vuelto por transferencia."); return; }
-    const saleId = editing || uid();
-    const clientName = form.clientId ? ((clients || []).find(c => c.id === form.clientId)?.name || form.clientName) : form.clientName;
+    const total = form.total ? Number(form.total) : finalTotal;
     const saleData = {
-      ...form, clientName, total: finalTotal, subtotal, discountAmount, extrasTotal, totalPaid, paymentDiff,
-      paymentMethod: form.payments[0]?.method || "", mpAccount: form.payments[0]?.account || "",
-      date: form.date || new Date().toISOString(), createdBy: currentUser?.name || "", id: saleId,
+      ...form, total, subtotal, discountAmount, extrasTotal,
+      discountType: form.discountType, discountValue: Number(form.discountValue) || 0,
+      discountReason: form.discountReason,
+      date: form.date || new Date().toISOString(),
+      createdBy: currentUser?.name || ""
     };
-    // Update client barrio if new
-    if (form.clientId && form.deliveryBarrio && setClients) {
-      const cli = (clients || []).find(c => c.id === form.clientId);
-      if (cli && !cli.barrio && form.deliveryBarrio.trim()) setClients(prev => prev.map(c => c.id === form.clientId ? { ...c, barrio: form.deliveryBarrio.trim() } : c));
-    }
-    // Stock updates
-    if (editing) { const orig = sales.find(s => s.id === editing); if (orig) (orig.items || []).forEach(it => { setProducts(prev => prev.map(p => p.id === it.productId ? { ...p, stock: (p.stock || 0) + it.qty } : p)); }); }
-    form.items.forEach(it => { setProducts(prev => prev.map(p => p.id === it.productId ? { ...p, stock: Math.max(0, (p.stock || 0) - it.qty) } : p)); });
-    if (!editing) { form.items.forEach(it => { logStock({ productId: it.productId, type: "venta", qty: -it.qty, reason: `Venta a ${clientName || "sin nombre"}`, refId: saleId, date: form.date }); }); }
-    // Client balance
-    if (form.clientId && clients && setClients) {
-      let balDelta = 0;
-      if (form.creditApplied > 0) balDelta -= form.creditApplied;
-      if (form.balanceAction === "credit" && paymentDiff > 0) balDelta += paymentDiff;
-      if (form.balanceAction === "debt" && paymentDiff < 0) balDelta += paymentDiff;
-      if (editing) {
-        const orig = sales.find(s => s.id === editing);
-        if (orig) {
-          if (orig.creditApplied > 0) balDelta += orig.creditApplied;
-          if (orig.balanceAction === "credit" && orig.paymentDiff > 0) balDelta -= orig.paymentDiff;
-          if (orig.balanceAction === "debt" && orig.paymentDiff < 0) balDelta -= orig.paymentDiff;
-        }
+
+    if (editing) {
+      // Restore stock from original sale
+      const original = sales.find(s => s.id === editing);
+      if (original) {
+        (original.items || []).forEach(item => {
+          setProducts(prev => prev.map(p => p.id === item.productId ? { ...p, stock: (p.stock || 0) + item.qty } : p));
+        });
       }
-      if (balDelta !== 0) setClients(prev => prev.map(c => c.id === form.clientId ? { ...c, balance: (c.balance || 0) + balDelta } : c));
-      if ((form.balanceAction === "cash_change" || form.balanceAction === "transfer_change") && paymentDiff > 0 && setCashMovements) {
-        const accId = form.balanceAction === "cash_change" ? "pesosCash" : (form.balanceChangeAccount === "Lemon" ? "lemonPesos" : form.balanceChangeAccount === "MP Diego" ? "mpDiego" : form.balanceChangeAccount === "MP Gustavo" ? "mpGustavo" : "pesosCash");
-        setCashMovements(prev => [{ id: uid(), type: "withdrawal", from: accId, to: "", amount: paymentDiff, description: `Vuelto venta a ${clientName} (#${saleId.slice(-5)})`, date: form.date, createdBy: currentUser?.name || "", saleId }, ...prev]);
-      }
+      // Decrease stock with new items
+      form.items.forEach(item => {
+        setProducts(prev => prev.map(p => p.id === item.productId ? { ...p, stock: Math.max(0, (p.stock || 0) - item.qty) } : p));
+      });
+      setSales(prev => prev.map(s => s.id === editing ? { ...saleData, id: editing } : s));
+    } else {
+      // New sale
+      form.items.forEach(item => {
+        setProducts(prev => prev.map(p => p.id === item.productId ? { ...p, stock: Math.max(0, (p.stock || 0) - item.qty) } : p));
+      });
+      const saleId = uid();
+      form.items.forEach(item => {
+        logStock({ productId: item.productId, type: "venta", qty: -item.qty, reason: `Venta a ${form.clientName || "sin nombre"}`, refId: saleId, date: form.date });
+      });
+      setSales(prev => [{ ...saleData, id: saleId }, ...prev]);
+      if (logAudit) logAudit("create", "sale", saleId, `Creó venta: ${form.clientName || "sin nombre"} · ${formatMoney(total, form.currency)}`);
     }
-    if (editing) { setSales(prev => prev.map(s => s.id === editing ? saleData : s)); }
-    else { setSales(prev => [saleData, ...prev]); }
-    setModal(false); setForm(emptyForm()); setEditing(null);
+
+    if (editing && logAudit) logAudit("update", "sale", editing, `Editó venta: ${form.clientName || "sin nombre"} · ${formatMoney(form.total ? Number(form.total) : finalTotal, form.currency)}`);
+    setModal(false);
+    setForm(emptyForm());
+    setEditing(null);
   };
 
-  // ---- delete ----
-  const [confirmDel, setConfirmDel] = useState(null);
+  const [confirmDeleteSale, setConfirmDeleteSale] = useState(null);
   const deleteSale = (sale) => {
-    if (confirmDel !== sale.id) { setConfirmDel(sale.id); setTimeout(() => setConfirmDel(null), 3000); return; }
-    setConfirmDel(null);
-    (sale.items || []).forEach(it => { setProducts(prev => prev.map(p => p.id === it.productId ? { ...p, stock: (p.stock || 0) + it.qty } : p)); });
-    if (sale.clientId && setClients) {
-      let rev = 0;
-      if (sale.creditApplied > 0) rev += sale.creditApplied;
-      if (sale.balanceAction === "credit" && sale.paymentDiff > 0) rev -= sale.paymentDiff;
-      if (sale.balanceAction === "debt" && sale.paymentDiff < 0) rev -= sale.paymentDiff;
-      if (rev !== 0) setClients(prev => prev.map(c => c.id === sale.clientId ? { ...c, balance: (c.balance || 0) + rev } : c));
-    }
-    setSales(prev => prev.filter(s => s.id !== sale.id));
+    if (confirmDeleteSale !== sale.id) { setConfirmDeleteSale(sale.id); setTimeout(() => setConfirmDeleteSale(null), 3000); return; }
+    setConfirmDeleteSale(null);
+    // Restore stock
+    (sale.items || []).forEach(item => {
+      setProducts(prev => prev.map(p => p.id === item.productId ? { ...p, stock: (p.stock || 0) + item.qty } : p));
+    });
+    setSales(prev => prev.map(s => s.id === sale.id ? { ...s, isDeleted: true, deletedAt: new Date().toISOString(), deletedBy: currentUser?.name || "?" } : s));
+    if (logAudit) logAudit("delete", "sale", sale.id, `Eliminó venta: ${sale.clientName || "sin nombre"} · ${formatMoney(sale.total, sale.currency)}`);
   };
 
-  // ---- filtered list ----
-  const filtered = sales.filter(s => {
-    const names = (s.items || []).map(i => { const p = products.find(pr => pr.id === i.productId); return p ? `${p.brand} ${p.model} ${p.flavor}` : ""; }).join(" ");
-    if (search && !names.toLowerCase().includes(search.toLowerCase()) && !(s.clientName || "").toLowerCase().includes(search.toLowerCase())) return false;
-    if (filterChannel && s.channel !== filterChannel) return false;
-    if (filterPayment && !(s.payments || []).some(p => p.method === filterPayment) && s.paymentMethod !== filterPayment) return false;
-    if (filterDateFrom && s.date < filterDateFrom) return false;
-    if (filterDateTo && s.date > filterDateTo) return false;
-    return true;
+  const activeSales = sales.filter(s => !s.isDeleted);
+  const filtered = activeSales.filter(s => {
+    const itemNames = (s.items || []).map(i => {
+      const p = products.find(pr => pr.id === i.productId);
+      return p ? `${p.brand} ${p.model} ${p.flavor}` : "";
+    }).join(" ");
+    const matchSearch = !search || itemNames.toLowerCase().includes(search.toLowerCase()) || (s.clientName || "").toLowerCase().includes(search.toLowerCase());
+    const matchChannel = !filterChannel || s.channel === filterChannel;
+    const matchPayment = !filterPayment || s.paymentMethod === filterPayment;
+    const matchDateFrom = !filterDateFrom || s.date >= filterDateFrom;
+    const matchDateTo = !filterDateTo || s.date <= filterDateTo;
+    return matchSearch && matchChannel && matchPayment && matchDateFrom && matchDateTo;
   });
+
   const hasActiveFilters = filterChannel || filterPayment || filterDateFrom || filterDateTo;
   const clearFilters = () => { setFilterChannel(""); setFilterPayment(""); setFilterDateFrom(""); setFilterDateTo(""); };
-  const filteredRevenue = filtered.reduce((s, r) => s + (r.total || 0), 0);
+
+  const filteredRevenue = filtered.reduce((s, sale) => s + (sale.total || 0), 0);
+
   const totalDiscountsMonth = useMemo(() => {
     const now = new Date();
-    return sales.filter(s => { const d = new Date(s.date); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() && (s.discountAmount || 0) > 0; })
-      .reduce((sum, s) => sum + (s.discountAmount || 0), 0);
+    return sales.filter(s => {
+      const d = new Date(s.date);
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() && (s.discountAmount || 0) > 0;
+    }).reduce((sum, s) => sum + (s.discountAmount || 0), 0);
   }, [sales]);
-
-  // ============ RENDER ============
-  const sec = { background: "#f7f8fa", border: "1px solid #e2e4e9", borderRadius: 10, padding: 14, marginBottom: 14 };
-  const secLabel = (icon, text, color) => <label style={{ display: "block", fontSize: 12, color: color || "#6366f1", marginBottom: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>{icon} {text}</label>;
 
   return (
     <div>
-      {/* Header */}
-      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "flex-start" : "center", marginBottom: 16, gap: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h2 style={{ color: "#1a1a2e", margin: 0, fontSize: isMobile ? 18 : 22 }}>Ventas ({filtered.length}{filtered.length !== sales.length ? `/${sales.length}` : ""})</h2>
+          <h2 style={{ color: "#1a1a2e", margin: 0, fontSize: 22 }}>Ventas ({filtered.length}{filtered.length !== sales.length ? `/${sales.length}` : ""})</h2>
           {filtered.length > 0 && <span style={{ color: "#6b7280", fontSize: 13 }}>Total filtrado: {formatMoney(filteredRevenue)}</span>}
         </div>
-        <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: 10, alignItems: isMobile ? "stretch" : "center", width: isMobile ? "100%" : "auto" }}>
-          <div style={{ width: isMobile ? "100%" : "auto" }}><SearchBar value={search} onChange={setSearch} placeholder="Buscar producto o cliente..." /></div>
-          <div style={{ display: "flex", gap: 10, width: isMobile ? "100%" : "auto" }}>
-            <Btn variant="secondary" onClick={() => setShowFilters(!showFilters)} style={{ padding: "10px 14px", border: hasActiveFilters ? "1px solid #6366f1" : undefined, flex: isMobile ? 1 : "auto" }}>Filtros {hasActiveFilters ? "●" : ""}</Btn>
-            <Btn onClick={openNew} style={{ flex: isMobile ? 1 : "auto" }}>+ Nueva Venta</Btn>
-          </div>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <SearchBar value={search} onChange={setSearch} placeholder="Buscar producto o cliente..." />
+          <Btn variant="secondary" onClick={() => setShowFilters(!showFilters)} style={{ padding: "10px 14px", border: hasActiveFilters ? "1px solid #6366f1" : undefined }}>
+            🔍 Filtros {hasActiveFilters ? "●" : ""}
+          </Btn>
+          <Btn onClick={openNew}>+ Nueva Venta</Btn>
         </div>
       </div>
 
+      {/* Filter bar */}
       {showFilters && (
         <Card style={{ marginBottom: 14, background: "#f7f8fa", border: "1px solid #e2e4e9" }}>
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 1fr 1fr", gap: 12, alignItems: "flex-end" }}>
-            <Input label="Desde" type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} />
-            <Input label="Hasta" type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} />
-            <Select label="Canal" options={CHANNELS} value={filterChannel} onChange={e => setFilterChannel(e.target.value)} />
-            <Select label="Metodo de pago" options={PAYMENT_METHODS} value={filterPayment} onChange={e => setFilterPayment(e.target.value)} />
-            {hasActiveFilters && <button onClick={clearFilters} style={{ background: "none", border: "1px solid #e74c3c55", color: "#e74c3c", padding: "8px 14px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, gridColumn: isMobile ? "1 / -1" : "auto" }}>Limpiar</button>}
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
+            <div style={{ flex: 1, minWidth: 130 }}>
+              <Input label="Desde" type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} />
+            </div>
+            <div style={{ flex: 1, minWidth: 130 }}>
+              <Input label="Hasta" type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} />
+            </div>
+            <div style={{ flex: 1, minWidth: 130 }}>
+              <Select label="Canal" options={CHANNELS} value={filterChannel} onChange={e => setFilterChannel(e.target.value)} />
+            </div>
+            <div style={{ flex: 1, minWidth: 130 }}>
+              <Select label="Método de pago" options={PAYMENT_METHODS} value={filterPayment} onChange={e => setFilterPayment(e.target.value)} />
+            </div>
+            {hasActiveFilters && (
+              <button onClick={clearFilters} style={{ background: "none", border: "1px solid #e74c3c55", color: "#e74c3c", padding: "8px 14px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, marginBottom: 14 }}>
+                ✕ Limpiar
+              </button>
+            )}
           </div>
         </Card>
       )}
@@ -294,456 +224,187 @@ export const Sales = ({ sales, setSales, products, setProducts, clients, setClie
         <Card style={{ marginBottom: 14, background: "#fff", borderColor: "#fdcb6e33" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ fontSize: 20 }}>🏷️</span>
-            <span style={{ color: "#fdcb6e", fontSize: 13 }}>Descuentos este mes: <strong>{formatMoney(totalDiscountsMonth)}</strong></span>
+            <span style={{ color: "#fdcb6e", fontSize: 13 }}>Descuentos otorgados este mes: <strong>{formatMoney(totalDiscountsMonth)}</strong></span>
           </div>
         </Card>
       )}
 
-      {/* Sales Table */}
       <Card>
         <Table
           columns={[
             { key: "date", label: "Fecha", render: r => formatDate(r.date) },
-            { key: "items", label: "Productos", render: r => (r.items || []).map(i => { const p = products.find(pr => pr.id === i.productId); return p ? `${p.brand} ${p.model} (x${i.qty})` : "?"; }).join(", ") },
-            { key: "client", label: "Cliente", render: r => <div><span>{r.clientName || "-"}</span>{r.deliveryBarrio && <span style={{ display: "block", fontSize: 11, color: "#9ca3af" }}>{r.deliveryBarrio}</span>}</div> },
+            { key: "items", label: "Productos", render: r => (r.items || []).map(i => {
+              const p = products.find(pr => pr.id === i.productId);
+              return p ? `${p.brand} ${p.model} (x${i.qty})` : "?";
+            }).join(", ") },
+            { key: "client", label: "Cliente", render: r => r.clientName || "-" },
             { key: "channel", label: "Canal", render: r => <Badge>{r.channel || "-"}</Badge> },
-            { key: "payment", label: "Pago", render: r => {
-              if (r.payments && r.payments.length > 0) return r.payments.map((p, idx) => <span key={idx}>{idx > 0 ? " + " : ""}<Badge color="#6366f1">{p.method}{p.account ? ` (${p.account})` : ""}: {formatMoney(p.amount, r.currency)}</Badge></span>);
-              return r.paymentMethod + (r.mpAccount ? ` (${r.mpAccount})` : "");
-            }},
-            { key: "balance", label: "Saldo/Vuelto", render: r => {
-              const parts = [];
-              if (r.balanceAction === "cash_change" && r.paymentDiff > 0) parts.push(<Badge key="cc" color="#f59e0b">💵 -{formatMoney(r.paymentDiff)} efectivo</Badge>);
-              if (r.balanceAction === "transfer_change" && r.paymentDiff > 0) parts.push(<Badge key="tc" color="#f59e0b">📱 -{formatMoney(r.paymentDiff)} {r.balanceChangeAccount || "transfer"}</Badge>);
-              if (r.balanceAction === "credit" && r.paymentDiff > 0) parts.push(<Badge key="cr" color="#00b894">⭐ +{formatMoney(r.paymentDiff)} credito</Badge>);
-              if (r.balanceAction === "debt") parts.push(<Badge key="db" color="#e74c3c">📋 {formatMoney(r.paymentDiff)} deuda</Badge>);
-              if (r.creditApplied > 0) parts.push(<Badge key="ca" color="#6366f1">-{formatMoney(r.creditApplied)} credito usado</Badge>);
-              return parts.length > 0 ? <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>{parts}</div> : <span style={{ color: "#9ca3af" }}>—</span>;
-            }},
-            { key: "total", label: "Total", render: r => <strong style={{ color: "#00b894" }}>{formatMoney(r.total, r.currency)}</strong> },
+            { key: "payment", label: "Pago", render: r => r.paymentMethod + (r.mpAccount ? ` (${r.mpAccount})` : "") },
+            { key: "discount", label: "Desc.", render: r => (r.discountAmount || 0) > 0
+              ? <Badge color="#fdcb6e">-{formatMoney(r.discountAmount, r.currency)}</Badge>
+              : <span style={{ color: "#9ca3af" }}>—</span>
+            },
+            { key: "total", label: "Total", render: r => formatMoney(r.total, r.currency) },
             { key: "actions", label: "", render: r => (
               <div style={{ display: "flex", gap: 6 }}>
-                <button onClick={e => { e.stopPropagation(); openEdit(r); }} style={{ background: "none", border: "none", color: "#6366f1", cursor: "pointer", fontSize: 16 }} title="Editar">✏️</button>
-                {confirmDel === r.id
-                  ? <button onClick={e => { e.stopPropagation(); deleteSale(r); }} style={{ background: "#e74c3c22", border: "1px solid #e74c3c55", color: "#e74c3c", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Confirmar</button>
-                  : <button onClick={e => { e.stopPropagation(); deleteSale(r); }} style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontSize: 16 }} title="Eliminar">🗑️</button>
-                }
+                <button onClick={(e) => { e.stopPropagation(); openEdit(r); }} style={{ background: "none", border: "none", color: "#6366f1", cursor: "pointer", fontSize: 16 }} title="Editar">✏️</button>
+                {confirmDeleteSale === r.id
+                ? <button onClick={(e) => { e.stopPropagation(); deleteSale(r); }} style={{ background: "#e74c3c22", border: "1px solid #e74c3c55", color: "#e74c3c", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Confirmar</button>
+                : <button onClick={(e) => { e.stopPropagation(); deleteSale(r); }} style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontSize: 16 }} title="Eliminar">🗑️</button>
+              }
               </div>
             )},
           ]}
-          mobileColumns={isMobile ? ["date", "items", "total", "actions"] : undefined}
           data={filtered}
           emptyMsg="No hay ventas registradas"
         />
       </Card>
 
-      {/* ============ SALE MODAL ============ */}
       <Modal open={modal} onClose={() => { setModal(false); setEditing(null); }} title={editing ? "Editar Venta" : "Nueva Venta"}>
         <Input label="Fecha" type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
-
-        {/* ===== PRODUCTS ===== */}
-        <div style={sec}>
-          {secLabel("🛒", "Productos")}
-          {form.items.map((item, i) => {
-            const p = products.find(pr => pr.id === item.productId);
-            return (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "#fff", borderRadius: 8, marginBottom: 6, border: "1px solid #e2e4e9" }}>
-                {p && <span style={{ width: 8, height: 8, borderRadius: "50%", background: BRAND_COLORS[p.brand] || "#6366f1", flexShrink: 0 }} />}
-                <span style={{ flex: 1, fontSize: 13, color: "#1a1a2e" }}>{p ? `${p.brand} ${p.model} - ${p.flavor}` : "?"} <span style={{ color: "#9ca3af", fontSize: 11 }}>({p?.puffs}p)</span></span>
-                <span style={{ color: "#00b894", fontSize: 13, fontWeight: 700, marginRight: 8 }}>{formatMoney(getPrice(item.productId) * item.qty, form.currency)}</span>
-                <input type="number" value={item.qty} min={1} max={p?.stock || 99} onChange={e => updateItemQty(i, e.target.value)} style={{ width: 44, padding: "4px 6px", border: "1px solid #e2e4e9", borderRadius: 6, textAlign: "center", fontSize: 13 }} />
-                <button onClick={() => removeItem(i)} style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontSize: 16, padding: "2px 4px" }}>✕</button>
-              </div>
-            );
-          })}
-          <input type="text" value={prodSearch} onChange={e => { setProdSearch(e.target.value); setShowProdPicker(true); }} onFocus={() => setShowProdPicker(true)} placeholder="Buscar: marca, modelo, sabor..." style={{ width: "100%", padding: "10px 14px", border: "1px solid #e2e4e9", borderRadius: 8, fontSize: 14, background: "#fff", outline: "none", marginBottom: 8, boxSizing: "border-box" }} />
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
-            {brandFilter && <button onClick={() => { setBrandFilter(""); setModelFilter(""); }} style={{ padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: "pointer", border: "1px solid #e74c3c55", background: "#fef2f2", color: "#e74c3c" }}>✕ Todas</button>}
-            {brandsWithStock.map(b => (
-              <button key={b} onClick={() => { setBrandFilter(brandFilter === b ? "" : b); setModelFilter(""); setShowProdPicker(true); }}
-                style={{ padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: "pointer", border: `1px solid ${brandFilter === b ? (BRAND_COLORS[b] || "#6366f1") : "#e2e4e9"}`, background: brandFilter === b ? `${BRAND_COLORS[b] || "#6366f1"}22` : "#fff", color: brandFilter === b ? (BRAND_COLORS[b] || "#6366f1") : "#6b7280" }}>{b}</button>
-            ))}
+        
+        <label style={{ display: "block", fontSize: 12, color: "#6b7280", marginBottom: 8, fontWeight: 600, textTransform: "uppercase" }}>Productos</label>
+        {form.items.map((item, i) => (
+          <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "flex-end" }}>
+            <div style={{ flex: 2 }}>
+              <Select options={[...products].filter(p => p.stock > 0).sort((a, b) => a.brand.localeCompare(b.brand) || a.model.localeCompare(b.model) || a.flavor.localeCompare(b.flavor)).map(p => ({ value: p.id, label: `${p.brand} ${p.model} - ${p.flavor} (${p.puffs}p) [${p.stock}]` }))}
+                value={item.productId} onChange={e => updateItem(i, "productId", e.target.value)} />
+            </div>
+            <div style={{ flex: 0.5 }}>
+              <Input type="number" value={item.qty} min={1} onChange={e => updateItem(i, "qty", Number(e.target.value))} />
+            </div>
+            {form.items.length > 1 && <button onClick={() => removeItem(i)} style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontSize: 18, marginBottom: 14 }}>✕</button>}
           </div>
-          {brandFilter && availableModels.length > 1 && (
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
-              {availableModels.map(m => (
-                <button key={m} onClick={() => { setModelFilter(modelFilter === m ? "" : m); setShowProdPicker(true); }}
-                  style={{ padding: "3px 8px", borderRadius: 14, fontSize: 11, fontWeight: 600, cursor: "pointer", border: `1px solid ${modelFilter === m ? "#6366f1" : "#e2e4e9"}`, background: modelFilter === m ? "#6366f122" : "#fff", color: modelFilter === m ? "#6366f1" : "#6b7280" }}>{m}</button>
-              ))}
-            </div>
-          )}
-          {showProdPicker && (
-            <div style={{ maxHeight: 200, overflowY: "auto", background: "#fff", border: "1px solid #e2e4e9", borderRadius: 8 }}>
-              {filteredProducts.length === 0
-                ? <div style={{ padding: 16, textAlign: "center", color: "#9ca3af", fontSize: 13 }}>No hay productos con stock</div>
-                : filteredProducts.slice(0, 20).map(p => (
-                  <div key={p.id} onClick={() => addProduct(p)} style={{ padding: "8px 12px", cursor: "pointer", display: "flex", alignItems: "center", gap: 8, borderBottom: "1px solid #f3f4f6", transition: "background .1s" }} onMouseEnter={e => e.currentTarget.style.background = "#f7f8fa"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: BRAND_COLORS[p.brand] || "#6366f1", flexShrink: 0 }} />
-                    <span style={{ flex: 1, fontSize: 13, color: "#1a1a2e" }}><strong>{p.brand}</strong> {p.model} — {p.flavor} <span style={{ color: "#9ca3af", fontSize: 11 }}>({p.puffs}p)</span></span>
-                    <span style={{ color: "#00b894", fontSize: 12, fontWeight: 700 }}>{formatMoney(form.currency === "USD" ? p.priceUSD : Math.round(p.priceUSD * exchangeRate), form.currency)}</span>
-                    <Badge color={p.stock <= 2 ? "#e74c3c" : "#00b894"}>{p.stock}</Badge>
-                  </div>
-                ))}
-              {filteredProducts.length > 20 && <div style={{ padding: 8, textAlign: "center", color: "#9ca3af", fontSize: 11 }}>+{filteredProducts.length - 20} mas...</div>}
-            </div>
-          )}
-          {showProdPicker && <button onClick={() => setShowProdPicker(false)} style={{ background: "none", border: "none", color: "#6b7280", cursor: "pointer", fontSize: 11, marginTop: 4 }}>Cerrar buscador</button>}
-        </div>
+        ))}
+        <button onClick={addItem} style={{ background: "none", border: "1px dashed #e2e4e9", color: "#6366f1", padding: "6px 14px", borderRadius: 8, cursor: "pointer", fontSize: 12, marginBottom: 14 }}>+ Agregar producto</button>
 
         {autoVolume && (
-          <div style={{ background: "#fdcb6e15", border: "1px solid #fdcb6e33", borderRadius: 10, padding: "10px 14px", marginBottom: 14, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <div style={{
+            background: "#fdcb6e15", border: "1px solid #fdcb6e33", borderRadius: 10, padding: "10px 14px",
+            marginBottom: 14, display: "flex", alignItems: "center", gap: 8
+          }}>
             <span style={{ fontSize: 16 }}>💡</span>
-            <span style={{ color: "#fdcb6e", fontSize: 13 }}>Comprando {totalQty} unidades — descuento por volumen?</span>
-            <button onClick={() => setForm(f => ({ ...f, discountType: "percent", discountReason: "Volumen (3+)" }))} style={{ marginLeft: isMobile ? 0 : "auto", background: "#fdcb6e22", border: "1px solid #fdcb6e55", color: "#fdcb6e", padding: "4px 12px", borderRadius: 6, cursor: "pointer", fontSize: 12 }}>Aplicar</button>
+            <span style={{ color: "#fdcb6e", fontSize: 13 }}>Comprando {totalQty} unidades — ¿aplicar descuento por volumen?</span>
+            <button onClick={() => setForm(f => ({ ...f, discountType: "percent", discountReason: "Volumen (3+)" }))}
+              style={{ marginLeft: "auto", background: "#fdcb6e22", border: "1px solid #fdcb6e55", color: "#fdcb6e", padding: "4px 12px", borderRadius: 6, cursor: "pointer", fontSize: 12 }}>
+              Aplicar
+            </button>
           </div>
         )}
 
-        {/* ===== CLIENT ===== */}
-        <div style={sec}>
-          {secLabel("👤", "Cliente")}
-          {!showNewClient ? (
-            <>
-              <div style={{ position: "relative" }}>
-                <input type="text" value={form.clientId ? ((clients || []).find(c => c.id === form.clientId)?.name || form.clientName) : clientSearch}
-                  onChange={e => { setClientSearch(e.target.value); setForm(f => ({ ...f, clientId: "", clientName: e.target.value, creditApplied: 0 })); setShowClientPicker(true); }}
-                  onFocus={() => { if (!form.clientId) setShowClientPicker(true); }}
-                  placeholder="Buscar cliente por nombre, tel, IG..."
-                  style={{ width: "100%", padding: "10px 14px", border: "1px solid #e2e4e9", borderRadius: 8, fontSize: 14, background: form.clientId ? "#eef2ff" : "#fff", outline: "none", boxSizing: "border-box" }} />
-                {form.clientId && <button onClick={() => { setForm(f => ({ ...f, clientId: "", clientName: "", creditApplied: 0 })); setClientSearch(""); }} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontSize: 14 }}>✕</button>}
-              </div>
+        <Input label="Cliente" placeholder="Nombre del cliente..." value={form.clientName || ""} onChange={e => setForm(f => ({ ...f, clientName: e.target.value }))} />
+        <Select label="Canal" options={CHANNELS} value={form.channel} onChange={e => setForm(f => ({ ...f, channel: e.target.value }))} />
 
-              {/* Client info card */}
-              {form.clientId && (() => {
-                const cli = (clients || []).find(c => c.id === form.clientId);
-                if (!cli) return null;
-                return (
-                  <div style={{ marginTop: 8, padding: "10px 12px", background: "#eef2ff", borderRadius: 8, border: "1px solid #6366f122" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                      <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#6366f1", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, flexShrink: 0 }}>{cli.name.charAt(0).toUpperCase()}</div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: "#1a1a2e" }}>{cli.name}</div>
-                        <div style={{ fontSize: 11, color: "#6b7280" }}>{[cli.phone, cli.instagram ? `@${cli.instagram}` : "", cli.barrio].filter(Boolean).join(" · ")}</div>
-                      </div>
-                      {(cli.balance || 0) !== 0 && <Badge color={(cli.balance || 0) > 0 ? "#00b894" : "#e74c3c"}>{(cli.balance || 0) > 0 ? `+${formatMoney(cli.balance)}` : formatMoney(cli.balance)}</Badge>}
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* Balance */}
-              {form.clientId && selectedClientBalance !== 0 && (
-                <div style={{ marginTop: 8, padding: "8px 12px", borderRadius: 8, background: selectedClientBalance > 0 ? "#ecfdf5" : "#fef2f2", border: `1px solid ${selectedClientBalance > 0 ? "#00b89433" : "#e74c3c33"}`, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-                  <span style={{ fontSize: 13, color: selectedClientBalance > 0 ? "#00b894" : "#e74c3c" }}>{selectedClientBalance > 0 ? `Saldo a favor: ${formatMoney(selectedClientBalance)}` : `Deuda pendiente: ${formatMoney(Math.abs(selectedClientBalance))}`}</span>
-                  {selectedClientBalance > 0 && finalTotal > 0 && (
-                    <button onClick={() => setForm(f => ({ ...f, creditApplied: Math.min(selectedClientBalance, finalTotal) }))} style={{ padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: "pointer", border: "1px solid #00b89455", background: "#00b89422", color: "#00b894" }}>Aplicar {formatMoney(Math.min(selectedClientBalance, finalTotal))}</button>
-                  )}
-                </div>
-              )}
-              {form.creditApplied > 0 && (
-                <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 8 }}>
-                  <Badge color="#6366f1">Credito aplicado: -{formatMoney(form.creditApplied)}</Badge>
-                  <button onClick={() => setForm(f => ({ ...f, creditApplied: 0 }))} style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontSize: 12 }}>✕</button>
-                </div>
-              )}
-
-              {/* Client dropdown */}
-              {showClientPicker && !form.clientId && (
-                <div style={{ maxHeight: 160, overflowY: "auto", background: "#fff", border: "1px solid #e2e4e9", borderRadius: 8, marginTop: 4 }}>
-                  {filteredClients.length === 0
-                    ? <div style={{ padding: 12, textAlign: "center", color: "#9ca3af", fontSize: 13 }}>{clientSearch ? "Sin resultados" : "No hay clientes"}</div>
-                    : filteredClients.slice(0, 10).map(c => (
-                      <div key={c.id} onClick={() => { setForm(f => ({ ...f, clientId: c.id, clientName: c.name, deliveryBarrio: c.barrio || f.deliveryBarrio, creditApplied: 0 })); setShowClientPicker(false); setClientSearch(""); }}
-                        style={{ padding: "8px 12px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #f3f4f6" }}
-                        onMouseEnter={e => e.currentTarget.style.background = "#f7f8fa"} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                        <div>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: "#1a1a2e" }}>{c.name}</span>
-                          {c.phone && <span style={{ fontSize: 11, color: "#9ca3af", marginLeft: 8 }}>{c.phone}</span>}
-                          {c.barrio && <span style={{ fontSize: 11, color: "#9ca3af", marginLeft: 6 }}>({c.barrio})</span>}
-                        </div>
-                        {(c.balance || 0) !== 0 && <Badge color={(c.balance || 0) > 0 ? "#00b894" : "#e74c3c"}>{(c.balance || 0) > 0 ? `+${formatMoney(c.balance)}` : formatMoney(c.balance)}</Badge>}
-                      </div>
-                    ))}
-                </div>
-              )}
-              {showClientPicker && !form.clientId && (
-                <div style={{ display: "flex", gap: 8, marginTop: 6, alignItems: "center" }}>
-                  <button onClick={() => setShowClientPicker(false)} style={{ background: "none", border: "none", color: "#6b7280", cursor: "pointer", fontSize: 11 }}>Cerrar</button>
-                  <button onClick={() => { setShowNewClient(true); setShowClientPicker(false); setNewClientForm(f => ({ ...f, name: clientSearch })); }}
-                    style={{ background: "#6366f111", border: "1px solid #6366f133", color: "#6366f1", padding: "5px 12px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600 }}>+ Nuevo cliente</button>
-                </div>
-              )}
-              {!showClientPicker && !form.clientId && (
-                <button onClick={() => { setShowNewClient(true); setNewClientForm({ name: clientSearch || "", phone: "", instagram: "", barrio: "", notes: "" }); }}
-                  style={{ marginTop: 6, background: "none", border: "1px dashed #6366f155", color: "#6366f1", padding: "6px 14px", borderRadius: 8, cursor: "pointer", fontSize: 12, width: "100%" }}>+ Crear cliente nuevo</button>
-              )}
-            </>
-          ) : (
-            /* INLINE NEW CLIENT FORM */
-            <div style={{ background: "#fff", border: "1px solid #6366f133", borderRadius: 10, padding: 14 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#6366f1" }}>Nuevo Cliente</span>
-                <button onClick={() => setShowNewClient(false)} style={{ background: "none", border: "none", color: "#6b7280", cursor: "pointer", fontSize: 14 }}>✕</button>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
-                <Input label="Nombre *" value={newClientForm.name} onChange={e => setNewClientForm(f => ({ ...f, name: e.target.value }))} placeholder="Nombre del cliente" />
-                <Input label="Telefono" value={newClientForm.phone} onChange={e => setNewClientForm(f => ({ ...f, phone: e.target.value }))} placeholder="11 xxxx-xxxx" />
-                <Input label="Barrio / Zona" value={newClientForm.barrio} onChange={e => setNewClientForm(f => ({ ...f, barrio: e.target.value }))} placeholder="Ej: Palermo, Belgrano..." />
-                <Input label="Instagram" value={newClientForm.instagram} onChange={e => setNewClientForm(f => ({ ...f, instagram: e.target.value }))} placeholder="@usuario" />
-              </div>
-              <div style={{ marginTop: 8 }}><Input label="Notas" value={newClientForm.notes} onChange={e => setNewClientForm(f => ({ ...f, notes: e.target.value }))} placeholder="Opcional: referido por..." /></div>
-              <div style={{ display: "flex", gap: 8, marginTop: 12, justifyContent: "flex-end" }}>
-                <button onClick={() => setShowNewClient(false)} style={{ padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", border: "1px solid #e2e4e9", background: "#fff", color: "#6b7280" }}>Cancelar</button>
-                <button onClick={createClientInline} style={{ padding: "7px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", border: "none", background: "#6366f1", color: "#fff" }}>Crear y Asociar</button>
-              </div>
-            </div>
+        <div style={{ display: "flex", gap: 12 }}>
+          <Select label="Forma de pago" options={PAYMENT_METHODS} value={form.paymentMethod} onChange={e => setForm(f => ({ ...f, paymentMethod: e.target.value }))} />
+          {form.paymentMethod === "Mercado Pago" && (
+            <Select label="Cuenta MP" options={MP_ACCOUNTS} value={form.mpAccount} onChange={e => setForm(f => ({ ...f, mpAccount: e.target.value }))} />
           )}
         </div>
 
-        {/* ===== DELIVERY ===== */}
-        {(form.clientId || form.deliveryBarrio || form.deliveryAddress) ? (
-          <div style={sec}>
-            {secLabel("📍", "Entrega", "#f59e0b")}
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
-              <Input label="Barrio / Zona" value={form.deliveryBarrio} onChange={e => setForm(f => ({ ...f, deliveryBarrio: e.target.value }))} placeholder="Ej: Belgrano, Recoleta..." />
-              <Input label="Direccion" value={form.deliveryAddress} onChange={e => setForm(f => ({ ...f, deliveryAddress: e.target.value }))} placeholder="Calle y numero (opcional)" />
-            </div>
-            <div style={{ marginTop: 8 }}><Input label="Referencia" value={form.deliveryRef} onChange={e => setForm(f => ({ ...f, deliveryRef: e.target.value }))} placeholder="Ej: frente a la plaza, portero 4B..." /></div>
-          </div>
-        ) : (
-          <button onClick={() => setForm(f => ({ ...f, deliveryBarrio: " " }))}
-            style={{ width: "100%", background: "none", border: "1px dashed #f59e0b44", color: "#f59e0b", padding: "8px 14px", borderRadius: 8, cursor: "pointer", fontSize: 12, marginBottom: 14 }}>+ Agregar info de entrega</button>
-        )}
+        <Select label="Moneda" options={["ARS", "USD", "USDT"]} value={form.currency} onChange={e => setForm(f => ({ ...f, currency: e.target.value }))} />
 
-        {/* Channel + Currency + TC */}
-        <div style={{ display: "grid", gridTemplateColumns: form.currency === "ARS" ? "1fr 1fr 1fr" : "1fr 1fr", gap: 10, marginBottom: 14 }}>
-          <Select label="Canal" options={CHANNELS} value={form.channel} onChange={e => setForm(f => ({ ...f, channel: e.target.value }))} />
-          <Select label="Moneda" options={["ARS", "USD", "USDT"]} value={form.currency} onChange={e => setForm(f => ({ ...f, currency: e.target.value }))} />
-          {form.currency === "ARS" && (
-            <Input label="TC Blue" type="number" value={form.saleExchangeRate} onChange={e => setForm(f => ({ ...f, saleExchangeRate: e.target.value }))} placeholder={String(exchangeRate)} />
-          )}
-        </div>
-        {form.currency === "ARS" && form.saleExchangeRate && Number(form.saleExchangeRate) !== exchangeRate && (
-          <div style={{ fontSize: 12, color: "#f59e0b", marginBottom: 10, marginTop: -8 }}>⚠️ Usando TC manual: <strong>${form.saleExchangeRate}</strong> (actual: ${exchangeRate})</div>
-        )}
+        {/* DISCOUNT SECTION */}
+        <div style={{
+          background: "#f7f8fa", border: "1px solid #e2e4e9", borderRadius: 10, padding: 14, marginBottom: 14
+        }}>
+          <label style={{ display: "block", fontSize: 12, color: "#fdcb6e", marginBottom: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>🏷️ Descuento</label>
 
-        {/* ===== DISCOUNT ===== */}
-        <div style={sec}>
-          {secLabel("🏷️", "Descuento", "#fdcb6e")}
-          <div style={{ display: "flex", gap: isMobile ? 4 : 8, marginBottom: 10, flexWrap: "wrap" }}>
-            {[{ value: "none", label: "Sin desc." }, { value: "percent", label: "%" }, { value: "fixed", label: "$ Fijo" }, { value: "per_unit", label: "$/u" }].map(opt => (
+          <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+            {[
+              { value: "none", label: "Sin descuento" },
+              { value: "percent", label: "% Porcentaje" },
+              { value: "fixed", label: "$ Monto fijo" },
+              { value: "per_unit", label: "$/u Por unidad" },
+            ].map(opt => (
               <button key={opt.value} onClick={() => setForm(f => ({ ...f, discountType: opt.value, discountValue: opt.value === "none" ? "" : f.discountValue }))}
-                style={{ padding: isMobile ? "4px 8px" : "6px 12px", borderRadius: 8, fontSize: isMobile ? 11 : 12, fontWeight: 600, cursor: "pointer", border: `1px solid ${form.discountType === opt.value ? "#fdcb6e" : "#e2e4e9"}`, background: form.discountType === opt.value ? "#fdcb6e22" : "transparent", color: form.discountType === opt.value ? "#fdcb6e" : "#6b7280" }}>{opt.label}</button>
+                style={{
+                  padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                  border: `1px solid ${form.discountType === opt.value ? "#fdcb6e" : "#e2e4e9"}`,
+                  background: form.discountType === opt.value ? "#fdcb6e22" : "transparent",
+                  color: form.discountType === opt.value ? "#fdcb6e" : "#6b7280"
+                }}>{opt.label}</button>
             ))}
           </div>
+
           {form.discountType !== "none" && (
             <>
-              <div style={{ display: "flex", gap: 12, flexDirection: isMobile ? "column" : "row" }}>
-                <Input label={form.discountType === "percent" ? "%" : `Monto (${form.currency})`} type="number" value={form.discountValue} onChange={e => setForm(f => ({ ...f, discountValue: e.target.value }))} placeholder={form.discountType === "percent" ? "ej: 10" : "ej: 5000"} />
-                <Select label="Motivo" options={DISCOUNT_REASONS} value={form.discountReason} onChange={e => setForm(f => ({ ...f, discountReason: e.target.value }))} />
+              <div style={{ display: "flex", gap: 12 }}>
+                <Input
+                  label={form.discountType === "percent" ? "Porcentaje (%)" : form.discountType === "per_unit" ? `Descuento por unidad (${form.currency})` : `Monto fijo (${form.currency})`}
+                  type="number" value={form.discountValue}
+                  onChange={e => setForm(f => ({ ...f, discountValue: e.target.value }))}
+                  placeholder={form.discountType === "percent" ? "ej: 10" : "ej: 5000"}
+                />
+                <Select label="Motivo" options={DISCOUNT_REASONS} value={form.discountReason}
+                  onChange={e => setForm(f => ({ ...f, discountReason: e.target.value }))} />
               </div>
-              {discountAmount > 0 && <div style={{ color: "#fdcb6e", fontSize: 13, marginTop: 4 }}>Descuento: <strong>-{formatMoney(discountAmount, form.currency)}</strong>{form.discountType === "percent" && ` (${form.discountValue}% de ${formatMoney(subtotal, form.currency)})`}</div>}
+              {discountAmount > 0 && (
+                <div style={{ color: "#fdcb6e", fontSize: 13, marginTop: 4 }}>
+                  Descuento: <strong>-{formatMoney(discountAmount, form.currency)}</strong>
+                  {form.discountType === "percent" && ` (${form.discountValue}% de ${formatMoney(subtotal, form.currency)})`}
+                  {form.discountType === "per_unit" && ` (${formatMoney(form.discountValue, form.currency)} x ${totalQty} uds)`}
+                </div>
+              )}
             </>
           )}
         </div>
 
-        {/* ===== EXTRAS ===== */}
-        <div style={sec}>
-          {secLabel("➕", "Extras", "#00b894")}
+        {/* EXTRAS SECTION */}
+        <div style={{
+          background: "#f7f8fa", border: "1px solid #e2e4e9", borderRadius: 10, padding: 14, marginBottom: 14
+        }}>
+          <label style={{ display: "block", fontSize: 12, color: "#00b894", marginBottom: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>➕ Extras</label>
           {(form.extras || []).map((extra, i) => (
-            <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "flex-end", flexWrap: isMobile ? "wrap" : "nowrap" }}>
-              <div style={{ flex: isMobile ? "1 100%" : 2 }}><Input placeholder="Concepto (envio, propina...)" value={extra.concept} onChange={e => setForm(f => ({ ...f, extras: f.extras.map((ex, j) => j === i ? { ...ex, concept: e.target.value } : ex) }))} /></div>
-              <div style={{ flex: isMobile ? "1" : 0.7 }}><Input type="number" placeholder="Monto" value={extra.amount} onChange={e => setForm(f => ({ ...f, extras: f.extras.map((ex, j) => j === i ? { ...ex, amount: e.target.value } : ex) }))} /></div>
-              <button onClick={() => setForm(f => ({ ...f, extras: f.extras.filter((_, j) => j !== i) }))} style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontSize: 16, marginBottom: isMobile ? 0 : 14 }}>✕</button>
+            <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "flex-end" }}>
+              <div style={{ flex: 2 }}>
+                <Input placeholder="Concepto (envío, propina, etc.)" value={extra.concept} onChange={e => setForm(f => ({ ...f, extras: f.extras.map((ex, j) => j === i ? { ...ex, concept: e.target.value } : ex) }))} />
+              </div>
+              <div style={{ flex: 0.7 }}>
+                <Input type="number" placeholder="Monto" value={extra.amount} onChange={e => setForm(f => ({ ...f, extras: f.extras.map((ex, j) => j === i ? { ...ex, amount: e.target.value } : ex) }))} />
+              </div>
+              <button onClick={() => setForm(f => ({ ...f, extras: f.extras.filter((_, j) => j !== i) }))} style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontSize: 16, marginBottom: 14 }}>✕</button>
             </div>
           ))}
-          <button onClick={() => setForm(f => ({ ...f, extras: [...(f.extras || []), { concept: "", amount: "" }] }))} style={{ background: "none", border: "1px dashed #00b89444", color: "#00b894", padding: "5px 12px", borderRadius: 8, cursor: "pointer", fontSize: 11, width: "100%" }}>+ Agregar extra</button>
+          <button onClick={() => setForm(f => ({ ...f, extras: [...(f.extras || []), { concept: "", amount: "" }] }))}
+            style={{ background: "none", border: "1px dashed #00b89444", color: "#00b894", padding: "5px 12px", borderRadius: 8, cursor: "pointer", fontSize: 11, width: "100%" }}>
+            + Agregar extra
+          </button>
           {extrasTotal > 0 && <div style={{ color: "#00b894", fontSize: 13, marginTop: 6 }}>Extras: <strong>+{formatMoney(extrasTotal, form.currency)}</strong></div>}
         </div>
 
-        {/* ===== TOTALS ===== */}
-        <div style={{ background: "#f7f8fa", borderRadius: 10, padding: 14, marginBottom: 14, border: "1px solid #e2e4e9" }}>
+        {/* TOTALS */}
+        <div style={{
+          background: "#f7f8fa", borderRadius: 10, padding: 14, marginBottom: 14,
+          border: "1px solid #e2e4e9"
+        }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-            <span style={{ color: "#6b7280", fontSize: 13 }}>Subtotal ({totalQty} ud.)</span>
+            <span style={{ color: "#6b7280", fontSize: 13 }}>Subtotal</span>
             <span style={{ color: "#4b5563", fontSize: 14 }}>{formatMoney(subtotal, form.currency)}</span>
           </div>
-          {discountAmount > 0 && <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}><span style={{ color: "#fdcb6e", fontSize: 13 }}>Descuento{form.discountReason ? ` (${form.discountReason})` : ""}</span><span style={{ color: "#fdcb6e", fontSize: 14 }}>-{formatMoney(discountAmount, form.currency)}</span></div>}
-          {extrasTotal > 0 && <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}><span style={{ color: "#00b894", fontSize: 13 }}>Extras</span><span style={{ color: "#00b894", fontSize: 14 }}>+{formatMoney(extrasTotal, form.currency)}</span></div>}
-          {form.creditApplied > 0 && <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}><span style={{ color: "#6366f1", fontSize: 13 }}>Credito cliente</span><span style={{ color: "#6366f1", fontSize: 14 }}>-{formatMoney(form.creditApplied, form.currency)}</span></div>}
+          {discountAmount > 0 && (
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+              <span style={{ color: "#fdcb6e", fontSize: 13 }}>Descuento {form.discountReason ? `(${form.discountReason})` : ""}</span>
+              <span style={{ color: "#fdcb6e", fontSize: 14 }}>-{formatMoney(discountAmount, form.currency)}</span>
+            </div>
+          )}
+          {extrasTotal > 0 && (
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+              <span style={{ color: "#00b894", fontSize: 13 }}>Extras ({(form.extras || []).filter(e => Number(e.amount) > 0).map(e => e.concept || "extra").join(", ")})</span>
+              <span style={{ color: "#00b894", fontSize: 14 }}>+{formatMoney(extrasTotal, form.currency)}</span>
+            </div>
+          )}
           <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #e2e4e9", paddingTop: 8 }}>
-            <span style={{ color: "#1a1a2e", fontSize: 15, fontWeight: 700 }}>A cobrar</span>
-            <span style={{ color: "#00b894", fontSize: 18, fontWeight: 800 }}>{formatMoney(amountToPay, form.currency)}</span>
+            <span style={{ color: "#1a1a2e", fontSize: 15, fontWeight: 700 }}>Total</span>
+            <span style={{ color: "#00b894", fontSize: 18, fontWeight: 800 }}>{formatMoney(finalTotal, form.currency)}</span>
           </div>
-        </div>
-
-        {/* ===== PAYMENTS (toggle checkboxes + amount) ===== */}
-        <div style={{ background: "#f0f1f8", border: "1px solid #6366f133", borderRadius: 10, padding: 14, marginBottom: 14 }}>
-          {secLabel("💳", "Metodo de Pago", "#6366f1")}
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-            {PAYMENT_METHODS.map(method => {
-              const isActive = form.payments.some(p => p.method === method);
-              const colors = { "Mercado Pago": "#009ee3", "Lemon": "#00c853", "USD Cash": "#2ecc71", "USDT": "#26a17b", "Pesos Cash": "#f59e0b" };
-              const color = colors[method] || "#6366f1";
-              return (
-                <button key={method} onClick={() => togglePaymentMethod(method)}
-                  style={{ padding: "8px 14px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer", border: `2px solid ${isActive ? color : "#e2e4e9"}`, background: isActive ? `${color}18` : "#fff", color: isActive ? color : "#6b7280", display: "flex", alignItems: "center", gap: 6, transition: "all .15s ease" }}>
-                  <span style={{ width: 18, height: 18, borderRadius: 4, border: `2px solid ${isActive ? color : "#d1d5db"}`, background: isActive ? color : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all .15s ease" }}>
-                    {isActive && <span style={{ color: "#fff", fontSize: 12, lineHeight: 1 }}>✓</span>}
-                  </span>
-                  {method}
-                </button>
-              );
-            })}
-          </div>
-
-          {form.payments.map(pay => (
-            <div key={pay.method} style={{ display: "flex", gap: 8, marginBottom: 8, alignItems: "flex-end", flexWrap: isMobile ? "wrap" : "nowrap", background: "#fff", padding: "10px 12px", borderRadius: 8, border: "1px solid #e2e4e9" }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: "#1a1a2e", minWidth: isMobile ? "100%" : 130, marginBottom: isMobile ? 4 : 0 }}>{pay.method}</span>
-              {pay.method === "Mercado Pago" && <div style={{ flex: isMobile ? "1 100%" : 1 }}><Select label="" options={MP_ACCOUNTS} value={pay.account} onChange={e => updatePayment(pay.method, "account", e.target.value)} /></div>}
-              <div style={{ flex: 1 }}>
-                <Input label="" type="number" value={pay.amount} onChange={e => updatePayment(pay.method, "amount", e.target.value)}
-                  placeholder={amountToPay > 0 ? formatMoney(Math.max(0, amountToPay - form.payments.filter(p => p.method !== pay.method).reduce((s, p) => s + (Number(p.amount) || 0), 0)), form.currency) : "0"} />
-              </div>
-              <button onClick={() => togglePaymentMethod(pay.method)} style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontSize: 16 }}>✕</button>
-            </div>
-          ))}
-
-          {form.payments.length === 0 && finalTotal > 0 && <span style={{ color: "#e74c3c", fontSize: 12 }}>Selecciona al menos un metodo de pago</span>}
-
-          {form.payments.length === 1 && !form.payments[0].amount && amountToPay > 0 && (
-            <button onClick={() => updatePayment(form.payments[0].method, "amount", amountToPay)}
-              style={{ marginTop: 6, background: "#6366f111", border: "1px solid #6366f133", color: "#6366f1", padding: "6px 14px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, width: "100%" }}>
-              Completar con {formatMoney(amountToPay, form.currency)}
-            </button>
-          )}
-
-          {form.payments.length > 0 && totalPaid > 0 && (
-            <div style={{ marginTop: 10, padding: "8px 12px", background: "#fff", borderRadius: 8, border: "1px solid #e2e4e9" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                <span style={{ color: "#6b7280" }}>Total pagado</span>
-                <span style={{ fontWeight: 700, color: totalPaid >= amountToPay ? "#00b894" : "#e74c3c" }}>{formatMoney(totalPaid, form.currency)}</span>
-              </div>
-              {Math.abs(paymentDiff) > 0.5 && finalTotal > 0 && (
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginTop: 4 }}>
-                  <span style={{ color: paymentDiff > 0 ? "#f59e0b" : "#e74c3c" }}>{paymentDiff > 0 ? "Sobra (vuelto)" : "Falta"}</span>
-                  <span style={{ fontWeight: 700, color: paymentDiff > 0 ? "#f59e0b" : "#e74c3c" }}>{formatMoney(Math.abs(paymentDiff), form.currency)}</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ===== VUELTO / CAMBIO ===== */}
-          {Math.abs(paymentDiff) > 0.5 && finalTotal > 0 && (
-            <div style={{ marginTop: 12, background: paymentDiff > 0 ? "#fffbeb" : "#fef2f2", borderRadius: 12, padding: 16, border: `1.5px solid ${paymentDiff > 0 ? "#f59e0b44" : "#e74c3c33"}` }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                <label style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, color: paymentDiff > 0 ? "#f59e0b" : "#e74c3c" }}>
-                  {paymentDiff > 0 ? "🔄 Vuelto / Cambio" : "⚠️ Monto Faltante"}
-                </label>
-                <span style={{ fontSize: 17, fontWeight: 800, color: paymentDiff > 0 ? "#f59e0b" : "#e74c3c", background: paymentDiff > 0 ? "#f59e0b15" : "#e74c3c15", padding: "4px 12px", borderRadius: 8 }}>
-                  {formatMoney(Math.abs(paymentDiff), form.currency)}
-                </span>
-              </div>
-
-              {paymentDiff > 0 && (
-                <>
-                  <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 12 }}>El cliente pago de mas. Elegi como manejar el vuelto:</div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    {/* Cash change */}
-                    <button onClick={() => setForm(f => ({ ...f, balanceAction: "cash_change", balanceChangeAccount: "" }))}
-                      style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, cursor: "pointer", border: `2px solid ${form.balanceAction === "cash_change" ? "#f59e0b" : "#e2e4e9"}`, background: form.balanceAction === "cash_change" ? "#f59e0b12" : "#fff", textAlign: "left", transition: "all .15s ease" }}>
-                      <span style={{ width: 22, height: 22, borderRadius: "50%", border: `2px solid ${form.balanceAction === "cash_change" ? "#f59e0b" : "#d1d5db"}`, background: form.balanceAction === "cash_change" ? "#f59e0b" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all .15s ease" }}>
-                        {form.balanceAction === "cash_change" && <span style={{ color: "#fff", fontSize: 12 }}>✓</span>}
-                      </span>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: "#1a1a2e" }}>Dar vuelto en efectivo</div>
-                        <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>Se restan {formatMoney(paymentDiff, form.currency)} de tu Caja de Pesos</div>
-                      </div>
-                      <span style={{ fontSize: 20 }}>💵</span>
-                    </button>
-
-                    {/* Transfer change */}
-                    <button onClick={() => setForm(f => ({ ...f, balanceAction: "transfer_change" }))}
-                      style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, cursor: "pointer", border: `2px solid ${form.balanceAction === "transfer_change" ? "#f59e0b" : "#e2e4e9"}`, background: form.balanceAction === "transfer_change" ? "#f59e0b12" : "#fff", textAlign: "left", transition: "all .15s ease" }}>
-                      <span style={{ width: 22, height: 22, borderRadius: "50%", border: `2px solid ${form.balanceAction === "transfer_change" ? "#f59e0b" : "#d1d5db"}`, background: form.balanceAction === "transfer_change" ? "#f59e0b" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all .15s ease" }}>
-                        {form.balanceAction === "transfer_change" && <span style={{ color: "#fff", fontSize: 12 }}>✓</span>}
-                      </span>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: "#1a1a2e" }}>Transferir vuelto al cliente</div>
-                        <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>Se descuentan {formatMoney(paymentDiff, form.currency)} de la cuenta que elijas</div>
-                      </div>
-                      <span style={{ fontSize: 20 }}>📱</span>
-                    </button>
-                    {form.balanceAction === "transfer_change" && (
-                      <div style={{ marginLeft: 36 }}>
-                        <Select label="Cuenta de salida" options={[...MP_ACCOUNTS, "Lemon"]} value={form.balanceChangeAccount} onChange={e => setForm(f => ({ ...f, balanceChangeAccount: e.target.value }))} />
-                      </div>
-                    )}
-
-                    {/* Credit to client - only with client */}
-                    {form.clientId && (
-                      <button onClick={() => setForm(f => ({ ...f, balanceAction: "credit", balanceChangeAccount: "" }))}
-                        style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, cursor: "pointer", border: `2px solid ${form.balanceAction === "credit" ? "#00b894" : "#e2e4e9"}`, background: form.balanceAction === "credit" ? "#00b89412" : "#fff", textAlign: "left", transition: "all .15s ease" }}>
-                        <span style={{ width: 22, height: 22, borderRadius: "50%", border: `2px solid ${form.balanceAction === "credit" ? "#00b894" : "#d1d5db"}`, background: form.balanceAction === "credit" ? "#00b894" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all .15s ease" }}>
-                          {form.balanceAction === "credit" && <span style={{ color: "#fff", fontSize: 12 }}>✓</span>}
-                        </span>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: "#1a1a2e" }}>Dejar como credito a favor</div>
-                          <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>Se acreditan {formatMoney(paymentDiff, form.currency)} al saldo de {(clients || []).find(c => c.id === form.clientId)?.name || "cliente"}. Se aplica automaticamente en su proxima compra.</div>
-                        </div>
-                        <span style={{ fontSize: 20 }}>⭐</span>
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Confirmation */}
-                  {form.balanceAction && form.balanceAction !== "none" && (
-                    <div style={{ marginTop: 12, padding: "10px 14px", background: "#fff", borderRadius: 8, border: "1px solid #e2e4e9", display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ color: "#00b894", fontSize: 15, flexShrink: 0 }}>✓</span>
-                      <span style={{ fontSize: 12, color: "#4b5563" }}>
-                        {form.balanceAction === "cash_change" && `Al guardar se registra un egreso de ${formatMoney(paymentDiff, form.currency)} en Caja Pesos.`}
-                        {form.balanceAction === "transfer_change" && form.balanceChangeAccount && `Al guardar se registra un egreso de ${formatMoney(paymentDiff, form.currency)} en ${form.balanceChangeAccount}.`}
-                        {form.balanceAction === "transfer_change" && !form.balanceChangeAccount && "Selecciona la cuenta de salida para continuar."}
-                        {form.balanceAction === "credit" && `Al guardar, ${(clients || []).find(c => c.id === form.clientId)?.name || "el cliente"} tendra ${formatMoney(paymentDiff + (selectedClientBalance > 0 ? selectedClientBalance : 0), form.currency)} de saldo a favor.`}
-                      </span>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {paymentDiff < -0.5 && (
-                <>
-                  <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 12 }}>
-                    {form.clientId ? "El pago no cubre el total. Podes registrar la diferencia como deuda:" : "El pago no cubre el total. Completa el monto o asocia un cliente para registrar deuda."}
-                  </div>
-                  {form.clientId && (
-                    <button onClick={() => setForm(f => ({ ...f, balanceAction: f.balanceAction === "debt" ? "none" : "debt" }))}
-                      style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, cursor: "pointer", border: `2px solid ${form.balanceAction === "debt" ? "#e74c3c" : "#e2e4e9"}`, background: form.balanceAction === "debt" ? "#e74c3c12" : "#fff", textAlign: "left", width: "100%", transition: "all .15s ease" }}>
-                      <span style={{ width: 22, height: 22, borderRadius: "50%", border: `2px solid ${form.balanceAction === "debt" ? "#e74c3c" : "#d1d5db"}`, background: form.balanceAction === "debt" ? "#e74c3c" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all .15s ease" }}>
-                        {form.balanceAction === "debt" && <span style={{ color: "#fff", fontSize: 12 }}>✓</span>}
-                      </span>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: "#1a1a2e" }}>Registrar como deuda del cliente</div>
-                        <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>{(clients || []).find(c => c.id === form.clientId)?.name || "El cliente"} queda debiendo {formatMoney(Math.abs(paymentDiff), form.currency)}. Se muestra automaticamente en su proxima compra.</div>
-                      </div>
-                      <span style={{ fontSize: 20 }}>📋</span>
-                    </button>
-                  )}
-                  {form.clientId && form.balanceAction === "debt" && (
-                    <div style={{ marginTop: 12, padding: "10px 14px", background: "#fff", borderRadius: 8, border: "1px solid #e2e4e9", display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ color: "#e74c3c", fontSize: 15, flexShrink: 0 }}>⚠</span>
-                      <span style={{ fontSize: 12, color: "#4b5563" }}>Al guardar, {(clients || []).find(c => c.id === form.clientId)?.name || "el cliente"} tendra una deuda de {formatMoney(Math.abs(paymentDiff) + (selectedClientBalance < 0 ? Math.abs(selectedClientBalance) : 0), form.currency)}.</span>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          )}
         </div>
 
         <Input label="Notas" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Opcional..." />
 
-        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 16, flexWrap: isMobile ? "wrap" : "nowrap" }}>
-          <Btn variant="secondary" onClick={() => { setModal(false); setEditing(null); }} style={{ flex: isMobile ? "1" : "auto" }}>Cancelar</Btn>
-          <Btn variant="success" onClick={save} style={{ flex: isMobile ? "1" : "auto" }}>{editing ? "Guardar Cambios" : "Registrar Venta"}</Btn>
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 16 }}>
+          <Btn variant="secondary" onClick={() => { setModal(false); setEditing(null); }}>Cancelar</Btn>
+          <Btn variant="success" onClick={save}>{editing ? "Guardar Cambios" : "Registrar Venta"}</Btn>
         </div>
       </Modal>
     </div>

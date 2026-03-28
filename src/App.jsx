@@ -19,40 +19,14 @@ const MonthlyClosures = lazy(() => import("./components/Closures.jsx").then(m =>
 const ExportData = lazy(() => import("./components/Export.jsx").then(m => ({ default: m.ExportData })));
 const PriceLog = lazy(() => import("./components/PriceLog.jsx").then(m => ({ default: m.PriceLog })));
 const StockLog = lazy(() => import("./components/StockLog.jsx").then(m => ({ default: m.StockLog })));
-const ExchangeMonitor = lazy(() => import("./components/ExchangeMonitor.jsx").then(m => ({ default: m.ExchangeMonitor })));
+const AuditLog = lazy(() => import("./components/AuditLog.jsx").then(m => ({ default: m.AuditLog })));
+const Trash = lazy(() => import("./components/Trash.jsx").then(m => ({ default: m.Trash })));
 
 const LoadingSpinner = () => (
   <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: 60 }}>
     <span style={{ color: "#6366f1", fontSize: 15, fontWeight: 500 }}>Cargando...</span>
   </div>
 );
-
-// ============================================
-// RESPONSIVE HOOK
-// ============================================
-export const useResponsive = () => {
-  const [dimensions, setDimensions] = useState({
-    isMobile: typeof window !== "undefined" ? window.innerWidth < 768 : false,
-    isTablet: typeof window !== "undefined" ? window.innerWidth >= 768 && window.innerWidth <= 1024 : false,
-    isDesktop: typeof window !== "undefined" ? window.innerWidth > 1024 : true,
-  });
-
-  useEffect(() => {
-    const handleResize = () => {
-      const width = window.innerWidth;
-      setDimensions({
-        isMobile: width < 768,
-        isTablet: width >= 768 && width <= 1024,
-        isDesktop: width > 1024,
-      });
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  return dimensions;
-};
 
 // ============================================
 // MAIN APP
@@ -73,12 +47,11 @@ const NAV_ITEMS = [
   { key: "closures", label: "Cierres", icon: "📅" },
   { key: "export", label: "Exportar", icon: "📥" },
   { key: "reports", label: "Reportes", icon: "📈" },
-  { key: "exchange", label: "Cotizaciones", icon: "💱" },
+  { key: "audit", label: "Auditoría", icon: "🔍" },
+  { key: "trash", label: "Papelera", icon: "🗑️" },
 ];
 
 export default function App() {
-  const { isMobile, isTablet, isDesktop } = useResponsive();
-
   const USERS = [
     { name: "Diego", password: "Poncharelo20!", color: "#6366f1", icon: "💜" },
     { name: "Gustavo", password: "Gus2026!", color: "#10b981", icon: "💙" },
@@ -111,6 +84,7 @@ export default function App() {
   const [monthlyClosures, setMonthlyClosures] = useState(() => loadData("monthlyClosures", []));
   const [partnerWithdrawals, setPartnerWithdrawals] = useState(() => loadData("partnerWithdrawals", []));
   const [exchangeRate, setExchangeRate] = useState(() => loadData("exchangeRate", 1415));
+  const [auditLog, setAuditLog] = useState(() => loadData("auditLog", []));
   const [rateAutoLoaded, setRateAutoLoaded] = useState(false);
 
   // Auto-fetch dolar blue venta from dolarapi.com
@@ -120,16 +94,7 @@ export default function App() {
         const res = await fetch("https://dolarapi.com/v1/dolares/blue");
         const data = await res.json();
         if (data && data.venta) {
-          const newRate = data.venta;
-          setExchangeRate(prev => {
-            if (prev !== newRate) {
-              // Save directly to Firestore to avoid smartSave race condition
-              // (Firestore subscription can overwrite API value before smartSave runs)
-              fromFirestore.current["exchangeRate"] = true; // prevent echo back
-              saveToFirestore("exchangeRate", newRate);
-            }
-            return newRate;
-          });
+          setExchangeRate(data.venta);
           setRateAutoLoaded(true);
         }
       } catch (e) {
@@ -166,6 +131,7 @@ export default function App() {
       { key: "priceLog", setter: setPriceLog },
       { key: "monthlyClosures", setter: setMonthlyClosures },
       { key: "partnerWithdrawals", setter: setPartnerWithdrawals },
+      { key: "auditLog", setter: setAuditLog },
     ];
 
     const unsubscribers = keys.map(({ key, setter }) => {
@@ -211,14 +177,13 @@ export default function App() {
   // Save to localStorage + Firestore when state changes locally
   const smartSave = useCallback((key, data) => {
     try { localStorage.setItem(`vapestock_${key}`, JSON.stringify(data)); } catch {}
-    // CRITICAL: Always clear fromFirestore flag FIRST, regardless of firestoreReady
-    // This prevents the flag from getting "stuck" during the initial 2s wait period
+    // NEVER write to Firestore if initial load hasn't completed
+    if (!firestoreReady.current) return;
+    // Don't write back data that came FROM Firestore
     if (fromFirestore.current[key]) {
       fromFirestore.current[key] = false;
       return;
     }
-    // NEVER write to Firestore if initial load hasn't completed
-    if (!firestoreReady.current) return;
     saveToFirestore(key, data);
   }, []);
 
@@ -233,6 +198,7 @@ export default function App() {
   useEffect(() => smartSave("priceLog", priceLog), [priceLog]);
   useEffect(() => smartSave("monthlyClosures", monthlyClosures), [monthlyClosures]);
   useEffect(() => smartSave("partnerWithdrawals", partnerWithdrawals), [partnerWithdrawals]);
+  useEffect(() => smartSave("auditLog", auditLog), [auditLog]);
   useEffect(() => smartSave("exchangeRate", exchangeRate), [exchangeRate]);
 
   // Stock log helper
@@ -244,32 +210,42 @@ export default function App() {
     setStockLog(prev => [...logs, ...prev]);
   }, []);
 
+  // Audit log helper
+  const logAudit = useCallback((action, entityType, entityId, description, details = {}) => {
+    setAuditLog(prev => [{
+      id: uid(), timestamp: new Date().toISOString(),
+      user: currentUser?.name || "Sistema",
+      action, entityType, entityId, description,
+      details
+    }, ...prev].slice(0, 2000)); // Keep last 2000 entries
+  }, [currentUser]);
+
   // Global search
   const globalResults = useMemo(() => {
     if (!globalSearch || globalSearch.length < 2) return [];
     const q = globalSearch.toLowerCase();
     const results = [];
-
-    // Search products
-    products.filter(p => `${p.brand} ${p.model} ${p.flavor}`.toLowerCase().includes(q)).slice(0, 5)
+    
+    // Search products (excluding deleted)
+    products.filter(p => !p.isDeleted && `${p.brand} ${p.model} ${p.flavor}`.toLowerCase().includes(q)).slice(0, 5)
       .forEach(p => results.push({ type: "product", icon: "📦", label: `${p.brand} ${p.model} - ${p.flavor}`, sub: `Stock: ${p.stock} · ${p.puffs}p`, page: "products" }));
 
-    // Search sales
-    sales.filter(s => {
+    // Search sales (excluding deleted)
+    sales.filter(s => !s.isDeleted).filter(s => {
       const items = (s.items || []).map(i => { const p = products.find(pr => pr.id === i.productId); return p ? `${p.brand} ${p.model} ${p.flavor}` : ""; }).join(" ");
       return items.toLowerCase().includes(q) || (s.clientName || "").toLowerCase().includes(q);
     }).slice(0, 5).forEach(s => results.push({ type: "sale", icon: "🛒", label: `Venta ${s.clientName || ""}`, sub: `${formatDate(s.date)} · ${formatMoney(s.total, s.currency)}`, page: "sales" }));
-
+    
     // Search clients
     (clients || []).filter(c => `${c.name} ${c.phone} ${c.instagram}`.toLowerCase().includes(q)).slice(0, 3)
       .forEach(c => results.push({ type: "client", icon: "👥", label: c.name, sub: c.phone || c.instagram || "", page: "clients" }));
-
-    // Search purchases
-    purchases.filter(p => (p.supplier || "").toLowerCase().includes(q)).slice(0, 3)
+    
+    // Search purchases (excluding deleted)
+    purchases.filter(p => !p.isDeleted && (p.supplier || "").toLowerCase().includes(q)).slice(0, 3)
       .forEach(p => results.push({ type: "purchase", icon: "🚚", label: `Pedido - ${p.supplier}`, sub: `${formatDate(p.date)} · ${p.status}`, page: "purchases" }));
 
-    // Search expenses
-    expenses.filter(e => `${e.category} ${e.description}`.toLowerCase().includes(q)).slice(0, 3)
+    // Search expenses (excluding deleted)
+    expenses.filter(e => !e.isDeleted && `${e.category} ${e.description}`.toLowerCase().includes(q)).slice(0, 3)
       .forEach(e => results.push({ type: "expense", icon: "💸", label: `${e.category}`, sub: `${formatDate(e.date)} · ${formatMoney(e.amountARS)}`, page: "expenses" }));
 
     return results;
@@ -299,43 +275,13 @@ export default function App() {
     try { sessionStorage.removeItem("vapestock_user"); } catch {}
   };
 
-  // Force sync all local data to Firestore (emergency repair)
-  const forceSync = async () => {
-    if (!window.confirm("¿Forzar sincronización de todos los datos locales a Firestore? Esto sobreescribirá los datos en la nube con los datos de este dispositivo.")) return;
-    setSyncStatus("syncing");
-    const allData = [
-      { key: "products", data: products },
-      { key: "sales", data: sales },
-      { key: "purchases", data: purchases },
-      { key: "clients", data: clients },
-      { key: "expenses", data: expenses },
-      { key: "withdrawals", data: withdrawals },
-      { key: "cashMovements", data: cashMovements },
-      { key: "stockLog", data: stockLog },
-      { key: "priceLog", data: priceLog },
-      { key: "monthlyClosures", data: monthlyClosures },
-      { key: "partnerWithdrawals", data: partnerWithdrawals },
-      { key: "exchangeRate", data: exchangeRate },
-    ];
-    let ok = 0;
-    for (const { key, data } of allData) {
-      try {
-        fromFirestore.current[key] = true; // prevent echo-back
-        await saveToFirestore(key, data);
-        ok++;
-      } catch (e) { console.error(`Force sync failed for ${key}:`, e); }
-    }
-    setSyncStatus("online");
-    alert(`Sincronización completa: ${ok}/${allData.length} colecciones actualizadas en Firestore.`);
-  };
-
   // ---- LOGIN SCREEN (shown when no user is authenticated) ----
   if (!currentUser) {
     return (
       <div style={{ minHeight: "100vh", background: "#e5e7eb", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Inter', 'Segoe UI', -apple-system, sans-serif" }}>
-        <div style={{ background: "#fff", border: "1px solid #e2e4e9", borderRadius: 16, padding: isMobile ? "32px 24px" : "40px 32px", width: "100%", maxWidth: 360, textAlign: "center", boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
+        <div style={{ background: "#fff", border: "1px solid #e2e4e9", borderRadius: 16, padding: "40px 32px", width: "100%", maxWidth: 360, textAlign: "center", boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
           <span style={{ fontSize: 48 }}>💨</span>
-          <h1 style={{ fontSize: isMobile ? 18 : 22, fontWeight: 800, color: "#1a1a2e", margin: "12px 0 6px" }}>IMPORTS ZONA NORTE</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: "#1a1a2e", margin: "12px 0 6px" }}>IMPORTS ZONA NORTE</h1>
           <p style={{ color: "#9ca3af", fontSize: 13, marginBottom: 24 }}>Sistema de Gestión</p>
           <input
             type="password"
@@ -363,24 +309,33 @@ export default function App() {
     );
   }
 
+  // Filtered data (excluding soft-deleted items) for read-only components
+  const activeProducts = useMemo(() => products.filter(p => !p.isDeleted), [products]);
+  const activeSales = useMemo(() => sales.filter(s => !s.isDeleted), [sales]);
+  const activePurchases = useMemo(() => purchases.filter(p => !p.isDeleted), [purchases]);
+  const activeExpenses = useMemo(() => expenses.filter(e => !e.isDeleted), [expenses]);
+  const activeCashMovements = useMemo(() => cashMovements.filter(m => !m.isDeleted), [cashMovements]);
+  const activePartnerWithdrawals = useMemo(() => partnerWithdrawals.filter(w => !w.isDeleted), [partnerWithdrawals]);
+
   const renderPage = () => {
     switch (page) {
-      case "dashboard": return <Dashboard products={products} sales={sales} purchases={purchases} expenses={expenses} withdrawals={withdrawals} exchangeRate={exchangeRate} clients={clients} cashMovements={cashMovements} />;
-      case "products": return <Products products={products} setProducts={setProducts} exchangeRate={exchangeRate} logStock={logStock} logPrice={logPrice} currentUser={currentUser} />;
-      case "sales": return <Sales sales={sales} setSales={setSales} products={products} setProducts={setProducts} clients={clients} setClients={setClients} cashMovements={cashMovements} setCashMovements={setCashMovements} logStock={logStock} exchangeRate={exchangeRate} currentUser={currentUser} />;
-      case "purchases": return <Purchases purchases={purchases} setPurchases={setPurchases} products={products} setProducts={setProducts} exchangeRate={exchangeRate} logStock={logStock} currentUser={currentUser} />;
-      case "clients": return <Clients clients={clients} setClients={setClients} sales={sales} products={products} />;
-      case "expenses": return <Expenses expenses={expenses} setExpenses={setExpenses} currentUser={currentUser} exchangeRate={exchangeRate} />;
-      case "withdrawals": return <Withdrawals withdrawals={withdrawals} setWithdrawals={setWithdrawals} products={products} setProducts={setProducts} logStock={logStock} currentUser={currentUser} />;
-      case "cash": return <CashBox sales={sales} purchases={purchases} expenses={expenses} withdrawals={withdrawals} cashMovements={cashMovements} setCashMovements={setCashMovements} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} currentUser={currentUser} />;
-      case "whatsapp": return <WhatsAppMessage products={products} exchangeRate={exchangeRate} />;
-      case "stocklog": return <StockLog stockLog={stockLog} setStockLog={setStockLog} products={products} />;
-      case "pricelog": return <PriceLog priceLog={priceLog} products={products} setProducts={setProducts} logPrice={logPrice} exchangeRate={exchangeRate} />;
-      case "partners": return <Partners partnerWithdrawals={partnerWithdrawals} setPartnerWithdrawals={setPartnerWithdrawals} sales={sales} purchases={purchases} expenses={expenses} withdrawals={withdrawals} exchangeRate={exchangeRate} currentUser={currentUser} />;
-      case "closures": return <MonthlyClosures monthlyClosures={monthlyClosures} setMonthlyClosures={setMonthlyClosures} sales={sales} purchases={purchases} expenses={expenses} withdrawals={withdrawals} products={products} exchangeRate={exchangeRate} />;
-      case "export": return <ExportData products={products} sales={sales} purchases={purchases} expenses={expenses} withdrawals={withdrawals} cashMovements={cashMovements} stockLog={stockLog} priceLog={priceLog} clients={clients} partnerWithdrawals={partnerWithdrawals} monthlyClosures={monthlyClosures} exchangeRate={exchangeRate} />;
-      case "reports": return <Reports products={products} sales={sales} purchases={purchases} expenses={expenses} withdrawals={withdrawals} exchangeRate={exchangeRate} />;
-      case "exchange": return <ExchangeMonitor exchangeRate={exchangeRate} />;
+      case "dashboard": return <Dashboard products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={withdrawals} exchangeRate={exchangeRate} />;
+      case "products": return <Products products={products} setProducts={setProducts} exchangeRate={exchangeRate} logStock={logStock} logPrice={logPrice} currentUser={currentUser} logAudit={logAudit} />;
+      case "sales": return <Sales sales={sales} setSales={setSales} products={products} setProducts={setProducts} logStock={logStock} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} />;
+      case "purchases": return <Purchases purchases={purchases} setPurchases={setPurchases} products={products} setProducts={setProducts} exchangeRate={exchangeRate} logStock={logStock} currentUser={currentUser} logAudit={logAudit} />;
+      case "clients": return <Clients clients={clients} setClients={setClients} sales={activeSales} products={activeProducts} />;
+      case "expenses": return <Expenses expenses={expenses} setExpenses={setExpenses} currentUser={currentUser} exchangeRate={exchangeRate} logAudit={logAudit} />;
+      case "withdrawals": return <Withdrawals withdrawals={withdrawals} setWithdrawals={setWithdrawals} products={products} setProducts={setProducts} logStock={logStock} currentUser={currentUser} logAudit={logAudit} />;
+      case "cash": return <CashBox sales={sales} purchases={purchases} expenses={expenses} withdrawals={withdrawals} cashMovements={cashMovements} setCashMovements={setCashMovements} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} currentUser={currentUser} logAudit={logAudit} />;
+      case "whatsapp": return <WhatsAppMessage products={activeProducts} exchangeRate={exchangeRate} />;
+      case "stocklog": return <StockLog stockLog={stockLog} setStockLog={setStockLog} products={activeProducts} />;
+      case "pricelog": return <PriceLog priceLog={priceLog} products={activeProducts} setProducts={setProducts} logPrice={logPrice} exchangeRate={exchangeRate} />;
+      case "partners": return <Partners partnerWithdrawals={partnerWithdrawals} setPartnerWithdrawals={setPartnerWithdrawals} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={withdrawals} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} />;
+      case "closures": return <MonthlyClosures monthlyClosures={monthlyClosures} setMonthlyClosures={setMonthlyClosures} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={withdrawals} products={activeProducts} exchangeRate={exchangeRate} logAudit={logAudit} />;
+      case "export": return <ExportData products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={withdrawals} cashMovements={activeCashMovements} stockLog={stockLog} exchangeRate={exchangeRate} />;
+      case "reports": return <Reports products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={withdrawals} exchangeRate={exchangeRate} />;
+      case "audit": return <AuditLog auditLog={auditLog} products={products} />;
+      case "trash": return <Trash products={products} setProducts={setProducts} sales={sales} setSales={setSales} purchases={purchases} setPurchases={setPurchases} expenses={expenses} setExpenses={setExpenses} cashMovements={cashMovements} setCashMovements={setCashMovements} partnerWithdrawals={partnerWithdrawals} setPartnerWithdrawals={setPartnerWithdrawals} logAudit={logAudit} currentUser={currentUser} />;
       default: return null;
     }
   };
@@ -392,23 +347,23 @@ export default function App() {
     }}>
       {/* Top bar */}
       <div style={{
-        background: "#fff", borderBottom: "1px solid #e2e4e9", padding: isMobile ? "8px 12px" : "10px 20px",
+        background: "#fff", borderBottom: "1px solid #e2e4e9", padding: "10px 20px",
         display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 100,
         boxShadow: "0 1px 3px rgba(0,0,0,0.04)"
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button onClick={() => setMenuOpen(!menuOpen)} style={{
-            background: "none", border: "none", color: "#6366f1", fontSize: 20, cursor: "pointer",
-            display: isMobile ? "block" : "none"
+            background: "none", border: "none", color: "#6366f1", fontSize: 22, cursor: "pointer",
+            display: "none", ...(window.innerWidth < 768 ? { display: "block" } : {})
           }}>☰</button>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 20 }}>💨</span>
-            <span style={{ fontSize: isMobile ? 13 : 16, fontWeight: 800, color: "#1a1a2e", letterSpacing: "-0.3px", display: isMobile ? "none" : "block" }}>IMPORTS ZONA NORTE</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 22 }}>💨</span>
+            <span style={{ fontSize: 18, fontWeight: 800, color: "#1a1a2e", letterSpacing: "-0.3px" }}>IMPORTS ZONA NORTE</span>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 6 : 12, flexWrap: "wrap", justifyContent: "flex-end" }}>
-          {/* Global Search - hidden on mobile */}
-          <div style={{ position: "relative", display: isMobile ? "none" : "block" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {/* Global Search */}
+          <div style={{ position: "relative" }}>
             <input value={globalSearch} onChange={e => { setGlobalSearch(e.target.value); setShowGlobalResults(true); }}
               onFocus={() => setShowGlobalResults(true)}
               placeholder="Buscar..."
@@ -443,51 +398,40 @@ export default function App() {
               }}>Sin resultados</div>
             )}
           </div>
-          {/* Sync status badge — click to force sync */}
-          <div onClick={forceSync} title="Click para forzar sincronización" style={{
-            display: "flex", alignItems: "center", gap: 5, fontSize: isMobile ? 10 : 11, fontWeight: 600,
-            padding: isMobile ? "3px 8px" : "4px 10px", borderRadius: 20, cursor: "pointer",
+          {/* Sync status badge - clear Online/Offline text */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600,
+            padding: "4px 10px", borderRadius: 20,
             background: syncStatus === "online" ? "#ecfdf5" : syncStatus === "offline" ? "#fef2f2" : "#fffbeb",
             color: syncStatus === "online" ? "#059669" : syncStatus === "offline" ? "#dc2626" : "#d97706",
             border: `1px solid ${syncStatus === "online" ? "#a7f3d0" : syncStatus === "offline" ? "#fecaca" : "#fde68a"}`
           }}>
-            <span style={{ width: 5, height: 5, borderRadius: "50%", background: syncStatus === "online" ? "#059669" : syncStatus === "offline" ? "#dc2626" : "#d97706", display: "inline-block" }} />
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: syncStatus === "online" ? "#059669" : syncStatus === "offline" ? "#dc2626" : "#d97706", display: "inline-block" }} />
             {syncStatus === "online" && "Online"}
             {syncStatus === "offline" && "Offline"}
             {syncStatus === "syncing" && "Sync..."}
           </div>
-          {/* Dolar Blue */}
-          <div style={{ fontSize: isMobile ? 11 : 13, color: "#6b7280", fontWeight: 500, whiteSpace: "nowrap" }}>
+          {/* Dolar Blue - clean, no confusing dot */}
+          <div style={{ fontSize: 13, color: "#6b7280", fontWeight: 500 }}>
             Blue: <span style={{ color: "#1a1a2e", fontWeight: 700 }}>${exchangeRate}</span>
           </div>
           {/* User badge */}
-          <div style={{ display: "flex", alignItems: "center", gap: 5, background: "#f7f8fa", border: "1px solid #e2e4e9", borderRadius: 8, padding: isMobile ? "4px 8px" : "5px 12px" }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: currentUser.color, display: "inline-block" }} />
-            <span style={{ color: "#1a1a2e", fontSize: isMobile ? 11 : 13, fontWeight: 600 }}>{currentUser.name}</span>
-            <button onClick={handleLogout} style={{ background: "none", border: "none", color: "#9ca3af", cursor: "pointer", fontSize: 11, marginLeft: 2 }} title="Cerrar sesión">✕</button>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#f7f8fa", border: "1px solid #e2e4e9", borderRadius: 8, padding: "5px 12px" }}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: currentUser.color, display: "inline-block" }} />
+            <span style={{ color: "#1a1a2e", fontSize: 13, fontWeight: 600 }}>{currentUser.name}</span>
+            <button onClick={handleLogout} style={{ background: "none", border: "none", color: "#9ca3af", cursor: "pointer", fontSize: 12, marginLeft: 4 }} title="Cerrar sesión">✕</button>
           </div>
         </div>
       </div>
 
       <div style={{ display: "flex" }}>
-        {/* Sidebar backdrop overlay on mobile */}
-        {isMobile && menuOpen && (
-          <div
-            style={{
-              position: "fixed", top: isMobile ? 52 : 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.3)",
-              zIndex: 98, cursor: "pointer"
-            }}
-            onClick={() => setMenuOpen(false)}
-          />
-        )}
-
         {/* Sidebar */}
         <nav style={{
-          width: 220, minHeight: `calc(100vh - ${isMobile ? 44 : 52}px)`, background: "#fff", borderRight: "1px solid #e2e4e9",
+          width: 220, minHeight: "calc(100vh - 52px)", background: "#fff", borderRight: "1px solid #e2e4e9",
           padding: "12px 0", flexShrink: 0,
-          ...(isMobile ? {
+          ...(window.innerWidth < 768 ? {
             position: "fixed", top: 52, left: menuOpen ? 0 : -240, zIndex: 99,
-            transition: "left 0.3s", boxShadow: menuOpen ? "4px 0 20px rgba(0,0,0,0.08)" : "none", width: 220
+            transition: "left 0.3s", boxShadow: menuOpen ? "4px 0 20px rgba(0,0,0,0.08)" : "none"
           } : {})
         }}>
           {NAV_ITEMS.map(item => (
@@ -506,9 +450,9 @@ export default function App() {
         </nav>
 
         {/* Content */}
-        <main style={{ flex: 1, padding: isMobile ? "14px" : "24px", maxWidth: isMobile ? "none" : 1100 }} onClick={() => setShowGlobalResults(false)}>
+        <main style={{ flex: 1, padding: "24px", maxWidth: 1100 }} onClick={() => setShowGlobalResults(false)}>
           {syncStatus === "offline" && (
-            <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: isMobile ? "8px 12px" : "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8, fontSize: isMobile ? 12 : 13, color: "#dc2626" }}>
+            <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#dc2626" }}>
               <span>⚠️</span>
               <span>Sin conexión a Firebase. Estás viendo datos de caché. Los cambios que hagas <b>no se guardarán</b> hasta que se restablezca la conexión.</span>
             </div>

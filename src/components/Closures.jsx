@@ -3,7 +3,7 @@ import { uid, formatMoney, formatDate } from "../helpers.js";
 import { Card, Btn, Badge, StatCard } from "./UI.jsx";
 
 // -- MONTHLY CLOSURES --
-export const MonthlyClosures = ({ monthlyClosures, setMonthlyClosures, sales, purchases, expenses, withdrawals, products, exchangeRate }) => {
+export const MonthlyClosures = ({ monthlyClosures, setMonthlyClosures, sales, purchases, expenses, withdrawals, products, exchangeRate, logAudit }) => {
   const [showConfirm, setShowConfirm] = useState(false);
 
   const now = new Date();
@@ -57,8 +57,13 @@ export const MonthlyClosures = ({ monthlyClosures, setMonthlyClosures, sales, pu
     setShowConfirm(false);
   };
 
+  const [confirmDelClosure, setConfirmDelClosure] = useState(null);
   const deleteClosure = (id) => {
-    setMonthlyClosures(prev => prev.filter(c => c.id !== id));
+    if (confirmDelClosure !== id) { setConfirmDelClosure(id); setTimeout(() => setConfirmDelClosure(null), 3000); return; }
+    const c = monthlyClosures.find(x => x.id === id);
+    setMonthlyClosures(prev => prev.filter(x => x.id !== id));
+    if (logAudit && c) logAudit("delete", "closure", id, `Eliminó cierre: ${c.label || c.month}`);
+    setConfirmDelClosure(null);
   };
 
   // Preview current month

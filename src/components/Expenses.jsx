@@ -19,7 +19,7 @@ const CAT_COLORS = {
 };
 
 // -- EXPENSES MEJORADO --
-export const Expenses = ({ expenses, setExpenses, currentUser, exchangeRate }) => {
+export const Expenses = ({ expenses, setExpenses, currentUser, exchangeRate, logAudit }) => {
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [filter, setFilter] = useState("all"); // "all" | category name
@@ -61,8 +61,11 @@ export const Expenses = ({ expenses, setExpenses, currentUser, exchangeRate }) =
     };
     if (editing) {
       setExpenses(prev => prev.map(e => e.id === editing ? { ...data, id: editing } : e));
+      if (logAudit) logAudit("update", "expense", editing, `Editó gasto: ${form.category} - ${form.description || ""}`);
     } else {
-      setExpenses(prev => [{ ...data, id: uid() }, ...prev]);
+      const newId = uid();
+      setExpenses(prev => [{ ...data, id: newId }, ...prev]);
+      if (logAudit) logAudit("create", "expense", newId, `Creó gasto: ${form.category} - ${formatMoney(data.amountARS || data.amountUSD, form.currency)}`);
     }
     setModal(false);
     setEditing(null);
@@ -71,7 +74,9 @@ export const Expenses = ({ expenses, setExpenses, currentUser, exchangeRate }) =
   const [confirmDeleteExp, setConfirmDeleteExp] = useState(null);
   const deleteExpense = (id) => {
     if (confirmDeleteExp !== id) { setConfirmDeleteExp(id); setTimeout(() => setConfirmDeleteExp(null), 3000); return; }
-    setExpenses(prev => prev.filter(e => e.id !== id));
+    const exp = expenses.find(e => e.id === id);
+    setExpenses(prev => prev.map(e => e.id === id ? { ...e, isDeleted: true, deletedAt: new Date().toISOString(), deletedBy: currentUser?.name || "?" } : e));
+    if (logAudit && exp) logAudit("delete", "expense", id, `Eliminó gasto: ${exp.category} - ${exp.description || ""}`);
     setConfirmDeleteExp(null);
   };
 
@@ -80,15 +85,16 @@ export const Expenses = ({ expenses, setExpenses, currentUser, exchangeRate }) =
   const thisMonth = now.getMonth();
   const thisYear = now.getFullYear();
 
-  const monthExpenses = expenses.filter(e => {
+  const activeExpenses = expenses.filter(e => !e.isDeleted);
+  const monthExpenses = activeExpenses.filter(e => {
     const d = new Date(e.date);
     return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
   });
 
   const totalMonthARS = monthExpenses.reduce((s, e) => s + (e.amountARS || 0), 0);
   const totalMonthUSD = monthExpenses.reduce((s, e) => s + (e.amountUSD || 0), 0);
-  const totalAllARS = expenses.reduce((s, e) => s + (e.amountARS || 0), 0);
-  const totalAllUSD = expenses.reduce((s, e) => s + (e.amountUSD || 0), 0);
+  const totalAllARS = activeExpenses.reduce((s, e) => s + (e.amountARS || 0), 0);
+  const totalAllUSD = activeExpenses.reduce((s, e) => s + (e.amountUSD || 0), 0);
 
   // By category breakdown
   const byCategory = useMemo(() => {
@@ -108,10 +114,10 @@ export const Expenses = ({ expenses, setExpenses, currentUser, exchangeRate }) =
   }, [monthExpenses, exchangeRate]);
 
   // Filtered data
-  const filteredExpenses = filter === "all" ? expenses : expenses.filter(e => e.category === filter);
+  const filteredExpenses = filter === "all" ? activeExpenses : activeExpenses.filter(e => e.category === filter);
 
   // Unique categories used
-  const usedCategories = [...new Set(expenses.map(e => e.category).filter(Boolean))];
+  const usedCategories = [...new Set(activeExpenses.map(e => e.category).filter(Boolean))];
 
   return (
     <div>

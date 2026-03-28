@@ -1,223 +1,88 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { uid, formatMoney, formatDate } from "../helpers.js";
-import { Modal, Card, Btn, Input, Badge, StatCard } from "./UI.jsx";
+import { Modal, Card, Btn, Input, Select, Table, Badge, StatCard } from "./UI.jsx";
+import { WITHDRAW_PERSONS, WITHDRAW_TYPES } from "../constants.js";
 
 // -- CONSUMO PROPIO --
-const TYPES = ["Consumo propio", "Garantía / Devolución", "Regalo / Canje"];
-const TYPE_ICONS = { "Consumo propio": "\u{1F372}", "Garantía / Devolución": "\u{1F504}", "Regalo / Canje": "\u{1F381}" };
-const TYPE_COLORS = { "Consumo propio": "#6366f1", "Garantía / Devolución": "#f59e0b", "Regalo / Canje": "#10b981" };
+export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts, logStock, currentUser, logAudit }) => {
+  const [modal, setModal] = useState(false);
+  const [form, setForm] = useState({ productId: "", qty: 1, person: "", withdrawType: "Consumo propio", notes: "", date: new Date().toISOString().slice(0, 10) });
 
-export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts, logStock, currentUser }) => {
-  const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ product: "", qty: 1, type: TYPES[0], person: "", notes: "" });
-  const [filterType, setFilterType] = useState("all");
-  const [filterPerson, setFilterPerson] = useState("");
-  const [search, setSearch] = useState("");
-
-  // Stats computados
-  const stats = useMemo(() => {
-    const now = new Date();
-    const thisMonth = withdrawals.filter(w => {
-      const d = new Date(w.date);
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    });
-    const byType = {};
-    TYPES.forEach(t => { byType[t] = 0; });
-    const byPerson = {};
-    let totalUnits = 0;
-    thisMonth.forEach(w => {
-      byType[w.type] = (byType[w.type] || 0) + (w.qty || 1);
-      if (w.person) byPerson[w.person] = (byPerson[w.person] || 0) + (w.qty || 1);
-      totalUnits += (w.qty || 1);
-    });
-    const topPerson = Object.entries(byPerson).sort((a, b) => b[1] - a[1])[0];
-    return { thisMonth: thisMonth.length, totalUnits, byType, topPerson: topPerson ? topPerson[0] : "-" };
-  }, [withdrawals]);
-
-  // Personas únicas para filtro
-  const uniquePersons = useMemo(() => {
-    const set = new Set(withdrawals.map(w => w.person).filter(Boolean));
-    return [...set].sort();
-  }, [withdrawals]);
-
-  // Filtros aplicados
-  const filtered = useMemo(() => {
-    let list = [...withdrawals];
-    if (filterType !== "all") list = list.filter(w => w.type === filterType);
-    if (filterPerson) list = list.filter(w => w.person && w.person.toLowerCase().includes(filterPerson.toLowerCase()));
-    if (search) list = list.filter(w =>
-      (w.productName || "").toLowerCase().includes(search.toLowerCase()) ||
-      (w.person || "").toLowerCase().includes(search.toLowerCase()) ||
-      (w.notes || "").toLowerCase().includes(search.toLowerCase())
-    );
-    return list.sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [withdrawals, filterType, filterPerson, search]);
-
-  const handleAdd = () => {
-    const prod = products.find(p => p.id === form.product);
+  const save = () => {
+    if (!form.productId || !form.person) return;
+    const prod = products.find(p => p.id === form.productId);
     if (!prod) return;
-    if (prod.stock < form.qty) return alert("Stock insuficiente");
-
-    const entry = {
-      id: uid(),
-      productId: prod.id,
-      productName: prod.name,
-      qty: Number(form.qty),
-      type: form.type,
-      person: form.person.trim(),
-      notes: form.notes.trim(),
-      date: new Date().toISOString(),
-      user: currentUser,
-    };
-
-    setWithdrawals(prev => [...prev, entry]);
-    setProducts(prev => prev.map(p => p.id === prod.id ? { ...p, stock: p.stock - entry.qty } : p));
-    logStock(prod.id, prod.name, -entry.qty, `Merma: ${form.type}${form.person ? ` - ${form.person}` : ""}`);
-    setForm({ product: "", qty: 1, type: TYPES[0], person: "", notes: "" });
-    setShowModal(false);
+    // Validate stock
+    if (Number(form.qty) > (prod.stock || 0)) {
+      alert(`No hay suficiente stock de ${prod.brand} ${prod.model} - ${prod.flavor}. Disponible: ${prod.stock}, pedido: ${form.qty}`);
+      return;
+    }
+    const costEstimate = Number(prod.priceUSD) || 0;
+    const newId = uid();
+    const withdrawal = { ...form, id: newId, qty: Number(form.qty), costEstimateUSD: costEstimate * Number(form.qty), withdrawType: form.withdrawType, createdBy: currentUser?.name || "" };
+    setWithdrawals(prev => [withdrawal, ...prev]);
+    if (logAudit) logAudit("create", "withdrawal", newId, `Registró merma: ${prod.brand} ${prod.model} - ${prod.flavor} x${form.qty} (${form.withdrawType})`);
+    logStock({ productId: form.productId, type: "consumo", qty: -Number(form.qty), reason: `${form.withdrawType} - ${form.person}`, date: form.date });
+    setProducts(prev => prev.map(p => p.id === form.productId ? { ...p, stock: Math.max(0, (p.stock || 0) - Number(form.qty)) } : p));
+    setModal(false);
+    setForm({ productId: "", qty: 1, person: "", withdrawType: "Consumo propio", notes: "", date: new Date().toISOString().slice(0, 10) });
   };
 
-  const handleDelete = (w) => {
-    if (!confirm(`¿Eliminar merma de ${w.productName}?`)) return;
-    setWithdrawals(prev => prev.filter(x => x.id !== w.id));
-    setProducts(prev => prev.map(p => p.id === w.productId ? { ...p, stock: p.stock + (w.qty || 1) } : p));
-    logStock(w.productId, w.productName, w.qty || 1, `Revertir merma: ${w.type}`);
-  };
+  const totalMine = withdrawals.filter(w => w.person === "Diego").reduce((s, w) => s + w.qty, 0);
+  const totalBro = withdrawals.filter(w => w.person === "Gustavo").reduce((s, w) => s + w.qty, 0);
+  const totalCostUSD = withdrawals.reduce((s, w) => s + (w.costEstimateUSD || 0), 0);
+  const totalConsumo = withdrawals.filter(w => !w.withdrawType || w.withdrawType === "Consumo propio").reduce((s, w) => s + w.qty, 0);
+  const totalGarantia = withdrawals.filter(w => w.withdrawType === "Garantía / Devolución").reduce((s, w) => s + w.qty, 0);
+  const totalRegalo = withdrawals.filter(w => w.withdrawType === "Regalo / Canje").reduce((s, w) => s + w.qty, 0);
 
   return (
     <div>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-        <div>
-          <h2 style={{ fontSize: 22, fontWeight: 800, color: "#1a1a2e", margin: 0 }}>Mermas y Retiros</h2>
-          <p style={{ fontSize: 13, color: "#6b7280", margin: "4px 0 0" }}>
-            Control de consumo propio, garantías y regalos
-          </p>
-        </div>
-        <Btn onClick={() => setShowModal(true)}>+ Nueva Merma</Btn>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+        <h2 style={{ color: "#1a1a2e", margin: 0, fontSize: 22 }}>Mermas (Consumo, Garantías, Canjes)</h2>
+        <Btn onClick={() => setModal(true)}>+ Registrar Merma</Btn>
       </div>
 
-      {/* Stats Cards */}
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 20 }}>
-        <StatCard label="Este mes" value={stats.thisMonth} sub={`${stats.totalUnits} unidades`} color="#6366f1" />
-        <StatCard label="Consumo propio" value={stats.byType["Consumo propio"] || 0} sub="unidades" color="#6366f1" />
-        <StatCard label="Garantías" value={stats.byType["Garantía / Devolución"] || 0} sub="unidades" color="#f59e0b" />
-        <StatCard label="Regalos" value={stats.byType["Regalo / Canje"] || 0} sub="unidades" color="#10b981" />
+        <StatCard label="Diego" value={`${totalMine} uds`} icon="🚬" color="#6366f1" />
+        <StatCard label="Gustavo" value={`${totalBro} uds`} icon="🚬" color="#00b894" />
+        <StatCard label="Consumo" value={`${totalConsumo} uds`} icon="🚬" color="#e17055" />
+        <StatCard label="Garantías" value={`${totalGarantia} uds`} icon="🔄" color="#fdcb6e" />
+        <StatCard label="Regalos/Canjes" value={`${totalRegalo} uds`} icon="🎁" color="#00cec9" />
+        <StatCard label="Valor total" value={formatMoney(totalCostUSD, "USD")} icon="📉" color="#e74c3c" />
       </div>
 
-      {/* Filtros */}
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16, alignItems: "center" }}>
-        <Input
-          placeholder="Buscar producto, persona..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          style={{ flex: "1 1 200px", minWidth: 180 }}
-        />
-        <select value={filterType} onChange={e => setFilterType(e.target.value)} style={{ minWidth: 160, padding: "8px 12px", borderRadius: 8, border: "1.5px solid #e2e4e9", fontSize: 14, background: "#fff" }}>
-          <option value="all">Todos los tipos</option>
-          {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-        </select>
-        {uniquePersons.length > 0 && (
-          <select value={filterPerson} onChange={e => setFilterPerson(e.target.value)} style={{ minWidth: 140, padding: "8px 12px", borderRadius: 8, border: "1.5px solid #e2e4e9", fontSize: 14, background: "#fff" }}>
-            <option value="">Todas las personas</option>
-            {uniquePersons.map(p => <option key={p} value={p}>{p}</option>)}
-          </select>
-        )}
-        {(filterType !== "all" || filterPerson || search) && (
-          <Btn onClick={() => { setFilterType("all"); setFilterPerson(""); setSearch(""); }}
-            style={{ background: "#f3f4f6", color: "#6b7280", fontSize: 12 }}>
-            Limpiar filtros
-          </Btn>
-        )}
-      </div>
-
-      {/* Tabla */}
       <Card>
-        {filtered.length === 0 ? (
-          <div style={{ textAlign: "center", padding: 40, color: "#9ca3af" }}>
-            {withdrawals.length === 0 ? "No hay mermas registradas" : "No hay resultados con estos filtros"}
-          </div>
-        ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-            <thead>
-              <tr style={{ borderBottom: "2px solid #e2e4e9" }}>
-                {["Fecha", "Producto", "Cant.", "Tipo", "Persona", "Notas", ""].map((h, i) => (
-                  <th key={i} style={{ padding: "8px 12px", textAlign: "left", color: "#6b7280", fontWeight: 600 }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-            {filtered.map(w => (
-              <tr key={w.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
-                <td style={{ padding: "10px 12px", fontSize: 13, color: "#6b7280", whiteSpace: "nowrap" }}>
-                  {formatDate(w.date)}
-                </td>
-                <td style={{ padding: "10px 12px", fontWeight: 600, color: "#1a1a2e" }}>
-                  {w.productName}
-                </td>
-                <td style={{ padding: "10px 12px", fontWeight: 700, color: "#1a1a2e", textAlign: "center" }}>
-                  {w.qty || 1}
-                </td>
-                <td style={{ padding: "10px 12px" }}>
-                  <Badge color={TYPE_COLORS[w.type] || "#6366f1"}>
-                    {TYPE_ICONS[w.type] || ""} {w.type}
-                  </Badge>
-                </td>
-                <td style={{ padding: "10px 12px", fontSize: 13, color: "#6b7280" }}>
-                  {w.person || "-"}
-                </td>
-                <td style={{ padding: "10px 12px", fontSize: 12, color: "#9ca3af", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {w.notes || "-"}
-                </td>
-                <td style={{ padding: "10px 12px", textAlign: "right" }}>
-                  <Btn onClick={() => handleDelete(w)} style={{ background: "#fef2f2", color: "#dc2626", fontSize: 11, padding: "4px 10px" }}>
-                    Eliminar
-                  </Btn>
-                </td>
-              </tr>
-            ))}
-            </tbody>
-          </table>
-        )}
+        <Table
+          columns={[
+            { key: "date", label: "Fecha", render: r => formatDate(r.date) },
+            { key: "product", label: "Producto", render: r => {
+              const p = products.find(pr => pr.id === r.productId);
+              return p ? `${p.brand} ${p.model} - ${p.flavor}` : "?";
+            }},
+            { key: "qty", label: "Cant.", render: r => <Badge color="#e74c3c">{r.qty}</Badge> },
+            { key: "type", label: "Tipo", render: r => <Badge color={r.withdrawType === "Garantía / Devolución" ? "#fdcb6e" : r.withdrawType === "Regalo / Canje" ? "#00cec9" : "#e17055"}>{r.withdrawType || "Consumo"}</Badge> },
+            { key: "person", label: "Quién", render: r => <Badge color={r.person === "Diego" ? "#a855f7" : "#00b894"}>{r.person}</Badge> },
+            { key: "cost", label: "Valor est.", render: r => formatMoney(r.costEstimateUSD, "USD") },
+            { key: "notes", label: "Nota", render: r => r.notes || "-" },
+          ]}
+          data={withdrawals}
+          emptyMsg="No hay retiros registrados"
+        />
       </Card>
 
-      {/* Modal nueva merma */}
-      {showModal && (
-        <Modal open={true} title="Registrar Merma" onClose={() => setShowModal(false)}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <select value={form.product} onChange={e => setForm(f => ({ ...f, product: e.target.value }))} style={{ padding: "8px 12px", borderRadius: 8, border: "1.5px solid #e2e4e9", fontSize: 14, background: "#fff", width: "100%" }}>
-              <option value="">Seleccionar producto...</option>
-              {products.filter(p => p.stock > 0).map(p => (
-                <option key={p.id} value={p.id}>{p.name} (stock: {p.stock})</option>
-              ))}
-            </select>
-            <div style={{ display: "flex", gap: 10 }}>
-              <Input
-                type="number"
-                min={1}
-                value={form.qty}
-                onChange={e => setForm(f => ({ ...f, qty: Math.max(1, Number(e.target.value)) }))}
-                placeholder="Cantidad"
-                style={{ flex: 1 }}
-              />
-              <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))} style={{ flex: 2, padding: "8px 12px", borderRadius: 8, border: "1.5px solid #e2e4e9", fontSize: 14, background: "#fff" }}>
-                {TYPES.map(t => <option key={t} value={t}>{TYPE_ICONS[t]} {t}</option>)}
-              </select>
-            </div>
-            <Input
-              placeholder="Persona (opcional)"
-              value={form.person}
-              onChange={e => setForm(f => ({ ...f, person: e.target.value }))}
-            />
-            <Input
-              placeholder="Notas (opcional)"
-              value={form.notes}
-              onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-            />
-            <Btn onClick={handleAdd} disabled={!form.product}>Registrar Merma</Btn>
-          </div>
-        </Modal>
-      )}
+      <Modal open={modal} onClose={() => setModal(false)} title="Registrar Consumo Propio">
+        <Input label="Fecha" type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+        <Select label="Producto" options={[...products].filter(p => p.stock > 0).sort((a, b) => a.brand.localeCompare(b.brand) || a.model.localeCompare(b.model) || a.flavor.localeCompare(b.flavor)).map(p => ({ value: p.id, label: `${p.brand} ${p.model} - ${p.flavor} (${p.puffs}p) [${p.stock}]` }))}
+          value={form.productId} onChange={e => setForm(f => ({ ...f, productId: e.target.value }))} />
+        <Input label="Cantidad" type="number" min={1} value={form.qty} onChange={e => setForm(f => ({ ...f, qty: e.target.value }))} />
+        <Select label="Tipo" options={WITHDRAW_TYPES} value={form.withdrawType} onChange={e => setForm(f => ({ ...f, withdrawType: e.target.value }))} />
+        <Select label="¿Quién?" options={WITHDRAW_PERSONS} value={form.person} onChange={e => setForm(f => ({ ...f, person: e.target.value }))} />
+        <Input label="Nota (opcional)" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="ej: para probar sabor nuevo..." />
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 16 }}>
+          <Btn variant="secondary" onClick={() => setModal(false)}>Cancelar</Btn>
+          <Btn variant="danger" onClick={save}>Registrar Retiro</Btn>
+        </div>
+      </Modal>
     </div>
   );
 };

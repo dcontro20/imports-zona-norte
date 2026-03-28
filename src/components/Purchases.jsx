@@ -18,7 +18,7 @@ const emptyPurchaseForm = () => ({
   notes: "", date: new Date().toISOString().slice(0, 10), status: "pedido"
 });
 
-export const Purchases = ({ purchases, setPurchases, products, setProducts, exchangeRate, logStock, currentUser }) => {
+export const Purchases = ({ purchases, setPurchases, products, setProducts, exchangeRate, logStock, currentUser, logAudit }) => {
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [verifyModal, setVerifyModal] = useState(null);
@@ -120,8 +120,14 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
     });
     if (newProducts.length > 0) setProducts(prev => [...prev, ...newProducts]);
     const purchaseData = { ...form, items: finalItems, totalUSDT: productsUSDT, supplierCommUSDT, totalUSDTpaid: totalUSDTwithComm, paseroCostARS: paseroARS, envioCostARS: envioARS, totalCostARS, totalItems, createdBy: currentUser?.name || "" };
-    if (editing) { setPurchases(prev => prev.map(p => p.id === editing ? { ...purchaseData, id: editing } : p)); }
-    else { setPurchases(prev => [{ ...purchaseData, id: uid() }, ...prev]); }
+    if (editing) {
+      setPurchases(prev => prev.map(p => p.id === editing ? { ...purchaseData, id: editing } : p));
+      if (logAudit) logAudit("update", "purchase", editing, `Editó compra: ${form.supplier} · ${totalItems} items`);
+    } else {
+      const newId = uid();
+      setPurchases(prev => [{ ...purchaseData, id: newId }, ...prev]);
+      if (logAudit) logAudit("create", "purchase", newId, `Creó compra: ${form.supplier} · ${totalItems} items · ${productsUSDT} USDT`);
+    }
     setModal(false); setEditing(null); setForm(emptyPurchaseForm());
   };
 
@@ -141,7 +147,8 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
   const deletePurchase = (purchase) => {
     if (confirmDelete !== purchase.id) { setConfirmDelete(purchase.id); return; }
     if (purchase.status === "verificado") { (purchase.items || []).forEach(item => { setProducts(prev => prev.map(p => p.id === item.productId ? { ...p, stock: Math.max(0, (p.stock || 0) - Number(item.qty)) } : p)); }); }
-    setPurchases(prev => prev.filter(p => p.id !== purchase.id));
+    setPurchases(prev => prev.map(p => p.id === purchase.id ? { ...p, isDeleted: true, deletedAt: new Date().toISOString(), deletedBy: currentUser?.name || "?" } : p));
+    if (logAudit) logAudit("delete", "purchase", purchase.id, `Eliminó compra: ${purchase.supplier || ""} · ${purchase.totalItems || 0} items`);
     setConfirmDelete(null);
   };
 
@@ -177,7 +184,7 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
       </div>
 
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 20 }}>
-        {PURCHASE_STATUSES.map(s => <StatCard key={s.value} label={s.label} value={purchases.filter(p => p.status === s.value).length} color={s.color} />)}
+        {PURCHASE_STATUSES.map(s => <StatCard key={s.value} label={s.label} value={purchases.filter(p => !p.isDeleted && p.status === s.value).length} color={s.color} />)}
       </div>
 
       <Card>
@@ -208,7 +215,7 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
               }
             </div>);
           }},
-        ]} data={purchases} emptyMsg="No hay pedidos registrados" />
+        ]} data={purchases.filter(p => !p.isDeleted)} emptyMsg="No hay pedidos registrados" />
       </Card>
 
       {/* New/Edit Modal */}
