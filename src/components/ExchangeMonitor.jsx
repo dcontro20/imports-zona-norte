@@ -6,6 +6,7 @@ const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutos
 const API_SOURCES = {
   blue: "https://dolarapi.com/v1/dolares/blue",
   oficial: "https://dolarapi.com/v1/dolares/oficial",
+  mep: "https://dolarapi.com/v1/dolares/bolsa",
   cripto: "https://criptoya.com/api/usdt/ars",
 };
 
@@ -18,7 +19,7 @@ const Arrow = ({ dir }) => (
   </span>
 );
 
-const SourceCard = ({ title, icon, buy, sell, spread, prev, color, updated }) => {
+const SourceCard = ({ title, subtitle, buy, sell, spread, prev, color, updated }) => {
   const diff = prev ? sell - prev : 0;
   const dir = diff > 0 ? "up" : diff < 0 ? "down" : "same";
   const diffColor = dir === "up" ? "#ef4444" : dir === "down" ? "#10b981" : "#9ca3af";
@@ -29,9 +30,9 @@ const SourceCard = ({ title, icon, buy, sell, spread, prev, color, updated }) =>
       border: "1px solid #e2e4e9", flex: "1 1 220px", minWidth: 220,
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 20 }}>{icon}</span>
-          <span style={{ fontWeight: 700, fontSize: 15, color: "#1a1a2e" }}>{title}</span>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 15, color: "#1a1a2e" }}>{title}</div>
+          {subtitle && <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 1 }}>{subtitle}</div>}
         </div>
         {prev > 0 && (
           <div style={{ display: "flex", alignItems: "center", color: diffColor, fontSize: 13, fontWeight: 600 }}>
@@ -58,7 +59,7 @@ const SourceCard = ({ title, icon, buy, sell, spread, prev, color, updated }) =>
       </div>
       {updated && (
         <div style={{ fontSize: 11, color: "#9ca3af" }}>
-          Actualizado: {new Date(updated).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+          {"Actualizado: "}{new Date(updated).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
         </div>
       )}
     </div>
@@ -66,8 +67,8 @@ const SourceCard = ({ title, icon, buy, sell, spread, prev, color, updated }) =>
 };
 
 export const ExchangeMonitor = ({ exchangeRate }) => {
-  const [data, setData] = useState({ blue: null, oficial: null, cripto: null });
-  const [prev, setPrev] = useState({ blue: 0, oficial: 0, cripto: 0 });
+  const [data, setData] = useState({ blue: null, oficial: null, mep: null, cripto: null });
+  const [prev, setPrev] = useState({ blue: 0, oficial: 0, mep: 0, cripto: 0 });
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState(null);
   const [error, setError] = useState(null);
@@ -77,9 +78,10 @@ export const ExchangeMonitor = ({ exchangeRate }) => {
     setLoading(true);
     setError(null);
     try {
-      const [blueRes, oficialRes, criptoRes] = await Promise.allSettled([
+      const [blueRes, oficialRes, mepRes, criptoRes] = await Promise.allSettled([
         fetch(API_SOURCES.blue).then(r => r.json()),
         fetch(API_SOURCES.oficial).then(r => r.json()),
+        fetch(API_SOURCES.mep).then(r => r.json()),
         fetch(API_SOURCES.cripto).then(r => r.json()),
       ]);
 
@@ -90,6 +92,9 @@ export const ExchangeMonitor = ({ exchangeRate }) => {
       }
       if (oficialRes.status === "fulfilled") {
         newData.oficial = { buy: oficialRes.value.compra, sell: oficialRes.value.venta };
+      }
+      if (mepRes.status === "fulfilled") {
+        newData.mep = { buy: mepRes.value.compra, sell: mepRes.value.venta };
       }
       if (criptoRes.status === "fulfilled") {
         const c = criptoRes.value;
@@ -113,12 +118,12 @@ export const ExchangeMonitor = ({ exchangeRate }) => {
       setPrev({
         blue: data.blue?.sell || 0,
         oficial: data.oficial?.sell || 0,
+        mep: data.mep?.sell || 0,
         cripto: data.cripto?.sell || 0,
       });
       setData(newData);
       setLastUpdate(new Date());
 
-      // Guardar en historial (max 20 entries)
       if (newData.blue) {
         setHistory(h => {
           const entry = { time: new Date().toISOString(), blue: newData.blue.sell, cripto: newData.cripto?.buy || 0 };
@@ -142,6 +147,7 @@ export const ExchangeMonitor = ({ exchangeRate }) => {
   const blueSpread = data.blue ? ((data.blue.sell - data.blue.buy) / data.blue.buy * 100) : 0;
   const gapBlueOficial = data.blue && data.oficial ? ((data.blue.sell - data.oficial.sell) / data.oficial.sell * 100) : 0;
   const gapCriptoBlue = data.cripto && data.blue ? ((data.cripto.buy - data.blue.sell) / data.blue.sell * 100) : 0;
+  const gapMepBlue = data.mep && data.blue ? ((data.blue.sell - data.mep.sell) / data.mep.sell * 100) : 0;
 
   return (
     <div>
@@ -151,11 +157,11 @@ export const ExchangeMonitor = ({ exchangeRate }) => {
             Monitor de Cotizaciones
           </h2>
           <p style={{ fontSize: 13, color: "#6b7280", margin: "4px 0 0" }}>
-            Actualizaci\u00f3n autom\u00e1tica cada 5 minutos
+            {"Actualizaci\u00f3n autom\u00e1tica cada 5 minutos \u2014 Fuentes: DolarAPI + CriptoYa"}
           </p>
         </div>
         <Btn onClick={fetchRates} disabled={loading}>
-          {loading ? "Actualizando..." : "\u21bb Actualizar ahora"}
+          {loading ? "Actualizando..." : "\u21BB Actualizar ahora"}
         </Btn>
       </div>
 
@@ -169,8 +175,8 @@ export const ExchangeMonitor = ({ exchangeRate }) => {
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 20 }}>
         {data.blue && (
           <SourceCard
-            title="D\u00f3lar Blue"
-            icon="\ud83d\udcb5"
+            title={"D\u00f3lar Blue"}
+            subtitle="Mercado informal - Fuente: DolarAPI"
             buy={data.blue.buy}
             sell={data.blue.sell}
             spread={blueSpread}
@@ -181,8 +187,8 @@ export const ExchangeMonitor = ({ exchangeRate }) => {
         )}
         {data.oficial && (
           <SourceCard
-            title="D\u00f3lar Oficial"
-            icon="\ud83c\udfdb\ufe0f"
+            title={"D\u00f3lar Oficial"}
+            subtitle={"Banco Naci\u00f3n - Tipo de cambio minorista"}
             buy={data.oficial.buy}
             sell={data.oficial.sell}
             spread={0}
@@ -191,10 +197,22 @@ export const ExchangeMonitor = ({ exchangeRate }) => {
             updated={lastUpdate}
           />
         )}
+        {data.mep && (
+          <SourceCard
+            title={"D\u00f3lar MEP / Bolsa"}
+            subtitle={"Mercado burs\u00e1til - Operaci\u00f3n con bonos"}
+            buy={data.mep.buy}
+            sell={data.mep.sell}
+            spread={data.mep.buy > 0 ? ((data.mep.sell - data.mep.buy) / data.mep.buy * 100) : 0}
+            prev={prev.mep}
+            color="#3b82f6"
+            updated={lastUpdate}
+          />
+        )}
         {data.cripto && (
           <SourceCard
             title="USDT Mejor Precio"
-            icon="\u20bf"
+            subtitle={"Mejor cotizaci\u00f3n entre exchanges - CriptoYa"}
             buy={data.cripto.buy}
             sell={data.cripto.sell}
             spread={data.cripto.buy > 0 ? ((data.cripto.sell - data.cripto.buy) / data.cripto.buy * 100) : 0}
@@ -205,35 +223,47 @@ export const ExchangeMonitor = ({ exchangeRate }) => {
         )}
       </div>
 
-      {/* Comparativa r\u00e1pida */}
+      {/* Comparativa de brechas */}
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 20 }}>
-        <div style={{ background: "#fff", borderRadius: 14, padding: "16px 20px", border: "1px solid #e2e4e9", flex: "1 1 200px" }}>
+        <div style={{ background: "#fff", borderRadius: 14, padding: "16px 20px", border: "1px solid #e2e4e9", flex: "1 1 180px" }}>
           <div style={{ fontSize: 12, color: "#9ca3af", fontWeight: 600, marginBottom: 6 }}>BRECHA BLUE vs OFICIAL</div>
           <div style={{ fontSize: 28, fontWeight: 800, color: gapBlueOficial > 30 ? "#ef4444" : gapBlueOficial > 15 ? "#f59e0b" : "#10b981" }}>
             {gapBlueOficial.toFixed(1)}%
           </div>
+          <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>{"Diferencia entre blue y oficial"}</div>
         </div>
-        <div style={{ background: "#fff", borderRadius: 14, padding: "16px 20px", border: "1px solid #e2e4e9", flex: "1 1 200px" }}>
+        <div style={{ background: "#fff", borderRadius: 14, padding: "16px 20px", border: "1px solid #e2e4e9", flex: "1 1 180px" }}>
+          <div style={{ fontSize: 12, color: "#9ca3af", fontWeight: 600, marginBottom: 6 }}>BRECHA BLUE vs MEP</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: Math.abs(gapMepBlue) < 3 ? "#10b981" : "#f59e0b" }}>
+            {gapMepBlue > 0 ? "+" : ""}{gapMepBlue.toFixed(1)}%
+          </div>
+          <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>{"Diferencia entre blue y MEP"}</div>
+        </div>
+        <div style={{ background: "#fff", borderRadius: 14, padding: "16px 20px", border: "1px solid #e2e4e9", flex: "1 1 180px" }}>
           <div style={{ fontSize: 12, color: "#9ca3af", fontWeight: 600, marginBottom: 6 }}>BRECHA USDT vs BLUE</div>
           <div style={{ fontSize: 28, fontWeight: 800, color: Math.abs(gapCriptoBlue) < 2 ? "#10b981" : "#f59e0b" }}>
             {gapCriptoBlue > 0 ? "+" : ""}{gapCriptoBlue.toFixed(1)}%
           </div>
+          <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>{"Diferencia entre USDT y blue"}</div>
         </div>
-        <div style={{ background: "#fff", borderRadius: 14, padding: "16px 20px", border: "1px solid #e2e4e9", flex: "1 1 200px" }}>
+        <div style={{ background: "#fff", borderRadius: 14, padding: "16px 20px", border: "1px solid #e2e4e9", flex: "1 1 180px" }}>
           <div style={{ fontSize: 12, color: "#9ca3af", fontWeight: 600, marginBottom: 6 }}>TU TIPO DE CAMBIO</div>
           <div style={{ fontSize: 28, fontWeight: 800, color: "#6366f1" }}>
             {formatARS(exchangeRate || 0)}
           </div>
-          <div style={{ fontSize: 11, color: "#9ca3af" }}>Configurado en Caja</div>
+          <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>{"Configurado en Caja"}</div>
         </div>
       </div>
 
       {/* Tabla de exchanges USDT */}
       {data.cripto?.exchanges?.length > 0 && (
         <div style={{ background: "#fff", borderRadius: 14, padding: "18px 20px", border: "1px solid #e2e4e9", marginBottom: 20 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 700, color: "#1a1a2e", margin: "0 0 14px" }}>
+          <h3 style={{ fontSize: 15, fontWeight: 700, color: "#1a1a2e", margin: "0 0 4px" }}>
             Comparativa USDT/ARS por Exchange
           </h3>
+          <p style={{ fontSize: 12, color: "#9ca3af", margin: "0 0 14px" }}>
+            {"Precios con comisiones incluidas \u2014 Fuente: CriptoYa"}
+          </p>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
               <thead>
@@ -279,7 +309,7 @@ export const ExchangeMonitor = ({ exchangeRate }) => {
       {history.length > 1 && (
         <div style={{ background: "#fff", borderRadius: 14, padding: "18px 20px", border: "1px solid #e2e4e9" }}>
           <h3 style={{ fontSize: 15, fontWeight: 700, color: "#1a1a2e", margin: "0 0 14px" }}>
-            Historial de esta sesi\u00f3n
+            {"Historial de esta sesi\u00f3n"}
           </h3>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {history.map((h, i) => (
