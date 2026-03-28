@@ -3,6 +3,7 @@ import { useResponsive } from "../App.jsx";
 import { formatMoney, formatDate } from "../helpers.js";
 import { Card, Btn, Badge, Modal } from "./UI.jsx";
 import { BRAND_COLORS } from "../constants.js";
+import { saveToFirestore } from "../firebase.js";
 
 // -- PRICE MANAGEMENT --
 export const PriceLog = ({ priceLog, products, setProducts, logPrice, exchangeRate }) => {
@@ -86,8 +87,8 @@ export const PriceLog = ({ priceLog, products, setProducts, logPrice, exchangeRa
       }
     });
 
-    // 2. Update products state (triggers auto-sync to Firestore)
-    setProducts(prev => prev.map(p => {
+    // 2. Build updated products array
+    const updatedProducts = products.map(p => {
       const key = `${p.brand}|||${p.model}`;
       const np = Number(newPrices[key]);
       const nc = Number(newCosts[key]) || 0;
@@ -102,9 +103,15 @@ export const PriceLog = ({ priceLog, products, setProducts, logPrice, exchangeRa
         changed = true;
       }
       return changed ? { ...p, ...updates } : p;
-    }));
+    });
 
-    // 3. Log price changes AFTER updating products (separate state update)
+    // 3. Update React state for UI
+    setProducts(updatedProducts);
+
+    // 4. DIRECT save to Firestore (bypasses auto-sync guards)
+    saveToFirestore("products", updatedProducts);
+
+    // 5. Log price changes
     priceLogs.forEach(({ productId, oldPrice, newPrice }) => {
       logPrice(productId, oldPrice, newPrice, "USD");
     });
