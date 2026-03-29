@@ -30,7 +30,7 @@ export const saveToFirestore = async (key, data) => {
 
 // Helper to subscribe to real-time changes
 // Now tracks the updatedAt timestamp for conflict detection
-export const subscribeToFirestore = (key, callback) => {
+export const subscribeToFirestore = (key, callback, onNotFound) => {
     return onSnapshot(doc(db, "appData", key), (docSnap) => {
           if (docSnap.exists()) {
                   try {
@@ -44,6 +44,11 @@ export const subscribeToFirestore = (key, callback) => {
                   } catch (e) {
                             console.error(`Error parsing ${key}:`, e);
                   }
+          } else {
+                  // Document doesn't exist yet — notify caller so it can mark load as done
+                  if (onNotFound) onNotFound();
           }
+    }, (error) => {
+          console.error(`[Firebase] Error subscribing to ${key}:`, error);
     });
 };

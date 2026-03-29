@@ -134,21 +134,26 @@ export default function App() {
       { key: "auditLog", setter: setAuditLog },
     ];
 
+    const markKeyLoaded = (key) => {
+      initialLoadDone.current[key] = true;
+      if (keys.every(k => initialLoadDone.current[k.key])) {
+        setDataReady(true);
+        setSyncStatus("online");
+        setTimeout(() => { firestoreReady.current = true; }, 2000);
+      }
+    };
+
     const unsubscribers = keys.map(({ key, setter }) => {
       return subscribeToFirestore(key, (data) => {
         // Always accept Firestore data — it's the source of truth
         try { localStorage.setItem(`vapestock_${key}`, JSON.stringify(data)); } catch {}
         fromFirestore.current[key] = true;
         setter(data);
-        initialLoadDone.current[key] = true;
-        // Check if all initial loads are done
-        if (keys.every(k => initialLoadDone.current[k.key])) {
-          setDataReady(true);
-          setSyncStatus("online");
-          // Allow writes to Firestore only AFTER we received all data
-          // Small delay to let React finish processing all state updates
-          setTimeout(() => { firestoreReady.current = true; }, 2000);
-        }
+        markKeyLoaded(key);
+      }, () => {
+        // Document doesn't exist in Firestore yet — still mark as loaded
+        // so we don't block the entire sync system
+        markKeyLoaded(key);
       });
     });
 
