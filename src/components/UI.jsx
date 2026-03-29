@@ -9,7 +9,7 @@ export const Modal = ({ open, onClose, title, children }) => {
     <div style={{
       position: "fixed", inset: 0, background: "rgba(0,0,0,0.3)", display: "flex",
       alignItems: isMobile ? "flex-end" : "center", justifyContent: "center", zIndex: 1000, padding: isMobile ? 0 : "16px",
-      backdropFilter: "blur(4px)"
+      /* backdrop-filter removed for performance */
     }} onClick={onClose}>
       <div style={{
         background: "#fff", borderRadius: isMobile ? "0 0 0 0" : 16, padding: isMobile ? "16px" : "24px", maxWidth: isMobile ? "100%" : 520,
