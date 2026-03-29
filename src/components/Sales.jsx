@@ -132,6 +132,7 @@ export const Sales = ({
   // ---- payment totals ----
   const totalPaid = form.payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
   const effectiveTotal = finalTotal - (clientCredit > 0 ? Math.min(clientCredit, finalTotal) : 0);
+  const creditUsed = clientCredit > 0 ? Math.min(clientCredit, finalTotal) : 0;
   const difference = totalPaid - effectiveTotal; // positive = overpaid (change), negative = underpaid (debt)
 
   const autoVolume = totalQty >= 3 && form.discountType === "none";
@@ -219,8 +220,6 @@ export const Sales = ({
     // Determine debt/change
     let changeAmt = 0, changeMethod = form.changeMethod, changeMpAccount = form.changeMpAccount;
     let debtAmt = 0, debtDir = "";
-    const creditUsed = clientCredit > 0 ? Math.min(clientCredit, finalTotal) : 0;
-
     if (difference > 0) {
       // Customer overpaid → change (vuelto)
       changeAmt = difference;
