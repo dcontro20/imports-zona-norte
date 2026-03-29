@@ -352,7 +352,7 @@ export default function App() {
     switch (page) {
       case "dashboard": return <Dashboard products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={withdrawals} exchangeRate={exchangeRate} />;
       case "products": return <Products products={products} setProducts={setProducts} exchangeRate={exchangeRate} logStock={logStock} logPrice={logPrice} currentUser={currentUser} logAudit={logAudit} />;
-      case "sales": return <Sales sales={sales} setSales={setSales} products={products} setProducts={setProducts} logStock={logStock} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} />;
+      case "sales": return <Sales sales={sales} setSales={setSales} products={products} setProducts={setProducts} logStock={logStock} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} clients={clients} setClients={setClients} cashMovements={cashMovements} setCashMovements={setCashMovements} />;
       case "purchases": return <Purchases purchases={purchases} setPurchases={setPurchases} products={products} setProducts={setProducts} exchangeRate={exchangeRate} logStock={logStock} currentUser={currentUser} logAudit={logAudit} />;
       case "clients": return <Clients clients={clients} setClients={setClients} sales={activeSales} products={activeProducts} />;
       case "expenses": return <Expenses expenses={expenses} setExpenses={setExpenses} currentUser={currentUser} exchangeRate={exchangeRate} logAudit={logAudit} />;

@@ -41,16 +41,32 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
     const activeSales = (sales || []).filter(s => !s.isDeleted);
     const activePurchases = (purchases || []).filter(p => !p.isDeleted);
 
-    // Add from sales
-    if (accountId === "mpDiego") bal += activeSales.filter(s => s.paymentMethod === "Mercado Pago" && s.mpAccount === "MP Diego").reduce((s, sale) => s + (sale.total || 0), 0);
-    if (accountId === "mpGustavo") bal += activeSales.filter(s => s.paymentMethod === "Mercado Pago" && s.mpAccount === "MP Gustavo").reduce((s, sale) => s + (sale.total || 0), 0);
-    if (accountId === "lemonPesos") bal += activeSales.filter(s => s.paymentMethod === "Lemon").reduce((s, sale) => s + (sale.total || 0), 0);
+    // Add from sales — supports both legacy (single paymentMethod) and new (payments array) format
+    const ACCOUNT_METHOD_MAP = {
+      mpDiego: (p) => p.method === "Mercado Pago" && p.mpAccount === "MP Diego",
+      mpGustavo: (p) => p.method === "Mercado Pago" && p.mpAccount === "MP Gustavo",
+      lemonPesos: (p) => p.method === "Lemon",
+      lemonUSDT: (p) => p.method === "USDT",
+      usdCash: (p) => p.method === "USD Cash",
+      pesosCash: (p) => p.method === "Pesos Cash",
+    };
+    const matchFn = ACCOUNT_METHOD_MAP[accountId];
+    if (matchFn) {
+      activeSales.forEach(sale => {
+        if (sale.payments && sale.payments.length > 0) {
+          // New format: sum matching payments from the payments array
+          sale.payments.filter(matchFn).forEach(p => { bal += Number(p.amount) || 0; });
+        } else {
+          // Legacy format: single paymentMethod field
+          const legacyPay = { method: sale.paymentMethod, mpAccount: sale.mpAccount, amount: sale.total };
+          if (matchFn(legacyPay)) bal += Number(sale.total) || 0;
+        }
+      });
+    }
+    // Purchases reduce USDT
     if (accountId === "lemonUSDT") {
-      bal += activeSales.filter(s => s.paymentMethod === "USDT").reduce((s, sale) => s + (sale.total || 0), 0);
       bal -= activePurchases.filter(p => p.status === "verificado" || !p.status).reduce((s, p) => s + (p.totalUSDT || 0), 0);
     }
-    if (accountId === "usdCash") bal += activeSales.filter(s => s.paymentMethod === "USD Cash").reduce((s, sale) => s + (sale.total || 0), 0);
-    if (accountId === "pesosCash") bal += activeSales.filter(s => s.paymentMethod === "Pesos Cash").reduce((s, sale) => s + (sale.total || 0), 0);
 
     // Apply cash movements (exclude deleted)
     (cashMovements || []).filter(m => !m.isDeleted).forEach(m => {
