@@ -33,20 +33,25 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
   const [moveForm, setMoveForm] = useState({ type: "transfer", from: "", to: "", amount: "", amountUSDT: "", description: "", date: new Date().toISOString().slice(0, 10) });
 
   // Calculate account balances including movements
+  // IMPORTANT: All queries must exclude soft-deleted items (!isDeleted)
   const calcBalance = (accountId) => {
     let bal = INITIAL_BALANCES[accountId] || 0;
-    
+
+    // Only count active (non-deleted) sales
+    const activeSales = (sales || []).filter(s => !s.isDeleted);
+    const activePurchases = (purchases || []).filter(p => !p.isDeleted);
+
     // Add from sales
-    if (accountId === "mpDiego") bal += sales.filter(s => s.paymentMethod === "Mercado Pago" && s.mpAccount === "MP Diego").reduce((s, sale) => s + sale.total, 0);
-    if (accountId === "mpGustavo") bal += sales.filter(s => s.paymentMethod === "Mercado Pago" && s.mpAccount === "MP Gustavo").reduce((s, sale) => s + sale.total, 0);
-    if (accountId === "lemonPesos") bal += sales.filter(s => s.paymentMethod === "Lemon").reduce((s, sale) => s + sale.total, 0);
+    if (accountId === "mpDiego") bal += activeSales.filter(s => s.paymentMethod === "Mercado Pago" && s.mpAccount === "MP Diego").reduce((s, sale) => s + (sale.total || 0), 0);
+    if (accountId === "mpGustavo") bal += activeSales.filter(s => s.paymentMethod === "Mercado Pago" && s.mpAccount === "MP Gustavo").reduce((s, sale) => s + (sale.total || 0), 0);
+    if (accountId === "lemonPesos") bal += activeSales.filter(s => s.paymentMethod === "Lemon").reduce((s, sale) => s + (sale.total || 0), 0);
     if (accountId === "lemonUSDT") {
-      bal += sales.filter(s => s.paymentMethod === "USDT").reduce((s, sale) => s + sale.total, 0);
-      bal -= purchases.filter(p => p.status === "verificado" || !p.status).reduce((s, p) => s + (p.totalUSDT || 0), 0);
+      bal += activeSales.filter(s => s.paymentMethod === "USDT").reduce((s, sale) => s + (sale.total || 0), 0);
+      bal -= activePurchases.filter(p => p.status === "verificado" || !p.status).reduce((s, p) => s + (p.totalUSDT || 0), 0);
     }
-    if (accountId === "usdCash") bal += sales.filter(s => s.paymentMethod === "USD Cash").reduce((s, sale) => s + sale.total, 0);
-    if (accountId === "pesosCash") bal += sales.filter(s => s.paymentMethod === "Pesos Cash").reduce((s, sale) => s + sale.total, 0);
-    
+    if (accountId === "usdCash") bal += activeSales.filter(s => s.paymentMethod === "USD Cash").reduce((s, sale) => s + (sale.total || 0), 0);
+    if (accountId === "pesosCash") bal += activeSales.filter(s => s.paymentMethod === "Pesos Cash").reduce((s, sale) => s + (sale.total || 0), 0);
+
     // Apply cash movements (exclude deleted)
     (cashMovements || []).filter(m => !m.isDeleted).forEach(m => {
       if (m.from === accountId) bal -= Number(m.amount) || 0;
@@ -55,7 +60,7 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
         else bal += Number(m.amount) || 0;
       }
     });
-    
+
     return bal;
   };
 
