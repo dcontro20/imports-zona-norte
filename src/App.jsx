@@ -3,6 +3,31 @@ import { saveToFirestore, subscribeToFirestore } from "./firebase.js";
 import { DEFAULT_PRODUCTS } from "./constants.js";
 import { loadData, uid, formatMoney, formatDate } from "./helpers.js";
 
+// Responsive hook — used by UI.jsx, Dashboard.jsx, PriceLog.jsx and others
+export const useResponsive = () => {
+  const [dimensions, setDimensions] = useState({
+    isMobile: typeof window !== "undefined" ? window.innerWidth < 768 : false,
+    isTablet: typeof window !== "undefined" ? window.innerWidth >= 768 && window.innerWidth <= 1024 : false,
+    isDesktop: typeof window !== "undefined" ? window.innerWidth > 1024 : true,
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      setDimensions({
+        isMobile: width < 768,
+        isTablet: width >= 768 && width <= 1024,
+        isDesktop: width > 1024,
+      });
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  return dimensions;
+};
+
 // Lazy load all page components
 const Dashboard = lazy(() => import("./components/Dashboard.jsx").then(m => ({ default: m.Dashboard })));
 const Products = lazy(() => import("./components/Products.jsx").then(m => ({ default: m.Products })));
