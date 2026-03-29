@@ -9,7 +9,7 @@ const INITIAL_BALANCES = {
   mpDiego: 0,
   mpGustavo: 0,
   usdCash: 0,
-  pesosCash: 0,
+  pesosCash: 120000,
 };
 
 const ACCOUNTS = [
