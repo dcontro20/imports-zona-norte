@@ -19,10 +19,10 @@ export const MonthlyClosures = ({ monthlyClosures, setMonthlyClosures, sales, pu
   };
 
   const calcMonthData = (month) => {
-    const monthSales = sales.filter(s => mFilter(s.date, month));
-    const monthPurchases = purchases.filter(p => mFilter(p.date, month));
-    const monthExpenses = expenses.filter(e => mFilter(e.date, month));
-    const monthWithdrawals = (withdrawals || []).filter(w => mFilter(w.date, month));
+    const monthSales = sales.filter(s => !s.isDeleted && mFilter(s.date, month));
+    const monthPurchases = purchases.filter(p => !p.isDeleted && mFilter(p.date, month));
+    const monthExpenses = expenses.filter(e => !e.isDeleted && mFilter(e.date, month));
+    const monthWithdrawals = (withdrawals || []).filter(w => !w.isDeleted && mFilter(w.date, month));
 
     const totalSalesCount = monthSales.length;
     const totalUnits = monthSales.reduce((s, sale) => s + (sale.items || []).reduce((s2, i) => s2 + (Number(i.qty) || 0), 0), 0);

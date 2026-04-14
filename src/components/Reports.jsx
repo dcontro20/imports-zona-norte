@@ -70,9 +70,11 @@ const DonutChart = ({ data, size = 160 }) => {
 };
 
 export const Reports = ({ products, sales, purchases, expenses, withdrawals, exchangeRate }) => {
+  // Note: App.jsx already passes active* (filtered) data for most read-only components,
+  // but we add safety filters here for any that might slip through
   const brandStats = useMemo(() => {
     const stats = {};
-    sales.forEach(s => (s.items || []).forEach(item => {
+    sales.filter(s => !s.isDeleted).forEach(s => (s.items || []).forEach(item => {
       const prod = products.find(p => p.id === item.productId);
       if (prod) {
         if (!stats[prod.brand]) stats[prod.brand] = { sold: 0, revenue: 0 };
@@ -85,7 +87,7 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, exc
 
   const channelStats = useMemo(() => {
     const stats = {};
-    sales.forEach(s => {
+    sales.filter(s => !s.isDeleted).forEach(s => {
       const ch = s.channel || "Sin canal";
       if (!stats[ch]) stats[ch] = { count: 0, revenue: 0 };
       stats[ch].count++;
@@ -96,7 +98,7 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, exc
 
   const paymentStats = useMemo(() => {
     const stats = {};
-    sales.forEach(s => {
+    sales.filter(s => !s.isDeleted).forEach(s => {
       const pm = s.paymentMethod || "Otro";
       if (!stats[pm]) stats[pm] = { count: 0, revenue: 0 };
       stats[pm].count++;
@@ -107,7 +109,7 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, exc
 
   const topFlavors = useMemo(() => {
     const stats = {};
-    sales.forEach(s => (s.items || []).forEach(item => {
+    sales.filter(s => !s.isDeleted).forEach(s => (s.items || []).forEach(item => {
       const prod = products.find(p => p.id === item.productId);
       if (prod) {
         const key = `${prod.brand} ${prod.model} - ${prod.flavor}`;
@@ -120,7 +122,7 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, exc
 
   const monthlySales = useMemo(() => {
     const stats = {};
-    sales.forEach(s => {
+    sales.filter(s => !s.isDeleted).forEach(s => {
       const d = new Date(s.date);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       const label = d.toLocaleDateString("es-AR", { month: "short", year: "2-digit" });
@@ -156,11 +158,11 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, exc
             const thisMonth = new Date().getMonth();
             const thisYear = new Date().getFullYear();
             const mFilter = (d) => { const dt = new Date(d); return dt.getMonth() === thisMonth && dt.getFullYear() === thisYear; };
-            const rev = sales.filter(s => mFilter(s.date)).reduce((sum, s) => sum + (s.total || 0), 0);
-            const cost = purchases.filter(p => mFilter(p.date)).reduce((sum, p) => sum + ((p.totalUSDT || 0) * exchangeRate), 0);
-            const exp = expenses.filter(e => mFilter(e.date)).reduce((sum, e) => sum + (e.amountARS || 0), 0);
-            const discounts = sales.filter(s => mFilter(s.date)).reduce((sum, s) => sum + (s.discountAmount || 0), 0);
-            const consumed = (withdrawals || []).filter(w => mFilter(w.date)).reduce((sum, w) => sum + w.qty, 0);
+            const rev = sales.filter(s => !s.isDeleted && mFilter(s.date)).reduce((sum, s) => sum + (s.total || 0), 0);
+            const cost = purchases.filter(p => !p.isDeleted && mFilter(p.date)).reduce((sum, p) => sum + (p.totalCostARS || (p.totalUSDT || 0) * exchangeRate), 0);
+            const exp = expenses.filter(e => !e.isDeleted && mFilter(e.date)).reduce((sum, e) => sum + (e.amountARS || 0), 0);
+            const discounts = sales.filter(s => !s.isDeleted && mFilter(s.date)).reduce((sum, s) => sum + (s.discountAmount || 0), 0);
+            const consumed = (withdrawals || []).filter(w => !w.isDeleted && mFilter(w.date)).reduce((sum, w) => sum + w.qty, 0);
             return (<>
               <div><span style={{ color: "#6b7280", fontSize: 12 }}>Ingresos</span><div style={{ color: "#00b894", fontSize: 20, fontWeight: 700 }}>{formatMoney(rev)}</div></div>
               <div><span style={{ color: "#6b7280", fontSize: 12 }}>Costos</span><div style={{ color: "#e74c3c", fontSize: 20, fontWeight: 700 }}>{formatMoney(cost)}</div></div>
@@ -180,12 +182,13 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, exc
           const thisMonth = new Date().getMonth();
           const thisYear = new Date().getFullYear();
           const mFilter = (d) => { const dt = new Date(d); return dt.getMonth() === thisMonth && dt.getFullYear() === thisYear; };
-          const monthSales = sales.filter(s => mFilter(s.date));
-          const fixedCosts = expenses.filter(e => mFilter(e.date)).reduce((sum, e) => sum + (e.amountARS || 0), 0);
+          const monthSales = sales.filter(s => !s.isDeleted && mFilter(s.date));
+          const fixedCosts = expenses.filter(e => !e.isDeleted && mFilter(e.date)).reduce((sum, e) => sum + (e.amountARS || 0), 0);
           const totalUnits = monthSales.reduce((s, sale) => s + (sale.items || []).reduce((s2, i) => s2 + (i.qty || 0), 0), 0);
           const totalRevenue = monthSales.reduce((s, sale) => s + (sale.total || 0), 0);
           const avgPricePerUnit = totalUnits > 0 ? totalRevenue / totalUnits : 0;
-          const avgCostPerUnit = products.reduce((s, p) => s + (p.priceUSD || 0), 0) / Math.max(products.length, 1) * 0.55 * exchangeRate;
+          const activeProds = products.filter(p => !p.isDeleted && (p.costUSDT || p.priceUSD));
+          const avgCostPerUnit = activeProds.reduce((s, p) => s + ((p.costUSDT || (p.priceUSD * 0.55)) * exchangeRate), 0) / Math.max(activeProds.length, 1);
           const marginPerUnit = avgPricePerUnit - avgCostPerUnit;
           const breakEvenUnits = marginPerUnit > 0 ? Math.ceil(fixedCosts / marginPerUnit) : 0;
           const breakEvenARS = breakEvenUnits * avgPricePerUnit;

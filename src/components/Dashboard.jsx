@@ -148,7 +148,7 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, e
     return Object.entries(methods).sort((a, b) => b[1].totalARS - a[1].totalARS);
   }, [periodSales, exchangeRate]);
 
-  const recentSales = [...sales].sort((a, b) => (b.date || "").localeCompare(a.date || "")).slice(0, 5);
+  const recentSales = [...sales].filter(s => !s.isDeleted).sort((a, b) => (b.date || "").localeCompare(a.date || "")).slice(0, 5);
 
   // ===== SMART ALERTS =====
   const alerts = useMemo(() => {

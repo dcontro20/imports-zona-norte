@@ -246,6 +246,9 @@ export const Sales = ({
     // Validate: at least 1 product selected
     if (form.items.every(i => !i.productId)) { setValidationError("Seleccioná al menos un producto."); setStep(1); return; }
     const validItems = form.items.filter(i => i.productId);
+    // Validate quantities
+    const badQty = validItems.find(i => !Number(i.qty) || Number(i.qty) < 1);
+    if (badQty) { setValidationError("La cantidad de cada producto debe ser al menos 1."); setStep(1); return; }
 
     // Validate stock
     const stockCheck = {};
