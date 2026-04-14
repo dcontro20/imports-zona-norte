@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { uid, formatMoney, formatDate } from "../helpers.js";
-import { Modal, Card, Btn, Input, Select, Table, Badge, StatCard } from "./UI.jsx";
+import { useResponsive } from "../App.jsx";
+import { Modal, Card, Btn, Input, Select, Table, Badge, StatCard, SearchBar } from "./UI.jsx";
 
 // -- CASH / CAJA --
 const INITIAL_BALANCES = {
@@ -29,9 +30,13 @@ const MOVEMENT_TYPES = [
 ];
 
 export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements, setCashMovements, exchangeRate, setExchangeRate, currentUser, logAudit }) => {
+  const { isMobile } = useResponsive();
   const [modal, setModal] = useState(false);
   const [moveForm, setMoveForm] = useState({ type: "transfer", from: "", to: "", amount: "", amountUSDT: "", description: "", date: new Date().toISOString().slice(0, 10) });
   const [showDailyClose, setShowDailyClose] = useState(false);
+  const [ledgerFilter, setLedgerFilter] = useState("all"); // all | sales | expenses | movements | purchases
+  const [ledgerSearch, setLedgerSearch] = useState("");
+  const [ledgerLimit, setLedgerLimit] = useState(50);
 
   // Calculate account balances including movements
   // IMPORTANT: All queries must exclude soft-deleted items (!isDeleted)
@@ -108,6 +113,103 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
   };
 
   const getAccountLabel = (id) => ACCOUNTS.find(a => a.id === id)?.label || id;
+
+  // ============================================
+  // LIBRO DIARIO — All money movements unified
+  // ============================================
+  const ledger = useMemo(() => {
+    const entries = [];
+    const activeSales = (sales || []).filter(s => !s.isDeleted);
+    const activeExpenses = (expenses || []).filter(e => !e.isDeleted);
+    const activePurchases = (purchases || []).filter(p => !p.isDeleted);
+    const activeMovements = (cashMovements || []).filter(m => !m.isDeleted && m.type !== "daily_close");
+
+    // Sales → each payment is an income entry
+    activeSales.forEach(s => {
+      const payments = s.payments && s.payments.length > 0 ? s.payments : [{ method: s.paymentMethod, mpAccount: s.mpAccount, amount: s.total }];
+      payments.forEach(pay => {
+        if (!pay.method || !Number(pay.amount)) return;
+        const acct = pay.method === "Mercado Pago" ? (pay.mpAccount || pay.account || "MP Diego") : pay.method;
+        entries.push({
+          date: s.date || "", type: "income", category: "Venta",
+          description: `${s.clientName || "Sin cliente"} — ${(s.items || []).map(i => i.name || "?").join(", ")}`,
+          account: acct, amount: Number(pay.amount), currency: s.currency || "ARS",
+          icon: "🛒", color: "#10b981", refId: s.id, createdBy: s.createdBy || "",
+        });
+      });
+      // Change (vuelto) given → expense from account
+      if (s.changeAmount > 0 && s.changeMethod && s.changeMethod !== "credit") {
+        const acct = s.changeMethod === "Mercado Pago" ? (s.changeMpAccount || "MP Diego") : s.changeMethod;
+        entries.push({
+          date: s.date || "", type: "expense", category: "Vuelto",
+          description: `Vuelto a ${s.clientName || "cliente"}`,
+          account: acct, amount: s.changeAmount, currency: s.currency || "ARS",
+          icon: "💸", color: "#ea580c", refId: s.id, createdBy: s.createdBy || "",
+        });
+      }
+    });
+
+    // Expenses
+    activeExpenses.forEach(e => {
+      entries.push({
+        date: e.date || "", type: "expense", category: e.category || "Gasto",
+        description: e.description || e.category || "Gasto",
+        account: "Pesos Cash", amount: e.amountARS || 0, currency: "ARS",
+        icon: "💸", color: "#e74c3c", refId: e.id, createdBy: e.createdBy || "",
+      });
+    });
+
+    // Purchases (USDT out)
+    activePurchases.filter(p => p.totalUSDT > 0 && (p.status === "verificado" || !p.status)).forEach(p => {
+      entries.push({
+        date: p.date || "", type: "expense", category: "Compra importación",
+        description: `${p.supplier || "Proveedor"} — ${(p.items || p.groups || []).length} productos`,
+        account: "Lemon (USDT)", amount: p.totalUSDT || 0, currency: "USDT",
+        icon: "🚚", color: "#6366f1", refId: p.id, createdBy: p.createdBy || "",
+      });
+    });
+
+    // Cash movements (manual: transfers, deposits, withdrawals, crypto buys)
+    activeMovements.forEach(m => {
+      const typeLabels = { transfer: "Transferencia", crypto_buy: "Compra USDT", deposit: "Ingreso", withdrawal: "Retiro" };
+      if (m.from) {
+        entries.push({
+          date: m.date || "", type: "expense", category: typeLabels[m.type] || m.type,
+          description: m.description || `${typeLabels[m.type] || "Movimiento"} → ${m.to ? getAccountLabel(m.to) : ""}`,
+          account: getAccountLabel(m.from), amount: Number(m.amount) || 0, currency: ACCOUNTS.find(a => a.id === m.from)?.currency || "ARS",
+          icon: m.type === "crypto_buy" ? "🪙" : "💱", color: "#f59e0b", refId: m.id, createdBy: m.createdBy || "",
+        });
+      }
+      if (m.to) {
+        const amtIn = m.type === "crypto_buy" && m.to === "lemonUSDT" ? (Number(m.amountUSDT) || 0) : (Number(m.amount) || 0);
+        const cur = m.type === "crypto_buy" && m.to === "lemonUSDT" ? "USDT" : (ACCOUNTS.find(a => a.id === m.to)?.currency || "ARS");
+        entries.push({
+          date: m.date || "", type: "income", category: typeLabels[m.type] || m.type,
+          description: m.description || `${typeLabels[m.type] || "Movimiento"} ← ${m.from ? getAccountLabel(m.from) : ""}`,
+          account: getAccountLabel(m.to), amount: amtIn, currency: cur,
+          icon: m.type === "crypto_buy" ? "🪙" : "💱", color: "#f59e0b", refId: m.id, createdBy: m.createdBy || "",
+        });
+      }
+    });
+
+    // Sort by date descending
+    entries.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+    return entries;
+  }, [sales, expenses, purchases, cashMovements]);
+
+  // Filtered ledger
+  const filteredLedger = useMemo(() => {
+    let list = ledger;
+    if (ledgerFilter === "sales") list = list.filter(e => e.category === "Venta" || e.category === "Vuelto");
+    else if (ledgerFilter === "expenses") list = list.filter(e => e.category !== "Venta" && e.category !== "Vuelto" && e.type === "expense" && !["Transferencia", "Compra USDT", "Ingreso", "Retiro"].includes(e.category));
+    else if (ledgerFilter === "movements") list = list.filter(e => ["Transferencia", "Compra USDT", "Ingreso", "Retiro"].includes(e.category));
+    else if (ledgerFilter === "purchases") list = list.filter(e => e.category === "Compra importación");
+    if (ledgerSearch) {
+      const q = ledgerSearch.toLowerCase();
+      list = list.filter(e => (e.description || "").toLowerCase().includes(q) || (e.account || "").toLowerCase().includes(q) || (e.category || "").toLowerCase().includes(q));
+    }
+    return list;
+  }, [ledger, ledgerFilter, ledgerSearch]);
 
   // Daily close: snapshot of current balances
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -202,29 +304,92 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
         })}
       </div>
 
-      {/* Recent movements */}
-      <Card>
-        <h4 style={{ color: "#6366f1", margin: "0 0 14px", fontSize: 14, textTransform: "uppercase" }}>💱 Movimientos de caja</h4>
-        <Table columns={[
-          { key: "date", label: "Fecha", render: r => formatDate(r.date) },
-          { key: "type", label: "Tipo", render: r => {
-            const t = MOVEMENT_TYPES.find(mt => mt.value === r.type);
-            return <Badge color={r.type === "crypto_buy" ? "#26de81" : r.type === "deposit" ? "#00b894" : r.type === "withdrawal" ? "#e74c3c" : "#6366f1"}>{t?.label || r.type}</Badge>;
-          }},
-          { key: "from", label: "Desde", render: r => r.from ? getAccountLabel(r.from) : "—" },
-          { key: "to", label: "Hacia", render: r => r.to ? getAccountLabel(r.to) : "—" },
-          { key: "amount", label: "Monto", render: r => {
-            const fromAcc = ACCOUNTS.find(a => a.id === r.from);
-            return formatMoney(r.amount, fromAcc?.currency || "ARS");
-          }},
-          { key: "usdt", label: "USDT", render: r => r.amountUSDT ? formatMoney(r.amountUSDT, "USDT") : "—" },
-          { key: "desc", label: "Detalle", render: r => r.description || "—" },
-          { key: "actions", label: "", render: r => (
-            confirmDeleteMov === r.id
-            ? <button onClick={() => deleteMovement(r.id)} style={{ background: "#e74c3c22", border: "1px solid #e74c3c55", color: "#e74c3c", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Confirmar</button>
-            : <button onClick={() => deleteMovement(r.id)} style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontSize: 14 }}>🗑️</button>
-          )},
-        ]} data={(cashMovements || []).filter(m => !m.isDeleted && m.type !== "daily_close")} emptyMsg="No hay movimientos registrados" />
+      {/* ============================================ */}
+      {/* LIBRO DIARIO — All movements */}
+      {/* ============================================ */}
+      <Card style={{ marginBottom: 14 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
+          <h4 style={{ color: "#1a1a2e", margin: 0, fontSize: 16, fontWeight: 800 }}>📒 Libro Diario</h4>
+          <span style={{ color: "#6b7280", fontSize: 12 }}>{filteredLedger.length} movimientos</span>
+        </div>
+
+        {/* Filters */}
+        <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
+          {[
+            { key: "all", label: "Todo", color: "#1a1a2e" },
+            { key: "sales", label: "Ventas", color: "#10b981" },
+            { key: "expenses", label: "Gastos", color: "#e74c3c" },
+            { key: "purchases", label: "Compras", color: "#6366f1" },
+            { key: "movements", label: "Movimientos", color: "#f59e0b" },
+          ].map(f => (
+            <button key={f.key} onClick={() => { setLedgerFilter(f.key); setLedgerLimit(50); }}
+              style={{
+                padding: "5px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                border: `1.5px solid ${ledgerFilter === f.key ? f.color : "#e2e4e9"}`,
+                background: ledgerFilter === f.key ? `${f.color}15` : "#fff",
+                color: ledgerFilter === f.key ? f.color : "#6b7280",
+              }}>{f.label}</button>
+          ))}
+          <div style={{ flex: 1, minWidth: 150 }}>
+            <input value={ledgerSearch} onChange={e => setLedgerSearch(e.target.value)} placeholder="Buscar..."
+              style={{ width: "100%", padding: "6px 12px", background: "#f7f8fa", border: "1px solid #e2e4e9", borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+          </div>
+        </div>
+
+        {/* Entries */}
+        {filteredLedger.length === 0 ? (
+          <div style={{ textAlign: "center", padding: 30, color: "#9ca3af" }}>Sin movimientos</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+            {filteredLedger.slice(0, ledgerLimit).map((entry, idx) => {
+              const isIncome = entry.type === "income";
+              // Group separator by date
+              const prevDate = idx > 0 ? formatDate(filteredLedger[idx - 1].date) : null;
+              const thisDate = formatDate(entry.date);
+              const showDateHeader = thisDate !== prevDate;
+
+              return (
+                <div key={`${entry.refId}-${entry.type}-${entry.account}-${idx}`}>
+                  {showDateHeader && (
+                    <div style={{ padding: "10px 0 6px", fontSize: 12, fontWeight: 700, color: "#6366f1", borderBottom: "1px solid #e2e4e9", marginBottom: 4, marginTop: idx > 0 ? 8 : 0 }}>
+                      {thisDate}
+                    </div>
+                  )}
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 10, padding: "8px 4px",
+                    borderBottom: "1px solid #f3f4f6",
+                  }}>
+                    {/* Icon */}
+                    <span style={{ fontSize: 16, flexShrink: 0 }}>{entry.icon}</span>
+                    {/* Info */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                        <Badge color={entry.color}>{entry.category}</Badge>
+                        <span style={{ fontSize: 11, color: "#9ca3af" }}>{entry.account}</span>
+                      </div>
+                      <div style={{ fontSize: 12, color: "#4b5563", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {entry.description}
+                      </div>
+                    </div>
+                    {/* Amount */}
+                    <div style={{ textAlign: "right", flexShrink: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: isIncome ? "#10b981" : "#dc2626" }}>
+                        {isIncome ? "+" : "-"}{formatMoney(entry.amount, entry.currency)}
+                      </div>
+                      {entry.createdBy && <div style={{ fontSize: 10, color: "#9ca3af" }}>{entry.createdBy}</div>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            {filteredLedger.length > ledgerLimit && (
+              <button onClick={() => setLedgerLimit(l => l + 50)} style={{
+                background: "none", border: "1px dashed #6366f133", color: "#6366f1", padding: "10px",
+                borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, width: "100%", marginTop: 8,
+              }}>Mostrar más ({filteredLedger.length - ledgerLimit} restantes)</button>
+            )}
+          </div>
+        )}
       </Card>
 
       {/* Daily closes history */}
