@@ -1,56 +1,171 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { uid, formatMoney, formatDate } from "../helpers.js";
+import { useResponsive } from "../App.jsx";
 import { Modal, Card, Btn, Input, Select, Table, Badge, StatCard } from "./UI.jsx";
-import { WITHDRAW_PERSONS, WITHDRAW_TYPES } from "../constants.js";
+import { WITHDRAW_PERSONS, WITHDRAW_TYPES, BRAND_COLORS } from "../constants.js";
 
-// -- CONSUMO PROPIO --
-export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts, logStock, currentUser, logAudit }) => {
+// -- MERMAS: Consumo propio, Garantías, Canjes --
+export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts, logStock, exchangeRate, currentUser, logAudit }) => {
+  const { isMobile } = useResponsive();
   const [modal, setModal] = useState(false);
-  const [form, setForm] = useState({ productId: "", qty: 1, person: "", withdrawType: "Consumo propio", notes: "", date: new Date().toISOString().slice(0, 10) });
+  const [validationError, setValidationError] = useState("");
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [confirmDel, setConfirmDel] = useState(null);
+  const [form, setForm] = useState({
+    brand: "", model: "", productId: "", qty: 1,
+    person: currentUser?.name || "", withdrawType: "Consumo propio",
+    notes: "", date: new Date().toISOString().slice(0, 10),
+  });
 
-  const save = () => {
-    if (!form.productId || !form.person) return;
-    const prod = products.find(p => p.id === form.productId);
-    if (!prod) return;
-    // Validate stock
-    if (Number(form.qty) > (prod.stock || 0)) {
-      alert(`No hay suficiente stock de ${prod.brand} ${prod.model} - ${prod.flavor}. Disponible: ${prod.stock}, pedido: ${form.qty}`);
-      return;
-    }
-    const costEstimate = Number(prod.priceUSD) || 0;
-    const newId = uid();
-    const withdrawal = { ...form, id: newId, qty: Number(form.qty), costEstimateUSD: costEstimate * Number(form.qty), withdrawType: form.withdrawType, createdBy: currentUser?.name || "" };
-    setWithdrawals(prev => [withdrawal, ...prev]);
-    if (logAudit) logAudit("create", "withdrawal", newId, `Registró merma: ${prod.brand} ${prod.model} - ${prod.flavor} x${form.qty} (${form.withdrawType})`);
-    logStock({ productId: form.productId, type: "consumo", qty: -Number(form.qty), reason: `${form.withdrawType} - ${form.person}`, date: form.date });
-    setProducts(prev => prev.map(p => p.id === form.productId ? { ...p, stock: Math.max(0, (p.stock || 0) - Number(form.qty)) } : p));
-    setModal(false);
-    setForm({ productId: "", qty: 1, person: "", withdrawType: "Consumo propio", notes: "", date: new Date().toISOString().slice(0, 10) });
+  // ---- Cascading picker data ----
+  const availableProducts = useMemo(() => products.filter(p => !p.isDeleted && p.stock > 0), [products]);
+  const brands = useMemo(() => [...new Set(availableProducts.map(p => p.brand))].sort(), [availableProducts]);
+
+  const getModels = useCallback((brand) => {
+    return [...new Set(availableProducts.filter(p => p.brand === brand).map(p => p.model))].sort();
+  }, [availableProducts]);
+
+  const getFlavors = useCallback((brand, model) => {
+    return availableProducts.filter(p => p.brand === brand && p.model === model).sort((a, b) => a.flavor.localeCompare(b.flavor));
+  }, [availableProducts]);
+
+  const selectedProd = form.productId ? products.find(p => p.id === form.productId) : null;
+
+  const updateField = (field, val) => {
+    setForm(f => {
+      const updated = { ...f, [field]: val };
+      if (field === "brand") { updated.model = ""; updated.productId = ""; updated.qty = 1; }
+      if (field === "model") { updated.productId = ""; updated.qty = 1; }
+      return updated;
+    });
   };
 
-  const totalMine = withdrawals.filter(w => w.person === "Diego").reduce((s, w) => s + w.qty, 0);
-  const totalBro = withdrawals.filter(w => w.person === "Gustavo").reduce((s, w) => s + w.qty, 0);
-  const totalCostUSD = withdrawals.reduce((s, w) => s + (w.costEstimateUSD || 0), 0);
-  const totalConsumo = withdrawals.filter(w => !w.withdrawType || w.withdrawType === "Consumo propio").reduce((s, w) => s + w.qty, 0);
-  const totalGarantia = withdrawals.filter(w => w.withdrawType === "Garantía / Devolución").reduce((s, w) => s + w.qty, 0);
-  const totalRegalo = withdrawals.filter(w => w.withdrawType === "Regalo / Canje").reduce((s, w) => s + w.qty, 0);
+  // ---- chip style (same as Sales) ----
+  const chipStyle = (active, color) => ({
+    padding: "7px 14px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer",
+    border: `1.5px solid ${active ? (color || "#6366f1") : "#e2e4e9"}`,
+    background: active ? (color || "#6366f1") : "#fff",
+    color: active ? "#fff" : "#4b5563",
+    transition: "all .15s", whiteSpace: "nowrap",
+  });
+
+  // ---- SAVE ----
+  const save = () => {
+    setValidationError("");
+    if (!form.productId) { setValidationError("Seleccioná un producto."); return; }
+    if (!form.person) { setValidationError("Seleccioná quién consumió."); return; }
+    const prod = products.find(p => p.id === form.productId);
+    if (!prod) return;
+    const qty = Number(form.qty) || 1;
+    if (qty > (prod.stock || 0)) {
+      setValidationError(`Stock insuficiente: ${prod.brand} ${prod.model} - ${prod.flavor}. Disponible: ${prod.stock}`);
+      return;
+    }
+
+    const costPerUnitUSD = Number(prod.priceUSD) || 0;
+    const costTotalUSD = costPerUnitUSD * qty;
+    const costTotalARS = Math.round(costTotalUSD * (exchangeRate || 0));
+    const newId = uid();
+    const dateISO = form.date ? `${form.date}T${new Date().toTimeString().slice(0, 8)}` : new Date().toISOString();
+
+    const withdrawal = {
+      id: newId, productId: form.productId, qty, person: form.person,
+      withdrawType: form.withdrawType, notes: form.notes || "",
+      costEstimateUSD: costTotalUSD, costEstimateARS: costTotalARS,
+      date: dateISO, createdBy: currentUser?.name || "",
+    };
+
+    setWithdrawals(prev => [withdrawal, ...prev]);
+
+    // Deduct stock
+    setProducts(prev => prev.map(p =>
+      p.id === form.productId ? { ...p, stock: Math.max(0, (p.stock || 0) - qty) } : p
+    ));
+
+    // Log stock movement
+    logStock({
+      productId: form.productId, type: "consumo", qty: -qty,
+      reason: `${form.withdrawType} — ${form.person}${form.notes ? `: ${form.notes}` : ""}`,
+      refId: newId, date: dateISO,
+    });
+
+    if (logAudit) {
+      logAudit("create", "withdrawal", newId,
+        `Merma: ${qty}x ${prod.brand} ${prod.model} - ${prod.flavor} · ${form.withdrawType} · ${form.person} · ${formatMoney(costTotalUSD, "USD")}`
+      );
+    }
+
+    setModal(false);
+    setForm({
+      brand: "", model: "", productId: "", qty: 1,
+      person: currentUser?.name || "", withdrawType: "Consumo propio",
+      notes: "", date: new Date().toISOString().slice(0, 10),
+    });
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 2000);
+  };
+
+  // ---- DELETE (soft) ----
+  const deleteWithdrawal = (w) => {
+    if (confirmDel !== w.id) { setConfirmDel(w.id); setTimeout(() => setConfirmDel(null), 3000); return; }
+    // Restore stock
+    setProducts(prev => prev.map(p =>
+      p.id === w.productId && !p.isDeleted ? { ...p, stock: (p.stock || 0) + (w.qty || 1) } : p
+    ));
+    setWithdrawals(prev => prev.map(x =>
+      x.id === w.id ? { ...x, isDeleted: true, deletedAt: new Date().toISOString(), deletedBy: currentUser?.name || "?" } : x
+    ));
+    if (logAudit) {
+      const prod = products.find(p => p.id === w.productId);
+      logAudit("delete", "withdrawal", w.id, `Eliminó merma: ${prod ? `${prod.brand} ${prod.model}` : "?"} x${w.qty}`);
+    }
+    setConfirmDel(null);
+  };
+
+  // ---- Stats (only active) ----
+  const active = withdrawals.filter(w => !w.isDeleted);
+  const totalMine = active.filter(w => w.person === "Diego").reduce((s, w) => s + w.qty, 0);
+  const totalBro = active.filter(w => w.person === "Gustavo").reduce((s, w) => s + w.qty, 0);
+  const totalCostUSD = active.reduce((s, w) => s + (w.costEstimateUSD || 0), 0);
+  const totalConsumo = active.filter(w => !w.withdrawType || w.withdrawType === "Consumo propio").reduce((s, w) => s + w.qty, 0);
+  const totalGarantia = active.filter(w => w.withdrawType === "Garantía / Devolución").reduce((s, w) => s + w.qty, 0);
+  const totalRegalo = active.filter(w => w.withdrawType === "Regalo / Canje").reduce((s, w) => s + w.qty, 0);
+
+  // Cascading picker data for current form
+  const modelsForBrand = form.brand ? getModels(form.brand) : [];
+  const flavorsForModel = form.brand && form.model ? getFlavors(form.brand, form.model) : [];
 
   return (
     <div>
+      {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
-        <h2 style={{ color: "#1a1a2e", margin: 0, fontSize: 22 }}>Mermas (Consumo, Garantías, Canjes)</h2>
+        <div>
+          <h2 style={{ color: "#1a1a2e", margin: 0, fontSize: 22 }}>Mermas</h2>
+          <span style={{ color: "#6b7280", fontSize: 13 }}>Consumo propio, garantías, canjes — {active.length} registros</span>
+        </div>
         <Btn onClick={() => setModal(true)}>+ Registrar Merma</Btn>
       </div>
 
-      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 20 }}>
-        <StatCard label="Diego" value={`${totalMine} uds`} icon="🚬" color="#6366f1" />
-        <StatCard label="Gustavo" value={`${totalBro} uds`} icon="🚬" color="#00b894" />
-        <StatCard label="Consumo" value={`${totalConsumo} uds`} icon="🚬" color="#e17055" />
-        <StatCard label="Garantías" value={`${totalGarantia} uds`} icon="🔄" color="#fdcb6e" />
-        <StatCard label="Regalos/Canjes" value={`${totalRegalo} uds`} icon="🎁" color="#00cec9" />
-        <StatCard label="Valor total" value={formatMoney(totalCostUSD, "USD")} icon="📉" color="#e74c3c" />
+      {/* Success toast */}
+      {showSuccess && (
+        <div style={{
+          position: "fixed", top: 70, left: "50%", transform: "translateX(-50%)", zIndex: 300,
+          background: "#e17055", color: "#fff", padding: "10px 24px", borderRadius: 10,
+          fontSize: 14, fontWeight: 700, boxShadow: "0 4px 16px rgba(225,112,85,0.3)",
+        }}>Merma registrada</div>
+      )}
+
+      {/* Stats */}
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit, minmax(140px, 1fr))", gap: isMobile ? 8 : 14, marginBottom: 20 }}>
+        <StatCard label="Diego" value={`${totalMine} uds`} icon="💜" color="#6366f1" />
+        <StatCard label="Gustavo" value={`${totalBro} uds`} icon="💙" color="#00b894" />
+        <StatCard label="Consumo" value={`${totalConsumo}`} icon="🚬" color="#e17055" />
+        <StatCard label="Garantías" value={`${totalGarantia}`} icon="🔄" color="#fdcb6e" />
+        <StatCard label="Regalos" value={`${totalRegalo}`} icon="🎁" color="#00cec9" />
+        <StatCard label="Pérdida total" value={formatMoney(totalCostUSD, "USD")} sub={exchangeRate ? formatMoney(totalCostUSD * exchangeRate) : ""} icon="📉" color="#e74c3c" />
       </div>
 
+      {/* Table */}
       <Card>
         <Table
           columns={[
@@ -62,25 +177,186 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
             { key: "qty", label: "Cant.", render: r => <Badge color="#e74c3c">{r.qty}</Badge> },
             { key: "type", label: "Tipo", render: r => <Badge color={r.withdrawType === "Garantía / Devolución" ? "#fdcb6e" : r.withdrawType === "Regalo / Canje" ? "#00cec9" : "#e17055"}>{r.withdrawType || "Consumo"}</Badge> },
             { key: "person", label: "Quién", render: r => <Badge color={r.person === "Diego" ? "#a855f7" : "#00b894"}>{r.person}</Badge> },
-            { key: "cost", label: "Valor est.", render: r => formatMoney(r.costEstimateUSD, "USD") },
-            { key: "notes", label: "Nota", render: r => r.notes || "-" },
+            { key: "cost", label: "Pérdida", render: r => (
+              <div>
+                <div style={{ fontWeight: 600, color: "#e74c3c" }}>{formatMoney(r.costEstimateUSD || 0, "USD")}</div>
+                {exchangeRate && <div style={{ fontSize: 11, color: "#9ca3af" }}>{formatMoney((r.costEstimateUSD || 0) * exchangeRate)}</div>}
+              </div>
+            )},
+            { key: "notes", label: "Nota", render: r => r.notes || "—" },
+            { key: "actions", label: "", render: r => (
+              confirmDel === r.id
+                ? <button onClick={() => deleteWithdrawal(r)} style={{ background: "#e74c3c22", border: "1px solid #e74c3c55", color: "#e74c3c", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Confirmar</button>
+                : <button onClick={() => deleteWithdrawal(r)} style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontSize: 14 }}>🗑️</button>
+            )},
           ]}
-          data={withdrawals}
-          emptyMsg="No hay retiros registrados"
+          data={active}
+          emptyMsg="No hay mermas registradas"
+          mobileColumns={["date", "product", "qty", "person", "actions"]}
         />
       </Card>
 
-      <Modal open={modal} onClose={() => setModal(false)} title="Registrar Consumo Propio">
-        <Input label="Fecha" type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
-        <Select label="Producto" options={[...products].filter(p => p.stock > 0).sort((a, b) => a.brand.localeCompare(b.brand) || a.model.localeCompare(b.model) || a.flavor.localeCompare(b.flavor)).map(p => ({ value: p.id, label: `${p.brand} ${p.model} - ${p.flavor} (${p.puffs}p) [${p.stock}]` }))}
-          value={form.productId} onChange={e => setForm(f => ({ ...f, productId: e.target.value }))} />
-        <Input label="Cantidad" type="number" min={1} value={form.qty} onChange={e => setForm(f => ({ ...f, qty: e.target.value }))} />
-        <Select label="Tipo" options={WITHDRAW_TYPES} value={form.withdrawType} onChange={e => setForm(f => ({ ...f, withdrawType: e.target.value }))} />
-        <Select label="¿Quién?" options={WITHDRAW_PERSONS} value={form.person} onChange={e => setForm(f => ({ ...f, person: e.target.value }))} />
-        <Input label="Nota (opcional)" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="ej: para probar sabor nuevo..." />
-        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 16 }}>
-          <Btn variant="secondary" onClick={() => setModal(false)}>Cancelar</Btn>
-          <Btn variant="danger" onClick={save}>Registrar Retiro</Btn>
+      {/* ============================================ */}
+      {/* MODAL — Cascading picker style */}
+      {/* ============================================ */}
+      <Modal open={modal} onClose={() => setModal(false)} title="Registrar Merma">
+
+        {/* Validation error */}
+        {validationError && (
+          <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "8px 12px", marginBottom: 12, color: "#dc2626", fontSize: 13, fontWeight: 600 }}>
+            {validationError}
+          </div>
+        )}
+
+        {/* Who consumed — big buttons */}
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>QUIÉN</div>
+          <div style={{ display: "flex", gap: 10 }}>
+            {WITHDRAW_PERSONS.map(p => (
+              <button key={p} onClick={() => setForm(f => ({ ...f, person: p }))}
+                style={{
+                  flex: 1, padding: "12px", borderRadius: 12, cursor: "pointer", textAlign: "center",
+                  border: "none", outline: `2px solid ${form.person === p ? (p === "Diego" ? "#6366f1" : "#10b981") : "#e2e4e9"}`,
+                  background: form.person === p ? (p === "Diego" ? "#eef2ff" : "#ecfdf5") : "#f9fafb",
+                }}>
+                <div style={{ fontSize: 22, marginBottom: 2 }}>{p === "Diego" ? "💜" : "💙"}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: form.person === p ? (p === "Diego" ? "#6366f1" : "#10b981") : "#4b5563" }}>{p}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Type — chip buttons */}
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>TIPO DE MERMA</div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {WITHDRAW_TYPES.map(t => {
+              const colors = { "Consumo propio": "#e17055", "Garantía / Devolución": "#f59e0b", "Regalo / Canje": "#00cec9" };
+              const icons = { "Consumo propio": "🚬", "Garantía / Devolución": "🔄", "Regalo / Canje": "🎁" };
+              const active = form.withdrawType === t;
+              return (
+                <button key={t} onClick={() => setForm(f => ({ ...f, withdrawType: t }))}
+                  style={{
+                    ...chipStyle(active, colors[t]),
+                    ...(active ? { background: colors[t], borderColor: colors[t] } : {}),
+                  }}>
+                  {icons[t]} {t}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Brand chips */}
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>MARCA</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {brands.map(b => (
+              <button key={b} onClick={() => updateField("brand", b)}
+                style={{
+                  ...chipStyle(form.brand === b),
+                  ...(form.brand === b ? { background: BRAND_COLORS[b] || "#6366f1", borderColor: BRAND_COLORS[b] || "#6366f1" } : {}),
+                }}>{b}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Model chips */}
+        {form.brand && modelsForBrand.length > 0 && (
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>MODELO</div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {modelsForBrand.map(m => {
+                const stockForModel = availableProducts.filter(p => p.brand === form.brand && p.model === m).reduce((s, p) => s + p.stock, 0);
+                return (
+                  <button key={m} onClick={() => updateField("model", m)}
+                    style={chipStyle(form.model === m)}>
+                    {m} <span style={{ opacity: 0.6, fontSize: 11 }}>({stockForModel})</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Flavor chips */}
+        {form.brand && form.model && flavorsForModel.length > 0 && (
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>SABOR ({flavorsForModel.length})</div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", maxHeight: 180, overflowY: "auto" }}>
+              {flavorsForModel.map(p => (
+                <button key={p.id} onClick={() => setForm(f => ({ ...f, productId: p.id }))}
+                  style={{ ...chipStyle(form.productId === p.id), fontSize: 12, padding: "5px 10px" }}>
+                  {p.flavor} <span style={{ opacity: 0.6, fontSize: 10, marginLeft: 2 }}>({p.stock})</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Selected product + qty */}
+        {selectedProd && (
+          <div style={{ background: "#f9fafb", border: "1px solid #e2e4e9", borderRadius: 12, padding: 14, marginBottom: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#1a1a2e" }}>{selectedProd.brand} {selectedProd.model} - {selectedProd.flavor}</div>
+                <div style={{ fontSize: 12, color: "#6b7280" }}>{selectedProd.puffs}p · Stock: {selectedProd.stock}</div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#e74c3c" }}>{formatMoney(selectedProd.priceUSD, "USD")}/u</div>
+                {exchangeRate && <div style={{ fontSize: 11, color: "#9ca3af" }}>{formatMoney(selectedProd.priceUSD * exchangeRate)}/u</div>}
+              </div>
+            </div>
+
+            {/* Quantity picker */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ fontSize: 12, color: "#6b7280", fontWeight: 600 }}>CANTIDAD</div>
+              <button onClick={() => setForm(f => ({ ...f, qty: Math.max(1, (Number(f.qty) || 1) - 1) }))}
+                style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid #e2e4e9", background: "#fff", cursor: "pointer", fontSize: 18, fontWeight: 700 }}>−</button>
+              <span style={{ fontSize: 22, fontWeight: 800, minWidth: 32, textAlign: "center" }}>{form.qty}</span>
+              <button onClick={() => setForm(f => ({ ...f, qty: Math.min(selectedProd.stock, (Number(f.qty) || 1) + 1) }))}
+                style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid #e2e4e9", background: "#fff", cursor: "pointer", fontSize: 18, fontWeight: 700 }}>+</button>
+              <div style={{ marginLeft: "auto", textAlign: "right" }}>
+                <div style={{ fontSize: 16, fontWeight: 800, color: "#e74c3c" }}>{formatMoney(selectedProd.priceUSD * (Number(form.qty) || 1), "USD")}</div>
+                {exchangeRate && <div style={{ fontSize: 12, color: "#9ca3af" }}>{formatMoney(selectedProd.priceUSD * (Number(form.qty) || 1) * exchangeRate)}</div>}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Notes + date */}
+        <Input label="Nota (opcional)" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="ej: para probar sabor nuevo, defectuoso, regalo a cliente..." />
+
+        <button onClick={() => document.getElementById("merma-date-toggle")?.click()} style={{ display: "none" }} />
+        <details style={{ marginBottom: 14 }}>
+          <summary id="merma-date-toggle" style={{ fontSize: 12, color: "#6366f1", cursor: "pointer", fontWeight: 600, marginBottom: 4 }}>
+            Cambiar fecha ({form.date})
+          </summary>
+          <Input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+        </details>
+
+        {/* Cost preview */}
+        {selectedProd && (
+          <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 14px", marginBottom: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <div style={{ fontSize: 11, color: "#dc2626", fontWeight: 600, textTransform: "uppercase" }}>Pérdida estimada</div>
+                <div style={{ fontSize: 11, color: "#9ca3af" }}>Se descuenta del stock y se registra como pérdida</div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color: "#dc2626" }}>{formatMoney(selectedProd.priceUSD * (Number(form.qty) || 1), "USD")}</div>
+                {exchangeRate && <div style={{ fontSize: 13, color: "#e74c3c" }}>{formatMoney(selectedProd.priceUSD * (Number(form.qty) || 1) * exchangeRate)}</div>}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div style={{ display: "flex", gap: 10 }}>
+          <Btn variant="secondary" onClick={() => setModal(false)} style={{ flex: 1 }}>Cancelar</Btn>
+          <Btn variant="danger" onClick={save} style={{ flex: 2 }} disabled={!form.productId || !form.person}>
+            Registrar Merma
+          </Btn>
         </div>
       </Modal>
     </div>
