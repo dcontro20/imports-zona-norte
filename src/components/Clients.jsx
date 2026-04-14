@@ -108,16 +108,17 @@ export const Clients = ({ clients, setClients, sales, products }) => {
       if (c.id !== balanceForm.clientId) return c;
       const balBefore = c.balance || 0;
       let newBalance = balBefore;
-      if (balanceForm.type === "payment") newBalance += amt;
-      else if (balanceForm.type === "credit") newBalance += amt;
-      else if (balanceForm.type === "debit") newBalance -= amt;
+      if (balanceForm.type === "payment" || balanceForm.type === "credit") newBalance += amt;
+      else newBalance -= amt; // "debit" and "settle_credit" both reduce
+      newBalance = Math.round(newBalance * 100) / 100;
+      const typeLabels = { payment: "Pago de deuda", credit: "Crédito agregado", debit: "Deuda agregada", settle_credit: "Crédito liquidado (le pagamos)" };
       const history = [...(c.balanceHistory || []), {
         id: uid(), type: balanceForm.type, amount: amt,
         method: balanceForm.method || "", mpAccount: balanceForm.mpAccount || "",
-        notes: balanceForm.notes || "", date: new Date().toISOString(),
-        balanceBefore: balBefore, balanceAfter: Math.round(newBalance * 100) / 100,
+        notes: balanceForm.notes || (typeLabels[balanceForm.type] || "Ajuste"), date: new Date().toISOString(),
+        balanceBefore: balBefore, balanceAfter: newBalance,
       }];
-      return { ...c, balance: Math.round(newBalance * 100) / 100, balanceHistory: history };
+      return { ...c, balance: newBalance, balanceHistory: history };
     }));
     setBalanceModal(false);
   };
@@ -256,12 +257,10 @@ export const Clients = ({ clients, setClients, sales, products }) => {
               {/* Action buttons */}
               <div style={{ display: "flex", gap: 6, marginTop: 10, justifyContent: "flex-end", flexWrap: "wrap" }}
                 onClick={e => e.stopPropagation()}>
-                {(c.balance || 0) !== 0 && (
-                  <Btn onClick={() => openBalanceAdjust(c)}
-                    style={{ background: (c.balance || 0) < 0 ? "#dc2626" : "#10b981", color: "#fff", fontSize: 11, padding: "4px 10px" }}>
-                    {(c.balance || 0) < 0 ? "Registrar pago" : "Ajustar saldo"}
-                  </Btn>
-                )}
+                <Btn onClick={() => openBalanceAdjust(c)}
+                  style={{ background: (c.balance || 0) < 0 ? "#dc2626" : (c.balance || 0) > 0 ? "#10b981" : "#6366f1", color: "#fff", fontSize: 11, padding: "4px 10px" }}>
+                  {(c.balance || 0) < 0 ? "Registrar pago" : (c.balance || 0) > 0 ? "Ajustar saldo" : "Ajustar saldo"}
+                </Btn>
                 <Btn onClick={() => openEdit(c)}
                   style={{ background: "#f3f4f6", color: "#6b7280", fontSize: 11, padding: "4px 10px" }}>
                   Editar
@@ -381,7 +380,7 @@ export const Clients = ({ clients, setClients, sales, products }) => {
               <div style={{ fontSize: 14, fontWeight: 700, color: "#1a1a2e", marginBottom: 10 }}>Historial de saldo</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {[...(detailClient.balanceHistory || [])].reverse().slice(0, 20).map(h => {
-                  const typeLabels = { payment: "Pago de deuda", credit: "Crédito agregado", debit: "Deuda agregada", sale_credit_used: "Crédito usado en venta", sale_debt: "Deuda por venta", sale_credit_given: "Vuelto como crédito", adjustment: "Ajuste manual" };
+                  const typeLabels = { payment: "Pago de deuda", credit: "Crédito agregado", debit: "Deuda agregada", settle_credit: "Crédito liquidado", sale_credit_used: "Crédito usado en venta", sale_debt: "Deuda por venta", sale_credit_given: "Vuelto como crédito", adjustment: "Ajuste manual" };
                   const isPositive = h.type === "payment" || h.type === "credit" || h.type === "sale_credit_given";
                   return (
                     <div key={h.id} style={{
@@ -445,35 +444,51 @@ export const Clients = ({ clients, setClients, sales, products }) => {
       {balanceModal && (
         <Modal title={`Ajustar saldo — ${balanceForm.clientName}`} onClose={() => setBalanceModal(false)} open={true}>
           {/* Current balance display */}
-          <div style={{ textAlign: "center", marginBottom: 16, padding: "12px", background: "#f9fafb", borderRadius: 10 }}>
+          <div style={{ textAlign: "center", marginBottom: 16, padding: "14px", background: balanceForm.currentBalance > 0 ? "#ecfdf5" : balanceForm.currentBalance < 0 ? "#fef2f2" : "#f9fafb", borderRadius: 12, border: `1px solid ${balanceForm.currentBalance > 0 ? "#bbf7d0" : balanceForm.currentBalance < 0 ? "#fecaca" : "#e2e4e9"}` }}>
             <div style={{ fontSize: 12, color: "#6b7280", textTransform: "uppercase", fontWeight: 600 }}>Saldo actual</div>
             <div style={{
-              fontSize: 28, fontWeight: 800,
+              fontSize: 32, fontWeight: 800,
               color: balanceForm.currentBalance > 0 ? "#10b981" : balanceForm.currentBalance < 0 ? "#dc2626" : "#6b7280",
             }}>
               {balanceForm.currentBalance > 0 ? "+" : ""}{formatMoney(balanceForm.currentBalance)}
             </div>
-            <div style={{ fontSize: 11, color: "#9ca3af" }}>
-              {balanceForm.currentBalance > 0 ? "Le debemos al cliente" : balanceForm.currentBalance < 0 ? "El cliente nos debe" : "Sin saldo"}
+            <div style={{ fontSize: 12, color: "#6b7280", fontWeight: 600 }}>
+              {balanceForm.currentBalance > 0 ? "Le debemos al cliente" : balanceForm.currentBalance < 0 ? "El cliente nos debe" : "Sin saldo pendiente"}
             </div>
           </div>
 
+          {/* Quick action: settle everything */}
+          {balanceForm.currentBalance !== 0 && (
+            <button onClick={() => {
+              const abs = Math.abs(balanceForm.currentBalance);
+              const type = balanceForm.currentBalance < 0 ? "payment" : "settle_credit";
+              setBalanceForm(f => ({ ...f, type, amount: String(abs), notes: balanceForm.currentBalance < 0 ? "Deuda saldada" : "Crédito liquidado" }));
+            }} style={{
+              width: "100%", padding: "12px", borderRadius: 10, cursor: "pointer", marginBottom: 14,
+              border: "2px solid #059669", background: "#f0fdf4", color: "#059669",
+              fontWeight: 700, fontSize: 14, textAlign: "center",
+            }}>
+              ✅ Saldar todo ({formatMoney(Math.abs(balanceForm.currentBalance))})
+            </button>
+          )}
+
           {/* Type selector */}
-          <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+          <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
             {[
-              { key: "payment", label: "Pago de deuda", color: "#10b981", icon: "💰" },
-              { key: "credit", label: "Dar crédito", color: "#6366f1", icon: "🏦" },
-              { key: "debit", label: "Agregar deuda", color: "#dc2626", icon: "📝" },
-            ].map(opt => (
+              { key: "payment", label: "Cliente pagó deuda", color: "#10b981", icon: "💰", show: true },
+              { key: "settle_credit", label: "Le pagamos al cliente", color: "#2563eb", icon: "💸", show: true },
+              { key: "credit", label: "Dar crédito", color: "#6366f1", icon: "🏦", show: true },
+              { key: "debit", label: "Agregar deuda", color: "#dc2626", icon: "📝", show: true },
+            ].filter(o => o.show).map(opt => (
               <button key={opt.key} onClick={() => setBalanceForm(f => ({ ...f, type: opt.key }))}
                 style={{
-                  flex: 1, padding: "10px 6px", borderRadius: 10, cursor: "pointer",
+                  flex: "1 1 45%", padding: "10px 6px", borderRadius: 10, cursor: "pointer",
                   border: `2px solid ${balanceForm.type === opt.key ? opt.color : "#e2e4e9"}`,
                   background: balanceForm.type === opt.key ? `${opt.color}15` : "#fff",
                   color: balanceForm.type === opt.key ? opt.color : "#6b7280",
                   fontWeight: 700, fontSize: 11, textAlign: "center",
                 }}>
-                <div style={{ fontSize: 18, marginBottom: 2 }}>{opt.icon}</div>
+                <div style={{ fontSize: 16, marginBottom: 2 }}>{opt.icon}</div>
                 {opt.label}
               </button>
             ))}
@@ -481,11 +496,11 @@ export const Clients = ({ clients, setClients, sales, products }) => {
 
           <Input label="Monto" type="number" value={balanceForm.amount}
             onChange={e => setBalanceForm(f => ({ ...f, amount: e.target.value }))}
-            placeholder={balanceForm.currentBalance < 0 ? String(Math.abs(balanceForm.currentBalance)) : "ej: 5000"} />
+            placeholder={balanceForm.currentBalance !== 0 ? String(Math.abs(balanceForm.currentBalance)) : "ej: 5000"} />
 
-          {balanceForm.type === "payment" && (
+          {(balanceForm.type === "payment" || balanceForm.type === "settle_credit") && (
             <>
-              <Select label="Medio de pago" options={PAYMENT_METHODS} value={balanceForm.method}
+              <Select label={balanceForm.type === "payment" ? "¿Cómo pagó?" : "¿Cómo le pagamos?"} options={PAYMENT_METHODS} value={balanceForm.method}
                 onChange={e => setBalanceForm(f => ({ ...f, method: e.target.value }))} />
               {balanceForm.method === "Mercado Pago" && (
                 <Select label="Cuenta MP" options={MP_ACCOUNTS} value={balanceForm.mpAccount}
@@ -496,28 +511,29 @@ export const Clients = ({ clients, setClients, sales, products }) => {
 
           <Input label="Notas (opcional)" value={balanceForm.notes}
             onChange={e => setBalanceForm(f => ({ ...f, notes: e.target.value }))}
-            placeholder={balanceForm.type === "payment" ? "ej: Pagó deuda en efectivo" : "ej: Acuerdo especial"} />
+            placeholder={
+              balanceForm.type === "payment" ? "ej: Pagó deuda en efectivo" :
+              balanceForm.type === "settle_credit" ? "ej: Le transferimos lo que le debíamos" :
+              "ej: Acuerdo especial"
+            } />
 
           {/* Preview */}
           {Number(balanceForm.amount) > 0 && (
-            <div style={{ padding: "10px 14px", borderRadius: 10, marginTop: 8, background: "#f9fafb", border: "1px solid #e2e4e9" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-                <span style={{ color: "#6b7280" }}>Saldo después</span>
-                <span style={{ fontWeight: 800, color: (() => {
+            <div style={{ padding: "12px 14px", borderRadius: 10, marginTop: 8, background: "#f9fafb", border: "1px solid #e2e4e9" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ color: "#6b7280", fontSize: 13 }}>Saldo después</span>
+                {(() => {
                   const amt = Number(balanceForm.amount);
                   let nb = balanceForm.currentBalance;
                   if (balanceForm.type === "payment" || balanceForm.type === "credit") nb += amt;
-                  else nb -= amt;
-                  return nb > 0 ? "#10b981" : nb < 0 ? "#dc2626" : "#6b7280";
-                })() }}>
-                  {(() => {
-                    const amt = Number(balanceForm.amount);
-                    let nb = balanceForm.currentBalance;
-                    if (balanceForm.type === "payment" || balanceForm.type === "credit") nb += amt;
-                    else nb -= amt;
-                    return formatMoney(Math.round(nb * 100) / 100);
-                  })()}
-                </span>
+                  else nb -= amt; // debit and settle_credit both reduce balance
+                  nb = Math.round(nb * 100) / 100;
+                  return (
+                    <span style={{ fontSize: 20, fontWeight: 800, color: nb > 0 ? "#10b981" : nb < 0 ? "#dc2626" : "#059669" }}>
+                      {nb === 0 ? "✅ $0 — Saldado" : formatMoney(nb)}
+                    </span>
+                  );
+                })()}
               </div>
             </div>
           )}
