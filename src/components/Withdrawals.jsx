@@ -5,15 +5,18 @@ import { Modal, Card, Btn, Input, Select, Table, Badge, StatCard } from "./UI.js
 import { WITHDRAW_PERSONS, WITHDRAW_TYPES, BRAND_COLORS } from "../constants.js";
 
 // -- MERMAS: Consumo propio, Garantías, Canjes --
-export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts, logStock, exchangeRate, currentUser, logAudit }) => {
+export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts, sales, logStock, exchangeRate, currentUser, logAudit }) => {
   const { isMobile } = useResponsive();
   const [modal, setModal] = useState(false);
   const [validationError, setValidationError] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
   const [confirmDel, setConfirmDel] = useState(null);
+  const [saleSearch, setSaleSearch] = useState("");
+  const [showSaleDropdown, setShowSaleDropdown] = useState(false);
   const [form, setForm] = useState({
     brand: "", model: "", productId: "", qty: 1,
     person: currentUser?.name || "", withdrawType: "Consumo propio",
+    linkedSaleId: "", linkedSaleClient: "", linkedSaleDate: "",
     notes: "", date: new Date().toISOString().slice(0, 10),
   });
 
@@ -30,6 +33,24 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
   }, [availableProducts]);
 
   const selectedProd = form.productId ? products.find(p => p.id === form.productId) : null;
+
+  // Recent sales for warranty linking (last 60 days)
+  const recentSales = useMemo(() => {
+    const cutoff = new Date(Date.now() - 60 * 86400000).toISOString();
+    return (sales || []).filter(s => s.date >= cutoff).sort((a, b) => b.date.localeCompare(a.date));
+  }, [sales]);
+
+  const filteredSales = useMemo(() => {
+    if (!saleSearch || saleSearch.length < 1) return recentSales.slice(0, 10);
+    const q = saleSearch.toLowerCase();
+    return recentSales.filter(s => {
+      const itemNames = (s.items || []).map(i => {
+        const p = products.find(pr => pr.id === i.productId);
+        return p ? `${p.brand} ${p.model} ${p.flavor}` : "";
+      }).join(" ");
+      return itemNames.toLowerCase().includes(q) || (s.clientName || "").toLowerCase().includes(q);
+    }).slice(0, 10);
+  }, [saleSearch, recentSales, products]);
 
   const updateField = (field, val) => {
     setForm(f => {
@@ -73,6 +94,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
       withdrawType: form.withdrawType, notes: form.notes || "",
       costEstimateUSD: costTotalUSD, costEstimateARS: costTotalARS,
       date: dateISO, createdBy: currentUser?.name || "",
+      ...(form.linkedSaleId ? { linkedSaleId: form.linkedSaleId, linkedSaleClient: form.linkedSaleClient, linkedSaleDate: form.linkedSaleDate } : {}),
     };
 
     setWithdrawals(prev => [withdrawal, ...prev]);
@@ -90,8 +112,9 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
     });
 
     if (logAudit) {
+      const linkedInfo = form.linkedSaleId ? ` · Garantía de venta a ${form.linkedSaleClient}` : "";
       logAudit("create", "withdrawal", newId,
-        `Merma: ${qty}x ${prod.brand} ${prod.model} - ${prod.flavor} · ${form.withdrawType} · ${form.person} · ${formatMoney(costTotalUSD, "USD")}`
+        `Merma: ${qty}x ${prod.brand} ${prod.model} - ${prod.flavor} · ${form.withdrawType} · ${form.person} · ${formatMoney(costTotalUSD, "USD")}${linkedInfo}`
       );
     }
 
@@ -99,8 +122,10 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
     setForm({
       brand: "", model: "", productId: "", qty: 1,
       person: currentUser?.name || "", withdrawType: "Consumo propio",
+      linkedSaleId: "", linkedSaleClient: "", linkedSaleDate: "",
       notes: "", date: new Date().toISOString().slice(0, 10),
     });
+    setSaleSearch("");
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 2000);
   };
@@ -183,7 +208,16 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                 {exchangeRate && <div style={{ fontSize: 11, color: "#9ca3af" }}>{formatMoney((r.costEstimateUSD || 0) * exchangeRate)}</div>}
               </div>
             )},
-            { key: "notes", label: "Nota", render: r => r.notes || "—" },
+            { key: "notes", label: "Nota", render: r => (
+              <div>
+                {r.linkedSaleId && (
+                  <div style={{ fontSize: 11, color: "#f59e0b", fontWeight: 600, marginBottom: 2 }}>
+                    🔄 Garantía: {r.linkedSaleClient || "?"} ({formatDate(r.linkedSaleDate)})
+                  </div>
+                )}
+                {r.notes || (r.linkedSaleId ? "" : "—")}
+              </div>
+            )},
             { key: "actions", label: "", render: r => (
               confirmDel === r.id
                 ? <button onClick={() => deleteWithdrawal(r)} style={{ background: "#e74c3c22", border: "1px solid #e74c3c55", color: "#e74c3c", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Confirmar</button>
@@ -235,7 +269,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
               const icons = { "Consumo propio": "🚬", "Garantía / Devolución": "🔄", "Regalo / Canje": "🎁" };
               const active = form.withdrawType === t;
               return (
-                <button key={t} onClick={() => setForm(f => ({ ...f, withdrawType: t }))}
+                <button key={t} onClick={() => { setForm(f => ({ ...f, withdrawType: t, linkedSaleId: "", linkedSaleClient: "", linkedSaleDate: "" })); setSaleSearch(""); }}
                   style={{
                     ...chipStyle(active, colors[t]),
                     ...(active ? { background: colors[t], borderColor: colors[t] } : {}),
@@ -247,9 +281,95 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
           </div>
         </div>
 
+        {/* Warranty: link to original sale */}
+        {form.withdrawType === "Garantía / Devolución" && (
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 11, color: "#f59e0b", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>
+              🔄 VENTA ORIGINAL (¿qué vape salió fallido?)
+            </div>
+
+            {form.linkedSaleId ? (
+              // Selected sale
+              <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 10, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: "#1a1a2e" }}>
+                    {form.linkedSaleClient || "Sin cliente"} — {formatDate(form.linkedSaleDate)}
+                  </div>
+                  <div style={{ fontSize: 12, color: "#6b7280" }}>
+                    {(() => {
+                      const s = (sales || []).find(x => x.id === form.linkedSaleId);
+                      if (!s) return "";
+                      return (s.items || []).map(i => {
+                        const p = products.find(pr => pr.id === i.productId);
+                        return p ? `${p.brand} ${p.model} - ${p.flavor} x${i.qty}` : "?";
+                      }).join(", ");
+                    })()}
+                  </div>
+                </div>
+                <button onClick={() => { setForm(f => ({ ...f, linkedSaleId: "", linkedSaleClient: "", linkedSaleDate: "" })); setSaleSearch(""); }}
+                  style={{ background: "none", border: "none", color: "#9ca3af", cursor: "pointer", fontSize: 16 }}>✕</button>
+              </div>
+            ) : (
+              // Search for sale
+              <div style={{ position: "relative" }}>
+                <input value={saleSearch}
+                  onChange={e => { setSaleSearch(e.target.value); setShowSaleDropdown(true); }}
+                  onFocus={() => setShowSaleDropdown(true)}
+                  placeholder="Buscar por cliente o producto..."
+                  style={{
+                    width: "100%", padding: "10px 14px", background: "#fffbeb", border: "1px solid #fcd34d",
+                    borderRadius: 10, fontSize: 14, outline: "none", boxSizing: "border-box",
+                  }} />
+                {showSaleDropdown && (
+                  <div style={{
+                    position: "absolute", top: "100%", left: 0, right: 0, background: "#fff",
+                    border: "1px solid #e2e4e9", borderRadius: 10, marginTop: 4, zIndex: 50,
+                    maxHeight: 280, overflowY: "auto", boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+                  }}>
+                    {filteredSales.length === 0 ? (
+                      <div style={{ padding: 14, textAlign: "center", color: "#9ca3af", fontSize: 13 }}>
+                        {saleSearch ? `No se encontró "${saleSearch}"` : "No hay ventas recientes"}
+                      </div>
+                    ) : filteredSales.map(s => {
+                      const itemsText = (s.items || []).map(i => {
+                        const p = products.find(pr => pr.id === i.productId);
+                        return p ? `${p.brand} ${p.model} - ${p.flavor}` : "?";
+                      }).join(", ");
+                      return (
+                        <button key={s.id} onClick={() => {
+                          setForm(f => ({ ...f, linkedSaleId: s.id, linkedSaleClient: s.clientName || "Sin cliente", linkedSaleDate: s.date }));
+                          setShowSaleDropdown(false);
+                          setSaleSearch("");
+                        }} style={{
+                          display: "block", width: "100%", padding: "10px 14px", background: "none",
+                          border: "none", borderBottom: "1px solid #f3f4f6", cursor: "pointer", textAlign: "left",
+                        }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <div style={{ fontWeight: 600, fontSize: 13, color: "#1a1a2e" }}>
+                              {s.clientName || "Sin cliente"}
+                            </div>
+                            <span style={{ fontSize: 11, color: "#9ca3af" }}>{formatDate(s.date)}</span>
+                          </div>
+                          <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>{itemsText}</div>
+                          <div style={{ fontSize: 11, color: "#10b981", fontWeight: 600 }}>{formatMoney(s.total, s.currency)}</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+            <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 6 }}>
+              Opcional — vinculá esta garantía con la venta original del vape fallido
+            </div>
+          </div>
+        )}
+
         {/* Brand chips */}
         <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>MARCA</div>
+          <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>
+            {form.withdrawType === "Garantía / Devolución" ? "PRODUCTO DE REEMPLAZO" : "MARCA"}
+          </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {brands.map(b => (
               <button key={b} onClick={() => updateField("brand", b)}
