@@ -293,9 +293,12 @@ export const Sales = ({
       id: saleId,
       items: validItems.map(i => {
         const prod = products.find(p => p.id === i.productId);
+        const unitPriceARS = getItemPrice(i);
         return {
           productId: i.productId, qty: Number(i.qty) || 1,
           priceUSD: prod?.priceUSD || 0,
+          priceARS: unitPriceARS,
+          name: prod ? `${prod.brand} ${prod.model} - ${prod.flavor}` : "",
           ...(i.customPrice !== "" && i.customPrice !== undefined ? { customPrice: Number(i.customPrice) } : {}),
         };
       }),
@@ -1183,15 +1186,22 @@ export const Sales = ({
                 <div style={{ background: "#f9fafb", borderRadius: 8, padding: "8px 10px", marginBottom: 8 }}>
                   {(r.items || []).map((item, idx) => {
                     const p = products.find(pr => pr.id === item.productId);
-                    if (!p) return <div key={idx} style={{ fontSize: 12, color: "#9ca3af" }}>Producto eliminado</div>;
-                    const saleRate = r.exchangeRate || exchangeRate;
-                    const unitPrice = item.customPrice || (r.currency === "USD" ? p.priceUSD : Math.round(p.priceUSD * saleRate));
+                    const prodName = item.name || (p ? `${p.brand} ${p.model} - ${p.flavor}` : "Producto eliminado");
+                    const puffs = p?.puffs || "";
+                    // Use saved priceARS (exact). Fallback: derive from sale total proportionally
+                    const unitPrice = item.priceARS || item.customPrice || (() => {
+                      const totalItems = (r.items || []).length;
+                      if (totalItems === 1) return r.total / (item.qty || 1);
+                      if (!p) return 0;
+                      const saleRate = r.exchangeRate || exchangeRate;
+                      return r.currency === "USD" ? p.priceUSD : Math.round(p.priceUSD * saleRate);
+                    })();
                     return (
                       <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "3px 0", borderBottom: idx < (r.items || []).length - 1 ? "1px solid #edf0f2" : "none" }}>
                         <div>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: "#1a1a2e" }}>{p.brand} {p.model}</span>
-                          <span style={{ fontSize: 12, color: "#6b7280" }}> — {p.flavor}</span>
-                          <span style={{ fontSize: 11, color: "#9ca3af" }}> · {p.puffs}p</span>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: "#1a1a2e" }}>{prodName.split(" - ")[0]}</span>
+                          {prodName.includes(" - ") && <span style={{ fontSize: 12, color: "#6b7280" }}> — {prodName.split(" - ").slice(1).join(" - ")}</span>}
+                          {puffs && <span style={{ fontSize: 11, color: "#9ca3af" }}> · {puffs}p</span>}
                         </div>
                         <div style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                           <span style={{ fontSize: 12, color: "#4b5563" }}>x{item.qty}</span>
