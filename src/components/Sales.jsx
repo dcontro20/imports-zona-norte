@@ -42,7 +42,8 @@ const emptyForm = () => ({
   // Change (vuelto)
   changeAmount: 0, changeMethod: "", changeMpAccount: "",
   // Debt
-  debtAmount: 0, debtDirection: "", // "clientOwes" | "storeOwes"
+  debtAmount: 0, debtDirection: "",
+  debtConfirmed: false, debtReason: "", // "paga_despues" | "precio_acordado"
   notes: "", date: new Date().toISOString().slice(0, 10),
 });
 
@@ -104,7 +105,9 @@ export const Sales = ({
       if (field === "method" && val && updated.length === 1 && !updated[0].amount) {
         updated[0] = { ...updated[0], amount: String(effectiveTotal || finalTotal) };
       }
-      return { ...f, payments: updated };
+      // Reset debt confirmation when amounts change (the difference may flip)
+      const resetDebt = field === "amount" ? { debtConfirmed: false, debtReason: "" } : {};
+      return { ...f, payments: updated, ...resetDebt };
     });
   };
   const fillFullAmount = (i) => {
@@ -266,9 +269,15 @@ export const Sales = ({
         setStep(2); return;
       }
     } else if (difference < 0) {
-      // Underpaid → debt
-      debtAmt = Math.abs(difference);
-      debtDir = "clientOwes";
+      if (!form.debtConfirmed) {
+        setValidationError("Confirmá qué hacer con la diferencia que falta cobrar.");
+        setStep(2); return;
+      }
+      if (form.debtReason === "paga_despues") {
+        debtAmt = Math.abs(difference);
+        debtDir = "clientOwes";
+      }
+      // If "precio_acordado", no debt — the sale total stays as computed but no balance impact
     }
 
     const saleId = editing || uid();
@@ -307,6 +316,7 @@ export const Sales = ({
       changeMpAccount,
       debtAmount: debtAmt,
       debtDirection: debtDir,
+      debtReason: form.debtReason || "",
       totalPaid,
       notes: form.notes,
       date: form.date ? `${form.date}T${new Date().toTimeString().slice(0, 8)}` : new Date().toISOString(),
@@ -341,36 +351,76 @@ export const Sales = ({
       if (logAudit) logAudit("create", "sale", saleId, `Creó venta: ${form.clientName || "sin nombre"} · ${formatMoney(total, form.currency)}`);
     }
 
+    // ---- Helper: reverse a sale's balance impact on a client ----
+    const reverseSaleBalance = (sale, clientId) => {
+      if (!sale || !clientId) return;
+      setClients(prev => prev.map(c => {
+        if (c.id !== clientId) return c;
+        let bal = c.balance || 0;
+        if (sale.debtAmount > 0 && sale.debtDirection === "clientOwes") bal += sale.debtAmount;
+        if (sale.creditUsed > 0) bal += sale.creditUsed;
+        if (sale.changeAmount > 0 && sale.changeMethod === "credit") bal -= sale.changeAmount;
+        return { ...c, balance: Math.round(bal * 100) / 100 };
+      }));
+    };
+
+    // ---- If editing, reverse original sale's balance impact first ----
+    if (editing) {
+      const original = sales.find(s => s.id === editing);
+      if (original && original.clientId) {
+        reverseSaleBalance(original, original.clientId);
+      }
+    }
+
     // ---- Create/update client ----
     if (form.isNewClient && form.clientName) {
       const newClientId = uid();
+      let initialBalance = 0;
+      if (debtDir === "clientOwes") initialBalance = -(debtAmt);
+      if (changeAmt > 0 && changeMethod === "credit") initialBalance = changeAmt;
       const newClient = {
         id: newClientId,
         name: form.clientName,
         phone: form.clientPhone || "",
         instagram: form.clientInstagram || "",
         notes: "",
-        balance: debtDir === "clientOwes" ? -(debtAmt) : changeAmt > 0 ? changeAmt : 0,
+        balance: initialBalance,
+        balanceHistory: [],
       };
-      // If change given as store credit → store owes client
-      if (changeAmt > 0 && changeMethod === "credit") {
-        newClient.balance = changeAmt;
+      // Add balance history entry
+      if (initialBalance !== 0) {
+        newClient.balanceHistory.push({
+          id: uid(), type: initialBalance < 0 ? "sale_debt" : "sale_credit_given",
+          amount: Math.abs(initialBalance), date: saleData.date, saleId,
+          notes: initialBalance < 0 ? "Deuda por venta" : "Vuelto como crédito",
+          balanceBefore: 0, balanceAfter: initialBalance,
+        });
       }
       setClients(prev => [...prev, newClient]);
-      // Update the sale with the new client ID
       setSales(prev => prev.map(s => s.id === saleId ? { ...s, clientId: newClientId } : s));
     } else if (form.clientId) {
       // Update existing client balance
       setClients(prev => prev.map(c => {
         if (c.id !== form.clientId) return c;
-        let newBalance = (c.balance || 0);
-        // Subtract credit used
-        if (creditUsed > 0) newBalance -= creditUsed;
-        // Add debt (client owes → negative balance)
-        if (debtDir === "clientOwes") newBalance -= debtAmt;
-        // Add change as credit if method is "credit"
-        if (changeAmt > 0 && changeMethod === "credit") newBalance += changeAmt;
-        return { ...c, balance: Math.round(newBalance * 100) / 100 };
+        const balBefore = c.balance || 0;
+        let newBalance = balBefore;
+        const history = [...(c.balanceHistory || [])];
+
+        if (creditUsed > 0) {
+          newBalance -= creditUsed;
+          history.push({ id: uid(), type: "sale_credit_used", amount: creditUsed, notes: "Crédito usado en venta", date: saleData.date, saleId, balanceBefore: balBefore, balanceAfter: newBalance });
+        }
+        if (debtDir === "clientOwes" && debtAmt > 0) {
+          const bb = newBalance;
+          newBalance -= debtAmt;
+          history.push({ id: uid(), type: "sale_debt", amount: debtAmt, notes: "Deuda por venta", date: saleData.date, saleId, balanceBefore: bb, balanceAfter: newBalance });
+        }
+        if (changeAmt > 0 && changeMethod === "credit") {
+          const bb = newBalance;
+          newBalance += changeAmt;
+          history.push({ id: uid(), type: "sale_credit_given", amount: changeAmt, notes: "Vuelto como crédito", date: saleData.date, saleId, balanceBefore: bb, balanceAfter: newBalance });
+        }
+        return { ...c, balance: Math.round(newBalance * 100) / 100, balanceHistory: history };
       }));
     }
 
@@ -810,46 +860,127 @@ export const Sales = ({
           </div>
 
           {difference > 0 && (
-            <div style={{ borderTop: "1px solid #fdba74", paddingTop: 8, marginTop: 8 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+            <div style={{ borderTop: "1px solid #fdba74", paddingTop: 10, marginTop: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
                 <span style={{ fontSize: 14, color: "#ea580c", fontWeight: 700 }}>Vuelto a dar</span>
-                <span style={{ fontSize: 16, fontWeight: 800, color: "#ea580c" }}>{formatMoney(difference, form.currency)}</span>
+                <span style={{ fontSize: 18, fontWeight: 800, color: "#ea580c" }}>{formatMoney(difference, form.currency)}</span>
               </div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {[...PAYMENT_METHODS, "A favor (crédito)"].map(m => {
-                  const val = m === "A favor (crédito)" ? "credit" : m;
-                  return (
-                    <button key={m} onClick={() => setForm(f => ({
-                      ...f, changeMethod: val, changeMpAccount: "",
-                    }))} style={{
-                      ...chipStyle(form.changeMethod === val),
-                      fontSize: 12, padding: "5px 10px",
-                    }}>{m}</button>
-                  );
-                })}
+              <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 8, fontWeight: 600 }}>
+                ¿Cómo le devolvés el vuelto?
               </div>
-              {form.changeMethod === "Mercado Pago" && (
-                <div style={{ marginTop: 8 }}>
-                  <Select label="Cuenta MP para vuelto" options={MP_ACCOUNTS} value={form.changeMpAccount} onChange={e => setForm(f => ({ ...f, changeMpAccount: e.target.value }))} />
+
+              {/* Two big action cards */}
+              <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+                <button onClick={() => setForm(f => ({ ...f, changeMethod: f.changeMethod && f.changeMethod !== "credit" ? f.changeMethod : "Pesos Cash", changeMpAccount: "" }))}
+                  style={{
+                    flex: 1, padding: "14px 12px", borderRadius: 12, cursor: "pointer", border: "none",
+                    background: form.changeMethod && form.changeMethod !== "credit" ? "#fff7ed" : "#f9fafb",
+                    outline: form.changeMethod && form.changeMethod !== "credit" ? "2px solid #ea580c" : "2px solid #e2e4e9",
+                    textAlign: "center",
+                  }}>
+                  <div style={{ fontSize: 24, marginBottom: 4 }}>💸</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: form.changeMethod && form.changeMethod !== "credit" ? "#ea580c" : "#4b5563" }}>Devolver vuelto</div>
+                  <div style={{ fontSize: 11, color: "#9ca3af" }}>Efectivo, transferencia, etc.</div>
+                </button>
+                <button onClick={() => setForm(f => ({ ...f, changeMethod: "credit", changeMpAccount: "" }))}
+                  style={{
+                    flex: 1, padding: "14px 12px", borderRadius: 12, cursor: "pointer", border: "none",
+                    background: form.changeMethod === "credit" ? "#eef2ff" : "#f9fafb",
+                    outline: form.changeMethod === "credit" ? "2px solid #6366f1" : "2px solid #e2e4e9",
+                    textAlign: "center",
+                  }}>
+                  <div style={{ fontSize: 24, marginBottom: 4 }}>🏦</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: form.changeMethod === "credit" ? "#6366f1" : "#4b5563" }}>Dejar a favor</div>
+                  <div style={{ fontSize: 11, color: "#9ca3af" }}>Crédito para próxima compra</div>
+                </button>
+              </div>
+
+              {/* Sub-picker: which payment method for return */}
+              {form.changeMethod && form.changeMethod !== "credit" && (
+                <div style={{ background: "#fff7ed", border: "1px solid #fdba74", borderRadius: 10, padding: 12 }}>
+                  <div style={{ fontSize: 11, color: "#ea580c", fontWeight: 600, marginBottom: 8 }}>MEDIO DE DEVOLUCIÓN</div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {PAYMENT_METHODS.map(m => (
+                      <button key={m} onClick={() => setForm(f => ({ ...f, changeMethod: m, changeMpAccount: "" }))}
+                        style={{
+                          padding: "8px 14px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer",
+                          border: `2px solid ${form.changeMethod === m ? "#ea580c" : "#e2e4e9"}`,
+                          background: form.changeMethod === m ? "#ea580c" : "#fff",
+                          color: form.changeMethod === m ? "#fff" : "#4b5563",
+                        }}>{m}</button>
+                    ))}
+                  </div>
+                  {form.changeMethod === "Mercado Pago" && (
+                    <div style={{ marginTop: 10 }}>
+                      <div style={{ fontSize: 11, color: "#ea580c", fontWeight: 600, marginBottom: 6 }}>¿DESDE QUÉ CUENTA?</div>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        {MP_ACCOUNTS.map(acc => (
+                          <button key={acc} onClick={() => setForm(f => ({ ...f, changeMpAccount: acc }))}
+                            style={{
+                              padding: "8px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer",
+                              border: `2px solid ${form.changeMpAccount === acc ? "#ea580c" : "#e2e4e9"}`,
+                              background: form.changeMpAccount === acc ? "#ea580c" : "#fff",
+                              color: form.changeMpAccount === acc ? "#fff" : "#4b5563",
+                            }}>{acc}</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
+
               {form.changeMethod === "credit" && (
-                <div style={{ marginTop: 6, fontSize: 12, color: "#6366f1", fontWeight: 600 }}>
-                  Se guardará como saldo a favor de {form.clientName || "este cliente"} para su próxima compra.
+                <div style={{ background: "#eef2ff", border: "1px solid #c7d2fe", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#6366f1", fontWeight: 600 }}>
+                  Se guardará {formatMoney(difference)} como saldo a favor de {form.clientName || "este cliente"} para su próxima compra.
                 </div>
               )}
             </div>
           )}
 
           {difference < 0 && (
-            <div style={{ borderTop: "1px solid #fecaca", paddingTop: 8, marginTop: 8 }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 14, color: "#dc2626", fontWeight: 700 }}>Queda debiendo</span>
-                <span style={{ fontSize: 16, fontWeight: 800, color: "#dc2626" }}>{formatMoney(Math.abs(difference), form.currency)}</span>
+            <div style={{ borderTop: "1px solid #fecaca", paddingTop: 10, marginTop: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+                <span style={{ fontSize: 14, color: "#dc2626", fontWeight: 700 }}>Falta cobrar</span>
+                <span style={{ fontSize: 18, fontWeight: 800, color: "#dc2626" }}>{formatMoney(Math.abs(difference), form.currency)}</span>
               </div>
-              <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 4 }}>
-                Se registrará como deuda del cliente.
-              </div>
+
+              {!form.debtConfirmed ? (
+                <div style={{ background: "#fef2f2", border: "2px solid #fecaca", borderRadius: 12, padding: 14 }}>
+                  <div style={{ fontSize: 13, color: "#dc2626", fontWeight: 600, marginBottom: 10 }}>
+                    {form.clientName ? `${form.clientName} quedaría debiendo ${formatMoney(Math.abs(difference))}.` : `Faltan ${formatMoney(Math.abs(difference))} por cobrar.`}
+                  </div>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <button onClick={() => setForm(f => ({ ...f, debtConfirmed: true, debtReason: "paga_despues" }))}
+                      style={{
+                        flex: 1, padding: "12px", borderRadius: 10, cursor: "pointer",
+                        border: "2px solid #dc2626", background: "#fef2f2", color: "#dc2626",
+                        fontWeight: 700, fontSize: 13,
+                      }}>Paga el resto después</button>
+                    <button onClick={() => setForm(f => ({ ...f, debtConfirmed: true, debtReason: "precio_acordado" }))}
+                      style={{
+                        flex: 1, padding: "12px", borderRadius: 10, cursor: "pointer",
+                        border: "2px solid #f59e0b", background: "#fffbeb", color: "#b8860b",
+                        fontWeight: 700, fontSize: 13,
+                      }}>Precio acordado</button>
+                  </div>
+                </div>
+              ) : form.debtReason === "paga_despues" ? (
+                <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: 13, color: "#dc2626", fontWeight: 600 }}>
+                    Se registra deuda de {formatMoney(Math.abs(difference))}
+                  </span>
+                  <button onClick={() => setForm(f => ({ ...f, debtConfirmed: false, debtReason: "" }))}
+                    style={{ background: "none", border: "none", color: "#9ca3af", cursor: "pointer", fontSize: 12 }}>Cambiar</button>
+                </div>
+              ) : (
+                <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: 13, color: "#b8860b", fontWeight: 600 }}>
+                    Sin deuda — precio final: {formatMoney(totalPaid)}
+                  </span>
+                  <button onClick={() => setForm(f => ({ ...f, debtConfirmed: false, debtReason: "" }))}
+                    style={{ background: "none", border: "none", color: "#9ca3af", cursor: "pointer", fontSize: 12 }}>Cambiar</button>
+                </div>
+              )}
             </div>
           )}
 
