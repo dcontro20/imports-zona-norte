@@ -47,6 +47,7 @@ const StockLog = lazy(() => import("./components/StockLog.jsx").then(m => ({ def
 const AuditLog = lazy(() => import("./components/AuditLog.jsx").then(m => ({ default: m.AuditLog })));
 const ExchangeMonitor = lazy(() => import("./components/ExchangeMonitor.jsx").then(m => ({ default: m.ExchangeMonitor })));
 const Trash = lazy(() => import("./components/Trash.jsx").then(m => ({ default: m.Trash })));
+const QuickSale = lazy(() => import("./components/QuickSale.jsx").then(m => ({ default: m.QuickSale })));
 
 const LoadingSpinner = () => (
   <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: 60 }}>
@@ -131,6 +132,7 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
   const [showGlobalResults, setShowGlobalResults] = useState(false);
+  const [quickSaleOpen, setQuickSaleOpen] = useState(false);
 
   // ---- All data + sync from custom hook ----
   const sync = useFirebaseSync();
@@ -402,6 +404,35 @@ export default function App() {
             position: "fixed", inset: 0, top: 52, background: "rgba(0,0,0,0.2)", zIndex: 98
           }} />
         )}
+
+        {/* Quick Sale FAB (mobile only) */}
+        {isMobile && !quickSaleOpen && (
+          <button onClick={() => setQuickSaleOpen(true)} style={{
+            position: "fixed", bottom: 24, right: 24, width: 56, height: 56,
+            borderRadius: "50%", background: "#6366f1", border: "none",
+            color: "#fff", fontSize: 24, cursor: "pointer", zIndex: 90,
+            boxShadow: "0 4px 16px rgba(99,102,241,0.4)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }} title="Venta rápida">🛒</button>
+        )}
+
+        {/* Quick Sale Modal */}
+        <Suspense fallback={null}>
+          <QuickSale
+            open={quickSaleOpen}
+            onClose={() => setQuickSaleOpen(false)}
+            products={products}
+            setProducts={setProducts}
+            sales={sales}
+            setSales={setSales}
+            logStock={logStock}
+            exchangeRate={exchangeRate}
+            currentUser={currentUser}
+            logAudit={logAudit}
+            cashMovements={cashMovements}
+            setCashMovements={setCashMovements}
+          />
+        </Suspense>
       </div>
     </AppContext.Provider>
   );

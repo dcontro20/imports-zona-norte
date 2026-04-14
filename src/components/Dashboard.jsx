@@ -165,13 +165,48 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, e
     } else if (daysSince >= 3) {
       list.push({ type: "warning", icon: "🛡️", title: `Último backup hace ${daysSince} días`, detail: "Considerá hacer un backup pronto" });
     }
+    // Popular products out of stock (sold ≥3 units in last 30 days but now at 0)
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 86400000).toISOString();
+    const recentSaleItems = {};
+    sales.filter(s => s.date >= thirtyDaysAgo).forEach(s => {
+      (s.items || []).forEach(item => {
+        recentSaleItems[item.productId] = (recentSaleItems[item.productId] || 0) + (item.qty || 1);
+      });
+    });
+    const popularOutOfStock = outOfStock.filter(p => (recentSaleItems[p.id] || 0) >= 3);
+    if (popularOutOfStock.length > 0) {
+      list.push({ type: "danger", icon: "🔥", title: `${popularOutOfStock.length} popular${popularOutOfStock.length > 1 ? "es" : ""} agotado${popularOutOfStock.length > 1 ? "s" : ""}`, detail: popularOutOfStock.slice(0, 3).map(p => `${p.brand} ${p.model} - ${p.flavor} (${recentSaleItems[p.id]} vendidos/mes)`).join(", ") });
+    }
+
+    // Stock depletion projection — products that will run out in ≤7 days at current rate
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000).toISOString();
+    const weekSaleItems = {};
+    sales.filter(s => s.date >= sevenDaysAgo).forEach(s => {
+      (s.items || []).forEach(item => {
+        weekSaleItems[item.productId] = (weekSaleItems[item.productId] || 0) + (item.qty || 1);
+      });
+    });
+    const willRunOut = products.filter(p => {
+      if (p.stock <= 0 || p.stock > 10) return false;
+      const weekRate = weekSaleItems[p.id] || 0;
+      if (weekRate === 0) return false;
+      const daysLeft = p.stock / (weekRate / 7);
+      return daysLeft <= 7;
+    });
+    if (willRunOut.length > 0) {
+      list.push({ type: "warning", icon: "📉", title: `${willRunOut.length} se agota${willRunOut.length > 1 ? "n" : ""} en ≤7 días`, detail: willRunOut.slice(0, 3).map(p => {
+        const days = Math.round(p.stock / ((weekSaleItems[p.id] || 1) / 7));
+        return `${p.brand} ${p.model} (${p.stock} uds, ~${days}d)`;
+      }).join(", ") });
+    }
+
     // Sin ventas hoy
     const todaySales = sales.filter(s => isToday(s.date));
     if (todaySales.length === 0 && now.getHours() >= 12) {
       list.push({ type: "neutral", icon: "📊", title: "Sin ventas hoy todavía", detail: "Registrá ventas cuando se concreten" });
     }
     return list;
-  }, [outOfStock, lowStock, clients, sales, now]);
+  }, [outOfStock, lowStock, clients, sales, products, now]);
 
   // ===== ACCOUNT BALANCES =====
   const accountBalances = useMemo(() => {
