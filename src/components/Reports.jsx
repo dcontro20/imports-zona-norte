@@ -173,6 +173,50 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, exc
         </div>
       </Card>
 
+      {/* Break-even analysis */}
+      <Card style={{ marginBottom: 14 }}>
+        <h4 style={{ color: "#6366f1", margin: "0 0 14px", fontSize: 14, textTransform: "uppercase" }}>Punto de equilibrio</h4>
+        {(() => {
+          const thisMonth = new Date().getMonth();
+          const thisYear = new Date().getFullYear();
+          const mFilter = (d) => { const dt = new Date(d); return dt.getMonth() === thisMonth && dt.getFullYear() === thisYear; };
+          const monthSales = sales.filter(s => mFilter(s.date));
+          const fixedCosts = expenses.filter(e => mFilter(e.date)).reduce((sum, e) => sum + (e.amountARS || 0), 0);
+          const totalUnits = monthSales.reduce((s, sale) => s + (sale.items || []).reduce((s2, i) => s2 + (i.qty || 0), 0), 0);
+          const totalRevenue = monthSales.reduce((s, sale) => s + (sale.total || 0), 0);
+          const avgPricePerUnit = totalUnits > 0 ? totalRevenue / totalUnits : 0;
+          const avgCostPerUnit = products.reduce((s, p) => s + (p.priceUSD || 0), 0) / Math.max(products.length, 1) * 0.55 * exchangeRate;
+          const marginPerUnit = avgPricePerUnit - avgCostPerUnit;
+          const breakEvenUnits = marginPerUnit > 0 ? Math.ceil(fixedCosts / marginPerUnit) : 0;
+          const breakEvenARS = breakEvenUnits * avgPricePerUnit;
+          const progress = breakEvenUnits > 0 ? Math.min(100, (totalUnits / breakEvenUnits) * 100) : 100;
+          const reached = totalUnits >= breakEvenUnits;
+
+          return (
+            <div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 12, marginBottom: 14 }}>
+                <div><span style={{ color: "#6b7280", fontSize: 12 }}>Gastos fijos mes</span><div style={{ color: "#e74c3c", fontSize: 18, fontWeight: 700 }}>{formatMoney(fixedCosts)}</div></div>
+                <div><span style={{ color: "#6b7280", fontSize: 12 }}>Precio prom/ud</span><div style={{ color: "#1a1a2e", fontSize: 18, fontWeight: 700 }}>{formatMoney(avgPricePerUnit)}</div></div>
+                <div><span style={{ color: "#6b7280", fontSize: 12 }}>Costo prom/ud</span><div style={{ color: "#fdcb6e", fontSize: 18, fontWeight: 700 }}>{formatMoney(avgCostPerUnit)}</div></div>
+                <div><span style={{ color: "#6b7280", fontSize: 12 }}>Margen/ud</span><div style={{ color: "#059669", fontSize: 18, fontWeight: 700 }}>{formatMoney(marginPerUnit)}</div></div>
+              </div>
+              <div style={{ marginBottom: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#4b5563", marginBottom: 4 }}>
+                  <span>Vendiste <b>{totalUnits}</b> uds este mes</span>
+                  <span>Necesitás <b>{breakEvenUnits}</b> para cubrir gastos</span>
+                </div>
+                <div style={{ height: 10, background: "#f0f1f5", borderRadius: 5, overflow: "hidden" }}>
+                  <div style={{ width: `${progress}%`, height: "100%", background: reached ? "#059669" : "#6366f1", borderRadius: 5, transition: "width 0.5s" }} />
+                </div>
+              </div>
+              <div style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: reached ? "#059669" : "#d97706" }}>
+                {reached ? "✅ Punto de equilibrio alcanzado" : `Faltan ${breakEvenUnits - totalUnits} unidades para cubrir gastos`}
+              </div>
+            </div>
+          );
+        })()}
+      </Card>
+
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
         {/* Sales by brand - bar chart */}
         <Card>

@@ -29,6 +29,7 @@ const getFlavorEmojis = (flavor) => {
 
 export const WhatsAppMessage = ({ products, exchangeRate }) => {
   const [copied, setCopied] = useState(false);
+  const [mode, setMode] = useState("full"); // "full" | "short"
 
   // Calculate dynamic ARS prices
   const productsWithDynamicARS = useMemo(() => 
@@ -94,7 +95,29 @@ export const WhatsAppMessage = ({ products, exchangeRate }) => {
     return msg.trim();
   }, [productsWithDynamicARS]);
 
-  const message = useMemo(() => generateMessage(), [generateMessage]);
+  const fullMessage = useMemo(() => generateMessage(), [generateMessage]);
+
+  // Short version for IG stories / status
+  const shortMessage = useMemo(() => {
+    const groups = {};
+    productsWithDynamicARS.filter(p => p.stock > 0).forEach(p => {
+      const key = `${p.brand}|||${p.model}|||${p.puffs}|||${p.priceARS}`;
+      if (!groups[key]) groups[key] = 0;
+      groups[key] += p.stock;
+    });
+    let msg = `🔥 IMPORTS ZONA NORTE 🔥\n\n`;
+    msg += `📦 STOCK DISPONIBLE:\n\n`;
+    Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0])).forEach(([key, stock]) => {
+      const [brand, model, puffs, priceARS] = key.split("|||");
+      msg += `✅ ${brand} ${model} ${Number(puffs).toLocaleString("es-AR")}p — $${Number(priceARS).toLocaleString("es-AR")} (${stock} uds)\n`;
+    });
+    msg += `\n📲 11 6872 5293 / 11 3698 4001\n`;
+    msg += `📥 Envíos a todo el país\n`;
+    msg += `IG: @imports.zonanorte`;
+    return msg;
+  }, [productsWithDynamicARS]);
+
+  const message = mode === "full" ? fullMessage : shortMessage;
 
   const inStockCount = productsWithDynamicARS.filter(p => p.stock > 0).length;
   const outStockCount = products.filter(p => p.stock === 0).length;
@@ -120,9 +143,23 @@ export const WhatsAppMessage = ({ products, exchangeRate }) => {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
         <h2 style={{ color: "#1a1a2e", margin: 0, fontSize: 22 }}>📲 Mensaje WhatsApp</h2>
-        <Btn onClick={copyToClipboard} style={{ background: copied ? "linear-gradient(135deg, #00b894, #00cec9)" : "linear-gradient(135deg, #25d366, #128c7e)" }}>
-          {copied ? "✅ Copiado!" : "📋 Copiar mensaje"}
-        </Btn>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 4, background: "#f0f1f5", borderRadius: 8, padding: 3 }}>
+            <button onClick={() => setMode("full")} style={{
+              padding: "5px 12px", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer",
+              background: mode === "full" ? "#fff" : "transparent", color: mode === "full" ? "#25d366" : "#6b7280",
+              boxShadow: mode === "full" ? "0 1px 3px rgba(0,0,0,0.08)" : "none"
+            }}>Completo</button>
+            <button onClick={() => setMode("short")} style={{
+              padding: "5px 12px", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer",
+              background: mode === "short" ? "#fff" : "transparent", color: mode === "short" ? "#e1306c" : "#6b7280",
+              boxShadow: mode === "short" ? "0 1px 3px rgba(0,0,0,0.08)" : "none"
+            }}>Stories</button>
+          </div>
+          <Btn onClick={copyToClipboard} style={{ background: copied ? "linear-gradient(135deg, #00b894, #00cec9)" : "linear-gradient(135deg, #25d366, #128c7e)" }}>
+            {copied ? "✅ Copiado!" : "📋 Copiar"}
+          </Btn>
+        </div>
       </div>
 
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 20 }}>

@@ -31,6 +31,7 @@ const MOVEMENT_TYPES = [
 export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements, setCashMovements, exchangeRate, setExchangeRate, currentUser, logAudit }) => {
   const [modal, setModal] = useState(false);
   const [moveForm, setMoveForm] = useState({ type: "transfer", from: "", to: "", amount: "", amountUSDT: "", description: "", date: new Date().toISOString().slice(0, 10) });
+  const [showDailyClose, setShowDailyClose] = useState(false);
 
   // Calculate account balances including movements
   // IMPORTANT: All queries must exclude soft-deleted items (!isDeleted)
@@ -108,6 +109,31 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
 
   const getAccountLabel = (id) => ACCOUNTS.find(a => a.id === id)?.label || id;
 
+  // Daily close: snapshot of current balances
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const dailyCloses = (cashMovements || []).filter(m => !m.isDeleted && m.type === "daily_close");
+  const todayAlreadyClosed = dailyCloses.some(m => m.date === todayStr);
+
+  const todaySalesCount = (sales || []).filter(s => !s.isDeleted && (s.date || "").slice(0, 10) === todayStr).length;
+  const todayMovementsCount = (cashMovements || []).filter(m => !m.isDeleted && m.type !== "daily_close" && (m.date || "").slice(0, 10) === todayStr).length;
+
+  const doDailyClose = () => {
+    const snapshot = {};
+    ACCOUNTS.forEach(a => { snapshot[a.id] = Math.round(balances[a.id] * 100) / 100; });
+    const newId = uid();
+    setCashMovements(prev => [{
+      id: newId, type: "daily_close", date: todayStr,
+      description: `Cierre de caja — ${todaySalesCount} ventas, ${todayMovementsCount} movimientos`,
+      snapshot, exchangeRate,
+      totalARS: Math.round(totalARS * 100) / 100,
+      totalUSD: Math.round(totalUSD * 100) / 100,
+      totalUSDT: Math.round(totalUSDT * 100) / 100,
+      createdBy: currentUser?.name || "",
+    }, ...prev]);
+    if (logAudit) logAudit("create", "dailyClose", newId, `Cierre de caja diario: ${todayStr}`);
+    setShowDailyClose(false);
+  };
+
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
@@ -117,8 +143,27 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
           <input type="number" value={exchangeRate} onChange={e => setExchangeRate(Number(e.target.value))}
             style={{ width: 90, padding: "6px 10px", background: "#f7f8fa", border: "1px solid #e2e4e9", borderRadius: 8, color: "#00b894", fontSize: 14, fontWeight: 700 }} />
           <Btn onClick={() => setModal(true)} style={{ padding: "8px 14px" }}>💱 Movimiento</Btn>
+          {!todayAlreadyClosed ? (
+            <Btn variant="success" onClick={() => setShowDailyClose(true)} style={{ padding: "8px 14px" }}>📋 Cerrar caja</Btn>
+          ) : (
+            <Badge color="#059669">✅ Caja cerrada hoy</Badge>
+          )}
         </div>
       </div>
+
+      {/* Daily close confirm */}
+      {showDailyClose && (
+        <Card style={{ marginBottom: 14, background: "#f0fdf4", border: "1px solid #bbf7d0" }}>
+          <h4 style={{ color: "#059669", margin: "0 0 8px", fontSize: 14 }}>📋 Cerrar caja de hoy ({todayStr})</h4>
+          <p style={{ color: "#6b7280", fontSize: 13, margin: "0 0 10px" }}>
+            Se guarda una foto de los saldos actuales. Ventas hoy: {todaySalesCount} · Movimientos hoy: {todayMovementsCount}
+          </p>
+          <div style={{ display: "flex", gap: 10 }}>
+            <Btn variant="success" onClick={doDailyClose}>Confirmar cierre</Btn>
+            <Btn variant="secondary" onClick={() => setShowDailyClose(false)}>Cancelar</Btn>
+          </div>
+        </Card>
+      )}
 
       {/* Totals */}
       <Card style={{ marginBottom: 16, background: "linear-gradient(135deg, #f8f9fc 0%, #f0f1f8 100%)", border: "1px solid #e2e4e9" }}>
@@ -179,8 +224,31 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
             ? <button onClick={() => deleteMovement(r.id)} style={{ background: "#e74c3c22", border: "1px solid #e74c3c55", color: "#e74c3c", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Confirmar</button>
             : <button onClick={() => deleteMovement(r.id)} style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontSize: 14 }}>🗑️</button>
           )},
-        ]} data={(cashMovements || []).filter(m => !m.isDeleted)} emptyMsg="No hay movimientos registrados" />
+        ]} data={(cashMovements || []).filter(m => !m.isDeleted && m.type !== "daily_close")} emptyMsg="No hay movimientos registrados" />
       </Card>
+
+      {/* Daily closes history */}
+      {dailyCloses.length > 0 && (
+        <Card style={{ marginTop: 14 }}>
+          <h4 style={{ color: "#059669", margin: "0 0 14px", fontSize: 14, textTransform: "uppercase" }}>📋 Cierres de caja diarios</h4>
+          {dailyCloses.slice(0, 10).map((dc, i) => (
+            <div key={dc.id} style={{ padding: "10px 0", borderBottom: i < Math.min(dailyCloses.length, 10) - 1 ? "1px solid #f0f1f5" : "none" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <span style={{ fontWeight: 700, color: "#1a1a2e", fontSize: 14 }}>{formatDate(dc.date)}</span>
+                <span style={{ color: "#6b7280", fontSize: 11 }}>por {dc.createdBy} · Blue: ${dc.exchangeRate}</span>
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {dc.snapshot && ACCOUNTS.map(a => (
+                  <span key={a.id} style={{ fontSize: 11, color: "#4b5563", background: "#f9fafb", padding: "3px 8px", borderRadius: 6, border: "1px solid #f0f1f5" }}>
+                    {a.icon} {a.label}: <b style={{ color: a.color }}>{formatMoney(dc.snapshot[a.id] || 0, a.currency)}</b>
+                  </span>
+                ))}
+              </div>
+              <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 4 }}>{dc.description}</div>
+            </div>
+          ))}
+        </Card>
+      )}
 
       {/* Movement Modal */}
       <Modal open={modal} onClose={() => setModal(false)} title="💱 Nuevo Movimiento de Caja">
