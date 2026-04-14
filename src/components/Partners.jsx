@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { uid, formatMoney, formatDate } from "../helpers.js";
+import { calcPartnerBalances } from "../calcs.js";
 import { Modal, Card, Btn, Input, Select, Table, Badge, StatCard } from "./UI.jsx";
 
 // -- PARTNERS --
@@ -27,28 +28,11 @@ export const Partners = ({ partnerWithdrawals, setPartnerWithdrawals, sales, pur
     setConfirmDel(null);
   };
 
-  // Calculate business profit — normalize all currencies to ARS
-  const totalRevenue = sales.reduce((s, sale) => {
-    const cur = sale.currency || "ARS";
-    const amount = sale.total || 0;
-    if (cur === "USD" || cur === "USDT") return s + amount * exchangeRate;
-    return s + amount;
-  }, 0);
-  const totalCosts = purchases.reduce((s, p) => s + (p.totalCostARS || 0), 0);
-  const totalExpenses = expenses.reduce((s, e) => s + (e.amountARS || 0), 0);
-  const consumoValue = (withdrawals || []).reduce((s, w) => s + (w.costEstimateUSD || 0), 0) * exchangeRate;
-  const netProfit = totalRevenue - totalCosts - totalExpenses - consumoValue;
-
-  // Calculate withdrawals per partner
-  const diegoWithdrawals = (partnerWithdrawals || []).filter(w => !w.isDeleted && w.person === "Diego");
-  const gustavoWithdrawals = (partnerWithdrawals || []).filter(w => !w.isDeleted && w.person === "Gustavo");
-  const diegoTotal = diegoWithdrawals.reduce((s, w) => s + (w.currency === "USD" ? w.amount * exchangeRate : w.currency === "USDT" ? w.amount * exchangeRate : w.amount), 0);
-  const gustavoTotal = gustavoWithdrawals.reduce((s, w) => s + (w.currency === "USD" ? w.amount * exchangeRate : w.currency === "USDT" ? w.amount * exchangeRate : w.amount), 0);
-  const totalWithdrawn = diegoTotal + gustavoTotal;
-  const profitRemaining = netProfit - totalWithdrawn;
-  const halfProfit = netProfit / 2;
-  const diegoBalance = halfProfit - diegoTotal;
-  const gustavoBalance = halfProfit - gustavoTotal;
+  // Calculate business profit and partner balances using shared logic
+  const {
+    netProfit, halfProfit, diegoTotal, gustavoTotal,
+    totalWithdrawn, profitRemaining, diegoBalance, gustavoBalance
+  } = calcPartnerBalances(sales, purchases, expenses, withdrawals || [], partnerWithdrawals || [], exchangeRate);
 
   return (
     <div>
