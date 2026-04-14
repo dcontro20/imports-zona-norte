@@ -1141,49 +1141,96 @@ export const Sales = ({
         </Card>
       )}
 
-      {/* Sales table */}
-      <Card>
-        <Table
-          columns={[
-            { key: "date", label: "Fecha", render: r => formatDate(r.date) },
-            { key: "items", label: "Productos", render: r => (r.items || []).map(i => {
-              const p = products.find(pr => pr.id === i.productId);
-              return p ? `${p.brand} ${p.model} (x${i.qty})` : "?";
-            }).join(", ") },
-            { key: "client", label: "Cliente", render: r => (
-              <div>
-                <span>{r.clientName || "-"}</span>
-                {(r.debtAmount || 0) > 0 && <Badge color="#e74c3c">Debe {formatMoney(r.debtAmount)}</Badge>}
-                {(r.changeAmount || 0) > 0 && r.changeMethod === "credit" && <Badge color="#10b981">Crédito {formatMoney(r.changeAmount)}</Badge>}
-              </div>
-            )},
-            { key: "payment", label: "Pago", render: r => {
-              const payments = r.payments || [{ method: r.paymentMethod, amount: r.total }];
-              return payments.map((p, i) => (
-                <div key={i} style={{ fontSize: 12, lineHeight: 1.4 }}>
-                  {p.method}{p.mpAccount ? ` (${p.mpAccount})` : ""}: {formatMoney(Number(p.amount) || 0)}
+      {/* Sales list — rich cards */}
+      {filtered.length === 0 ? (
+        <Card><div style={{ textAlign: "center", padding: 40, color: "#9ca3af" }}>No hay ventas registradas</div></Card>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {filtered.map(r => {
+            const payments = r.payments && r.payments.length > 0 ? r.payments : [{ method: r.paymentMethod, amount: r.total }];
+            const itemCount = (r.items || []).reduce((s, i) => s + (i.qty || 1), 0);
+            return (
+              <Card key={r.id} style={{ padding: isMobile ? "12px" : "16px 20px" }}>
+                {/* Top row: date + total + actions */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                  <div>
+                    <div style={{ fontSize: 12, color: "#6b7280" }}>{formatDate(r.date)}{r.channel ? ` · ${r.channel}` : ""}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2 }}>
+                      {r.clientName && (
+                        <span style={{ fontWeight: 700, fontSize: 15, color: "#1a1a2e" }}>{r.clientName}</span>
+                      )}
+                      {r.createdBy && <Badge color={r.createdBy === "Diego" ? "#6366f1" : "#10b981"}>{r.createdBy}</Badge>}
+                      {r.quickSale && <Badge color="#f59e0b">Rápida</Badge>}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: "#10b981" }}>{formatMoney(r.total, r.currency)}</div>
+                    <div style={{ fontSize: 11, color: "#9ca3af" }}>{itemCount} {itemCount === 1 ? "unidad" : "unidades"}</div>
+                  </div>
                 </div>
-              ));
-            }},
-            { key: "total", label: "Total", render: r => (
-              <span style={{ fontWeight: 700, color: "#10b981" }}>{formatMoney(r.total, r.currency)}</span>
-            )},
-            { key: "actions", label: "", render: r => (
-              <div style={{ display: "flex", gap: 6 }}>
-                <button onClick={(e) => { e.stopPropagation(); repeatSale(r); }} style={{ background: "none", border: "none", color: "#f59e0b", cursor: "pointer", fontSize: 16 }} title="Repetir venta">🔄</button>
-                <button onClick={(e) => { e.stopPropagation(); openEdit(r); }} style={{ background: "none", border: "none", color: "#6366f1", cursor: "pointer", fontSize: 16 }} title="Editar">✏️</button>
-                {confirmDeleteSale === r.id
-                  ? <button onClick={(e) => { e.stopPropagation(); deleteSale(r); }} style={{ background: "#e74c3c22", border: "1px solid #e74c3c55", color: "#e74c3c", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Confirmar</button>
-                  : <button onClick={(e) => { e.stopPropagation(); deleteSale(r); }} style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontSize: 16 }} title="Eliminar">🗑️</button>
-                }
-              </div>
-            )},
-          ]}
-          data={filtered}
-          emptyMsg="No hay ventas registradas"
-          mobileColumns={["date", "items", "client", "total", "actions"]}
-        />
-      </Card>
+
+                {/* Products detail */}
+                <div style={{ background: "#f9fafb", borderRadius: 8, padding: "8px 10px", marginBottom: 8 }}>
+                  {(r.items || []).map((item, idx) => {
+                    const p = products.find(pr => pr.id === item.productId);
+                    if (!p) return <div key={idx} style={{ fontSize: 12, color: "#9ca3af" }}>Producto eliminado</div>;
+                    const unitPrice = item.customPrice || (r.currency === "USD" ? p.priceUSD : Math.round(p.priceUSD * exchangeRate));
+                    return (
+                      <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "3px 0", borderBottom: idx < (r.items || []).length - 1 ? "1px solid #edf0f2" : "none" }}>
+                        <div>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: "#1a1a2e" }}>{p.brand} {p.model}</span>
+                          <span style={{ fontSize: 12, color: "#6b7280" }}> — {p.flavor}</span>
+                          <span style={{ fontSize: 11, color: "#9ca3af" }}> · {p.puffs}p</span>
+                        </div>
+                        <div style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                          <span style={{ fontSize: 12, color: "#4b5563" }}>x{item.qty}</span>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: "#1a1a2e", marginLeft: 8 }}>{formatMoney(unitPrice * item.qty, r.currency)}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Bottom row: payment info + badges + actions */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
+                  <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                    {/* Payment methods */}
+                    {payments.map((pay, i) => (
+                      <span key={i} style={{ fontSize: 11, color: "#4b5563", background: "#f0f1f5", padding: "2px 8px", borderRadius: 6 }}>
+                        {pay.method}{pay.mpAccount ? ` (${pay.mpAccount})` : ""}{payments.length > 1 ? `: ${formatMoney(Number(pay.amount) || 0)}` : ""}
+                      </span>
+                    ))}
+                    {/* Discount badge */}
+                    {(r.discountAmount || 0) > 0 && (
+                      <Badge color="#b8860b">-{formatMoney(r.discountAmount)} desc.</Badge>
+                    )}
+                    {/* Debt/credit badges */}
+                    {(r.debtAmount || 0) > 0 && (
+                      <Badge color="#dc2626">Debe {formatMoney(r.debtAmount)}</Badge>
+                    )}
+                    {(r.changeAmount || 0) > 0 && r.changeMethod === "credit" && (
+                      <Badge color="#6366f1">Crédito {formatMoney(r.changeAmount)}</Badge>
+                    )}
+                    {(r.changeAmount || 0) > 0 && r.changeMethod && r.changeMethod !== "credit" && (
+                      <Badge color="#ea580c">Vuelto {formatMoney(r.changeAmount)} ({r.changeMethod})</Badge>
+                    )}
+                    {r.notes && <span style={{ fontSize: 11, color: "#9ca3af", fontStyle: "italic" }}>"{r.notes}"</span>}
+                  </div>
+                  {/* Action buttons */}
+                  <div style={{ display: "flex", gap: 4 }}>
+                    <button onClick={() => repeatSale(r)} style={{ background: "#fffbeb", border: "1px solid #fcd34d", color: "#b8860b", cursor: "pointer", fontSize: 13, borderRadius: 6, padding: "4px 8px" }} title="Repetir">🔄</button>
+                    <button onClick={() => openEdit(r)} style={{ background: "#eef2ff", border: "1px solid #c7d2fe", color: "#6366f1", cursor: "pointer", fontSize: 13, borderRadius: 6, padding: "4px 8px" }} title="Editar">✏️</button>
+                    {confirmDeleteSale === r.id
+                      ? <button onClick={() => deleteSale(r)} style={{ background: "#dc2626", border: "none", color: "#fff", padding: "4px 10px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 700 }}>Eliminar</button>
+                      : <button onClick={() => deleteSale(r)} style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", cursor: "pointer", fontSize: 13, borderRadius: 6, padding: "4px 8px" }} title="Eliminar">🗑️</button>
+                    }
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       {/* ============================================ */}
       {/* SALE MODAL */}
