@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { formatMoney, formatDate } from "../helpers.js";
+import { calcTotalRevenue } from "../calcs.js";
 import { Card, Badge, Table } from "./UI.jsx";
 import { BRAND_COLORS } from "../constants.js";
 
@@ -158,7 +159,8 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, exc
             const thisMonth = new Date().getMonth();
             const thisYear = new Date().getFullYear();
             const mFilter = (d) => { const dt = new Date(d); return dt.getMonth() === thisMonth && dt.getFullYear() === thisYear; };
-            const rev = sales.filter(s => !s.isDeleted && mFilter(s.date)).reduce((sum, s) => sum + (s.total || 0), 0);
+            const mSales = sales.filter(s => !s.isDeleted && mFilter(s.date));
+            const rev = calcTotalRevenue(mSales, exchangeRate);
             const cost = purchases.filter(p => !p.isDeleted && mFilter(p.date)).reduce((sum, p) => sum + (p.totalCostARS || (p.totalUSDT || 0) * exchangeRate), 0);
             const exp = expenses.filter(e => !e.isDeleted && mFilter(e.date)).reduce((sum, e) => sum + (e.amountARS || 0), 0);
             const discounts = sales.filter(s => !s.isDeleted && mFilter(s.date)).reduce((sum, s) => sum + (s.discountAmount || 0), 0);

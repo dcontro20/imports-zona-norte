@@ -79,7 +79,7 @@ export const ExportData = ({ products, sales, purchases, expenses, withdrawals, 
     const rows = sales.map(s => {
       const items = (s.items || []).map(i => { const p = getProduct(i.productId); return p ? `${p.brand} ${p.model} - ${p.flavor} (x${i.qty})` : `? (x${i.qty})`; }).join(" | ");
       const totalQty = (s.items || []).reduce((sum, i) => sum + (Number(i.qty) || 0), 0);
-      return [formatDate(s.date), s.clientName || "", items, totalQty, s.channel || "", s.paymentMethod || "", s.mpAccount || "", s.currency || "ARS", s.saleExchangeRate || exchangeRate, s.subtotal || s.total, s.discountAmount || 0, s.discountReason || "", s.total, s.totalPaid || "", s.paymentDiff || 0, s.balanceAction || "none"];
+      return [formatDate(s.date), s.clientName || "", items, totalQty, s.channel || "", s.paymentMethod || "", s.mpAccount || "", s.currency || "ARS", s.exchangeRate || exchangeRate, s.subtotal || s.total, s.discountAmount || 0, s.discountReason || "", s.total, s.totalPaid || "", s.paymentDiff || 0, s.balanceAction || "none"];
     });
     download("ventas.csv", toCSV(headers, rows));
   };

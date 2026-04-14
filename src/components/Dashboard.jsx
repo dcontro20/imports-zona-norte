@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { formatMoney, formatDate } from "../helpers.js";
+import { calcTotalRevenue, calcTotalRevenueUSD } from "../calcs.js";
 import { Card, Badge } from "./UI.jsx";
 import { BRAND_COLORS } from "../constants.js";
 import { useResponsive } from "../App.jsx";
@@ -67,14 +68,8 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, e
   const periodPurchases = filterByPeriod(purchases);
   const periodWithdrawals = filterByPeriod(withdrawals || []);
 
-  const revenueARS = periodSales.reduce((sum, s) => {
-    if (s.currency === "USD" || s.currency === "USDT") return sum + s.total * (s.exchangeRate || exchangeRate);
-    return sum + s.total;
-  }, 0);
-  const revenueUSD = periodSales.reduce((sum, s) => {
-    if (s.currency === "ARS") return sum + (s.total / (s.exchangeRate || exchangeRate));
-    return sum + s.total;
-  }, 0);
+  const revenueARS = calcTotalRevenue(periodSales, exchangeRate);
+  const revenueUSD = calcTotalRevenueUSD(periodSales, exchangeRate);
 
   const cogsUSD = periodSales.reduce((sum, s) => sum + (s.items || []).reduce((isum, item) => {
     const prod = products.find(p => p.id === item.productId);

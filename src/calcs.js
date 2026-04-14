@@ -4,13 +4,28 @@
 import { CURRENCIES } from "./constants.js";
 
 /**
- * Calculate total revenue from sales, normalizing all currencies to ARS
+ * Calculate total revenue from sales, normalizing all currencies to ARS.
+ * Uses each sale's own exchangeRate if available, falls back to provided rate.
  */
 export function calcTotalRevenue(sales, exchangeRate) {
   return sales.reduce((sum, sale) => {
     const cur = sale.currency || "ARS";
     const amount = sale.total || 0;
-    if (cur === "USD" || cur === "USDT") return sum + amount * exchangeRate;
+    const rate = sale.exchangeRate || exchangeRate;
+    if (cur === "USD" || cur === "USDT") return sum + amount * rate;
+    return sum + amount;
+  }, 0);
+}
+
+/**
+ * Calculate total revenue in USD from sales.
+ */
+export function calcTotalRevenueUSD(sales, exchangeRate) {
+  return sales.reduce((sum, sale) => {
+    const cur = sale.currency || "ARS";
+    const amount = sale.total || 0;
+    const rate = sale.exchangeRate || exchangeRate;
+    if (cur === "ARS") return sum + (rate > 0 ? amount / rate : 0);
     return sum + amount;
   }, 0);
 }

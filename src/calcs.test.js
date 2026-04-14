@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   calcTotalRevenue,
+  calcTotalRevenueUSD,
   calcTotalCosts,
   calcTotalExpenses,
   calcConsumoValue,
@@ -51,6 +52,36 @@ describe("calcTotalRevenue", () => {
   it("handles null totals", () => {
     const sales = [{ total: null, currency: "ARS" }];
     expect(calcTotalRevenue(sales, RATE)).toBe(0);
+  });
+
+  it("uses per-sale exchangeRate when available", () => {
+    const sales = [
+      { total: 100, currency: "USD", exchangeRate: 1200 },
+      { total: 100, currency: "USD", exchangeRate: 1500 },
+    ];
+    expect(calcTotalRevenue(sales, RATE)).toBe(100 * 1200 + 100 * 1500);
+  });
+
+  it("falls back to provided rate when sale has no exchangeRate", () => {
+    const sales = [{ total: 100, currency: "USD" }];
+    expect(calcTotalRevenue(sales, RATE)).toBe(100 * RATE);
+  });
+});
+
+describe("calcTotalRevenueUSD", () => {
+  it("converts ARS to USD using per-sale rate", () => {
+    const sales = [{ total: 140000, currency: "ARS", exchangeRate: 1400 }];
+    expect(calcTotalRevenueUSD(sales, RATE)).toBe(100);
+  });
+
+  it("keeps USD as-is", () => {
+    const sales = [{ total: 50, currency: "USD" }];
+    expect(calcTotalRevenueUSD(sales, RATE)).toBe(50);
+  });
+
+  it("falls back to provided rate", () => {
+    const sales = [{ total: 14000, currency: "ARS" }];
+    expect(calcTotalRevenueUSD(sales, RATE)).toBe(10);
   });
 });
 
