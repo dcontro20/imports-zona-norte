@@ -3,8 +3,6 @@ import { useResponsive } from "../App.jsx";
 import { formatMoney, formatDate } from "../helpers.js";
 import { Card, Btn, Badge, Modal } from "./UI.jsx";
 import { BRAND_COLORS } from "../constants.js";
-import { saveToFirestore } from "../firebase.js";
-
 // -- PRICE MANAGEMENT --
 export const PriceLog = ({ priceLog, products, setProducts, logPrice, exchangeRate }) => {
   const { isMobile } = useResponsive();
@@ -105,13 +103,10 @@ export const PriceLog = ({ priceLog, products, setProducts, logPrice, exchangeRa
       return changed ? { ...p, ...updates } : p;
     });
 
-    // 3. Update React state for UI
+    // 3. Update React state (smartSave in App.jsx syncs to Firestore)
     setProducts(updatedProducts);
 
-    // 4. DIRECT save to Firestore (bypasses auto-sync guards)
-    saveToFirestore("products", updatedProducts);
-
-    // 5. Log price changes
+    // 4. Log price changes
     priceLogs.forEach(({ productId, oldPrice, newPrice }) => {
       logPrice(productId, oldPrice, newPrice, "USD");
     });

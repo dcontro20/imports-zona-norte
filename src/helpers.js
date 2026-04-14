@@ -1,16 +1,9 @@
 import { CURRENCIES } from "./constants.js";
-import { saveToFirestore } from "./firebase.js";
-
 export const loadData = (key, fallback) => {
   try {
     const d = localStorage.getItem(`vapestock_${key}`);
     return d ? JSON.parse(d) : fallback;
   } catch { return fallback; }
-};
-
-export const saveData = (key, data) => {
-  try { localStorage.setItem(`vapestock_${key}`, JSON.stringify(data)); } catch {}
-  saveToFirestore(key, data);
 };
 
 export const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);

@@ -42,7 +42,7 @@ export const Clients = ({ clients, setClients, sales, products }) => {
     const topClient = clients.reduce((best, c) => {
       const st = clientStats[c.id];
       return st && st.totalSpent > (best.spent || 0) ? { name: c.name, spent: st.totalSpent } : best;
-    }, { nname: "-", spent: 0 });
+    }, { name: "-", spent: 0 });
     return { total: clients.length, activeThisMonth, totalRevenue, topClient: topClient.name };
   }, [clients, sales, clientStats]);
 

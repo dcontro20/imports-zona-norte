@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense, Component } from "react";
 import { saveToFirestore, subscribeToFirestore } from "./firebase.js";
 import { DEFAULT_PRODUCTS } from "./constants.js";
 import { loadData, uid, formatMoney, formatDate } from "./helpers.js";
@@ -53,6 +53,36 @@ const LoadingSpinner = () => (
   </div>
 );
 
+// ErrorBoundary — prevents a crash in one component from killing the entire app
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, info) {
+    console.error("[ErrorBoundary]", error, info.componentStack);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: 40, textAlign: "center" }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+          <h2 style={{ color: "#1a1a2e", marginBottom: 8 }}>Algo salió mal</h2>
+          <p style={{ color: "#6b7280", fontSize: 14, marginBottom: 20 }}>{this.state.error?.message || "Error inesperado"}</p>
+          <button onClick={() => this.setState({ hasError: false, error: null })} style={{
+            padding: "10px 24px", background: "#6366f1", color: "#fff", border: "none",
+            borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: "pointer"
+          }}>Reintentar</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // ============================================
 // MAIN APP
 // ============================================
@@ -81,6 +111,8 @@ export default function App() {
     { name: "Diego", password: "Poncharelo20!", color: "#6366f1", icon: "💜" },
     { name: "Gustavo", password: "Gus2026!", color: "#10b981", icon: "💙" },
   ];
+
+  const { isMobile } = useResponsive();
 
   // ---- ALL HOOKS MUST BE DECLARED BEFORE ANY CONDITIONAL RETURN ----
   const [currentUser, setCurrentUser] = useState(() => {
@@ -113,13 +145,16 @@ export default function App() {
   const [rateAutoLoaded, setRateAutoLoaded] = useState(false);
 
   // Auto-fetch dolar blue venta from dolarapi.com
+  // Only apply if Firestore hasn't already sent a rate (avoids race condition)
   useEffect(() => {
     const fetchBlue = async () => {
       try {
         const res = await fetch("https://dolarapi.com/v1/dolares/blue");
         const data = await res.json();
         if (data && data.venta) {
-          setExchangeRate(data.venta);
+          if (!fromFirestore.current["exchangeRate"]) {
+            setExchangeRate(data.venta);
+          }
           setRateAutoLoaded(true);
         }
       } catch (e) {
@@ -188,6 +223,8 @@ export default function App() {
         fromFirestore.current["exchangeRate"] = true;
         setExchangeRate(data);
       }
+    }, () => {
+      // exchangeRate doc doesn't exist yet — not critical, don't block sync
     });
 
     // If Firestore takes too long, show localStorage data for READING ONLY
@@ -293,6 +330,7 @@ export default function App() {
   const activeSales = useMemo(() => sales.filter(s => !s.isDeleted), [sales]);
   const activePurchases = useMemo(() => purchases.filter(p => !p.isDeleted), [purchases]);
   const activeExpenses = useMemo(() => expenses.filter(e => !e.isDeleted), [expenses]);
+  const activeWithdrawals = useMemo(() => withdrawals.filter(w => !w.isDeleted), [withdrawals]);
   const activeCashMovements = useMemo(() => cashMovements.filter(m => !m.isDeleted), [cashMovements]);
   const activePartnerWithdrawals = useMemo(() => partnerWithdrawals.filter(w => !w.isDeleted), [partnerWithdrawals]);
 
@@ -350,7 +388,7 @@ export default function App() {
 
   const renderPage = () => {
     switch (page) {
-      case "dashboard": return <Dashboard products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={withdrawals} exchangeRate={exchangeRate} />;
+      case "dashboard": return <Dashboard products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} exchangeRate={exchangeRate} />;
       case "products": return <Products products={products} setProducts={setProducts} exchangeRate={exchangeRate} logStock={logStock} logPrice={logPrice} currentUser={currentUser} logAudit={logAudit} />;
       case "sales": return <Sales sales={sales} setSales={setSales} products={products} setProducts={setProducts} logStock={logStock} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} clients={clients} setClients={setClients} cashMovements={cashMovements} setCashMovements={setCashMovements} />;
       case "purchases": return <Purchases purchases={purchases} setPurchases={setPurchases} products={products} setProducts={setProducts} exchangeRate={exchangeRate} logStock={logStock} currentUser={currentUser} logAudit={logAudit} />;
@@ -361,10 +399,10 @@ export default function App() {
       case "whatsapp": return <WhatsAppMessage products={activeProducts} exchangeRate={exchangeRate} />;
       case "stocklog": return <StockLog stockLog={stockLog} setStockLog={setStockLog} products={activeProducts} />;
       case "pricelog": return <PriceLog priceLog={priceLog} products={activeProducts} setProducts={setProducts} logPrice={logPrice} exchangeRate={exchangeRate} />;
-      case "partners": return <Partners partnerWithdrawals={partnerWithdrawals} setPartnerWithdrawals={setPartnerWithdrawals} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={withdrawals} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} />;
-      case "closures": return <MonthlyClosures monthlyClosures={monthlyClosures} setMonthlyClosures={setMonthlyClosures} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={withdrawals} products={activeProducts} exchangeRate={exchangeRate} logAudit={logAudit} />;
-      case "export": return <ExportData products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={withdrawals} cashMovements={activeCashMovements} stockLog={stockLog} exchangeRate={exchangeRate} />;
-      case "reports": return <Reports products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={withdrawals} exchangeRate={exchangeRate} />;
+      case "partners": return <Partners partnerWithdrawals={partnerWithdrawals} setPartnerWithdrawals={setPartnerWithdrawals} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} />;
+      case "closures": return <MonthlyClosures monthlyClosures={monthlyClosures} setMonthlyClosures={setMonthlyClosures} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} products={activeProducts} exchangeRate={exchangeRate} logAudit={logAudit} />;
+      case "export": return <ExportData products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} cashMovements={activeCashMovements} stockLog={stockLog} exchangeRate={exchangeRate} />;
+      case "reports": return <Reports products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} exchangeRate={exchangeRate} />;
       case "audit": return <AuditLog auditLog={auditLog} products={products} />;
       case "trash": return <Trash products={products} setProducts={setProducts} sales={sales} setSales={setSales} purchases={purchases} setPurchases={setPurchases} expenses={expenses} setExpenses={setExpenses} cashMovements={cashMovements} setCashMovements={setCashMovements} partnerWithdrawals={partnerWithdrawals} setPartnerWithdrawals={setPartnerWithdrawals} logAudit={logAudit} currentUser={currentUser} />;
       default: return null;
@@ -385,7 +423,7 @@ export default function App() {
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button onClick={() => setMenuOpen(!menuOpen)} style={{
             background: "none", border: "none", color: "#6366f1", fontSize: 22, cursor: "pointer",
-            display: "none", ...(window.innerWidth < 768 ? { display: "block" } : {})
+            display: isMobile ? "block" : "none"
           }}>☰</button>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 22 }}>💨</span>
@@ -460,7 +498,7 @@ export default function App() {
         <nav style={{
           width: 220, minHeight: "calc(100vh - 52px)", background: "#fff", borderRight: "1px solid #e2e4e9",
           padding: "12px 0", flexShrink: 0,
-          ...(window.innerWidth < 768 ? {
+          ...(isMobile ? {
             position: "fixed", top: 52, left: menuOpen ? 0 : -240, zIndex: 99,
             transition: "left 0.3s", boxShadow: menuOpen ? "4px 0 20px rgba(0,0,0,0.08)" : "none"
           } : {})
@@ -488,9 +526,11 @@ export default function App() {
               <span>Sin conexión a Firebase. Estás viendo datos de caché. Los cambios que hagas <b>no se guardarán</b> hasta que se restablezca la conexión.</span>
             </div>
           )}
-          <Suspense fallback={<LoadingSpinner />}>
-            {renderPage()}
-          </Suspense>
+          <ErrorBoundary>
+            <Suspense fallback={<LoadingSpinner />}>
+              {renderPage()}
+            </Suspense>
+          </ErrorBoundary>
         </main>
       </div>
     </div>

@@ -27,8 +27,13 @@ export const Partners = ({ partnerWithdrawals, setPartnerWithdrawals, sales, pur
     setConfirmDel(null);
   };
 
-  // Calculate business profit
-  const totalRevenue = sales.reduce((s, sale) => s + (sale.total || 0), 0);
+  // Calculate business profit — normalize all currencies to ARS
+  const totalRevenue = sales.reduce((s, sale) => {
+    const cur = sale.currency || "ARS";
+    const amount = sale.total || 0;
+    if (cur === "USD" || cur === "USDT") return s + amount * exchangeRate;
+    return s + amount;
+  }, 0);
   const totalCosts = purchases.reduce((s, p) => s + (p.totalCostARS || 0), 0);
   const totalExpenses = expenses.reduce((s, e) => s + (e.amountARS || 0), 0);
   const consumoValue = (withdrawals || []).reduce((s, w) => s + (w.costEstimateUSD || 0), 0) * exchangeRate;
