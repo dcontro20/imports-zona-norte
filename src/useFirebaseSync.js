@@ -87,9 +87,10 @@ export function useFirebaseSync() {
       if (!firestoreReady.current) {
         setDataReady(true);
         setSyncStatus("offline");
+        // Retry: if Firebase connects later, it will still update via onSnapshot
         console.warn("[SYNC] Firebase no respondió en 8s. Datos visibles son de caché. Escrituras bloqueadas hasta sincronizar.");
       }
-    }, 8000);
+    }, 12000);
 
     return () => { unsubscribers.forEach(u => u()); unsubRate(); clearTimeout(timeout); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
