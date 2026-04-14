@@ -68,6 +68,7 @@ export const Sales = ({
   const [validationError, setValidationError] = useState("");
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
   const [flavorSearch, setFlavorSearch] = useState("");
+  const [editingRate, setEditingRate] = useState(null); // exchange rate locked from the sale being edited
 
   // ---- derived data from products ----
   const availableProducts = useMemo(() => products.filter(p => !p.isDeleted && p.stock > 0), [products]);
@@ -116,13 +117,16 @@ export const Sales = ({
   };
 
   // ---- calculations ----
+  // When editing, use the exchange rate from the original sale (locked at time of sale)
+  const activeRate = editingRate || exchangeRate;
+
   const totalQty = form.items.reduce((s, i) => s + (Number(i.qty) || 0), 0);
 
   const getItemPrice = (item) => {
     if (item.customPrice !== "" && item.customPrice !== undefined) return Number(item.customPrice) || 0;
     const prod = products.find(p => p.id === item.productId);
     if (!prod) return 0;
-    return form.currency === "USD" ? (prod.priceUSD || 0) : Math.round((prod.priceUSD || 0) * exchangeRate);
+    return form.currency === "USD" ? (prod.priceUSD || 0) : Math.round((prod.priceUSD || 0) * activeRate);
   };
 
   const calcSubtotal = () => {
@@ -231,6 +235,7 @@ export const Sales = ({
     });
     if (sale.clientName) setClientSearch(sale.clientName);
     setEditing(sale.id);
+    setEditingRate(sale.exchangeRate || null);
     setStep(1);
     setModal(true);
   };
@@ -320,6 +325,7 @@ export const Sales = ({
       totalPaid,
       notes: form.notes,
       date: form.date ? `${form.date}T${new Date().toTimeString().slice(0, 8)}` : new Date().toISOString(),
+      exchangeRate: activeRate,
       createdBy: currentUser?.name || "",
     };
 
@@ -451,6 +457,7 @@ export const Sales = ({
     setModal(false);
     setForm(emptyForm());
     setEditing(null);
+    setEditingRate(null);
     setStep(1);
     setClientSearch("");
     setValidationError("");
@@ -495,7 +502,7 @@ export const Sales = ({
     const matchDateFrom = !filterDateFrom || s.date >= filterDateFrom;
     const matchDateTo = !filterDateTo || s.date <= filterDateTo;
     return matchSearch && matchChannel && matchPayment && matchDateFrom && matchDateTo;
-  });
+  }).sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 
   const hasActiveFilters = filterChannel || filterPayment || filterDateFrom || filterDateTo;
   const clearFilters = () => { setFilterChannel(""); setFilterPayment(""); setFilterDateFrom(""); setFilterDateTo(""); };
@@ -1154,7 +1161,10 @@ export const Sales = ({
                 {/* Top row: date + total + actions */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                   <div>
-                    <div style={{ fontSize: 12, color: "#6b7280" }}>{formatDate(r.date)}{r.channel ? ` · ${r.channel}` : ""}</div>
+                    <div style={{ fontSize: 12, color: "#6b7280" }}>
+                      {formatDate(r.date)}{r.channel ? ` · ${r.channel}` : ""}
+                      {r.exchangeRate && <span style={{ color: "#9ca3af" }}> · Blue: ${r.exchangeRate}</span>}
+                    </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2 }}>
                       {r.clientName && (
                         <span style={{ fontWeight: 700, fontSize: 15, color: "#1a1a2e" }}>{r.clientName}</span>
@@ -1174,7 +1184,8 @@ export const Sales = ({
                   {(r.items || []).map((item, idx) => {
                     const p = products.find(pr => pr.id === item.productId);
                     if (!p) return <div key={idx} style={{ fontSize: 12, color: "#9ca3af" }}>Producto eliminado</div>;
-                    const unitPrice = item.customPrice || (r.currency === "USD" ? p.priceUSD : Math.round(p.priceUSD * exchangeRate));
+                    const saleRate = r.exchangeRate || exchangeRate;
+                    const unitPrice = item.customPrice || (r.currency === "USD" ? p.priceUSD : Math.round(p.priceUSD * saleRate));
                     return (
                       <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "3px 0", borderBottom: idx < (r.items || []).length - 1 ? "1px solid #edf0f2" : "none" }}>
                         <div>
@@ -1235,7 +1246,15 @@ export const Sales = ({
       {/* ============================================ */}
       {/* SALE MODAL */}
       {/* ============================================ */}
-      <Modal open={modal} onClose={() => { setModal(false); setEditing(null); setStep(1); }} title={editing ? "Editar Venta" : "Nueva Venta"}>
+      <Modal open={modal} onClose={() => { setModal(false); setEditing(null); setEditingRate(null); setStep(1); }} title={editing ? "Editar Venta" : "Nueva Venta"}>
+
+        {/* Exchange rate indicator */}
+        {editing && editingRate && (
+          <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "6px 12px", marginBottom: 12, fontSize: 12, color: "#2563eb", fontWeight: 600, display: "flex", justifyContent: "space-between" }}>
+            <span>Tipo de cambio de esta venta: ${editingRate}</span>
+            {editingRate !== exchangeRate && <span style={{ color: "#9ca3af", fontWeight: 400 }}>Actual: ${exchangeRate}</span>}
+          </div>
+        )}
 
         {/* Step indicator */}
         <div style={{ display: "flex", gap: 0, marginBottom: 18 }}>
