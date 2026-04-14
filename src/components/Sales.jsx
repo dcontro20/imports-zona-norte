@@ -30,10 +30,12 @@ const resolveAccount = (method, mpAccount) => {
 
 const emptyPayment = () => ({ method: "", mpAccount: "", amount: "" });
 
+const getLastChannel = () => { try { return localStorage.getItem("vapestock_lastChannel") || ""; } catch { return ""; } };
+
 const emptyForm = () => ({
   items: [{ brand: "", model: "", productId: "", qty: 1 }],
   clientId: "", clientName: "", clientPhone: "", clientInstagram: "", isNewClient: false,
-  channel: "", currency: "ARS",
+  channel: getLastChannel(), currency: "ARS",
   payments: [emptyPayment()],
   discountType: "none", discountValue: "", discountReason: "",
   extras: [],
@@ -61,6 +63,10 @@ export const Sales = ({
   const [step, setStep] = useState(1); // 1=products, 2=client+payment, 3=review
   const [clientSearch, setClientSearch] = useState("");
   const [showClientDropdown, setShowClientDropdown] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [validationError, setValidationError] = useState("");
+  const [showSaveSuccess, setShowSaveSuccess] = useState(false);
+  const [flavorSearch, setFlavorSearch] = useState("");
 
   // ---- derived data from products ----
   const availableProducts = useMemo(() => products.filter(p => !p.isDeleted && p.stock > 0), [products]);
@@ -85,29 +91,42 @@ export const Sales = ({
       return { ...f, items };
     });
   };
-  const addItem = () => setForm(f => ({ ...f, items: [...f.items, { brand: "", model: "", productId: "", qty: 1 }] }));
+  const addItem = () => setForm(f => ({ ...f, items: [...f.items, { brand: "", model: "", productId: "", qty: 1, customPrice: "" }] }));
   const removeItem = (i) => setForm(f => ({ ...f, items: f.items.filter((_, idx) => idx !== i) }));
 
   // ---- payment management ----
   const addPayment = () => setForm(f => ({ ...f, payments: [...f.payments, emptyPayment()] }));
   const removePayment = (i) => setForm(f => ({ ...f, payments: f.payments.filter((_, idx) => idx !== i) }));
   const updatePayment = (i, field, val) => {
-    setForm(f => ({ ...f, payments: f.payments.map((p, idx) => idx === i ? { ...p, [field]: val } : p) }));
+    setForm(f => {
+      const updated = f.payments.map((p, idx) => idx === i ? { ...p, [field]: val } : p);
+      // Auto-fill amount when picking method on single payment with empty amount
+      if (field === "method" && val && updated.length === 1 && !updated[0].amount) {
+        updated[0] = { ...updated[0], amount: String(effectiveTotal || finalTotal) };
+      }
+      return { ...f, payments: updated };
+    });
+  };
+  const fillFullAmount = (i) => {
+    const remaining = (effectiveTotal || finalTotal) - form.payments.reduce((s, p, idx) => idx === i ? s : s + (Number(p.amount) || 0), 0);
+    updatePayment(i, "amount", String(Math.max(0, Math.round(remaining))));
   };
 
   // ---- calculations ----
   const totalQty = form.items.reduce((s, i) => s + (Number(i.qty) || 0), 0);
 
+  const getItemPrice = (item) => {
+    if (item.customPrice !== "" && item.customPrice !== undefined) return Number(item.customPrice) || 0;
+    const prod = products.find(p => p.id === item.productId);
+    if (!prod) return 0;
+    return form.currency === "USD" ? (prod.priceUSD || 0) : Math.round((prod.priceUSD || 0) * exchangeRate);
+  };
+
   const calcSubtotal = () => {
-    let total = 0;
-    form.items.forEach(item => {
-      const prod = products.find(p => p.id === item.productId);
-      if (prod) {
-        const price = form.currency === "USD" ? (prod.priceUSD || 0) : Math.round((prod.priceUSD || 0) * exchangeRate);
-        total += price * (Number(item.qty) || 0);
-      }
-    });
-    return total;
+    return form.items.reduce((total, item) => {
+      if (!item.productId) return total;
+      return total + getItemPrice(item) * (Number(item.qty) || 0);
+    }, 0);
   };
 
   const calcDiscount = (sub) => {
@@ -131,8 +150,8 @@ export const Sales = ({
 
   // ---- payment totals ----
   const totalPaid = form.payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
-  const effectiveTotal = finalTotal - (clientCredit > 0 ? Math.min(clientCredit, finalTotal) : 0);
   const creditUsed = clientCredit > 0 ? Math.min(clientCredit, finalTotal) : 0;
+  const effectiveTotal = Math.max(0, finalTotal - creditUsed);
   const difference = totalPaid - effectiveTotal; // positive = overpaid (change), negative = underpaid (debt)
 
   const autoVolume = totalQty >= 3 && form.discountType === "none";
@@ -154,6 +173,24 @@ export const Sales = ({
     setEditing(null);
     setStep(1);
     setClientSearch("");
+    setModal(true);
+  };
+
+  const repeatSale = (sale) => {
+    const items = (sale.items || []).map(i => {
+      const prod = products.find(p => p.id === i.productId);
+      return { brand: prod?.brand || "", model: prod?.model || "", productId: i.productId || "", qty: i.qty || 1 };
+    });
+    setForm({
+      ...emptyForm(),
+      items: items.length > 0 ? items : [{ brand: "", model: "", productId: "", qty: 1 }],
+      clientId: sale.clientId || "", clientName: sale.clientName || "",
+      channel: sale.channel || getLastChannel(),
+      currency: sale.currency || "ARS",
+    });
+    if (sale.clientName) setClientSearch(sale.clientName);
+    setEditing(null);
+    setStep(1);
     setModal(true);
   };
 
@@ -197,8 +234,9 @@ export const Sales = ({
 
   // ---- SAVE ----
   const save = () => {
+    setValidationError("");
     // Validate: at least 1 product selected
-    if (form.items.every(i => !i.productId)) return alert("Seleccioná al menos un producto.");
+    if (form.items.every(i => !i.productId)) { setValidationError("Seleccioná al menos un producto."); setStep(1); return; }
     const validItems = form.items.filter(i => i.productId);
 
     // Validate stock
@@ -212,8 +250,8 @@ export const Sales = ({
       if (!prod) continue;
       const available = (prod.stock || 0) + (stockCheck[item.productId] || 0);
       if (item.qty > available) {
-        alert(`No hay suficiente stock de ${prod.brand} ${prod.model} - ${prod.flavor}. Disponible: ${available}, pedido: ${item.qty}`);
-        return;
+        setValidationError(`Stock insuficiente: ${prod.brand} ${prod.model} - ${prod.flavor}. Disponible: ${available}, pedido: ${item.qty}`);
+        setStep(1); return;
       }
     }
 
@@ -224,8 +262,8 @@ export const Sales = ({
       // Customer overpaid → change (vuelto)
       changeAmt = difference;
       if (!changeMethod) {
-        alert("El cliente pagó de más. Elegí cómo darle el vuelto.");
-        return;
+        setValidationError("El cliente pagó de más. Elegí cómo darle el vuelto.");
+        setStep(2); return;
       }
     } else if (difference < 0) {
       // Underpaid → debt
@@ -239,7 +277,14 @@ export const Sales = ({
     // Build sale data
     const saleData = {
       id: saleId,
-      items: validItems.map(i => ({ productId: i.productId, qty: Number(i.qty) || 1 })),
+      items: validItems.map(i => {
+        const prod = products.find(p => p.id === i.productId);
+        return {
+          productId: i.productId, qty: Number(i.qty) || 1,
+          priceUSD: prod?.priceUSD || 0,
+          ...(i.customPrice !== "" && i.customPrice !== undefined ? { customPrice: Number(i.customPrice) } : {}),
+        };
+      }),
       clientId: form.clientId || "",
       clientName: form.clientName || "",
       channel: form.channel,
@@ -264,17 +309,17 @@ export const Sales = ({
       debtDirection: debtDir,
       totalPaid,
       notes: form.notes,
-      date: form.date || new Date().toISOString(),
+      date: form.date ? `${form.date}T${new Date().toTimeString().slice(0, 8)}` : new Date().toISOString(),
       createdBy: currentUser?.name || "",
     };
 
     // ---- Execute ----
     if (editing) {
-      // Restore stock from original
+      // Restore stock from original (only for non-deleted products)
       const original = sales.find(s => s.id === editing);
       if (original) {
         (original.items || []).forEach(item => {
-          setProducts(prev => prev.map(p => p.id === item.productId ? { ...p, stock: (p.stock || 0) + item.qty } : p));
+          setProducts(prev => prev.map(p => p.id === item.productId && !p.isDeleted ? { ...p, stock: (p.stock || 0) + item.qty } : p));
         });
       }
     }
@@ -350,11 +395,17 @@ export const Sales = ({
       }
     }
 
+    // Remember last channel
+    if (form.channel) { try { localStorage.setItem("vapestock_lastChannel", form.channel); } catch {} }
+
     setModal(false);
     setForm(emptyForm());
     setEditing(null);
     setStep(1);
     setClientSearch("");
+    setValidationError("");
+    setShowSaveSuccess(true);
+    setTimeout(() => setShowSaveSuccess(false), 2000);
   };
 
   // ---- DELETE ----
@@ -362,13 +413,20 @@ export const Sales = ({
   const deleteSale = (sale) => {
     if (confirmDeleteSale !== sale.id) { setConfirmDeleteSale(sale.id); setTimeout(() => setConfirmDeleteSale(null), 3000); return; }
     setConfirmDeleteSale(null);
-    // Restore stock
+    // Restore stock (only non-deleted products)
     (sale.items || []).forEach(item => {
-      setProducts(prev => prev.map(p => p.id === item.productId ? { ...p, stock: (p.stock || 0) + (item.qty || 1) } : p));
+      setProducts(prev => prev.map(p => p.id === item.productId && !p.isDeleted ? { ...p, stock: (p.stock || 0) + (item.qty || 1) } : p));
     });
-    // Restore client balance if there was debt
-    if (sale.clientId && sale.debtAmount > 0) {
-      setClients(prev => prev.map(c => c.id === sale.clientId ? { ...c, balance: (c.balance || 0) + sale.debtAmount } : c));
+    // Restore client balance: undo debt, credit used, and change-as-credit
+    if (sale.clientId) {
+      setClients(prev => prev.map(c => {
+        if (c.id !== sale.clientId) return c;
+        let bal = c.balance || 0;
+        if (sale.debtAmount > 0) bal += sale.debtAmount; // undo debt
+        if (sale.creditUsed > 0) bal += sale.creditUsed; // restore credit that was consumed
+        if (sale.changeAmount > 0 && sale.changeMethod === "credit") bal -= sale.changeAmount; // undo credit given as change
+        return { ...c, balance: Math.round(bal * 100) / 100 };
+      }));
     }
     setSales(prev => prev.map(s => s.id === sale.id ? { ...s, isDeleted: true, deletedAt: new Date().toISOString(), deletedBy: currentUser?.name || "?" } : s));
     if (logAudit) logAudit("delete", "sale", sale.id, `Eliminó venta: ${sale.clientName || "sin nombre"} · ${formatMoney(sale.total, sale.currency)}`);
@@ -473,28 +531,39 @@ export const Sales = ({
               </div>
             )}
 
-            {/* Row 3: Flavor picker */}
-            {item.brand && item.model && flavorsForModel.length > 0 && (
-              <div style={{ marginBottom: 10 }}>
-                <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 6, fontWeight: 600 }}>SABOR</div>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {flavorsForModel.map(p => (
-                    <button key={p.id} onClick={() => updateItem(i, "productId", p.id)}
-                      style={{
-                        ...chipStyle(item.productId === p.id),
-                        fontSize: 12,
-                        padding: "5px 10px",
-                      }}>
-                      {p.flavor} <span style={{ opacity: 0.6, fontSize: 10, marginLeft: 2 }}>({p.stock})</span>
-                    </button>
-                  ))}
+            {/* Row 3: Flavor picker with search */}
+            {item.brand && item.model && flavorsForModel.length > 0 && (() => {
+              const filteredFlavors = flavorSearch
+                ? flavorsForModel.filter(p => p.flavor.toLowerCase().includes(flavorSearch.toLowerCase()))
+                : flavorsForModel;
+              return (
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 6, fontWeight: 600 }}>SABOR ({flavorsForModel.length})</div>
+                  {flavorsForModel.length >= 8 && (
+                    <input value={flavorSearch} onChange={e => setFlavorSearch(e.target.value)}
+                      placeholder="Filtrar sabor..."
+                      style={{ width: "100%", padding: "7px 10px", background: "#fff", border: "1px solid #e2e4e9", borderRadius: 8, fontSize: 13, outline: "none", marginBottom: 8, boxSizing: "border-box" }} />
+                  )}
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", maxHeight: 180, overflowY: "auto" }}>
+                    {filteredFlavors.map(p => (
+                      <button key={p.id} onClick={() => { updateItem(i, "productId", p.id); setFlavorSearch(""); }}
+                        style={{
+                          ...chipStyle(item.productId === p.id),
+                          fontSize: 12,
+                          padding: "5px 10px",
+                        }}>
+                        {p.flavor} <span style={{ opacity: 0.6, fontSize: 10, marginLeft: 2 }}>({p.stock})</span>
+                      </button>
+                    ))}
+                    {filteredFlavors.length === 0 && <span style={{ color: "#9ca3af", fontSize: 12 }}>Sin resultados</span>}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Row 4: Qty + price */}
             {selectedProd && (
-              <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <button onClick={() => updateItem(i, "qty", Math.max(1, (item.qty || 1) - 1))}
                     style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid #e2e4e9", background: "#fff", cursor: "pointer", fontSize: 16, fontWeight: 700 }}>−</button>
@@ -502,14 +571,17 @@ export const Sales = ({
                   <button onClick={() => updateItem(i, "qty", Math.min(selectedProd.stock, (item.qty || 1) + 1))}
                     style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid #e2e4e9", background: "#fff", cursor: "pointer", fontSize: 16, fontWeight: 700 }}>+</button>
                 </div>
-                <div style={{ fontSize: 13, color: "#6b7280" }}>
-                  {priceDisplay}/u · Stock: <strong>{selectedProd.stock}</strong> · {selectedProd.puffs}p
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <input type="number" value={item.customPrice !== undefined && item.customPrice !== "" ? item.customPrice : ""}
+                    onChange={e => updateItem(i, "customPrice", e.target.value)}
+                    placeholder={String(priceDisplay.replace(/[^\d]/g, ""))}
+                    style={{ width: 75, padding: "4px 6px", border: "1px solid #e2e4e9", borderRadius: 6, fontSize: 13, textAlign: "center", background: item.customPrice ? "#fff7ed" : "#fff" }}
+                  />
+                  <span style={{ fontSize: 11, color: "#9ca3af" }}>/u</span>
                 </div>
+                <span style={{ fontSize: 11, color: "#9ca3af" }}>Stock: {selectedProd.stock}</span>
                 <div style={{ marginLeft: "auto", fontSize: 16, fontWeight: 800, color: "#10b981" }}>
-                  {form.currency === "USD"
-                    ? formatMoney(selectedProd.priceUSD * (item.qty || 1), "USD")
-                    : formatMoney(Math.round(selectedProd.priceUSD * exchangeRate) * (item.qty || 1))
-                  }
+                  {formatMoney(getItemPrice(item) * (item.qty || 1), form.currency)}
                 </div>
               </div>
             )}
@@ -690,10 +762,17 @@ export const Sales = ({
               <Select label={i === 0 ? "Cuenta" : ""} options={MP_ACCOUNTS} value={pay.mpAccount} onChange={e => updatePayment(i, "mpAccount", e.target.value)} />
             </div>
           )}
-          <div style={{ flex: 0.6, minWidth: 100 }}>
+          <div style={{ flex: 0.6, minWidth: 100, position: "relative" }}>
             <Input label={i === 0 ? "Monto" : ""} type="number" value={pay.amount}
               onChange={e => updatePayment(i, "amount", e.target.value)}
-              placeholder={i === 0 && form.payments.length === 1 ? String(effectiveTotal) : ""} />
+              placeholder={String(Math.round(effectiveTotal || finalTotal))} />
+            {!pay.amount && (
+              <button onClick={() => fillFullAmount(i)} style={{
+                position: "absolute", right: 6, bottom: 18, background: "#6366f1", color: "#fff",
+                border: "none", borderRadius: 6, padding: "3px 8px", fontSize: 10, fontWeight: 700,
+                cursor: "pointer", lineHeight: 1.3,
+              }}>Total</button>
+            )}
           </div>
           {form.payments.length > 1 && (
             <button onClick={() => removePayment(i)} style={{
@@ -895,6 +974,16 @@ export const Sales = ({
         </div>
       </div>
 
+      {/* Success toast */}
+      {showSaveSuccess && (
+        <div style={{
+          position: "fixed", top: 70, left: "50%", transform: "translateX(-50%)", zIndex: 300,
+          background: "#059669", color: "#fff", padding: "10px 24px", borderRadius: 10,
+          fontSize: 14, fontWeight: 700, boxShadow: "0 4px 16px rgba(5,150,105,0.3)",
+          animation: "fadeIn 0.2s ease",
+        }}>✅ Venta registrada</div>
+      )}
+
       {/* Filter bar */}
       {showFilters && (
         <Card style={{ marginBottom: 14, background: "#f7f8fa" }}>
@@ -950,6 +1039,7 @@ export const Sales = ({
             )},
             { key: "actions", label: "", render: r => (
               <div style={{ display: "flex", gap: 6 }}>
+                <button onClick={(e) => { e.stopPropagation(); repeatSale(r); }} style={{ background: "none", border: "none", color: "#f59e0b", cursor: "pointer", fontSize: 16 }} title="Repetir venta">🔄</button>
                 <button onClick={(e) => { e.stopPropagation(); openEdit(r); }} style={{ background: "none", border: "none", color: "#6366f1", cursor: "pointer", fontSize: 16 }} title="Editar">✏️</button>
                 {confirmDeleteSale === r.id
                   ? <button onClick={(e) => { e.stopPropagation(); deleteSale(r); }} style={{ background: "#e74c3c22", border: "1px solid #e74c3c55", color: "#e74c3c", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Confirmar</button>
@@ -960,7 +1050,7 @@ export const Sales = ({
           ]}
           data={filtered}
           emptyMsg="No hay ventas registradas"
-          mobileColumns={["date", "items", "total", "actions"]}
+          mobileColumns={["date", "items", "client", "total", "actions"]}
         />
       </Card>
 
@@ -987,9 +1077,29 @@ export const Sales = ({
           ))}
         </div>
 
-        <Input label="Fecha" type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+        {/* Advanced options (fecha, moneda) — collapsed by default */}
+        <button onClick={() => setShowAdvanced(!showAdvanced)} style={{
+          background: "none", border: "none", color: "#6366f1", fontSize: 12, fontWeight: 600,
+          cursor: "pointer", marginBottom: showAdvanced ? 8 : 14, display: "flex", alignItems: "center", gap: 4,
+        }}>
+          {showAdvanced ? "▾" : "▸"} Fecha y moneda
+          {(form.currency !== "ARS" || form.date !== new Date().toISOString().slice(0, 10)) && (
+            <span style={{ color: "#f59e0b", fontSize: 10 }}>● modificado</span>
+          )}
+        </button>
+        {showAdvanced && (
+          <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
+            <div style={{ flex: 1 }}><Input label="Fecha" type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} /></div>
+            <div style={{ flex: 1 }}><Select label="Moneda" options={["ARS", "USD", "USDT"]} value={form.currency} onChange={e => setForm(f => ({ ...f, currency: e.target.value }))} /></div>
+          </div>
+        )}
 
-        <Select label="Moneda" options={["ARS", "USD", "USDT"]} value={form.currency} onChange={e => setForm(f => ({ ...f, currency: e.target.value }))} />
+        {/* Validation error */}
+        {validationError && (
+          <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "8px 12px", marginBottom: 12, color: "#dc2626", fontSize: 13, fontWeight: 600 }}>
+            {validationError}
+          </div>
+        )}
 
         {/* Step 1: Products */}
         {step === 1 && (
@@ -1000,7 +1110,9 @@ export const Sales = ({
             {renderTotals()}
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 12 }}>
               <Btn variant="secondary" onClick={() => { setModal(false); setEditing(null); }}>Cancelar</Btn>
-              <Btn onClick={() => setStep(2)} style={{ background: "#6366f1" }}>
+              <Btn onClick={() => { setValidationError(""); setStep(2); }}
+                disabled={form.items.every(i => !i.productId)}
+                style={{ background: form.items.some(i => i.productId) ? "#6366f1" : "#c7c7c7" }}>
                 Siguiente: Cliente & Pago →
               </Btn>
             </div>
