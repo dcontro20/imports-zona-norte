@@ -240,11 +240,13 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
         <h2 style={{ color: "#1a1a2e", margin: 0, fontSize: 22 }}>Caja Multi-Moneda</h2>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ color: "#6b7280", fontSize: 13 }}>Blue:</span>
-          <input type="number" value={exchangeRate} onChange={e => setExchangeRate(Number(e.target.value))}
-            style={{ width: 90, padding: "6px 10px", background: "#f7f8fa", border: "1px solid #e2e4e9", borderRadius: 8, color: "#00b894", fontSize: 14, fontWeight: 700 }} />
-          <Btn onClick={() => setModal(true)} style={{ padding: "8px 14px" }}>💱 Movimiento</Btn>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          {!isMobile && <>
+            <span style={{ color: "#6b7280", fontSize: 13 }}>Blue:</span>
+            <input type="number" value={exchangeRate} onChange={e => setExchangeRate(Number(e.target.value))}
+              style={{ width: 80, padding: "6px 10px", background: "#f7f8fa", border: "1px solid #e2e4e9", borderRadius: 8, color: "#00b894", fontSize: 14, fontWeight: 700 }} />
+          </>}
+          <Btn onClick={() => setModal(true)} style={{ padding: "8px 12px", fontSize: isMobile ? 12 : 14 }}>{isMobile ? "💱" : "💱 Movimiento"}</Btn>
           {!todayAlreadyClosed ? (
             <Btn variant="success" onClick={() => setShowDailyClose(true)} style={{ padding: "8px 14px" }}>📋 Cerrar caja</Btn>
           ) : (
@@ -269,36 +271,36 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
 
       {/* Totals */}
       <Card style={{ marginBottom: 16, background: "linear-gradient(135deg, #f8f9fc 0%, #f0f1f8 100%)", border: "1px solid #e2e4e9" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 0, textAlign: "center" }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 0, textAlign: "center" }}>
           <div style={{ padding: "8px 12px" }}>
             <div style={{ color: "#6b7280", fontSize: 10, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, fontWeight: 600 }}>Total Pesos</div>
-            <div style={{ color: "#6366f1", fontSize: 20, fontWeight: 800 }}>{formatMoney(totalARS)}</div>
+            <div style={{ color: "#6366f1", fontSize: isMobile ? 16 : 20, fontWeight: 800 }}>{formatMoney(totalARS)}</div>
           </div>
           <div style={{ padding: "8px 12px", borderLeft: "1px solid #e2e4e9" }}>
             <div style={{ color: "#6b7280", fontSize: 10, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, fontWeight: 600 }}>Total USD</div>
-            <div style={{ color: "#00b8a9", fontSize: 20, fontWeight: 800 }}>{formatMoney(totalUSD, "USD")}</div>
+            <div style={{ color: "#00b8a9", fontSize: isMobile ? 16 : 20, fontWeight: 800 }}>{formatMoney(totalUSD, "USD")}</div>
           </div>
           <div style={{ padding: "8px 12px", borderLeft: "1px solid #e2e4e9" }}>
             <div style={{ color: "#6b7280", fontSize: 10, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, fontWeight: 600 }}>Total USDT</div>
-            <div style={{ color: "#26de81", fontSize: 20, fontWeight: 800 }}>{formatMoney(totalUSDT, "USDT")}</div>
+            <div style={{ color: "#26de81", fontSize: isMobile ? 16 : 20, fontWeight: 800 }}>{formatMoney(totalUSDT, "USDT")}</div>
           </div>
           <div style={{ padding: "8px 12px", borderLeft: "1px solid #e2e4e9" }}>
             <div style={{ color: "#6b7280", fontSize: 10, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, fontWeight: 600 }}>Todo en ARS</div>
-            <div style={{ color: "#f59e0b", fontSize: 20, fontWeight: 800 }}>{formatMoney(totalARS + (totalUSD * exchangeRate) + (totalUSDT * exchangeRate))}</div>
+            <div style={{ color: "#f59e0b", fontSize: isMobile ? 16 : 20, fontWeight: 800 }}>{formatMoney(totalARS + (totalUSD * exchangeRate) + (totalUSDT * exchangeRate))}</div>
           </div>
         </div>
       </Card>
 
       {/* Account cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14, marginBottom: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit, minmax(180px, 1fr))", gap: isMobile ? 8 : 14, marginBottom: 20 }}>
         {ACCOUNTS.map(a => {
           const val = formatMoney(balances[a.id], a.currency);
           const isLong = val.length > 12;
           return (
-            <Card key={a.id} style={{ position: "relative", overflow: "hidden", padding: "16px 18px" }}>
-              <div style={{ position: "absolute", top: 12, right: 14, fontSize: 24, opacity: 0.15 }}>{a.icon}</div>
-              <div style={{ fontSize: 11, color: "#6b7280", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8, fontWeight: 600, whiteSpace: "nowrap" }}>{a.label}</div>
-              <div style={{ fontSize: isLong ? 20 : 24, fontWeight: 800, color: a.color, lineHeight: 1.1 }}>{val}</div>
+            <Card key={a.id} style={{ position: "relative", overflow: "hidden", padding: isMobile ? "12px 14px" : "16px 18px" }}>
+              <div style={{ position: "absolute", top: 10, right: 10, fontSize: 20, opacity: 0.15 }}>{a.icon}</div>
+              <div style={{ fontSize: 11, color: "#6b7280", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6, fontWeight: 600, whiteSpace: "nowrap" }}>{a.label}</div>
+              <div style={{ fontSize: isMobile ? (isLong ? 16 : 18) : (isLong ? 20 : 24), fontWeight: 800, color: a.color, lineHeight: 1.1 }}>{val}</div>
             </Card>
           );
         })}

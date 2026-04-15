@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { uid, formatMoney, formatDate } from "../helpers.js";
+import { useResponsive } from "../App.jsx";
 import { Modal, Card, Btn, Input, Select, Table, Badge, StatCard } from "./UI.jsx";
 import { EXPENSE_CATEGORIES } from "../constants.js";
 
@@ -20,6 +21,7 @@ const CAT_COLORS = {
 
 // -- EXPENSES MEJORADO --
 export const Expenses = ({ expenses, setExpenses, currentUser, exchangeRate, logAudit }) => {
+  const { isMobile } = useResponsive();
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [filter, setFilter] = useState("all"); // "all" | category name
@@ -130,7 +132,7 @@ export const Expenses = ({ expenses, setExpenses, currentUser, exchangeRate, log
       </div>
 
       {/* Stats row */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14, marginBottom: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit, minmax(180px, 1fr))", gap: isMobile ? 8 : 14, marginBottom: 20 }}>
         <Card style={{ padding: "14px 18px", background: "linear-gradient(135deg, #fef2f2 0%, #fff 100%)" }}>
           <div style={{ fontSize: 10, color: "#6b7280", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 6 }}>Este mes (ARS)</div>
           <div style={{ fontSize: 22, fontWeight: 800, color: "#e74c3c" }}>{formatMoney(totalMonthARS)}</div>
@@ -160,7 +162,7 @@ export const Expenses = ({ expenses, setExpenses, currentUser, exchangeRate, log
           <h4 style={{ color: "#1a1a2e", margin: "0 0 14px", fontSize: 13, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>
             Desglose por categoría (este mes)
           </h4>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
             {byCategory.map(([cat, data]) => {
               const total = data.ars + (data.usd * (exchangeRate || 1));
               const maxTotal = byCategory[0] ? byCategory[0][1].ars + (byCategory[0][1].usd * (exchangeRate || 1)) : 1;

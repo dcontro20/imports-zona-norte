@@ -1241,12 +1241,12 @@ export const Sales = ({
                     {r.notes && <span style={{ fontSize: 11, color: "#9ca3af", fontStyle: "italic" }}>"{r.notes}"</span>}
                   </div>
                   {/* Action buttons */}
-                  <div style={{ display: "flex", gap: 4 }}>
-                    <button onClick={() => repeatSale(r)} style={{ background: "#fffbeb", border: "1px solid #fcd34d", color: "#b8860b", cursor: "pointer", fontSize: 13, borderRadius: 6, padding: "4px 8px" }} title="Repetir">🔄</button>
-                    <button onClick={() => openEdit(r)} style={{ background: "#eef2ff", border: "1px solid #c7d2fe", color: "#6366f1", cursor: "pointer", fontSize: 13, borderRadius: 6, padding: "4px 8px" }} title="Editar">✏️</button>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={() => repeatSale(r)} style={{ background: "#fffbeb", border: "1px solid #fcd34d", color: "#b8860b", cursor: "pointer", fontSize: 15, borderRadius: 8, padding: "6px 10px", minWidth: 36, minHeight: 36, display: "flex", alignItems: "center", justifyContent: "center" }} title="Repetir">🔄</button>
+                    <button onClick={() => openEdit(r)} style={{ background: "#eef2ff", border: "1px solid #c7d2fe", color: "#6366f1", cursor: "pointer", fontSize: 15, borderRadius: 8, padding: "6px 10px", minWidth: 36, minHeight: 36, display: "flex", alignItems: "center", justifyContent: "center" }} title="Editar">✏️</button>
                     {confirmDeleteSale === r.id
-                      ? <button onClick={() => deleteSale(r)} style={{ background: "#dc2626", border: "none", color: "#fff", padding: "4px 10px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 700 }}>Eliminar</button>
-                      : <button onClick={() => deleteSale(r)} style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", cursor: "pointer", fontSize: 13, borderRadius: 6, padding: "4px 8px" }} title="Eliminar">🗑️</button>
+                      ? <button onClick={() => deleteSale(r)} style={{ background: "#dc2626", border: "none", color: "#fff", padding: "6px 12px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, minHeight: 36 }}>Eliminar</button>
+                      : <button onClick={() => deleteSale(r)} style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", cursor: "pointer", fontSize: 15, borderRadius: 8, padding: "6px 10px", minWidth: 36, minHeight: 36, display: "flex", alignItems: "center", justifyContent: "center" }} title="Eliminar">🗑️</button>
                     }
                   </div>
                 </div>

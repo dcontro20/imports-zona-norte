@@ -12,9 +12,10 @@ export const Modal = ({ open, onClose, title, children }) => {
       /* backdrop-filter removed for performance */
     }} onClick={onClose}>
       <div style={{
-        background: "#fff", borderRadius: isMobile ? "0 0 0 0" : 16, padding: isMobile ? "16px" : "24px", maxWidth: isMobile ? "100%" : 520,
-        width: "100%", maxHeight: isMobile ? "100vh" : "85vh", overflowY: "auto", border: isMobile ? "none" : "1px solid #e2e4e9",
-        boxShadow: "0 24px 48px rgba(0,0,0,0.12)"
+        background: "#fff", borderRadius: isMobile ? "16px 16px 0 0" : 16, padding: isMobile ? "14px" : "24px", maxWidth: isMobile ? "100%" : 520,
+        width: "100%", maxHeight: isMobile ? "92vh" : "85vh", overflowY: "auto", border: isMobile ? "none" : "1px solid #e2e4e9",
+        boxShadow: "0 24px 48px rgba(0,0,0,0.12)",
+        ...(isMobile ? { paddingBottom: 24 } : {}),
       }} onClick={e => e.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <h3 style={{ margin: 0, color: "#1a1a2e", fontSize: 18, fontWeight: 700 }}>{title}</h3>

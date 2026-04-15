@@ -1,10 +1,12 @@
 import { useState, useMemo } from "react";
 import { uid, formatMoney, formatDate } from "../helpers.js";
+import { useResponsive } from "../App.jsx";
 import { Modal, Card, Btn, Input, Select, Table, Badge, StatCard, SearchBar } from "./UI.jsx";
 import { PAYMENT_METHODS, MP_ACCOUNTS } from "../constants.js";
 
 // -- CLIENTES --
 export const Clients = ({ clients, setClients, sales, products }) => {
+  const { isMobile } = useResponsive();
   const [modal, setModal] = useState(false);
   const [search, setSearch] = useState("");
   const [form, setForm] = useState({ name: "", phone: "", instagram: "", notes: "" });
@@ -141,7 +143,7 @@ export const Clients = ({ clients, setClients, sales, products }) => {
       </div>
 
       {/* Stats Cards */}
-      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: isMobile ? 8 : 14, marginBottom: 20 }}>
         <StatCard label="Total clientes" value={globalStats.total} sub="registrados" color="#6366f1" />
         <StatCard label="Activos este mes" value={globalStats.activeThisMonth} sub="con compras" color="#10b981" />
         <StatCard label="Facturado total" value={formatMoney(globalStats.totalRevenue)} sub="todas las ventas" color="#f59e0b" />
@@ -179,7 +181,7 @@ export const Clients = ({ clients, setClients, sales, products }) => {
       </div>
 
       {/* Client Cards Grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 14, marginBottom: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(320px, 1fr))", gap: isMobile ? 10 : 14, marginBottom: 20 }}>
         {filtered.length === 0 ? (
           <Card>
             <div style={{ textAlign: "center", padding: 40, color: "#9ca3af" }}>

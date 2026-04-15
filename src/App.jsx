@@ -344,12 +344,14 @@ export default function App() {
               {syncStatus === "offline" && "Offline"}
               {syncStatus === "syncing" && "Sync..."}
             </div>
-            {/* Dolar Blue */}
-            <div style={{ fontSize: 13, color: "#6b7280", fontWeight: 500 }}>
-              Blue: <span style={{ color: "#1a1a2e", fontWeight: 700 }}>${exchangeRate}</span>
-            </div>
+            {/* Dolar Blue — hidden on mobile to save space */}
+            {!isMobile && (
+              <div style={{ fontSize: 13, color: "#6b7280", fontWeight: 500 }}>
+                Blue: <span style={{ color: "#1a1a2e", fontWeight: 700 }}>${exchangeRate}</span>
+              </div>
+            )}
             {/* User badge */}
-            <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#f7f8fa", border: "1px solid #e2e4e9", borderRadius: 8, padding: "5px 12px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#f7f8fa", border: "1px solid #e2e4e9", borderRadius: 8, padding: isMobile ? "5px 8px" : "5px 12px" }}>
               <span style={{ width: 8, height: 8, borderRadius: "50%", background: currentUser.color, display: "inline-block" }} />
               <span style={{ color: "#1a1a2e", fontSize: 13, fontWeight: 600 }}>{currentUser.name}</span>
               <button onClick={handleLogout} style={{ background: "none", border: "none", color: "#9ca3af", cursor: "pointer", fontSize: 12, marginLeft: 4 }} title="Cerrar sesión">✕</button>
