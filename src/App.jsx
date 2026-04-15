@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback, lazy, Suspense, Component } 
 import { uid, formatMoney, formatDate } from "./helpers.js";
 import { useFirebaseSync } from "./useFirebaseSync.js";
 import { AppContext } from "./AppContext.js";
+import { loginWithEmail, logout, onAuthChange, getUserProfile } from "./firebase.js";
 
 // Responsive hook — used by UI.jsx, Dashboard.jsx, PriceLog.jsx and others
 export const useResponsive = () => {
@@ -109,23 +110,24 @@ const NAV_ITEMS = [
   { key: "trash", label: "Papelera", icon: "🗑️" },
 ];
 
-const USERS = [
-  { name: "Diego", password: "Poncharelo20!", color: "#6366f1", icon: "💜" },
-  { name: "Gustavo", password: "Gus2026!", color: "#10b981", icon: "💙" },
-];
-
 export default function App() {
   const { isMobile } = useResponsive();
 
-  // ---- Auth state ----
-  const [currentUser, setCurrentUser] = useState(() => {
-    try {
-      const u = sessionStorage.getItem("vapestock_user");
-      return u ? JSON.parse(u) : null;
-    } catch { return null; }
-  });
+  // ---- Firebase Auth state ----
+  const [currentUser, setCurrentUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [loginEmail, setLoginEmail] = useState("");
   const [loginPass, setLoginPass] = useState("");
-  const [loginError, setLoginError] = useState(false);
+  const [loginError, setLoginError] = useState("");
+
+  // Listen to Firebase Auth state
+  useEffect(() => {
+    const unsub = onAuthChange((firebaseUser) => {
+      setCurrentUser(firebaseUser ? getUserProfile(firebaseUser) : null);
+      setAuthLoading(false);
+    });
+    return unsub;
+  }, []);
 
   // ---- UI state ----
   const [page, setPage] = useState("dashboard");
@@ -194,33 +196,67 @@ export default function App() {
     currentUser, exchangeRate, logAudit, logStock, logPrice,
   }), [currentUser, exchangeRate, logAudit, logStock, logPrice]);
 
-  // ---- Login ----
-  const handleLogin = () => {
-    const user = USERS.find(u => u.password === loginPass);
-    if (user) {
-      setCurrentUser(user);
-      try { sessionStorage.setItem("vapestock_user", JSON.stringify(user)); } catch {}
-      setLoginError(false);
-    } else {
-      setLoginError(true);
-      setTimeout(() => setLoginError(false), 2000);
+  // ---- Login with Firebase Auth ----
+  const handleLogin = async () => {
+    setLoginError("");
+    if (!loginEmail || !loginPass) { setLoginError("Ingresá email y contraseña"); return; }
+    try {
+      await loginWithEmail(loginEmail.trim(), loginPass);
+      // onAuthChange will set currentUser automatically
+    } catch (err) {
+      const msgs = {
+        "auth/user-not-found": "Email no registrado",
+        "auth/wrong-password": "Contraseña incorrecta",
+        "auth/invalid-email": "Email inválido",
+        "auth/too-many-requests": "Demasiados intentos. Esperá un momento.",
+        "auth/invalid-credential": "Email o contraseña incorrectos",
+      };
+      setLoginError(msgs[err.code] || "Error de autenticación");
     }
   };
 
-  const handleLogout = () => {
-    setCurrentUser(null);
-    try { sessionStorage.removeItem("vapestock_user"); } catch {}
+  const handleLogout = async () => {
+    await logout();
+    // onAuthChange will set currentUser to null
   };
+
+  // ---- Loading screen ----
+  if (authLoading) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#e5e7eb", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ textAlign: "center" }}>
+          <span style={{ fontSize: 48 }}>💨</span>
+          <p style={{ color: "#6366f1", fontSize: 15, fontWeight: 500, marginTop: 12 }}>Cargando...</p>
+        </div>
+      </div>
+    );
+  }
 
   // ---- Login screen ----
   if (!currentUser) {
     return (
-      <div style={{ minHeight: "100vh", background: "#e5e7eb", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Inter', 'Segoe UI', -apple-system, sans-serif" }}>
+      <div style={{ minHeight: "100vh", background: "#e5e7eb", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Open Sans', 'Inter', -apple-system, sans-serif" }}>
         <div style={{ background: "#fff", border: "1px solid #e2e4e9", borderRadius: 16, padding: "40px 32px", width: "100%", maxWidth: 360, textAlign: "center", boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
           <span style={{ fontSize: 48 }}>💨</span>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: "#1a1a2e", margin: "12px 0 6px" }}>IMPORTS ZONA NORTE</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: "#1a1a2e", margin: "12px 0 6px", fontFamily: "'Poppins', sans-serif" }}>IMPORTS ZONA NORTE</h1>
           <p style={{ color: "#9ca3af", fontSize: 13, marginBottom: 24 }}>Sistema de Gestión</p>
           <input
+            type="email"
+            value={loginEmail}
+            onChange={e => setLoginEmail(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && document.getElementById("login-pass")?.focus()}
+            placeholder="Email"
+            style={{
+              width: "100%", padding: "14px 18px", background: "#f7f8fa",
+              border: `1px solid ${loginError ? "#ef4444" : "#e2e4e9"}`,
+              borderRadius: 10, color: "#1a1a2e", fontSize: 16, outline: "none",
+              marginBottom: 10, boxSizing: "border-box",
+              transition: "border-color 0.3s"
+            }}
+            autoFocus
+          />
+          <input
+            id="login-pass"
             type="password"
             value={loginPass}
             onChange={e => setLoginPass(e.target.value)}
@@ -230,17 +266,16 @@ export default function App() {
               width: "100%", padding: "14px 18px", background: "#f7f8fa",
               border: `1px solid ${loginError ? "#ef4444" : "#e2e4e9"}`,
               borderRadius: 10, color: "#1a1a2e", fontSize: 16, outline: "none",
-              marginBottom: 14, textAlign: "center", boxSizing: "border-box",
+              marginBottom: 14, boxSizing: "border-box",
               transition: "border-color 0.3s"
             }}
-            autoFocus
           />
           <button onClick={handleLogin} style={{
             width: "100%", padding: "14px", background: "#6366f1",
             border: "none", borderRadius: 10, color: "#fff", fontSize: 16, fontWeight: 700,
             cursor: "pointer"
           }}>Entrar</button>
-          {loginError && <p style={{ color: "#ef4444", fontSize: 13, marginTop: 10 }}>Contraseña incorrecta</p>}
+          {loginError && <p style={{ color: "#ef4444", fontSize: 13, marginTop: 10 }}>{loginError}</p>}
         </div>
       </div>
     );

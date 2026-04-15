@@ -1,5 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection } from "firebase/firestore";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "firebase/auth";
 
 const firebaseConfig = {
     apiKey: "AIzaSyDAL85SFntaHyupAbrPxJGIpdSSSnecql4",
@@ -12,6 +13,23 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
+export const auth = getAuth(app);
+
+// Auth helpers
+export const loginWithEmail = (email, password) => signInWithEmailAndPassword(auth, email, password);
+export const logout = () => signOut(auth);
+export const onAuthChange = (callback) => onAuthStateChanged(auth, callback);
+
+// User mapping: Firebase Auth UID → app user profile
+const USER_PROFILES = {
+  "dcontro20@gmail.com": { name: "Diego", color: "#6366f1", icon: "💜" },
+  "dcontro20@hotmail.com": { name: "Gustavo", color: "#10b981", icon: "💙" },
+};
+export const getUserProfile = (firebaseUser) => {
+  if (!firebaseUser) return null;
+  const profile = USER_PROFILES[firebaseUser.email] || { name: firebaseUser.email, color: "#6366f1", icon: "👤" };
+  return { ...profile, email: firebaseUser.email, uid: firebaseUser.uid };
+};
 
 // Track the last known updatedAt per key (from Firestore subscriptions)
 export const lastKnownTimestamps = {};
