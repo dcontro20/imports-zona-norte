@@ -67,6 +67,10 @@ export const subscribeToFirestore = (key, callback, onNotFound) => {
                   if (onNotFound) onNotFound();
           }
     }, (error) => {
-          console.error(`[Firebase] Error subscribing to ${key}:`, error);
+          if (error.code === "permission-denied") {
+            console.warn(`[Firebase] Permission denied for ${key} — user may not be authenticated`);
+          } else {
+            console.error(`[Firebase] Error subscribing to ${key}:`, error);
+          }
     });
 };

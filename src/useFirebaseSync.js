@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { saveToFirestore, subscribeToFirestore } from "./firebase.js";
+import { saveToFirestore, subscribeToFirestore, auth } from "./firebase.js";
+import { onAuthStateChanged } from "firebase/auth";
 import { DEFAULT_PRODUCTS } from "./constants.js";
 import { loadData, uid } from "./helpers.js";
 
@@ -43,23 +44,53 @@ export function useFirebaseSync() {
   const [dataReady, setDataReady] = useState(false);
   const [syncStatus, setSyncStatus] = useState("syncing"); // "syncing" | "online" | "offline"
 
+  // ---- Auth state — must be authenticated before subscribing to Firestore ----
+  const [isAuthenticated, setIsAuthenticated] = useState(!!auth.currentUser);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      setIsAuthenticated(!!user);
+      if (!user) {
+        // Reset sync state on logout
+        firestoreReady.current = false;
+        initialLoadDone.current = {};
+        fromFirestore.current = {};
+        setSyncStatus("syncing");
+        setDataReady(false);
+      }
+    });
+    return unsub;
+  }, []);
+
   // ---- Setter map (for Firestore subscription) ----
-  const setterMap = {
+  const setterMap = useRef({
     products: setProducts, sales: setSales, purchases: setPurchases,
     clients: setClients, expenses: setExpenses, withdrawals: setWithdrawals,
     cashMovements: setCashMovements, stockLog: setStockLog, priceLog: setPriceLog,
     monthlyClosures: setMonthlyClosures, partnerWithdrawals: setPartnerWithdrawals,
     auditLog: setAuditLog,
-  };
+  }).current;
 
-  // ---- Subscribe to Firestore (runs once on mount) ----
+  // ---- Subscribe to Firestore ONLY when authenticated ----
   useEffect(() => {
+    if (!isAuthenticated) return; // Wait for login
+
+    console.log("[SYNC] Authenticated — subscribing to Firestore...");
+    setSyncStatus("syncing");
+    firestoreReady.current = false;
+    initialLoadDone.current = {};
+
     const markKeyLoaded = (key) => {
       initialLoadDone.current[key] = true;
       if (DATA_KEYS.every(k => initialLoadDone.current[k.key])) {
+        console.log("[SYNC] All keys loaded from Firestore");
         setDataReady(true);
         setSyncStatus("online");
-        setTimeout(() => { firestoreReady.current = true; }, 2000);
+        // Small delay to let React process all state updates before enabling writes
+        setTimeout(() => {
+          firestoreReady.current = true;
+          console.log("[SYNC] Writes enabled");
+        }, 1500);
       }
     };
 
@@ -71,6 +102,7 @@ export function useFirebaseSync() {
         setter(data);
         markKeyLoaded(key);
       }, () => {
+        // Document doesn't exist yet — mark as loaded anyway
         markKeyLoaded(key);
       });
     });
@@ -83,22 +115,28 @@ export function useFirebaseSync() {
       }
     }, () => {});
 
+    // Timeout: if Firestore takes too long, show cached data (read-only)
     const timeout = setTimeout(() => {
       if (!firestoreReady.current) {
         setDataReady(true);
         setSyncStatus("offline");
-        // Retry: if Firebase connects later, it will still update via onSnapshot
-        console.warn("[SYNC] Firebase no respondió en 8s. Datos visibles son de caché. Escrituras bloqueadas hasta sincronizar.");
+        console.warn("[SYNC] Firestore timeout (12s). Showing cached data. Writes blocked.");
       }
     }, 12000);
 
-    return () => { unsubscribers.forEach(u => u()); unsubRate(); clearTimeout(timeout); };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => {
+      unsubscribers.forEach(u => u());
+      unsubRate();
+      clearTimeout(timeout);
+    };
+  }, [isAuthenticated]); // Re-subscribe when auth changes
 
   // ---- smartSave: localStorage + Firestore (with guards) ----
   const smartSave = useCallback((key, data) => {
     try { localStorage.setItem(`vapestock_${key}`, JSON.stringify(data)); } catch {}
+    // NEVER write to Firestore if initial load hasn't completed
     if (!firestoreReady.current) return;
+    // Don't write back data that came FROM Firestore (anti-loop)
     if (fromFirestore.current[key]) {
       fromFirestore.current[key] = false;
       return;
