@@ -40,21 +40,22 @@ export function useFirebaseSync() {
   const fromFirestore = useRef({});
   const initialLoadDone = useRef({});
   const firestoreReady = useRef(false);
+  const writeFailCount = useRef(0);
 
   const [dataReady, setDataReady] = useState(false);
-  const [syncStatus, setSyncStatus] = useState("syncing"); // "syncing" | "online" | "offline"
+  const [syncStatus, setSyncStatus] = useState("syncing"); // "syncing" | "online" | "offline" | "error"
 
-  // ---- Auth state — must be authenticated before subscribing to Firestore ----
+  // ---- Auth state ----
   const [isAuthenticated, setIsAuthenticated] = useState(!!auth.currentUser);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
       setIsAuthenticated(!!user);
       if (!user) {
-        // Reset sync state on logout
         firestoreReady.current = false;
         initialLoadDone.current = {};
         fromFirestore.current = {};
+        writeFailCount.current = 0;
         setSyncStatus("syncing");
         setDataReady(false);
       }
@@ -62,7 +63,7 @@ export function useFirebaseSync() {
     return unsub;
   }, []);
 
-  // ---- Setter map (for Firestore subscription) ----
+  // ---- Setter map ----
   const setterMap = useRef({
     products: setProducts, sales: setSales, purchases: setPurchases,
     clients: setClients, expenses: setExpenses, withdrawals: setWithdrawals,
@@ -73,75 +74,104 @@ export function useFirebaseSync() {
 
   // ---- Subscribe to Firestore ONLY when authenticated ----
   useEffect(() => {
-    if (!isAuthenticated) return; // Wait for login
+    if (!isAuthenticated) return;
 
     console.log("[SYNC] Authenticated — subscribing to Firestore...");
     setSyncStatus("syncing");
     firestoreReady.current = false;
     initialLoadDone.current = {};
+    writeFailCount.current = 0;
 
     const markKeyLoaded = (key) => {
       initialLoadDone.current[key] = true;
-      if (DATA_KEYS.every(k => initialLoadDone.current[k.key])) {
-        console.log("[SYNC] All keys loaded from Firestore");
+      const allLoaded = DATA_KEYS.every(k => initialLoadDone.current[k.key]);
+      if (allLoaded && !firestoreReady.current) {
+        console.log("[SYNC] All keys loaded — enabling writes");
         setDataReady(true);
         setSyncStatus("online");
-        // Small delay to let React process all state updates before enabling writes
-        setTimeout(() => {
-          firestoreReady.current = true;
-          console.log("[SYNC] Writes enabled");
-        }, 1500);
+        // Enable writes immediately — fromFirestore flags prevent loops
+        firestoreReady.current = true;
       }
     };
 
     const unsubscribers = DATA_KEYS.map(({ key }) => {
       const setter = setterMap[key];
-      return subscribeToFirestore(key, (data) => {
-        try { localStorage.setItem(`vapestock_${key}`, JSON.stringify(data)); } catch {}
-        fromFirestore.current[key] = true;
-        setter(data);
-        markKeyLoaded(key);
-      }, () => {
-        // Document doesn't exist yet — mark as loaded anyway
-        markKeyLoaded(key);
-      });
+      return subscribeToFirestore(key,
+        // onData
+        (data) => {
+          try { localStorage.setItem(`vapestock_${key}`, JSON.stringify(data)); } catch {}
+          fromFirestore.current[key] = true;
+          setter(data);
+          markKeyLoaded(key);
+        },
+        // onNotFound — doc doesn't exist yet
+        () => { markKeyLoaded(key); },
+        // onError — subscription failed (permission denied, etc.)
+        (err) => {
+          console.error(`[SYNC] Subscription error for ${key}:`, err.code || err.message);
+          // STILL mark as loaded so firestoreReady can activate
+          // The data from localStorage will be used as fallback
+          markKeyLoaded(key);
+        }
+      );
     });
 
-    const unsubRate = subscribeToFirestore("exchangeRate", (data) => {
-      if (typeof data === "number") {
-        try { localStorage.setItem("vapestock_exchangeRate", JSON.stringify(data)); } catch {}
-        fromFirestore.current["exchangeRate"] = true;
-        setExchangeRate(data);
-      }
-    }, () => {});
+    const unsubRate = subscribeToFirestore("exchangeRate",
+      (data) => {
+        if (typeof data === "number") {
+          try { localStorage.setItem("vapestock_exchangeRate", JSON.stringify(data)); } catch {}
+          fromFirestore.current["exchangeRate"] = true;
+          setExchangeRate(data);
+        }
+      },
+      () => {}, // not found
+      (err) => { console.error("[SYNC] exchangeRate error:", err.code || err.message); }
+    );
 
-    // Timeout: if Firestore takes too long, show cached data (read-only)
+    // Timeout fallback: if nothing loaded after 15s, show cached data
     const timeout = setTimeout(() => {
       if (!firestoreReady.current) {
+        console.warn("[SYNC] Timeout (15s) — showing cached data, writes blocked");
         setDataReady(true);
         setSyncStatus("offline");
-        console.warn("[SYNC] Firestore timeout (12s). Showing cached data. Writes blocked.");
       }
-    }, 12000);
+    }, 15000);
 
     return () => {
       unsubscribers.forEach(u => u());
       unsubRate();
       clearTimeout(timeout);
     };
-  }, [isAuthenticated]); // Re-subscribe when auth changes
+  }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ---- smartSave: localStorage + Firestore (with guards) ----
+  // ---- smartSave: localStorage + Firestore ----
   const smartSave = useCallback((key, data) => {
+    // Always save to localStorage first (instant, offline-safe)
     try { localStorage.setItem(`vapestock_${key}`, JSON.stringify(data)); } catch {}
-    // NEVER write to Firestore if initial load hasn't completed
-    if (!firestoreReady.current) return;
+
+    // Block writes until initial load completes
+    if (!firestoreReady.current) {
+      return;
+    }
+
     // Don't write back data that came FROM Firestore (anti-loop)
     if (fromFirestore.current[key]) {
       fromFirestore.current[key] = false;
       return;
     }
-    saveToFirestore(key, data);
+
+    // Write to Firestore (with retry built into saveToFirestore)
+    saveToFirestore(key, data).then(ok => {
+      if (!ok) {
+        writeFailCount.current++;
+        if (writeFailCount.current >= 3) {
+          setSyncStatus("error");
+        }
+      } else {
+        writeFailCount.current = 0;
+        setSyncStatus("online");
+      }
+    });
   }, []);
 
   // ---- Auto-save on state changes ----
@@ -159,7 +189,7 @@ export function useFirebaseSync() {
   useEffect(() => smartSave("auditLog", auditLog), [auditLog]); // eslint-disable-line
   useEffect(() => smartSave("exchangeRate", exchangeRate), [exchangeRate]); // eslint-disable-line
 
-  // ---- Auto-fetch dolar blue (only if Firestore hasn't sent one) ----
+  // ---- Auto-fetch dolar blue ----
   useEffect(() => {
     const fetchBlue = async () => {
       try {
@@ -169,7 +199,7 @@ export function useFirebaseSync() {
           setExchangeRate(data.venta);
         }
       } catch (e) {
-        console.log("No se pudo obtener cotización automática, usando valor manual");
+        console.log("No se pudo obtener cotización automática");
       }
     };
     fetchBlue();
@@ -177,7 +207,7 @@ export function useFirebaseSync() {
     return () => clearInterval(interval);
   }, []);
 
-  // ---- Helper: log stock movement ----
+  // ---- Helpers ----
   const logStock = useCallback((entries) => {
     const logs = (Array.isArray(entries) ? entries : [entries]).map(e => ({
       id: uid(), date: e.date || new Date().toISOString(), productId: e.productId,
@@ -186,22 +216,18 @@ export function useFirebaseSync() {
     setStockLog(prev => [...logs, ...prev]);
   }, []);
 
-  // ---- Helper: log price change ----
   const logPrice = useCallback((productId, oldPrice, newPrice, field) => {
     if (oldPrice === newPrice) return;
     setPriceLog(prev => [{ id: uid(), date: new Date().toISOString(), productId, field, oldPrice, newPrice }, ...prev]);
   }, []);
 
   return {
-    // Data + setters
     products, setProducts, sales, setSales, purchases, setPurchases,
     clients, setClients, expenses, setExpenses, withdrawals, setWithdrawals,
     cashMovements, setCashMovements, stockLog, setStockLog, priceLog, setPriceLog,
     monthlyClosures, setMonthlyClosures, partnerWithdrawals, setPartnerWithdrawals,
     exchangeRate, setExchangeRate, auditLog, setAuditLog,
-    // Sync state
     dataReady, syncStatus, fromFirestore,
-    // Helpers
     logStock, logPrice,
   };
 }

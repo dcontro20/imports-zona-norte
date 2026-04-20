@@ -34,43 +34,61 @@ export const getUserProfile = (firebaseUser) => {
 // Track the last known updatedAt per key (from Firestore subscriptions)
 export const lastKnownTimestamps = {};
 
-// Helper to save a full collection as a single doc (efficient for our use case)
-// Now includes timestamp conflict check to prevent stale data overwrites
+// Track write failures for UI feedback
+export let lastWriteError = null;
+export const clearWriteError = () => { lastWriteError = null; };
+
+// Helper to save a full collection as a single doc
+// Returns true on success, false on failure. Retries once on failure.
 export const saveToFirestore = async (key, data) => {
+    const attempt = async () => {
+      const now = new Date().toISOString();
+      await setDoc(doc(db, "appData", key), { data: JSON.stringify(data), updatedAt: now });
+      lastKnownTimestamps[key] = now;
+    };
     try {
-          const now = new Date().toISOString();
-          await setDoc(doc(db, "appData", key), { data: JSON.stringify(data), updatedAt: now });
-          lastKnownTimestamps[key] = now;
+      await attempt();
+      lastWriteError = null;
+      return true;
     } catch (e) {
-          console.error(`Error saving ${key}:`, e);
+      console.error(`[SAVE] First attempt failed for ${key}:`, e.code || e.message);
+      // Retry once after 1 second
+      try {
+        await new Promise(r => setTimeout(r, 1000));
+        await attempt();
+        lastWriteError = null;
+        return true;
+      } catch (e2) {
+        console.error(`[SAVE] Retry failed for ${key}:`, e2.code || e2.message);
+        lastWriteError = { key, error: e2.code || e2.message, time: new Date().toISOString() };
+        return false;
+      }
     }
 };
 
 // Helper to subscribe to real-time changes
-// Now tracks the updatedAt timestamp for conflict detection
-export const subscribeToFirestore = (key, callback, onNotFound) => {
+// onError callback ensures keys still get marked as loaded even on failure
+export const subscribeToFirestore = (key, callback, onNotFound, onError) => {
     return onSnapshot(doc(db, "appData", key), (docSnap) => {
           if (docSnap.exists()) {
                   try {
                             const docData = docSnap.data();
                             const parsed = JSON.parse(docData.data);
-                            // Track the latest timestamp we've seen from Firestore
-                    if (docData.updatedAt) {
+                            if (docData.updatedAt) {
                                 lastKnownTimestamps[key] = docData.updatedAt;
-                    }
+                            }
                             callback(parsed);
                   } catch (e) {
-                            console.error(`Error parsing ${key}:`, e);
+                            console.error(`[Firebase] Error parsing ${key}:`, e);
+                            if (onError) onError(e);
                   }
           } else {
-                  // Document doesn't exist yet — notify caller so it can mark load as done
                   if (onNotFound) onNotFound();
           }
     }, (error) => {
-          if (error.code === "permission-denied") {
-            console.warn(`[Firebase] Permission denied for ${key} — user may not be authenticated`);
-          } else {
-            console.error(`[Firebase] Error subscribing to ${key}:`, error);
-          }
+          console.error(`[Firebase] Subscription error for ${key}:`, error.code || error.message);
+          // CRITICAL: call onError so the key still gets marked as loaded
+          // Otherwise firestoreReady NEVER becomes true and ALL writes are blocked
+          if (onError) onError(error);
     });
 };

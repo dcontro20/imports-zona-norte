@@ -370,14 +370,16 @@ export default function App() {
             <div style={{
               display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600,
               padding: "4px 10px", borderRadius: 20,
-              background: syncStatus === "online" ? "#ecfdf5" : syncStatus === "offline" ? "#fef2f2" : "#fffbeb",
-              color: syncStatus === "online" ? "#059669" : syncStatus === "offline" ? "#dc2626" : "#d97706",
-              border: `1px solid ${syncStatus === "online" ? "#a7f3d0" : syncStatus === "offline" ? "#fecaca" : "#fde68a"}`
-            }}>
-              <span style={{ width: 6, height: 6, borderRadius: "50%", background: syncStatus === "online" ? "#059669" : syncStatus === "offline" ? "#dc2626" : "#d97706", display: "inline-block" }} />
+              background: syncStatus === "online" ? "#ecfdf5" : syncStatus === "error" ? "#fef2f2" : syncStatus === "offline" ? "#fef2f2" : "#fffbeb",
+              color: syncStatus === "online" ? "#059669" : syncStatus === "error" ? "#dc2626" : syncStatus === "offline" ? "#dc2626" : "#d97706",
+              border: `1px solid ${syncStatus === "online" ? "#a7f3d0" : syncStatus === "error" ? "#fecaca" : syncStatus === "offline" ? "#fecaca" : "#fde68a"}`,
+              cursor: syncStatus === "error" ? "pointer" : "default",
+            }} onClick={() => syncStatus === "error" && window.location.reload()} title={syncStatus === "error" ? "Click para reintentar" : ""}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: syncStatus === "online" ? "#059669" : syncStatus === "error" || syncStatus === "offline" ? "#dc2626" : "#d97706", display: "inline-block" }} />
               {syncStatus === "online" && "Online"}
               {syncStatus === "offline" && "Offline"}
               {syncStatus === "syncing" && "Sync..."}
+              {syncStatus === "error" && "Error sync"}
             </div>
             {/* Dolar Blue — hidden on mobile to save space */}
             {!isMobile && (
