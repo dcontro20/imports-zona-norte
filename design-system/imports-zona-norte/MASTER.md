@@ -7,8 +7,8 @@
 ---
 
 **Project:** Imports Zona Norte
-**Generated:** 2026-04-14 18:57:37
-**Category:** Analytics Dashboard
+**Generated:** 2026-04-21 01:11:11
+**Category:** Financial Dashboard
 
 ---
 
@@ -18,24 +18,24 @@
 
 | Role | Hex | CSS Variable |
 |------|-----|--------------|
-| Primary | `#7C3AED` | `--color-primary` |
-| Secondary | `#A78BFA` | `--color-secondary` |
-| CTA/Accent | `#F97316` | `--color-cta` |
-| Background | `#FAF5FF` | `--color-background` |
-| Text | `#4C1D95` | `--color-text` |
+| Primary | `#0F172A` | `--color-primary` |
+| Secondary | `#1E293B` | `--color-secondary` |
+| CTA/Accent | `#22C55E` | `--color-cta` |
+| Background | `#020617` | `--color-background` |
+| Text | `#F8FAFC` | `--color-text` |
 
-**Color Notes:** Excitement purple + action orange
+**Color Notes:** Dark bg + green positive indicators
 
 ### Typography
 
-- **Heading Font:** Poppins
-- **Body Font:** Open Sans
-- **Mood:** modern, professional, clean, corporate, friendly, approachable
-- **Google Fonts:** [Poppins + Open Sans](https://fonts.google.com/share?selection.family=Open+Sans:wght@300;400;500;600;700|Poppins:wght@400;500;600;700)
+- **Heading Font:** Rubik
+- **Body Font:** Nunito Sans
+- **Mood:** ecommerce, clean, shopping, product, retail, conversion
+- **Google Fonts:** [Rubik + Nunito Sans](https://fonts.google.com/share?selection.family=Nunito+Sans:wght@300;400;500;600;700|Rubik:wght@300;400;500;600;700)
 
 **CSS Import:**
 ```css
-@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;500;600;700&family=Rubik:wght@300;400;500;600;700&display=swap');
 ```
 
 ### Spacing Variables
@@ -68,7 +68,7 @@
 ```css
 /* Primary Button */
 .btn-primary {
-  background: #F97316;
+  background: #22C55E;
   color: white;
   padding: 12px 24px;
   border-radius: 8px;
@@ -85,8 +85,8 @@
 /* Secondary Button */
 .btn-secondary {
   background: transparent;
-  color: #7C3AED;
-  border: 2px solid #7C3AED;
+  color: #0F172A;
+  border: 2px solid #0F172A;
   padding: 12px 24px;
   border-radius: 8px;
   font-weight: 600;
@@ -99,7 +99,7 @@
 
 ```css
 .card {
-  background: #FAF5FF;
+  background: #020617;
   border-radius: 12px;
   padding: 24px;
   box-shadow: var(--shadow-md);
@@ -125,9 +125,9 @@
 }
 
 .input:focus {
-  border-color: #7C3AED;
+  border-color: #0F172A;
   outline: none;
-  box-shadow: 0 0 0 3px #7C3AED20;
+  box-shadow: 0 0 0 3px #0F172A20;
 }
 ```
 
@@ -153,27 +153,28 @@
 
 ## Style Guidelines
 
-**Style:** Data-Dense Dashboard
+**Style:** Dark Mode (OLED)
 
-**Keywords:** Multiple charts/widgets, data tables, KPI cards, minimal padding, grid layout, space-efficient, maximum data visibility
+**Keywords:** Dark theme, low light, high contrast, deep black, midnight blue, eye-friendly, OLED, night mode, power efficient
 
-**Best For:** Business intelligence dashboards, financial analytics, enterprise reporting, operational dashboards, data warehousing
+**Best For:** Night-mode apps, coding platforms, entertainment, eye-strain prevention, OLED devices, low-light
 
-**Key Effects:** Hover tooltips, chart zoom on click, row highlighting on hover, smooth filter animations, data loading spinners
+**Key Effects:** Minimal glow (text-shadow: 0 0 10px), dark-to-light transitions, low white emission, high readability, visible focus
 
 ### Page Pattern
 
-**Pattern Name:** Data-Dense + Drill-Down
+**Pattern Name:** Minimal Single Column
 
-- **CTA Placement:** Above fold
-- **Section Order:** Hero > Features > CTA
+- **Conversion Strategy:** Single CTA focus. Large typography. Lots of whitespace. No nav clutter. Mobile-first.
+- **CTA Placement:** Center, large CTA button
+- **Section Order:** 1. Hero headline, 2. Short description, 3. Benefit bullets (3 max), 4. CTA, 5. Footer
 
 ---
 
 ## Anti-Patterns (Do NOT Use)
 
-- ❌ Ornate design
-- ❌ No filtering
+- ❌ Light mode default
+- ❌ Slow rendering
 
 ### Additional Forbidden Patterns
 
