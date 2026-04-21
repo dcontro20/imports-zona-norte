@@ -3,6 +3,7 @@ import { uid, formatMoney, formatDate } from "../helpers.js";
 import { useResponsive } from "../App.jsx";
 import { Modal, Card, Btn, Input, Select, Table, Badge, SearchBar, StatCard } from "./UI.jsx";
 import { CHANNELS, PAYMENT_METHODS, MP_ACCOUNTS, DISCOUNT_REASONS, BRAND_COLORS } from "../constants.js";
+import { T, pickAvatarColor } from "../theme.js";
 
 // ============================================
 // SALES v2 — Full rewrite
@@ -521,6 +522,44 @@ export const Sales = ({
       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() && (s.discountAmount || 0) > 0;
     }).reduce((sum, s) => sum + (s.discountAmount || 0), 0);
   }, [activeSales]);
+
+  // ---- month stats for header ----
+  const monthStats = useMemo(() => {
+    const now = new Date();
+    const monthSales = activeSales.filter(s => {
+      const d = new Date(s.date);
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    });
+    const revenue = monthSales.reduce((s, sale) => s + (sale.total || 0), 0);
+    const units = monthSales.reduce((s, sale) => s + (sale.items || []).reduce((a, i) => a + (i.qty || 1), 0), 0);
+    const avgTicket = monthSales.length > 0 ? Math.round(revenue / monthSales.length) : 0;
+    const debtors = monthSales.filter(s => (s.debtAmount || 0) > 0);
+    const totalDebt = debtors.reduce((s, sale) => s + (sale.debtAmount || 0), 0);
+    return { count: monthSales.length, revenue, units, avgTicket, debtCount: debtors.length, totalDebt };
+  }, [activeSales]);
+
+  // ---- quick date presets ----
+  const applyDatePreset = (preset) => {
+    const today = new Date().toISOString().slice(0, 10);
+    const toDate = (days) => new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+    if (preset === "today") { setFilterDateFrom(today); setFilterDateTo(today); }
+    else if (preset === "week") { setFilterDateFrom(toDate(7)); setFilterDateTo(today); }
+    else if (preset === "month") {
+      const d = new Date(); d.setDate(1);
+      setFilterDateFrom(d.toISOString().slice(0, 10)); setFilterDateTo(today);
+    }
+    else { setFilterDateFrom(""); setFilterDateTo(""); }
+  };
+  const activeDatePreset = (() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const toDate = (days) => new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+    if (filterDateFrom === today && filterDateTo === today) return "today";
+    if (filterDateFrom === toDate(7) && filterDateTo === today) return "week";
+    const firstDay = (() => { const d = new Date(); d.setDate(1); return d.toISOString().slice(0, 10); })();
+    if (filterDateFrom === firstDay && filterDateTo === today) return "month";
+    if (!filterDateFrom && !filterDateTo) return "all";
+    return "custom";
+  })();
 
   // ============================================
   // RENDER
@@ -1102,157 +1141,143 @@ export const Sales = ({
   // MAIN RETURN
   // ============================================
   return (
-    <div>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
+    <div style={{ fontFamily: T.font }}>
+      {/* ===== HEADER ===== */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16, marginBottom: 20 }}>
         <div>
-          <h2 style={{ color: "#37352F", margin: 0, fontSize: 22 }}>Ventas ({filtered.length})</h2>
-          {filtered.length > 0 && <span style={{ color: "#8C8A82", fontSize: 13 }}>Total filtrado: {formatMoney(filteredRevenue)}</span>}
+          <h1 style={{ fontSize: isMobile ? 26 : 32, fontWeight: 800, color: T.text, margin: 0, letterSpacing: "-0.02em", fontFamily: T.fontDisplay }}>
+            Ventas
+          </h1>
+          <p style={{ color: T.textMuted, fontSize: 14, margin: "6px 0 0" }}>
+            {filtered.length === activeSales.length
+              ? `${activeSales.length} ventas totales`
+              : `${filtered.length} de ${activeSales.length} ventas`
+            }
+            {filtered.length > 0 && ` · ${formatMoney(filteredRevenue)}`}
+          </p>
         </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <SearchBar value={search} onChange={setSearch} placeholder="Buscar producto o cliente..." />
-          <Btn variant="secondary" onClick={() => setShowFilters(!showFilters)} style={{ padding: "10px 14px", border: hasActiveFilters ? "1px solid #5E6AD2" : undefined }}>
-            🔍 Filtros {hasActiveFilters ? "●" : ""}
-          </Btn>
-          <Btn onClick={openNew}>+ Nueva Venta</Btn>
-        </div>
+        <button onClick={openNew} style={{
+          padding: "10px 20px", borderRadius: 10, border: "none",
+          background: T.primary, color: "#fff", fontSize: 14, fontWeight: 600,
+          cursor: "pointer", fontFamily: "inherit", boxShadow: T.shadowSm,
+        }}>+ Nueva venta</button>
+      </div>
+
+      {/* ===== MONTH STATS ===== */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)",
+        gap: isMobile ? 10 : 14, marginBottom: 20,
+      }}>
+        <MonthStat label="Ventas del mes" value={monthStats.count} sub={`${monthStats.units} unidades`} accent={T.primary} />
+        <MonthStat label="Facturado" value={formatMoney(monthStats.revenue)} sub="este mes" accent={T.green} />
+        <MonthStat label="Ticket promedio" value={formatMoney(monthStats.avgTicket)} sub="por venta" accent={T.amber} />
+        <MonthStat
+          label="Deudas pendientes"
+          value={monthStats.debtCount > 0 ? formatMoney(monthStats.totalDebt) : "—"}
+          sub={monthStats.debtCount > 0 ? `${monthStats.debtCount} ventas impagas` : "todo cobrado"}
+          accent={monthStats.debtCount > 0 ? T.red : T.textMuted}
+        />
       </div>
 
       {/* Success toast */}
       {showSaveSuccess && (
         <div style={{
           position: "fixed", top: 70, left: "50%", transform: "translateX(-50%)", zIndex: 300,
-          background: "#0F7B6C", color: "#fff", padding: "10px 24px", borderRadius: 10,
-          fontSize: 14, fontWeight: 700, boxShadow: "0 4px 16px rgba(5,150,105,0.3)",
+          background: T.green, color: "#fff", padding: "10px 24px", borderRadius: 10,
+          fontSize: 14, fontWeight: 700, boxShadow: T.shadow,
           animation: "fadeIn 0.2s ease",
-        }}>✅ Venta registrada</div>
+        }}>✓ Venta registrada</div>
       )}
 
-      {/* Filter bar */}
-      {showFilters && (
-        <Card style={{ marginBottom: 14, background: "#FAFAF9" }}>
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
-            <div style={{ flex: 1, minWidth: 130 }}><Input label="Desde" type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} /></div>
-            <div style={{ flex: 1, minWidth: 130 }}><Input label="Hasta" type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} /></div>
-            <div style={{ flex: 1, minWidth: 130 }}><Select label="Canal" options={CHANNELS} value={filterChannel} onChange={e => setFilterChannel(e.target.value)} /></div>
-            <div style={{ flex: 1, minWidth: 130 }}><Select label="Pago" options={PAYMENT_METHODS} value={filterPayment} onChange={e => setFilterPayment(e.target.value)} /></div>
-            {hasActiveFilters && (
-              <button onClick={clearFilters} style={{ background: "none", border: "1px solid #E03E3E55", color: "#E03E3E", padding: "8px 14px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, marginBottom: 14 }}>
-                ✕ Limpiar
-              </button>
-            )}
-          </div>
-        </Card>
-      )}
+      {/* ===== SEARCH + FILTERS ===== */}
+      <div style={{
+        background: T.card, border: `1px solid ${T.border}`, borderRadius: T.radiusLg, padding: isMobile ? 12 : 16,
+        marginBottom: 14, boxShadow: T.shadowXs,
+      }}>
+        <div style={{ position: "relative", marginBottom: 12 }}>
+          <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 14, color: T.textMuted, pointerEvents: "none" }}>🔍</span>
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Buscar producto o cliente..."
+            style={{
+              width: "100%", padding: "12px 14px 12px 40px", background: T.surface2,
+              border: `1px solid ${T.borderSoft}`, borderRadius: 10, color: T.text,
+              fontSize: 14, outline: "none", boxSizing: "border-box", fontFamily: "inherit",
+              transition: "border-color .15s",
+            }}
+            onFocus={e => e.currentTarget.style.borderColor = T.primary}
+            onBlur={e => e.currentTarget.style.borderColor = T.borderSoft}
+          />
+        </div>
+        {/* Filter pills */}
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+          {[
+            { key: "all", label: "Todas" },
+            { key: "today", label: "Hoy" },
+            { key: "week", label: "7 días" },
+            { key: "month", label: "Este mes" },
+          ].map(p => (
+            <SalesPill key={p.key} active={activeDatePreset === p.key} onClick={() => applyDatePreset(p.key)}>
+              {p.label}
+            </SalesPill>
+          ))}
+          <span style={{ width: 1, height: 18, background: T.border, margin: "0 2px" }} />
+          <select value={filterChannel} onChange={e => setFilterChannel(e.target.value)} style={selectStyle(!!filterChannel)}>
+            <option value="">Todos los canales</option>
+            {CHANNELS.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select value={filterPayment} onChange={e => setFilterPayment(e.target.value)} style={selectStyle(!!filterPayment)}>
+            <option value="">Cualquier pago</option>
+            {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
+          {(hasActiveFilters || activeDatePreset !== "all") && (
+            <button onClick={() => { clearFilters(); }} style={{
+              padding: "7px 12px", borderRadius: 999, border: "none",
+              background: "transparent", color: T.textMuted, fontSize: 12, fontWeight: 500,
+              cursor: "pointer", fontFamily: "inherit",
+            }}>✕ Limpiar</button>
+          )}
+        </div>
+      </div>
 
+      {/* Discount banner */}
       {totalDiscountsMonth > 0 && (
-        <Card style={{ marginBottom: 14, borderColor: "#fdcb6e33" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 20 }}>🏷️</span>
-            <span style={{ color: "#b8860b", fontSize: 13 }}>Descuentos este mes: <strong>{formatMoney(totalDiscountsMonth)}</strong></span>
-          </div>
-        </Card>
+        <div style={{
+          marginBottom: 14, padding: "10px 14px",
+          background: T.amberBg, border: `1px solid ${T.amberBorder}`, borderRadius: 10,
+          display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: T.text,
+        }}>
+          <span>🏷️</span>
+          <span>Descuentos este mes: <strong style={{ color: T.amber, fontFamily: T.fontDisplay }}>{formatMoney(totalDiscountsMonth)}</strong></span>
+        </div>
       )}
 
-      {/* Sales list — rich cards */}
+      {/* ===== SALE CARDS LIST ===== */}
       {filtered.length === 0 ? (
-        <Card><div style={{ textAlign: "center", padding: 40, color: "#B1AFA7" }}>No hay ventas registradas</div></Card>
+        <div style={{
+          background: T.card, border: `1px solid ${T.borderSoft}`, borderRadius: T.radiusLg,
+          padding: 60, textAlign: "center", boxShadow: T.shadowXs,
+        }}>
+          <div style={{ fontSize: 32, marginBottom: 8 }}>🛒</div>
+          <p style={{ color: T.textMuted, fontSize: 14, margin: 0 }}>
+            {activeSales.length === 0 ? "Todavía no hay ventas registradas" : "No hay ventas con esos filtros"}
+          </p>
+        </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {filtered.map(r => {
-            const payments = r.payments && r.payments.length > 0 ? r.payments : [{ method: r.paymentMethod, amount: r.total }];
-            const itemCount = (r.items || []).reduce((s, i) => s + (i.qty || 1), 0);
-            return (
-              <Card key={r.id} style={{ padding: isMobile ? "12px" : "16px 20px" }}>
-                {/* Top row: date + total + actions */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
-                  <div>
-                    <div style={{ fontSize: 12, color: "#8C8A82" }}>
-                      {formatDate(r.date)}{r.channel ? ` · ${r.channel}` : ""}
-                      {r.exchangeRate && <span style={{ color: "#B1AFA7" }}> · Blue: ${r.exchangeRate}</span>}
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2 }}>
-                      {r.clientName && (
-                        <span style={{ fontWeight: 700, fontSize: 15, color: "#37352F" }}>{r.clientName}</span>
-                      )}
-                      {r.createdBy && <Badge color={r.createdBy === "Diego" ? "#5E6AD2" : "#0F7B6C"}>{r.createdBy}</Badge>}
-                      {r.quickSale && <Badge color="#CB912F">Rápida</Badge>}
-                    </div>
-                  </div>
-                  <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: "#0F7B6C" }}>{formatMoney(r.total, r.currency)}</div>
-                    <div style={{ fontSize: 11, color: "#B1AFA7" }}>{itemCount} {itemCount === 1 ? "unidad" : "unidades"}</div>
-                  </div>
-                </div>
-
-                {/* Products detail */}
-                <div style={{ background: "#FAFAF9", borderRadius: 8, padding: "8px 10px", marginBottom: 8 }}>
-                  {(r.items || []).map((item, idx) => {
-                    const p = products.find(pr => pr.id === item.productId);
-                    const prodName = item.name || (p ? `${p.brand} ${p.model} - ${p.flavor}` : "Producto eliminado");
-                    const puffs = p?.puffs || "";
-                    // Use saved priceARS (exact). Fallback: derive from sale total proportionally
-                    const unitPrice = item.priceARS || item.customPrice || (() => {
-                      const totalItems = (r.items || []).length;
-                      if (totalItems === 1) return r.total / (item.qty || 1);
-                      if (!p) return 0;
-                      const saleRate = r.exchangeRate || exchangeRate;
-                      return r.currency === "USD" ? p.priceUSD : Math.round(p.priceUSD * saleRate);
-                    })();
-                    return (
-                      <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "3px 0", borderBottom: idx < (r.items || []).length - 1 ? "1px solid #F0EFEB" : "none" }}>
-                        <div>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: "#37352F" }}>{prodName.split(" - ")[0]}</span>
-                          {prodName.includes(" - ") && <span style={{ fontSize: 12, color: "#8C8A82" }}> — {prodName.split(" - ").slice(1).join(" - ")}</span>}
-                          {puffs && <span style={{ fontSize: 11, color: "#B1AFA7" }}> · {puffs}p</span>}
-                        </div>
-                        <div style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                          <span style={{ fontSize: 12, color: "#555247" }}>x{item.qty}</span>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: "#37352F", marginLeft: 8 }}>{formatMoney(unitPrice * item.qty, r.currency)}</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Bottom row: payment info + badges + actions */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
-                  <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-                    {/* Payment methods */}
-                    {payments.map((pay, i) => (
-                      <span key={i} style={{ fontSize: 11, color: "#555247", background: "#E8E7E3", padding: "2px 8px", borderRadius: 6 }}>
-                        {pay.method}{pay.mpAccount ? ` (${pay.mpAccount})` : ""}{payments.length > 1 ? `: ${formatMoney(Number(pay.amount) || 0)}` : ""}
-                      </span>
-                    ))}
-                    {/* Discount badge */}
-                    {(r.discountAmount || 0) > 0 && (
-                      <Badge color="#b8860b">-{formatMoney(r.discountAmount)} desc.</Badge>
-                    )}
-                    {/* Debt/credit badges */}
-                    {(r.debtAmount || 0) > 0 && (
-                      <Badge color="#E03E3E">Debe {formatMoney(r.debtAmount)}</Badge>
-                    )}
-                    {(r.changeAmount || 0) > 0 && r.changeMethod === "credit" && (
-                      <Badge color="#5E6AD2">Crédito {formatMoney(r.changeAmount)}</Badge>
-                    )}
-                    {(r.changeAmount || 0) > 0 && r.changeMethod && r.changeMethod !== "credit" && (
-                      <Badge color="#ea580c">Vuelto {formatMoney(r.changeAmount)} ({r.changeMethod})</Badge>
-                    )}
-                    {r.notes && <span style={{ fontSize: 11, color: "#B1AFA7", fontStyle: "italic" }}>"{r.notes}"</span>}
-                  </div>
-                  {/* Action buttons */}
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={() => repeatSale(r)} style={{ background: "#FDECC8", border: "1px solid #fcd34d", color: "#b8860b", cursor: "pointer", fontSize: 15, borderRadius: 8, padding: "6px 10px", minWidth: 36, minHeight: 36, display: "flex", alignItems: "center", justifyContent: "center" }} title="Repetir">🔄</button>
-                    <button onClick={() => openEdit(r)} style={{ background: "#EAECF9", border: "1px solid #D4D7F2", color: "#5E6AD2", cursor: "pointer", fontSize: 15, borderRadius: 8, padding: "6px 10px", minWidth: 36, minHeight: 36, display: "flex", alignItems: "center", justifyContent: "center" }} title="Editar">✏️</button>
-                    {confirmDeleteSale === r.id
-                      ? <button onClick={() => deleteSale(r)} style={{ background: "#E03E3E", border: "none", color: "#fff", padding: "6px 12px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, minHeight: 36 }}>Eliminar</button>
-                      : <button onClick={() => deleteSale(r)} style={{ background: "#FBE4E4", border: "1px solid #F1B8B6", color: "#E03E3E", cursor: "pointer", fontSize: 15, borderRadius: 8, padding: "6px 10px", minWidth: 36, minHeight: 36, display: "flex", alignItems: "center", justifyContent: "center" }} title="Eliminar">🗑️</button>
-                    }
-                  </div>
-                </div>
-              </Card>
-            );
-          })}
+          {filtered.map(r => (
+            <SaleCard
+              key={r.id}
+              sale={r}
+              products={products}
+              exchangeRate={exchangeRate}
+              isMobile={isMobile}
+              onEdit={() => openEdit(r)}
+              onRepeat={() => repeatSale(r)}
+              onDelete={() => deleteSale(r)}
+              confirmDelete={confirmDeleteSale === r.id}
+            />
+          ))}
         </div>
       )}
 
@@ -1345,5 +1370,229 @@ export const Sales = ({
         )}
       </Modal>
     </div>
+  );
+};
+
+// ============================================
+// UI primitives for the Sales list
+// ============================================
+
+const MonthStat = ({ label, value, sub, accent }) => (
+  <div style={{
+    background: T.card, borderRadius: T.radiusLg, padding: 14,
+    border: `1px solid ${T.borderSoft}`, boxShadow: T.shadowXs,
+  }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: accent }} />
+      <span style={{ fontSize: 10, fontWeight: 600, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.7 }}>{label}</span>
+    </div>
+    <div style={{
+      fontSize: 20, fontWeight: 800, color: T.text, fontFamily: T.fontDisplay,
+      lineHeight: 1, letterSpacing: "-0.02em",
+      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+    }}>{value}</div>
+    {sub && <div style={{ fontSize: 11, color: T.textMuted, marginTop: 4 }}>{sub}</div>}
+  </div>
+);
+
+const SalesPill = ({ active, onClick, children, color = T.primary }) => (
+  <button onClick={onClick} style={{
+    padding: "7px 14px", borderRadius: 999, border: `1px solid ${active ? color : T.border}`,
+    background: active ? `${color}15` : T.card, color: active ? color : T.textSub,
+    fontSize: 13, fontWeight: active ? 600 : 500, cursor: "pointer",
+    transition: "all .15s", fontFamily: "inherit", whiteSpace: "nowrap",
+  }}>{children}</button>
+);
+
+const selectStyle = (active) => ({
+  padding: "7px 12px", borderRadius: 999, border: `1px solid ${active ? T.primary : T.border}`,
+  background: active ? `${T.primary}15` : T.card, color: active ? T.primary : T.textSub,
+  fontSize: 13, fontFamily: "inherit", cursor: "pointer", outline: "none",
+});
+
+// ============================================
+// SaleCard — rich card per sale
+// ============================================
+const resolveSaleItemName = (item, products) => {
+  if (item.name) return item.name;
+  if (item.productName) return item.productName;
+  const p = item.productId ? products.find(pr => pr.id === item.productId) : null;
+  return p ? `${p.brand} ${p.model} - ${p.flavor}` : "Producto eliminado";
+};
+
+const SaleCard = ({ sale: r, products, exchangeRate, isMobile, onEdit, onRepeat, onDelete, confirmDelete }) => {
+  const [hover, setHover] = useState(false);
+  const payments = r.payments && r.payments.length > 0 ? r.payments : [{ method: r.paymentMethod, amount: r.total }];
+  const itemCount = (r.items || []).reduce((s, i) => s + (i.qty || 1), 0);
+  const avatar = pickAvatarColor(r.clientId || r.clientName || r.id);
+  const clientInitial = (r.clientName || "?").trim().charAt(0).toUpperCase() || "?";
+  const socioColor = r.createdBy === "Diego" ? T.primary : T.green;
+
+  return (
+    <div
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        background: T.card, borderRadius: T.radiusLg,
+        border: `1px solid ${hover ? T.border : T.borderSoft}`,
+        padding: isMobile ? 14 : 18,
+        boxShadow: hover ? T.shadow : T.shadowXs,
+        transition: "all .18s ease",
+        animation: "fadeIn 0.22s ease",
+      }}
+    >
+      {/* Top row: client + date + total */}
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
+        <div style={{
+          width: 40, height: 40, borderRadius: "50%", background: avatar.bg, color: avatar.fg,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontWeight: 700, fontSize: 16, flexShrink: 0, fontFamily: T.fontDisplay,
+        }}>{clientInitial}</div>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 15, fontWeight: 700, color: T.text }}>
+              {r.clientName || "Cliente sin nombre"}
+            </span>
+            {r.createdBy && (
+              <span style={{
+                fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 4,
+                background: `${socioColor}18`, color: socioColor,
+              }}>{r.createdBy}</span>
+            )}
+            {r.quickSale && (
+              <span style={{
+                fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 4,
+                background: T.amberBg, color: T.amber,
+              }}>Rápida</span>
+            )}
+          </div>
+          <div style={{ fontSize: 12, color: T.textMuted, marginTop: 3, display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <span>{formatDate(r.date)}</span>
+            {r.channel && <span>· {r.channel}</span>}
+            {r.exchangeRate && <span style={{ color: T.textFaint }}>· Blue ${r.exchangeRate}</span>}
+          </div>
+        </div>
+
+        <div style={{ textAlign: "right", flexShrink: 0 }}>
+          <div style={{
+            fontSize: isMobile ? 20 : 22, fontWeight: 800, color: T.green,
+            fontFamily: T.fontDisplay, lineHeight: 1, letterSpacing: "-0.02em",
+          }}>
+            {formatMoney(r.total, r.currency)}
+          </div>
+          <div style={{ fontSize: 11, color: T.textMuted, marginTop: 3 }}>
+            {itemCount} {itemCount === 1 ? "unidad" : "unidades"}
+          </div>
+        </div>
+      </div>
+
+      {/* Items list */}
+      <div style={{
+        background: T.surface2, borderRadius: 10, padding: "10px 14px",
+        border: `1px solid ${T.borderSoft}`, marginBottom: 10,
+      }}>
+        {(r.items || []).map((item, idx) => {
+          const p = products.find(pr => pr.id === item.productId);
+          const prodName = resolveSaleItemName(item, products);
+          const puffs = p?.puffs || "";
+          const unitPrice = item.priceARS || item.customPrice || (() => {
+            const totalItems = (r.items || []).length;
+            if (totalItems === 1) return r.total / (item.qty || 1);
+            if (!p) return 0;
+            const saleRate = r.exchangeRate || exchangeRate;
+            return r.currency === "USD" ? p.priceUSD : Math.round(p.priceUSD * saleRate);
+          })();
+          const [head, ...tail] = prodName.split(" - ");
+          return (
+            <div key={idx} style={{
+              display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10,
+              padding: "5px 0",
+              borderBottom: idx < (r.items || []).length - 1 ? `1px solid ${T.borderSoft}` : "none",
+            }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: T.text }}>{head}</span>
+                {tail.length > 0 && <span style={{ fontSize: 12, color: T.textSub }}> · {tail.join(" - ")}</span>}
+                {puffs && <span style={{ fontSize: 11, color: T.textFaint, marginLeft: 4 }}>({puffs}p)</span>}
+              </div>
+              <div style={{ textAlign: "right", whiteSpace: "nowrap", flexShrink: 0 }}>
+                <span style={{ fontSize: 12, color: T.textMuted }}>×{item.qty}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: T.text, marginLeft: 8, fontFamily: T.fontDisplay }}>
+                  {formatMoney(unitPrice * item.qty, r.currency)}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Bottom row: badges + actions */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+        <div style={{ display: "flex", gap: 5, alignItems: "center", flexWrap: "wrap" }}>
+          {payments.map((pay, i) => pay.method && (
+            <span key={i} style={{
+              fontSize: 11, color: T.textSub, background: T.surface2,
+              padding: "3px 9px", borderRadius: 999, border: `1px solid ${T.borderSoft}`,
+            }}>
+              {pay.method}{pay.mpAccount ? ` · ${pay.mpAccount}` : ""}
+              {payments.length > 1 && <strong style={{ color: T.text, marginLeft: 4, fontFamily: T.fontDisplay }}>{formatMoney(Number(pay.amount) || 0)}</strong>}
+            </span>
+          ))}
+          {(r.discountAmount || 0) > 0 && (
+            <span style={{ fontSize: 11, padding: "3px 9px", borderRadius: 999, background: T.amberBg, color: T.amber, fontWeight: 600 }}>
+              −{formatMoney(r.discountAmount)}
+            </span>
+          )}
+          {(r.debtAmount || 0) > 0 && (
+            <span style={{ fontSize: 11, padding: "3px 9px", borderRadius: 999, background: T.redBg, color: T.red, fontWeight: 600 }}>
+              Debe {formatMoney(r.debtAmount)}
+            </span>
+          )}
+          {(r.changeAmount || 0) > 0 && r.changeMethod === "credit" && (
+            <span style={{ fontSize: 11, padding: "3px 9px", borderRadius: 999, background: T.primarySoft, color: T.primary, fontWeight: 600 }}>
+              Crédito {formatMoney(r.changeAmount)}
+            </span>
+          )}
+          {(r.changeAmount || 0) > 0 && r.changeMethod && r.changeMethod !== "credit" && (
+            <span style={{ fontSize: 11, padding: "3px 9px", borderRadius: 999, background: T.amberBg, color: T.amber, fontWeight: 600 }}>
+              Vuelto {formatMoney(r.changeAmount)} · {r.changeMethod}
+            </span>
+          )}
+          {r.notes && (
+            <span style={{ fontSize: 11, color: T.textMuted, fontStyle: "italic" }}>"{r.notes}"</span>
+          )}
+        </div>
+
+        <div style={{ display: "flex", gap: 4 }}>
+          <GhostBtn onClick={onRepeat} color={T.amber} title="Repetir">🔄</GhostBtn>
+          <GhostBtn onClick={onEdit} color={T.primary} title="Editar">✏️</GhostBtn>
+          {confirmDelete
+            ? <button onClick={onDelete} style={{
+                padding: "6px 12px", borderRadius: 8, border: "none",
+                background: T.red, color: "#fff", fontSize: 12, fontWeight: 700,
+                cursor: "pointer", fontFamily: "inherit", minHeight: 32,
+              }}>¿Eliminar?</button>
+            : <GhostBtn onClick={onDelete} color={T.red} title="Eliminar">🗑️</GhostBtn>
+          }
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const GhostBtn = ({ children, onClick, color, title }) => {
+  const [hover, setHover] = useState(false);
+  return (
+    <button onClick={onClick} title={title}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        width: 32, height: 32, borderRadius: 8,
+        border: `1px solid ${hover ? color : T.borderSoft}`,
+        background: hover ? `${color}12` : "transparent",
+        color: hover ? color : T.textSub, fontSize: 14,
+        cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center",
+        fontFamily: "inherit", transition: "all .15s",
+      }}>{children}</button>
   );
 };
