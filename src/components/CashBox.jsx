@@ -1,9 +1,14 @@
 import { useState, useMemo } from "react";
 import { uid, formatMoney, formatDate } from "../helpers.js";
 import { useResponsive } from "../App.jsx";
-import { Modal, Card, Btn, Input, Select, Table, Badge, StatCard, SearchBar } from "./UI.jsx";
+import { Modal } from "./UI.jsx";
+import { T } from "../theme.js";
 
-// -- CASH / CAJA --
+// ============================================
+// CASHBOX — el corazón financiero del negocio
+// Importación Paraguay (USDT) → venta ARS → Lemon → USDT → proveedor
+// ============================================
+
 const INITIAL_BALANCES = {
   lemonPesos: 273646.62,
   lemonUSDT: 40.12,
@@ -14,40 +19,51 @@ const INITIAL_BALANCES = {
 };
 
 const ACCOUNTS = [
-  { id: "mpDiego", label: "MP Diego", currency: "ARS", icon: "💜", color: "#a855f7" },
-  { id: "mpGustavo", label: "MP Gustavo", currency: "ARS", icon: "💙", color: "#00b894" },
-  { id: "lemonPesos", label: "Lemon (Pesos)", currency: "ARS", icon: "🍋", color: "#f9ca24" },
-  { id: "lemonUSDT", label: "Lemon (USDT)", currency: "USDT", icon: "🍋", color: "#26de81" },
-  { id: "usdCash", label: "USD Cash", currency: "USD", icon: "💵", color: "#00cec9" },
-  { id: "pesosCash", label: "Pesos Cash", currency: "ARS", icon: "💰", color: "#fdcb6e" },
+  { id: "mpDiego",    label: "MP Diego",     short: "MP Diego",   currency: "ARS",  icon: "💜", accent: "#8B5CF6", sub: "Mercado Pago" },
+  { id: "mpGustavo",  label: "MP Gustavo",   short: "MP Gustavo", currency: "ARS",  icon: "💙", accent: "#2383E2", sub: "Mercado Pago" },
+  { id: "lemonPesos", label: "Lemon Pesos",  short: "Lemon $",    currency: "ARS",  icon: "🍋", accent: "#CB912F", sub: "Billetera Lemon" },
+  { id: "lemonUSDT",  label: "Lemon USDT",   short: "Lemon ₮",    currency: "USDT", icon: "🪙", accent: "#16A34A", sub: "Crypto" },
+  { id: "usdCash",    label: "USD Cash",     short: "USD",        currency: "USD",  icon: "💵", accent: "#0F7B6C", sub: "Efectivo físico" },
+  { id: "pesosCash",  label: "Pesos Cash",   short: "Cash $",     currency: "ARS",  icon: "💰", accent: "#06B6D4", sub: "Efectivo físico" },
 ];
+const ACCOUNT_BY_ID = Object.fromEntries(ACCOUNTS.map(a => [a.id, a]));
 
+// Movement types: 5 tipos con íconos
 const MOVEMENT_TYPES = [
-  { value: "transfer", label: "Transferencia entre cuentas" },
-  { value: "crypto_buy", label: "Compra USDT (pesos → crypto)" },
-  { value: "deposit", label: "Ingreso / Depósito" },
-  { value: "withdrawal", label: "Retiro / Extracción" },
+  { key: "income",      label: "Ingreso",          desc: "Entra plata (no viene de una venta)",      icon: "⬇️", color: T.green,  requires: ["to", "amount"] },
+  { key: "expense",     label: "Egreso",           desc: "Pago, retiro personal, gasto ocasional",   icon: "⬆️", color: T.red,    requires: ["from", "amount"] },
+  { key: "transfer",    label: "Transferencia",    desc: "De una cuenta del negocio a otra",         icon: "🔁", color: T.blue,   requires: ["from", "to", "amount"] },
+  { key: "crypto_buy",  label: "Compra crypto",    desc: "Pesos → USDT (típicamente Lemon → Lemon)", icon: "🪙", color: T.amber,  requires: ["from", "to", "amount", "amountUSDT"] },
+  { key: "crypto_sell", label: "Venta crypto",     desc: "USDT → pesos",                             icon: "💸", color: T.purple, requires: ["from", "to", "amount", "amountUSDT"] },
 ];
+const TYPE_BY_KEY = Object.fromEntries(MOVEMENT_TYPES.map(t => [t.key, t]));
+// Legacy backward-compat (deposit/withdrawal → income/expense)
+const normalizeType = (t) => ({ deposit: "income", withdrawal: "expense" })[t] || t;
 
+// ---- date helpers ----
+const msPerDay = 86400000;
+const dayKey = (d) => new Date(d).toISOString().slice(0, 10);
+const daysAgo = (d, days) => new Date(d) >= new Date(Date.now() - days * msPerDay);
+
+// ============================================
+// MAIN
+// ============================================
 export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements, setCashMovements, exchangeRate, setExchangeRate, currentUser, logAudit }) => {
   const { isMobile } = useResponsive();
-  const [modal, setModal] = useState(false);
-  const [moveForm, setMoveForm] = useState({ type: "transfer", from: "", to: "", amount: "", amountUSDT: "", description: "", date: new Date().toISOString().slice(0, 10) });
+  const [showMovementModal, setShowMovementModal] = useState(false);
+  const [editMovementType, setEditMovementType] = useState(null); // pre-selects type when set
+  const [showConciliation, setShowConciliation] = useState(false);
   const [showDailyClose, setShowDailyClose] = useState(false);
-  const [ledgerFilter, setLedgerFilter] = useState("all"); // all | sales | expenses | movements | purchases
-  const [ledgerSearch, setLedgerSearch] = useState("");
-  const [ledgerLimit, setLedgerLimit] = useState(50);
+  const [period, setPeriod] = useState("month"); // today | week | month | lastMonth | custom
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
 
-  // Calculate account balances including movements
-  // IMPORTANT: All queries must exclude soft-deleted items (!isDeleted)
+  // ---- balance calculation (same as before — robust) ----
   const calcBalance = (accountId) => {
     let bal = INITIAL_BALANCES[accountId] || 0;
-
-    // Only count active (non-deleted) sales
     const activeSales = (sales || []).filter(s => !s.isDeleted);
     const activePurchases = (purchases || []).filter(p => !p.isDeleted);
 
-    // Add from sales — supports both legacy (single paymentMethod) and new (payments array) format
     const ACCOUNT_METHOD_MAP = {
       mpDiego: (p) => p.method === "Mercado Pago" && p.mpAccount === "MP Diego",
       mpGustavo: (p) => p.method === "Mercado Pago" && p.mpAccount === "MP Gustavo",
@@ -60,63 +76,73 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
     if (matchFn) {
       activeSales.forEach(sale => {
         if (sale.payments && sale.payments.length > 0) {
-          // New format: sum matching payments from the payments array
           sale.payments.filter(matchFn).forEach(p => { bal += Number(p.amount) || 0; });
         } else {
-          // Legacy format: single paymentMethod field
           const legacyPay = { method: sale.paymentMethod, mpAccount: sale.mpAccount, amount: sale.total };
           if (matchFn(legacyPay)) bal += Number(sale.total) || 0;
         }
       });
     }
-    // Purchases reduce USDT
+
     if (accountId === "lemonUSDT") {
       bal -= activePurchases.filter(p => p.status === "verificado" || !p.status).reduce((s, p) => s + (p.totalUSDT || 0), 0);
     }
 
-    // Apply cash movements (exclude deleted)
-    (cashMovements || []).filter(m => !m.isDeleted).forEach(m => {
+    (cashMovements || []).filter(m => !m.isDeleted && m.type !== "daily_close" && m.type !== "conciliation_adjust").forEach(m => {
+      const t = normalizeType(m.type);
       if (m.from === accountId) bal -= Number(m.amount) || 0;
       if (m.to === accountId) {
-        if (m.type === "crypto_buy" && accountId === "lemonUSDT") bal += Number(m.amountUSDT) || 0;
-        else bal += Number(m.amount) || 0;
+        if ((t === "crypto_buy" && accountId === "lemonUSDT") || (t === "crypto_sell" && accountId !== "lemonUSDT" && m.amountUSDT)) {
+          bal += Number(m.amount) || 0; // for crypto_sell the destination gets pesos = amount
+        } else if (t === "crypto_buy" && accountId === "lemonUSDT") {
+          bal += Number(m.amountUSDT) || 0;
+        } else {
+          bal += Number(m.amount) || 0;
+        }
       }
     });
+    // Fix: crypto_buy increases USDT on 'to' side
+    (cashMovements || []).filter(m => !m.isDeleted && normalizeType(m.type) === "crypto_buy" && m.to === "lemonUSDT" && accountId === "lemonUSDT").forEach(m => {
+      // already added m.amount above, need to subtract and add amountUSDT instead
+      bal -= Number(m.amount) || 0;
+      bal += Number(m.amountUSDT) || 0;
+    });
+    // Fix: crypto_sell decreases USDT on 'from' side
+    (cashMovements || []).filter(m => !m.isDeleted && normalizeType(m.type) === "crypto_sell" && m.from === "lemonUSDT" && accountId === "lemonUSDT").forEach(m => {
+      // 'from' already subtracted m.amount; for USDT we should subtract m.amountUSDT instead
+      bal += Number(m.amount) || 0;
+      bal -= Number(m.amountUSDT) || 0;
+    });
 
+    // Conciliation adjustments
+    (cashMovements || []).filter(m => !m.isDeleted && m.type === "conciliation_adjust" && m.account === accountId).forEach(m => {
+      bal += Number(m.delta) || 0;
+    });
     return bal;
   };
 
-  const balances = {};
-  ACCOUNTS.forEach(a => { balances[a.id] = calcBalance(a.id); });
+  const balances = useMemo(() => {
+    const b = {};
+    ACCOUNTS.forEach(a => { b[a.id] = calcBalance(a.id); });
+    return b;
+  }, [sales, purchases, cashMovements, exchangeRate]);
 
-  const totalARS = (balances.mpDiego || 0) + (balances.mpGustavo || 0) + (balances.lemonPesos || 0) + (balances.pesosCash || 0);
-  const totalUSD = balances.usdCash || 0;
-  const totalUSDT = balances.lemonUSDT || 0;
+  // ---- totals ----
+  const totalsByCurrency = useMemo(() => {
+    let ars = 0, usd = 0, usdt = 0;
+    ACCOUNTS.forEach(a => {
+      const v = balances[a.id] || 0;
+      if (a.currency === "ARS") ars += v;
+      else if (a.currency === "USD") usd += v;
+      else if (a.currency === "USDT") usdt += v;
+    });
+    return { ars, usd, usdt };
+  }, [balances]);
 
-  const saveMovement = () => {
-    if (!moveForm.amount || (!moveForm.from && !moveForm.to)) return;
-    const newId = uid();
-    const movement = { ...moveForm, id: newId, amount: Number(moveForm.amount), amountUSDT: Number(moveForm.amountUSDT) || 0, createdBy: currentUser?.name || "" };
-    setCashMovements(prev => [movement, ...prev]);
-    if (logAudit) logAudit("create", "cashMovement", newId, `Creó movimiento: ${moveForm.type} $${moveForm.amount} ${moveForm.from ? getAccountLabel(moveForm.from) : ""} → ${moveForm.to ? getAccountLabel(moveForm.to) : ""}`);
-    setModal(false);
-    setMoveForm({ type: "transfer", from: "", to: "", amount: "", amountUSDT: "", description: "", date: new Date().toISOString().slice(0, 10) });
-  };
+  const patrimonyARS = totalsByCurrency.ars + (totalsByCurrency.usd * exchangeRate) + (totalsByCurrency.usdt * exchangeRate);
+  const patrimonyUSD = Math.round((patrimonyARS / exchangeRate) * 100) / 100;
 
-  const [confirmDeleteMov, setConfirmDeleteMov] = useState(null);
-  const deleteMovement = (id) => {
-    if (confirmDeleteMov !== id) { setConfirmDeleteMov(id); setTimeout(() => setConfirmDeleteMov(null), 3000); return; }
-    const mov = (cashMovements || []).find(m => m.id === id);
-    setCashMovements(prev => prev.map(m => m.id === id ? { ...m, isDeleted: true, deletedAt: new Date().toISOString(), deletedBy: currentUser?.name || "?" } : m));
-    if (logAudit && mov) logAudit("delete", "cashMovement", id, `Eliminó movimiento: ${mov.type} $${mov.amount}`);
-    setConfirmDeleteMov(null);
-  };
-
-  const getAccountLabel = (id) => ACCOUNTS.find(a => a.id === id)?.label || id;
-
-  // ============================================
-  // LIBRO DIARIO — All money movements unified
-  // ============================================
+  // ---- unified ledger (same as before with crypto_sell) ----
   const ledger = useMemo(() => {
     const entries = [];
     const activeSales = (sales || []).filter(s => !s.isDeleted);
@@ -124,101 +150,248 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
     const activePurchases = (purchases || []).filter(p => !p.isDeleted);
     const activeMovements = (cashMovements || []).filter(m => !m.isDeleted && m.type !== "daily_close");
 
-    // Sales → each payment is an income entry
+    // Sales
     activeSales.forEach(s => {
       const payments = s.payments && s.payments.length > 0 ? s.payments : [{ method: s.paymentMethod, mpAccount: s.mpAccount, amount: s.total }];
       payments.forEach(pay => {
         if (!pay.method || !Number(pay.amount)) return;
-        const acct = pay.method === "Mercado Pago" ? (pay.mpAccount || pay.account || "MP Diego") : pay.method;
+        const accountId = payMethodToAccountId(pay.method, pay.mpAccount);
         entries.push({
-          date: s.date || "", type: "income", category: "Venta",
-          description: `${s.clientName || "Sin cliente"} — ${(s.items || []).map(i => i.name || "?").join(", ")}`,
-          account: acct, amount: Number(pay.amount), currency: s.currency || "ARS",
-          icon: "🛒", color: "#0F7B6C", refId: s.id, createdBy: s.createdBy || "",
+          date: s.date || "", kind: "sale", type: "income", category: "Venta",
+          description: `${s.clientName || "Sin cliente"}`,
+          accountId, account: ACCOUNT_BY_ID[accountId]?.label || pay.method,
+          amount: Number(pay.amount), currency: s.currency || "ARS",
+          icon: "🛒", color: T.green, refId: s.id, createdBy: s.createdBy || "",
         });
       });
-      // Change (vuelto) given → expense from account
       if (s.changeAmount > 0 && s.changeMethod && s.changeMethod !== "credit") {
-        const acct = s.changeMethod === "Mercado Pago" ? (s.changeMpAccount || "MP Diego") : s.changeMethod;
+        const accountId = payMethodToAccountId(s.changeMethod, s.changeMpAccount);
         entries.push({
-          date: s.date || "", type: "expense", category: "Vuelto",
+          date: s.date || "", kind: "change", type: "expense", category: "Vuelto",
           description: `Vuelto a ${s.clientName || "cliente"}`,
-          account: acct, amount: s.changeAmount, currency: s.currency || "ARS",
-          icon: "💸", color: "#ea580c", refId: s.id, createdBy: s.createdBy || "",
+          accountId, account: ACCOUNT_BY_ID[accountId]?.label || s.changeMethod,
+          amount: s.changeAmount, currency: s.currency || "ARS",
+          icon: "💸", color: T.amber, refId: s.id, createdBy: s.createdBy || "",
         });
       }
     });
 
-    // Expenses
+    // Expenses (assume from pesos cash unless specified)
     activeExpenses.forEach(e => {
       entries.push({
-        date: e.date || "", type: "expense", category: e.category || "Gasto",
+        date: e.date || "", kind: "expense", type: "expense",
+        category: e.category || "Gasto",
         description: e.description || e.category || "Gasto",
-        account: "Pesos Cash", amount: e.amountARS || 0, currency: "ARS",
-        icon: "💸", color: "#E03E3E", refId: e.id, createdBy: e.createdBy || "",
+        accountId: "pesosCash", account: "Pesos Cash",
+        amount: e.amountARS || 0, currency: "ARS",
+        icon: "💸", color: T.red, refId: e.id, createdBy: e.createdBy || "",
       });
     });
 
     // Purchases (USDT out)
     activePurchases.filter(p => p.totalUSDT > 0 && (p.status === "verificado" || !p.status)).forEach(p => {
       entries.push({
-        date: p.date || "", type: "expense", category: "Compra importación",
-        description: `${p.supplier || "Proveedor"} — ${(p.items || p.groups || []).length} productos`,
-        account: "Lemon (USDT)", amount: p.totalUSDT || 0, currency: "USDT",
-        icon: "🚚", color: "#5E6AD2", refId: p.id, createdBy: p.createdBy || "",
+        date: p.date || "", kind: "purchase", type: "expense",
+        category: "Importación",
+        description: `${p.supplier || "Proveedor"} — ${(p.items || p.groups || []).length} ítems`,
+        accountId: "lemonUSDT", account: "Lemon USDT",
+        amount: p.totalUSDT || 0, currency: "USDT",
+        icon: "🚚", color: T.primary, refId: p.id, createdBy: p.createdBy || "",
       });
     });
 
-    // Cash movements (manual: transfers, deposits, withdrawals, crypto buys)
-    activeMovements.forEach(m => {
-      const typeLabels = { transfer: "Transferencia", crypto_buy: "Compra USDT", deposit: "Ingreso", withdrawal: "Retiro" };
+    // Manual cash movements
+    activeMovements.filter(m => m.type !== "conciliation_adjust").forEach(m => {
+      const t = normalizeType(m.type);
+      const typeInfo = TYPE_BY_KEY[t] || { label: t, color: T.textMuted, icon: "💱" };
       if (m.from) {
+        const fromAcc = ACCOUNT_BY_ID[m.from];
+        const cur = t === "crypto_sell" ? "USDT" : (fromAcc?.currency || "ARS");
+        const amt = t === "crypto_sell" ? (Number(m.amountUSDT) || 0) : (Number(m.amount) || 0);
         entries.push({
-          date: m.date || "", type: "expense", category: typeLabels[m.type] || m.type,
-          description: m.description || `${typeLabels[m.type] || "Movimiento"} → ${m.to ? getAccountLabel(m.to) : ""}`,
-          account: getAccountLabel(m.from), amount: Number(m.amount) || 0, currency: ACCOUNTS.find(a => a.id === m.from)?.currency || "ARS",
-          icon: m.type === "crypto_buy" ? "🪙" : "💱", color: "#CB912F", refId: m.id, createdBy: m.createdBy || "",
+          date: m.date || "", kind: "movement", type: "expense",
+          category: typeInfo.label,
+          description: m.description || `${typeInfo.label}${m.to ? ` → ${ACCOUNT_BY_ID[m.to]?.short || m.to}` : ""}`,
+          accountId: m.from, account: fromAcc?.label || m.from,
+          amount: amt, currency: cur,
+          icon: typeInfo.icon, color: typeInfo.color, refId: m.id, createdBy: m.createdBy || "",
         });
       }
       if (m.to) {
-        const amtIn = m.type === "crypto_buy" && m.to === "lemonUSDT" ? (Number(m.amountUSDT) || 0) : (Number(m.amount) || 0);
-        const cur = m.type === "crypto_buy" && m.to === "lemonUSDT" ? "USDT" : (ACCOUNTS.find(a => a.id === m.to)?.currency || "ARS");
+        const toAcc = ACCOUNT_BY_ID[m.to];
+        const cur = t === "crypto_buy" && m.to === "lemonUSDT" ? "USDT" : (toAcc?.currency || "ARS");
+        const amt = t === "crypto_buy" && m.to === "lemonUSDT" ? (Number(m.amountUSDT) || 0) : (Number(m.amount) || 0);
         entries.push({
-          date: m.date || "", type: "income", category: typeLabels[m.type] || m.type,
-          description: m.description || `${typeLabels[m.type] || "Movimiento"} ← ${m.from ? getAccountLabel(m.from) : ""}`,
-          account: getAccountLabel(m.to), amount: amtIn, currency: cur,
-          icon: m.type === "crypto_buy" ? "🪙" : "💱", color: "#CB912F", refId: m.id, createdBy: m.createdBy || "",
+          date: m.date || "", kind: "movement", type: "income",
+          category: typeInfo.label,
+          description: m.description || `${typeInfo.label}${m.from ? ` ← ${ACCOUNT_BY_ID[m.from]?.short || m.from}` : ""}`,
+          accountId: m.to, account: toAcc?.label || m.to,
+          amount: amt, currency: cur,
+          icon: typeInfo.icon, color: typeInfo.color, refId: m.id, createdBy: m.createdBy || "",
         });
       }
     });
 
-    // Sort by date descending
+    // Conciliation adjustments
+    activeMovements.filter(m => m.type === "conciliation_adjust").forEach(m => {
+      const acc = ACCOUNT_BY_ID[m.account];
+      const delta = Number(m.delta) || 0;
+      entries.push({
+        date: m.date || "", kind: "conciliation", type: delta >= 0 ? "income" : "expense",
+        category: "Ajuste conciliación",
+        description: m.description || "Conciliación",
+        accountId: m.account, account: acc?.label || m.account,
+        amount: Math.abs(delta), currency: acc?.currency || "ARS",
+        icon: "⚖️", color: T.textMuted, refId: m.id, createdBy: m.createdBy || "",
+      });
+    });
+
     entries.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
     return entries;
   }, [sales, expenses, purchases, cashMovements]);
 
-  // Filtered ledger
-  const filteredLedger = useMemo(() => {
-    let list = ledger;
-    if (ledgerFilter === "sales") list = list.filter(e => e.category === "Venta" || e.category === "Vuelto");
-    else if (ledgerFilter === "expenses") list = list.filter(e => e.category !== "Venta" && e.category !== "Vuelto" && e.type === "expense" && !["Transferencia", "Compra USDT", "Ingreso", "Retiro"].includes(e.category));
-    else if (ledgerFilter === "movements") list = list.filter(e => ["Transferencia", "Compra USDT", "Ingreso", "Retiro"].includes(e.category));
-    else if (ledgerFilter === "purchases") list = list.filter(e => e.category === "Compra importación");
-    if (ledgerSearch) {
-      const q = ledgerSearch.toLowerCase();
-      list = list.filter(e => (e.description || "").toLowerCase().includes(q) || (e.account || "").toLowerCase().includes(q) || (e.category || "").toLowerCase().includes(q));
+  // ---- period filters ----
+  const periodRange = useMemo(() => {
+    const today = new Date();
+    const toISO = (d) => d.toISOString().slice(0, 10);
+    if (period === "today") return { from: toISO(today), to: toISO(today), label: "hoy" };
+    if (period === "week") {
+      const from = new Date(today.getTime() - 6 * msPerDay);
+      return { from: toISO(from), to: toISO(today), label: "últimos 7 días" };
     }
-    return list;
-  }, [ledger, ledgerFilter, ledgerSearch]);
+    if (period === "month") {
+      const from = new Date(today.getFullYear(), today.getMonth(), 1);
+      return { from: toISO(from), to: toISO(today), label: "este mes" };
+    }
+    if (period === "lastMonth") {
+      const from = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const to = new Date(today.getFullYear(), today.getMonth(), 0);
+      return { from: toISO(from), to: toISO(to), label: "mes anterior" };
+    }
+    return { from: customFrom || "", to: customTo || toISO(today), label: "personalizado" };
+  }, [period, customFrom, customTo]);
 
-  // Daily close: snapshot of current balances
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const periodEntries = useMemo(() => {
+    return ledger.filter(e => {
+      const d = (e.date || "").slice(0, 10);
+      if (periodRange.from && d < periodRange.from) return false;
+      if (periodRange.to && d > periodRange.to) return false;
+      return true;
+    });
+  }, [ledger, periodRange]);
+
+  // ---- patrimony trend vs 30 days ago ----
+  const patrimonyTrend = useMemo(() => {
+    const thirtyAgo = dayKey(new Date(Date.now() - 30 * msPerDay));
+    let arsDelta = 0, usdDelta = 0, usdtDelta = 0;
+    ledger.filter(e => (e.date || "").slice(0, 10) >= thirtyAgo).forEach(e => {
+      const sign = e.type === "income" ? 1 : -1;
+      if (e.currency === "ARS") arsDelta += sign * e.amount;
+      else if (e.currency === "USD") usdDelta += sign * e.amount;
+      else if (e.currency === "USDT") usdtDelta += sign * e.amount;
+    });
+    const totalDeltaARS = arsDelta + (usdDelta * exchangeRate) + (usdtDelta * exchangeRate);
+    const past = patrimonyARS - totalDeltaARS;
+    const pct = past > 0 ? Math.round(((patrimonyARS - past) / past) * 100) : 0;
+    return { past, deltaARS: totalDeltaARS, pct };
+  }, [ledger, patrimonyARS, exchangeRate]);
+
+  // ---- sparkline per account (30 days daily balance) ----
+  const accountSparklines = useMemo(() => {
+    const out = {};
+    ACCOUNTS.forEach(a => {
+      // Sum entries for this account in last 30 days by day
+      const days = [];
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      // Start with current balance, walk backwards day by day undoing entries
+      let bal = balances[a.id];
+      const daily = []; // today backwards
+      for (let i = 0; i < 30; i++) {
+        const d = new Date(today.getTime() - i * msPerDay);
+        const ds = dayKey(d);
+        // After all i-th day entries applied, balance = current (approx, for i=0)
+        daily.unshift(bal);
+        // Undo entries of this day for next iteration (move to previous day's end)
+        ledger.filter(e => e.accountId === a.id && (e.date || "").slice(0, 10) === ds).forEach(e => {
+          const sign = e.type === "income" ? 1 : -1;
+          bal -= sign * e.amount;
+        });
+      }
+      out[a.id] = daily;
+    });
+    return out;
+  }, [balances, ledger]);
+
+  // ---- last movement per account ----
+  const lastMovementByAccount = useMemo(() => {
+    const out = {};
+    ACCOUNTS.forEach(a => {
+      out[a.id] = ledger.find(e => e.accountId === a.id);
+    });
+    return out;
+  }, [ledger]);
+
+  // ---- save movement ----
+  const saveMovement = (form) => {
+    if (!form.amount || Number(form.amount) <= 0) return false;
+    const t = form.type;
+    const req = TYPE_BY_KEY[t]?.requires || [];
+    for (const r of req) if (!form[r]) return false;
+
+    const newId = uid();
+    const movement = {
+      id: newId,
+      type: t,
+      from: form.from || "",
+      to: form.to || "",
+      amount: Number(form.amount) || 0,
+      amountUSDT: Number(form.amountUSDT) || 0,
+      description: form.description || "",
+      date: form.date || dayKey(new Date()),
+      createdBy: currentUser?.name || "",
+    };
+    setCashMovements(prev => [movement, ...prev]);
+    if (logAudit) logAudit("create", "cashMovement", newId, `${TYPE_BY_KEY[t].label}: ${formatMoney(form.amount)} ${form.from ? ACCOUNT_BY_ID[form.from]?.short : ""} → ${form.to ? ACCOUNT_BY_ID[form.to]?.short : ""}`);
+    return true;
+  };
+
+  // ---- conciliation save ----
+  const saveConciliation = (adjustments) => {
+    // adjustments: { accountId: { real, note } }
+    const today = dayKey(new Date());
+    adjustments.forEach(({ accountId, delta, note }) => {
+      if (Math.abs(delta) < 0.01) return;
+      const newId = uid();
+      setCashMovements(prev => [{
+        id: newId,
+        type: "conciliation_adjust",
+        account: accountId,
+        delta,
+        description: note || `Ajuste de conciliación en ${ACCOUNT_BY_ID[accountId]?.label}`,
+        date: today,
+        createdBy: currentUser?.name || "",
+        conciliationGroup: today + "-" + (currentUser?.name || ""),
+      }, ...prev]);
+      if (logAudit) logAudit("create", "conciliation", newId, `Ajuste ${ACCOUNT_BY_ID[accountId]?.label}: ${delta > 0 ? "+" : ""}${formatMoney(delta, ACCOUNT_BY_ID[accountId]?.currency)}`);
+    });
+  };
+
+  const [confirmDel, setConfirmDel] = useState(null);
+  const deleteMovement = (id) => {
+    if (confirmDel !== id) { setConfirmDel(id); setTimeout(() => setConfirmDel(null), 3000); return; }
+    const mov = (cashMovements || []).find(m => m.id === id);
+    setCashMovements(prev => prev.map(m => m.id === id ? { ...m, isDeleted: true, deletedAt: new Date().toISOString(), deletedBy: currentUser?.name || "?" } : m));
+    if (logAudit && mov) logAudit("delete", "cashMovement", id, `Eliminó: ${mov.type} $${mov.amount}`);
+    setConfirmDel(null);
+  };
+
+  // ---- daily close ----
+  const todayStr = dayKey(new Date());
   const dailyCloses = (cashMovements || []).filter(m => !m.isDeleted && m.type === "daily_close");
   const todayAlreadyClosed = dailyCloses.some(m => m.date === todayStr);
-
   const todaySalesCount = (sales || []).filter(s => !s.isDeleted && (s.date || "").slice(0, 10) === todayStr).length;
   const todayMovementsCount = (cashMovements || []).filter(m => !m.isDeleted && m.type !== "daily_close" && (m.date || "").slice(0, 10) === todayStr).length;
-
   const doDailyClose = () => {
     const snapshot = {};
     ACCOUNTS.forEach(a => { snapshot[a.id] = Math.round(balances[a.id] * 100) / 100; });
@@ -227,236 +400,1169 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
       id: newId, type: "daily_close", date: todayStr,
       description: `Cierre de caja — ${todaySalesCount} ventas, ${todayMovementsCount} movimientos`,
       snapshot, exchangeRate,
-      totalARS: Math.round(totalARS * 100) / 100,
-      totalUSD: Math.round(totalUSD * 100) / 100,
-      totalUSDT: Math.round(totalUSDT * 100) / 100,
+      patrimonyARS: Math.round(patrimonyARS * 100) / 100,
       createdBy: currentUser?.name || "",
     }, ...prev]);
-    if (logAudit) logAudit("create", "dailyClose", newId, `Cierre de caja diario: ${todayStr}`);
+    if (logAudit) logAudit("create", "dailyClose", newId, `Cierre de caja: ${todayStr}`);
     setShowDailyClose(false);
   };
 
+  // ---- alerts ----
+  const alerts = useMemo(() => {
+    const list = [];
+    ACCOUNTS.forEach(a => {
+      const v = balances[a.id];
+      if (v < 0) list.push({ t: "danger", msg: `${a.label} en negativo`, detail: formatMoney(v, a.currency) });
+    });
+    // unusual large movement (>500k ARS or >200 USDT/USD) in last 7 days
+    const bigThreshold = { ARS: 500000, USD: 500, USDT: 500 };
+    const bigRecent = ledger.filter(e => daysAgo(e.date, 7) && e.amount > (bigThreshold[e.currency] || 500000));
+    if (bigRecent.length > 0) {
+      list.push({
+        t: "info",
+        msg: `${bigRecent.length} movimiento${bigRecent.length > 1 ? "s" : ""} grande${bigRecent.length > 1 ? "s" : ""} esta semana`,
+        detail: bigRecent.slice(0, 2).map(e => `${e.category}: ${formatMoney(e.amount, e.currency)}`).join(" · "),
+      });
+    }
+    // last conciliation
+    const lastConciliation = (cashMovements || []).filter(m => !m.isDeleted && m.type === "conciliation_adjust").sort((a, b) => (b.date || "").localeCompare(a.date || ""))[0];
+    const daysSinceConciliation = lastConciliation ? Math.floor((Date.now() - new Date(lastConciliation.date).getTime()) / msPerDay) : 999;
+    if (daysSinceConciliation > 14) {
+      list.push({ t: "warning", msg: lastConciliation ? `Sin conciliar hace ${daysSinceConciliation} días` : "Caja nunca se concilió", detail: "Conciliá para detectar diferencias" });
+    }
+    return list;
+  }, [balances, ledger, cashMovements]);
+
+  // ============================================
+  // RENDER
+  // ============================================
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
-        <h2 style={{ color: "#37352F", margin: 0, fontSize: 22 }}>Caja Multi-Moneda</h2>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          {!isMobile && <>
-            <span style={{ color: "#8C8A82", fontSize: 13 }}>Blue:</span>
-            <input type="number" value={exchangeRate} onChange={e => setExchangeRate(Number(e.target.value))}
-              style={{ width: 80, padding: "6px 10px", background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 8, color: "#00b894", fontSize: 14, fontWeight: 700 }} />
-          </>}
-          <Btn onClick={() => setModal(true)} style={{ padding: "8px 12px", fontSize: isMobile ? 12 : 14 }}>{isMobile ? "💱" : "💱 Movimiento"}</Btn>
+    <div style={{ fontFamily: T.font }}>
+      {/* ========== HEADER ========== */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16, marginBottom: 20 }}>
+        <div>
+          <h1 style={{ fontSize: isMobile ? 26 : 32, fontWeight: 800, color: T.text, margin: 0, letterSpacing: "-0.02em", fontFamily: T.fontDisplay }}>
+            Caja
+          </h1>
+          <p style={{ color: T.textMuted, fontSize: 14, margin: "6px 0 0", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <span>{ACCOUNTS.length} cuentas activas</span>
+            <span style={{ color: T.textFaint }}>·</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: T.green }} />
+              Blue
+              <input type="number" value={exchangeRate} onChange={e => setExchangeRate(Number(e.target.value))}
+                style={{
+                  width: 70, padding: "3px 8px", background: T.surface2,
+                  border: `1px solid ${T.borderSoft}`, borderRadius: 6,
+                  color: T.text, fontSize: 13, fontWeight: 700, fontFamily: "inherit", outline: "none",
+                }} />
+            </span>
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button onClick={() => setShowConciliation(true)} style={ghostBtn()}>⚖️ Conciliar</button>
           {!todayAlreadyClosed ? (
-            <Btn variant="success" onClick={() => setShowDailyClose(true)} style={{ padding: "8px 14px" }}>📋 Cerrar caja</Btn>
+            <button onClick={() => setShowDailyClose(true)} style={ghostBtn()}>📋 Cerrar caja</button>
           ) : (
-            <Badge color="#0F7B6C">✅ Caja cerrada hoy</Badge>
+            <span style={{ padding: "8px 14px", borderRadius: 10, background: T.greenBg, color: T.green, fontSize: 13, fontWeight: 600, border: `1px solid ${T.greenBorder}` }}>
+              ✓ Cerrada hoy
+            </span>
           )}
+          <button onClick={() => { setEditMovementType(null); setShowMovementModal(true); }} style={{
+            padding: "10px 20px", borderRadius: 10, border: "none",
+            background: T.primary, color: "#fff", fontSize: 14, fontWeight: 600,
+            cursor: "pointer", fontFamily: "inherit", boxShadow: T.shadowSm,
+          }}>+ Nuevo movimiento</button>
         </div>
       </div>
 
-      {/* Daily close confirm */}
-      {showDailyClose && (
-        <Card style={{ marginBottom: 14, background: "#DDEDEA", border: "1px solid #B6D4CC" }}>
-          <h4 style={{ color: "#0F7B6C", margin: "0 0 8px", fontSize: 14 }}>📋 Cerrar caja de hoy ({todayStr})</h4>
-          <p style={{ color: "#8C8A82", fontSize: 13, margin: "0 0 10px" }}>
-            Se guarda una foto de los saldos actuales. Ventas hoy: {todaySalesCount} · Movimientos hoy: {todayMovementsCount}
-          </p>
-          <div style={{ display: "flex", gap: 10 }}>
-            <Btn variant="success" onClick={doDailyClose}>Confirmar cierre</Btn>
-            <Btn variant="secondary" onClick={() => setShowDailyClose(false)}>Cancelar</Btn>
-          </div>
-        </Card>
+      {/* ========== ALERTS ========== */}
+      {alerts.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 18 }}>
+          {alerts.map((a, i) => {
+            const st = { danger: { bg: T.redBg, border: T.redBorder, dot: T.red }, warning: { bg: T.amberBg, border: T.amberBorder, dot: T.amber }, info: { bg: T.blueBg, border: T.blueBorder, dot: T.blue } }[a.t];
+            return (
+              <div key={i} style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "10px 14px", background: st.bg, border: `1px solid ${st.border}`, borderRadius: 10,
+              }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: st.dot, flexShrink: 0 }} />
+                <div style={{ flex: 1, fontSize: 13, color: T.text }}>
+                  <b style={{ color: st.dot, fontWeight: 600 }}>{a.msg}</b>
+                  {a.detail && <span style={{ marginLeft: 8, color: T.textSub, fontSize: 12 }}>· {a.detail}</span>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
 
-      {/* Totals */}
-      <Card style={{ marginBottom: 16, background: "linear-gradient(135deg, #f8f9fc 0%, #f0f1f8 100%)", border: "1px solid #E8E7E3" }}>
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 0, textAlign: "center" }}>
-          <div style={{ padding: "8px 12px" }}>
-            <div style={{ color: "#8C8A82", fontSize: 10, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, fontWeight: 600 }}>Total Pesos</div>
-            <div style={{ color: "#5E6AD2", fontSize: isMobile ? 16 : 20, fontWeight: 800 }}>{formatMoney(totalARS)}</div>
-          </div>
-          <div style={{ padding: "8px 12px", borderLeft: "1px solid #E8E7E3" }}>
-            <div style={{ color: "#8C8A82", fontSize: 10, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, fontWeight: 600 }}>Total USD</div>
-            <div style={{ color: "#00b8a9", fontSize: isMobile ? 16 : 20, fontWeight: 800 }}>{formatMoney(totalUSD, "USD")}</div>
-          </div>
-          <div style={{ padding: "8px 12px", borderLeft: "1px solid #E8E7E3" }}>
-            <div style={{ color: "#8C8A82", fontSize: 10, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, fontWeight: 600 }}>Total USDT</div>
-            <div style={{ color: "#26de81", fontSize: isMobile ? 16 : 20, fontWeight: 800 }}>{formatMoney(totalUSDT, "USDT")}</div>
-          </div>
-          <div style={{ padding: "8px 12px", borderLeft: "1px solid #E8E7E3" }}>
-            <div style={{ color: "#8C8A82", fontSize: 10, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, fontWeight: 600 }}>Todo en ARS</div>
-            <div style={{ color: "#CB912F", fontSize: isMobile ? 16 : 20, fontWeight: 800 }}>{formatMoney(totalARS + (totalUSD * exchangeRate) + (totalUSDT * exchangeRate))}</div>
-          </div>
-        </div>
-      </Card>
+      {/* ========== PATRIMONY HERO ========== */}
+      <PatrimonyHero
+        patrimonyARS={patrimonyARS}
+        patrimonyUSD={patrimonyUSD}
+        totals={totalsByCurrency}
+        trend={patrimonyTrend}
+        exchangeRate={exchangeRate}
+        isMobile={isMobile}
+      />
 
-      {/* Account cards */}
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit, minmax(180px, 1fr))", gap: isMobile ? 8 : 14, marginBottom: 20 }}>
-        {ACCOUNTS.map(a => {
-          const val = formatMoney(balances[a.id], a.currency);
-          const isLong = val.length > 12;
-          return (
-            <Card key={a.id} style={{ position: "relative", overflow: "hidden", padding: isMobile ? "12px 14px" : "16px 18px" }}>
-              <div style={{ position: "absolute", top: 10, right: 10, fontSize: 20, opacity: 0.15 }}>{a.icon}</div>
-              <div style={{ fontSize: 11, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6, fontWeight: 600, whiteSpace: "nowrap" }}>{a.label}</div>
-              <div style={{ fontSize: isMobile ? (isLong ? 16 : 18) : (isLong ? 20 : 24), fontWeight: 800, color: a.color, lineHeight: 1.1 }}>{val}</div>
-            </Card>
-          );
-        })}
+      {/* ========== 6 ACCOUNT CARDS ========== */}
+      <SectionTitle>Cuentas</SectionTitle>
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)",
+        gap: isMobile ? 10 : 14, marginBottom: 24,
+      }}>
+        {ACCOUNTS.map(a => (
+          <AccountCard
+            key={a.id}
+            account={a}
+            balance={balances[a.id]}
+            exchangeRate={exchangeRate}
+            sparkData={accountSparklines[a.id] || []}
+            lastMovement={lastMovementByAccount[a.id]}
+            isMobile={isMobile}
+          />
+        ))}
       </div>
 
-      {/* ============================================ */}
-      {/* LIBRO DIARIO — All movements */}
-      {/* ============================================ */}
-      <Card style={{ marginBottom: 14 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
-          <h4 style={{ color: "#37352F", margin: 0, fontSize: 16, fontWeight: 800 }}>📒 Libro Diario</h4>
-          <span style={{ color: "#8C8A82", fontSize: 12 }}>{filteredLedger.length} movimientos</span>
-        </div>
+      {/* ========== PERIOD FLOW ========== */}
+      <SectionTitle right={
+        <PeriodSelector value={period} onChange={setPeriod} customFrom={customFrom} customTo={customTo} setCustomFrom={setCustomFrom} setCustomTo={setCustomTo} />
+      }>Flujo de dinero</SectionTitle>
+      <PeriodFlow
+        entries={periodEntries}
+        range={periodRange}
+        exchangeRate={exchangeRate}
+        isMobile={isMobile}
+      />
 
-        {/* Filters */}
-        <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
-          {[
-            { key: "all", label: "Todo", color: "#37352F" },
-            { key: "sales", label: "Ventas", color: "#0F7B6C" },
-            { key: "expenses", label: "Gastos", color: "#E03E3E" },
-            { key: "purchases", label: "Compras", color: "#5E6AD2" },
-            { key: "movements", label: "Movimientos", color: "#CB912F" },
-          ].map(f => (
-            <button key={f.key} onClick={() => { setLedgerFilter(f.key); setLedgerLimit(50); }}
-              style={{
-                padding: "5px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                border: `1.5px solid ${ledgerFilter === f.key ? f.color : "#E8E7E3"}`,
-                background: ledgerFilter === f.key ? `${f.color}15` : "#FAFAF9",
-                color: ledgerFilter === f.key ? f.color : "#8C8A82",
-              }}>{f.label}</button>
-          ))}
-          <div style={{ flex: 1, minWidth: 150 }}>
-            <input value={ledgerSearch} onChange={e => setLedgerSearch(e.target.value)} placeholder="Buscar..."
-              style={{ width: "100%", padding: "6px 12px", background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
-          </div>
-        </div>
+      {/* ========== HISTORIAL ========== */}
+      <SectionTitle>Historial</SectionTitle>
+      <HistoryList
+        ledger={ledger}
+        isMobile={isMobile}
+        onDelete={deleteMovement}
+        confirmDel={confirmDel}
+      />
 
-        {/* Entries */}
-        {filteredLedger.length === 0 ? (
-          <div style={{ textAlign: "center", padding: 30, color: "#B1AFA7" }}>Sin movimientos</div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-            {filteredLedger.slice(0, ledgerLimit).map((entry, idx) => {
-              const isIncome = entry.type === "income";
-              // Group separator by date
-              const prevDate = idx > 0 ? formatDate(filteredLedger[idx - 1].date) : null;
-              const thisDate = formatDate(entry.date);
-              const showDateHeader = thisDate !== prevDate;
+      {/* ========== DAILY CLOSES ========== */}
+      {dailyCloses.length > 0 && (
+        <>
+          <SectionTitle>Cierres de caja diarios</SectionTitle>
+          <DailyClosesList closes={dailyCloses} isMobile={isMobile} />
+        </>
+      )}
 
-              return (
-                <div key={`${entry.refId}-${entry.type}-${entry.account}-${idx}`}>
-                  {showDateHeader && (
-                    <div style={{ padding: "10px 0 6px", fontSize: 12, fontWeight: 700, color: "#5E6AD2", borderBottom: "1px solid #E8E7E3", marginBottom: 4, marginTop: idx > 0 ? 8 : 0 }}>
-                      {thisDate}
-                    </div>
-                  )}
-                  <div style={{
-                    display: "flex", alignItems: "center", gap: 10, padding: "8px 4px",
-                    borderBottom: "1px solid #E8E7E3",
-                  }}>
-                    {/* Icon */}
-                    <span style={{ fontSize: 16, flexShrink: 0 }}>{entry.icon}</span>
-                    {/* Info */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                        <Badge color={entry.color}>{entry.category}</Badge>
-                        <span style={{ fontSize: 11, color: "#B1AFA7" }}>{entry.account}</span>
-                      </div>
-                      <div style={{ fontSize: 12, color: "#555247", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {entry.description}
-                      </div>
-                    </div>
-                    {/* Amount */}
-                    <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: isIncome ? "#0F7B6C" : "#E03E3E" }}>
-                        {isIncome ? "+" : "-"}{formatMoney(entry.amount, entry.currency)}
-                      </div>
-                      {entry.createdBy && <div style={{ fontSize: 10, color: "#B1AFA7" }}>{entry.createdBy}</div>}
-                    </div>
+      {/* ========== MODALS ========== */}
+      {showMovementModal && (
+        <Modal open={true} onClose={() => { setShowMovementModal(false); setEditMovementType(null); }} title="Nuevo movimiento">
+          <MovementForm
+            presetType={editMovementType}
+            exchangeRate={exchangeRate}
+            currentUser={currentUser}
+            balances={balances}
+            onSave={(form) => { if (saveMovement(form)) { setShowMovementModal(false); setEditMovementType(null); } }}
+            onCancel={() => { setShowMovementModal(false); setEditMovementType(null); }}
+          />
+        </Modal>
+      )}
+
+      {showConciliation && (
+        <Modal open={true} onClose={() => setShowConciliation(false)} title="Conciliar caja">
+          <ConciliationForm
+            balances={balances}
+            onSave={(adjustments) => { saveConciliation(adjustments); setShowConciliation(false); }}
+            onCancel={() => setShowConciliation(false)}
+          />
+        </Modal>
+      )}
+
+      {showDailyClose && (
+        <Modal open={true} onClose={() => setShowDailyClose(false)} title={`Cerrar caja · ${todayStr}`}>
+          <div>
+            <p style={{ fontSize: 14, color: T.textSub, marginBottom: 14, lineHeight: 1.5 }}>
+              Se guarda una foto de los saldos actuales. Hoy: <strong style={{ color: T.text }}>{todaySalesCount} ventas</strong> ·{" "}
+              <strong style={{ color: T.text }}>{todayMovementsCount} movimientos</strong>.
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
+              {ACCOUNTS.map(a => (
+                <div key={a.id} style={{ background: T.surface2, padding: "8px 10px", borderRadius: 8, border: `1px solid ${T.borderSoft}` }}>
+                  <div style={{ fontSize: 11, color: T.textMuted }}>{a.icon} {a.label}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: a.accent, fontFamily: T.fontDisplay }}>
+                    {formatMoney(balances[a.id] || 0, a.currency)}
                   </div>
                 </div>
-              );
-            })}
-            {filteredLedger.length > ledgerLimit && (
-              <button onClick={() => setLedgerLimit(l => l + 50)} style={{
-                background: "none", border: "1px dashed #5E6AD233", color: "#5E6AD2", padding: "10px",
-                borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, width: "100%", marginTop: 8,
-              }}>Mostrar más ({filteredLedger.length - ledgerLimit} restantes)</button>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button onClick={() => setShowDailyClose(false)} style={ghostBtn()}>Cancelar</button>
+              <button onClick={doDailyClose} style={primaryBtn()}>Confirmar cierre</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+};
+
+// ============================================
+// HELPERS
+// ============================================
+function payMethodToAccountId(method, mpAccount) {
+  if (method === "Mercado Pago") return mpAccount === "MP Gustavo" ? "mpGustavo" : "mpDiego";
+  if (method === "Lemon") return "lemonPesos";
+  if (method === "USDT") return "lemonUSDT";
+  if (method === "USD Cash") return "usdCash";
+  if (method === "Pesos Cash") return "pesosCash";
+  return "";
+}
+
+// ============================================
+// UI PRIMITIVES
+// ============================================
+const SectionTitle = ({ children, right }) => (
+  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, marginTop: 8, gap: 12, flexWrap: "wrap" }}>
+    <h2 style={{ fontSize: 13, fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.8, margin: 0 }}>{children}</h2>
+    {right}
+  </div>
+);
+
+const ghostBtn = () => ({
+  padding: "8px 14px", borderRadius: 10, border: `1px solid ${T.border}`,
+  background: T.card, color: T.textSub, fontSize: 13, fontWeight: 600,
+  cursor: "pointer", fontFamily: "inherit",
+});
+const primaryBtn = () => ({
+  padding: "10px 20px", borderRadius: 10, border: "none",
+  background: T.primary, color: "#fff", fontSize: 14, fontWeight: 700,
+  cursor: "pointer", fontFamily: "inherit", boxShadow: T.shadowSm,
+});
+
+const Sparkline = ({ data, color, width = 100, height = 28 }) => {
+  if (!data || data.length < 2) return null;
+  const max = Math.max(...data);
+  const min = Math.min(...data);
+  const range = (max - min) || 1;
+  const n = data.length;
+  const points = data.map((v, i) => {
+    const x = (i / (n - 1)) * (width - 2) + 1;
+    const y = height - 2 - ((v - min) / range) * (height - 4);
+    return [x, y];
+  });
+  const path = points.map((p, i) => (i === 0 ? `M${p[0]},${p[1]}` : `L${p[0]},${p[1]}`)).join(" ");
+  const area = `${path} L${points[n - 1][0]},${height} L${points[0][0]},${height} Z`;
+  const gradId = `sp-${Math.random().toString(36).slice(2)}`;
+  return (
+    <svg width={width} height={height} style={{ display: "block", overflow: "visible" }}>
+      <defs>
+        <linearGradient id={gradId} x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.22" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={area} fill={`url(#${gradId})`} />
+      <path d={path} fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+};
+
+// ============================================
+// PATRIMONY HERO
+// ============================================
+const PatrimonyHero = ({ patrimonyARS, patrimonyUSD, totals, trend, exchangeRate, isMobile }) => {
+  const up = trend.pct >= 0;
+  return (
+    <div style={{
+      background: T.card, borderRadius: T.radiusLg,
+      border: `1px solid ${T.borderSoft}`, boxShadow: T.shadowSm,
+      padding: isMobile ? 18 : 24, marginBottom: 20,
+      background: `linear-gradient(135deg, ${T.card} 0%, #FDFCF8 100%)`,
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16 }}>
+        <div style={{ flex: "1 1 260px" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 8 }}>
+            Patrimonio del negocio
+          </div>
+          <div style={{
+            fontSize: isMobile ? 34 : 44, fontWeight: 800, color: T.text,
+            fontFamily: T.fontDisplay, lineHeight: 1, letterSpacing: "-0.025em",
+          }}>
+            {formatMoney(Math.round(patrimonyARS))}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 15, fontWeight: 600, color: T.textSub, fontFamily: T.fontDisplay }}>
+              ≈ {formatMoney(patrimonyUSD, "USD")}
+            </span>
+            {trend.pct !== 0 && (
+              <span style={{
+                display: "inline-flex", alignItems: "center", gap: 4,
+                padding: "3px 10px", borderRadius: 999,
+                background: up ? T.greenBg : T.redBg,
+                color: up ? T.green : T.red,
+                fontSize: 12, fontWeight: 700,
+              }}>
+                <svg width="10" height="10" viewBox="0 0 10 10" style={{ transform: up ? "none" : "rotate(180deg)" }}>
+                  <path d="M5 1 L9 6 L1 6 Z" fill="currentColor" />
+                </svg>
+                {Math.abs(trend.pct)}% últimos 30 días
+              </span>
             )}
           </div>
-        )}
-      </Card>
+        </div>
 
-      {/* Daily closes history */}
-      {dailyCloses.length > 0 && (
-        <Card style={{ marginTop: 14 }}>
-          <h4 style={{ color: "#0F7B6C", margin: "0 0 14px", fontSize: 14, textTransform: "uppercase" }}>📋 Cierres de caja diarios</h4>
-          {dailyCloses.slice(0, 10).map((dc, i) => (
-            <div key={dc.id} style={{ padding: "10px 0", borderBottom: i < Math.min(dailyCloses.length, 10) - 1 ? "1px solid #E8E7E3" : "none" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                <span style={{ fontWeight: 700, color: "#37352F", fontSize: 14 }}>{formatDate(dc.date)}</span>
-                <span style={{ color: "#8C8A82", fontSize: 11 }}>por {dc.createdBy} · Blue: ${dc.exchangeRate}</span>
+        {/* Breakdown */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, flex: "1 1 360px" }}>
+          <MiniBreakdown label="Pesos" value={formatMoney(totals.ars)} color={T.primary} />
+          <MiniBreakdown label="USD" value={formatMoney(totals.usd, "USD")} sub={totals.usd > 0 ? `${formatMoney(totals.usd * exchangeRate)} ARS` : ""} color={T.green} />
+          <MiniBreakdown label="USDT" value={formatMoney(totals.usdt, "USDT")} sub={totals.usdt > 0 ? `${formatMoney(totals.usdt * exchangeRate)} ARS` : ""} color={T.amber} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const MiniBreakdown = ({ label, value, sub, color }) => (
+  <div style={{
+    background: T.surface2, border: `1px solid ${T.borderSoft}`, borderRadius: 10,
+    padding: "10px 12px",
+  }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 5 }}>
+      <span style={{ width: 5, height: 5, borderRadius: "50%", background: color }} />
+      <span style={{ fontSize: 10, fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.6 }}>{label}</span>
+    </div>
+    <div style={{ fontSize: 15, fontWeight: 800, color: T.text, fontFamily: T.fontDisplay, lineHeight: 1.1, letterSpacing: "-0.01em" }}>{value}</div>
+    {sub && <div style={{ fontSize: 10, color: T.textMuted, marginTop: 3 }}>{sub}</div>}
+  </div>
+);
+
+// ============================================
+// ACCOUNT CARD
+// ============================================
+const AccountCard = ({ account, balance, exchangeRate, sparkData, lastMovement, isMobile }) => {
+  const arsEquiv = account.currency === "ARS" ? null : balance * exchangeRate;
+  const lastInfo = lastMovement ? (() => {
+    const diff = (Date.now() - new Date(lastMovement.date).getTime()) / msPerDay;
+    let when;
+    if (diff < 1) when = "hoy";
+    else if (diff < 2) when = "ayer";
+    else if (diff < 30) when = `hace ${Math.floor(diff)}d`;
+    else when = formatDate(lastMovement.date);
+    return { when, category: lastMovement.category, amount: lastMovement.amount, currency: lastMovement.currency, type: lastMovement.type };
+  })() : null;
+  const negative = balance < 0;
+  return (
+    <div style={{
+      background: T.card, borderRadius: T.radiusLg,
+      border: `1px solid ${negative ? T.redBorder : T.borderSoft}`,
+      padding: isMobile ? 14 : 16, boxShadow: T.shadowXs,
+      display: "flex", flexDirection: "column", gap: 12,
+      position: "relative", overflow: "hidden",
+    }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 10,
+            background: `${account.accent}18`, color: account.accent,
+            display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0,
+          }}>{account.icon}</div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{account.label}</div>
+            <div style={{ fontSize: 10, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 }}>{account.sub}</div>
+          </div>
+        </div>
+        <Sparkline data={sparkData} color={account.accent} width={60} height={24} />
+      </div>
+
+      <div>
+        <div style={{
+          fontSize: isMobile ? 19 : 22, fontWeight: 800,
+          color: negative ? T.red : T.text,
+          fontFamily: T.fontDisplay, lineHeight: 1.1, letterSpacing: "-0.02em",
+          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+        }}>
+          {formatMoney(balance, account.currency)}
+        </div>
+        {arsEquiv != null && (
+          <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>
+            ≈ {formatMoney(Math.round(arsEquiv))} ARS
+          </div>
+        )}
+      </div>
+
+      {lastInfo ? (
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          fontSize: 11, color: T.textSub, paddingTop: 10, borderTop: `1px solid ${T.borderSoft}`, gap: 6,
+        }}>
+          <span style={{ color: T.textMuted }}>{lastInfo.when}</span>
+          <span style={{
+            color: lastInfo.type === "income" ? T.green : T.red, fontWeight: 600,
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          }}>
+            {lastInfo.type === "income" ? "+" : "−"}{formatMoney(lastInfo.amount, lastInfo.currency)} {lastInfo.category}
+          </span>
+        </div>
+      ) : (
+        <div style={{ fontSize: 11, color: T.textMuted, paddingTop: 10, borderTop: `1px solid ${T.borderSoft}` }}>
+          Sin movimientos
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ============================================
+// PERIOD SELECTOR + PERIOD FLOW
+// ============================================
+const PeriodSelector = ({ value, onChange, customFrom, customTo, setCustomFrom, setCustomTo }) => (
+  <div style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+    <div style={{ display: "inline-flex", background: T.surface2, borderRadius: 10, padding: 3, border: `1px solid ${T.borderSoft}` }}>
+      {[
+        { k: "today", l: "Hoy" },
+        { k: "week", l: "Semana" },
+        { k: "month", l: "Mes" },
+        { k: "lastMonth", l: "Mes ant." },
+        { k: "custom", l: "Custom" },
+      ].map(o => (
+        <button key={o.k} onClick={() => onChange(o.k)} style={{
+          padding: "5px 10px", fontSize: 12, fontWeight: 600, border: "none", borderRadius: 7,
+          background: value === o.k ? T.card : "transparent",
+          color: value === o.k ? T.text : T.textSub,
+          boxShadow: value === o.k ? T.shadowXs : "none",
+          cursor: "pointer", fontFamily: "inherit",
+        }}>{o.l}</button>
+      ))}
+    </div>
+    {value === "custom" && (
+      <>
+        <input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)} style={dateInput()} />
+        <span style={{ color: T.textMuted, fontSize: 12 }}>—</span>
+        <input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)} style={dateInput()} />
+      </>
+    )}
+  </div>
+);
+
+const dateInput = () => ({
+  padding: "5px 10px", fontSize: 12, border: `1px solid ${T.border}`,
+  borderRadius: 7, background: T.card, color: T.text, fontFamily: "inherit", outline: "none",
+});
+
+const PeriodFlow = ({ entries, range, exchangeRate, isMobile }) => {
+  // Convert to ARS for flow totals
+  const toARS = (amt, cur) => cur === "USD" || cur === "USDT" ? amt * exchangeRate : amt;
+  const income = entries.filter(e => e.type === "income").reduce((s, e) => s + toARS(e.amount, e.currency), 0);
+  const expense = entries.filter(e => e.type === "expense").reduce((s, e) => s + toARS(e.amount, e.currency), 0);
+  const net = income - expense;
+
+  // By account
+  const byAccount = {};
+  ACCOUNTS.forEach(a => { byAccount[a.id] = { in: 0, out: 0 }; });
+  entries.forEach(e => {
+    if (!byAccount[e.accountId]) return;
+    const v = toARS(e.amount, e.currency);
+    if (e.type === "income") byAccount[e.accountId].in += v;
+    else byAccount[e.accountId].out += v;
+  });
+
+  // Daily bars
+  const days = [];
+  if (range.from && range.to) {
+    const start = new Date(range.from);
+    const end = new Date(range.to);
+    const dayCount = Math.min(60, Math.max(1, Math.round((end - start) / msPerDay) + 1));
+    for (let i = 0; i < dayCount; i++) {
+      const d = new Date(start.getTime() + i * msPerDay);
+      days.push({ key: dayKey(d), label: d.toLocaleDateString("es-AR", { day: "numeric", month: "short" }), in: 0, out: 0 });
+    }
+  }
+  const dayIdx = Object.fromEntries(days.map((d, i) => [d.key, i]));
+  entries.forEach(e => {
+    const k = (e.date || "").slice(0, 10);
+    const idx = dayIdx[k];
+    if (idx == null) return;
+    const v = toARS(e.amount, e.currency);
+    if (e.type === "income") days[idx].in += v;
+    else days[idx].out += v;
+  });
+  const maxBar = Math.max(1, ...days.map(d => Math.max(d.in, d.out)));
+
+  return (
+    <div style={{
+      background: T.card, border: `1px solid ${T.borderSoft}`, borderRadius: T.radiusLg,
+      padding: isMobile ? 14 : 18, boxShadow: T.shadowXs, marginBottom: 24,
+    }}>
+      {/* Summary */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)",
+        gap: 10, marginBottom: 16,
+      }}>
+        <FlowStat label="Ingresos" value={formatMoney(Math.round(income))} color={T.green} />
+        <FlowStat label="Egresos" value={formatMoney(Math.round(expense))} color={T.red} />
+        <FlowStat label="Neto" value={formatMoney(Math.round(net))} color={net >= 0 ? T.green : T.red} span={isMobile ? 2 : 1} emphasize />
+      </div>
+
+      {/* Daily chart */}
+      {days.length > 1 && (income > 0 || expense > 0) && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 10 }}>
+            Día por día ({range.label})
+          </div>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height: 80, paddingBottom: 4 }}>
+            {days.map((d, i) => (
+              <div key={d.key} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 1, height: "100%", justifyContent: "flex-end" }} title={`${d.label}: +${formatMoney(Math.round(d.in))} / −${formatMoney(Math.round(d.out))}`}>
+                <div style={{ width: "100%", background: T.green, height: `${(d.in / maxBar) * 70}%`, borderRadius: "3px 3px 0 0", minHeight: d.in > 0 ? 2 : 0, opacity: 0.9 }} />
+                <div style={{ width: "100%", background: T.red, height: `${(d.out / maxBar) * 70}%`, borderRadius: d.in > 0 ? 0 : "3px 3px 0 0", minHeight: d.out > 0 ? 2 : 0, opacity: 0.7 }} />
               </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {dc.snapshot && ACCOUNTS.map(a => (
-                  <span key={a.id} style={{ fontSize: 11, color: "#555247", background: "#FAFAF9", padding: "3px 8px", borderRadius: 6, border: "1px solid #E8E7E3" }}>
-                    {a.icon} {a.label}: <b style={{ color: a.color }}>{formatMoney(dc.snapshot[a.id] || 0, a.currency)}</b>
-                  </span>
-                ))}
-              </div>
-              <div style={{ fontSize: 11, color: "#B1AFA7", marginTop: 4 }}>{dc.description}</div>
-            </div>
-          ))}
-        </Card>
+            ))}
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: T.textFaint, marginTop: 4 }}>
+            <span>{days[0]?.label}</span>
+            <span>{days[days.length - 1]?.label}</span>
+          </div>
+        </div>
       )}
 
-      {/* Movement Modal */}
-      <Modal open={modal} onClose={() => setModal(false)} title="💱 Nuevo Movimiento de Caja">
-        <Input label="Fecha" type="date" value={moveForm.date} onChange={e => setMoveForm(f => ({ ...f, date: e.target.value }))} />
-        <Select label="Tipo de movimiento" options={MOVEMENT_TYPES.map(t => ({ value: t.value, label: t.label }))} value={moveForm.type} onChange={e => setMoveForm(f => ({ ...f, type: e.target.value, from: "", to: "" }))} />
-        
-        {(moveForm.type === "transfer" || moveForm.type === "crypto_buy") && (
-          <div style={{ display: "flex", gap: 12 }}>
-            <Select label="Desde" options={ACCOUNTS.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` }))} value={moveForm.from} onChange={e => setMoveForm(f => ({ ...f, from: e.target.value }))} />
-            <Select label="Hacia" options={ACCOUNTS.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` }))} value={moveForm.to} onChange={e => setMoveForm(f => ({ ...f, to: e.target.value }))} />
-          </div>
+      {/* By account */}
+      <div style={{ fontSize: 10, fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8 }}>
+        Por cuenta
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        {ACCOUNTS.map(a => {
+          const b = byAccount[a.id];
+          if (b.in === 0 && b.out === 0) return null;
+          return (
+            <div key={a.id} style={{
+              display: "flex", alignItems: "center", gap: 10, padding: "6px 10px",
+              background: T.surface2, borderRadius: 8, border: `1px solid ${T.borderSoft}`,
+            }}>
+              <span style={{ fontSize: 14 }}>{a.icon}</span>
+              <span style={{ fontSize: 12, color: T.text, fontWeight: 600, flex: 1 }}>{a.short}</span>
+              {b.in > 0 && <span style={{ fontSize: 11, color: T.green, fontWeight: 700, fontFamily: T.fontDisplay }}>+{formatMoney(Math.round(b.in))}</span>}
+              {b.out > 0 && <span style={{ fontSize: 11, color: T.red, fontWeight: 700, fontFamily: T.fontDisplay }}>−{formatMoney(Math.round(b.out))}</span>}
+            </div>
+          );
+        })}
+        {ACCOUNTS.every(a => byAccount[a.id].in === 0 && byAccount[a.id].out === 0) && (
+          <div style={{ fontSize: 12, color: T.textMuted, padding: "8px 0" }}>Sin movimientos en este período</div>
         )}
+      </div>
+    </div>
+  );
+};
 
-        {moveForm.type === "deposit" && (
-          <Select label="Cuenta destino" options={ACCOUNTS.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` }))} value={moveForm.to} onChange={e => setMoveForm(f => ({ ...f, to: e.target.value }))} />
-        )}
+const FlowStat = ({ label, value, color, span, emphasize }) => (
+  <div style={{
+    background: emphasize ? `${color}10` : T.surface2,
+    border: `1px solid ${emphasize ? `${color}40` : T.borderSoft}`,
+    borderRadius: 10, padding: "12px 14px",
+    gridColumn: span === 2 ? "span 2" : undefined,
+  }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 5 }}>
+      <span style={{ width: 5, height: 5, borderRadius: "50%", background: color }} />
+      <span style={{ fontSize: 10, fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.6 }}>{label}</span>
+    </div>
+    <div style={{ fontSize: emphasize ? 22 : 18, fontWeight: 800, color, fontFamily: T.fontDisplay, letterSpacing: "-0.02em", lineHeight: 1.1 }}>{value}</div>
+  </div>
+);
 
-        {moveForm.type === "withdrawal" && (
-          <Select label="Cuenta origen" options={ACCOUNTS.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` }))} value={moveForm.from} onChange={e => setMoveForm(f => ({ ...f, from: e.target.value }))} />
-        )}
+// ============================================
+// MOVEMENT FORM
+// ============================================
+const MovementForm = ({ presetType, exchangeRate, balances, onSave, onCancel }) => {
+  const [type, setType] = useState(presetType || "transfer");
+  const [form, setForm] = useState({
+    from: "", to: "", amount: "", amountUSDT: "", description: "", date: dayKey(new Date()),
+  });
+  const [showMore, setShowMore] = useState(false);
 
-        <Input label={moveForm.type === "crypto_buy" ? "Monto en pesos" : "Monto"} type="number" value={moveForm.amount} onChange={e => setMoveForm(f => ({ ...f, amount: e.target.value }))} placeholder="ej: 100000" />
-        
-        {moveForm.type === "crypto_buy" && (
-          <>
-            <Input label="USDT recibidos" type="number" value={moveForm.amountUSDT} onChange={e => setMoveForm(f => ({ ...f, amountUSDT: e.target.value }))} placeholder="ej: 65.5" />
-            {moveForm.amount && moveForm.amountUSDT && (
-              <div style={{ color: "#26de81", fontSize: 13, marginBottom: 8 }}>
-                Cotización: {formatMoney(Math.round(Number(moveForm.amount) / Number(moveForm.amountUSDT)))} por USDT
+  const typeInfo = TYPE_BY_KEY[type];
+  const rate = form.amount && form.amountUSDT ? Math.round(Number(form.amount) / Number(form.amountUSDT)) : 0;
+
+  const canSave = (() => {
+    if (!Number(form.amount) || Number(form.amount) <= 0) return false;
+    for (const r of typeInfo.requires) if (!form[r]) return false;
+    return true;
+  })();
+
+  // When type = crypto_buy, pre-fill suggested amountUSDT from exchange rate
+  const suggestUSDT = () => {
+    if (!form.amount) return;
+    setForm(f => ({ ...f, amountUSDT: (Number(f.amount) / exchangeRate).toFixed(2) }));
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {/* Type selector */}
+      <div>
+        <label style={lblStyle}>Tipo de movimiento</label>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 6 }}>
+          {MOVEMENT_TYPES.map(t => (
+            <button key={t.key} onClick={() => { setType(t.key); setForm(f => ({ ...f, from: "", to: "" })); }}
+              style={{
+                padding: "10px 12px", borderRadius: 10, textAlign: "left",
+                border: `1px solid ${type === t.key ? t.color : T.borderSoft}`,
+                background: type === t.key ? `${t.color}15` : T.card,
+                cursor: "pointer", fontFamily: "inherit",
+              }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+                <span style={{ fontSize: 16 }}>{t.icon}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: type === t.key ? t.color : T.text }}>{t.label}</span>
               </div>
-            )}
-          </>
-        )}
-
-        <Input label="Descripción (opcional)" value={moveForm.description} onChange={e => setMoveForm(f => ({ ...f, description: e.target.value }))} placeholder="ej: Pasé plata a Lemon para comprar USDT" />
-
-        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 16 }}>
-          <Btn variant="secondary" onClick={() => setModal(false)}>Cancelar</Btn>
-          <Btn onClick={saveMovement}>Registrar</Btn>
+              <div style={{ fontSize: 11, color: T.textMuted, lineHeight: 1.3 }}>{t.desc}</div>
+            </button>
+          ))}
         </div>
-      </Modal>
+      </div>
+
+      {/* Account pickers */}
+      {typeInfo.requires.includes("from") && (
+        <AccountPicker label={type === "expense" || type === "transfer" || type.startsWith("crypto") ? "Desde cuenta" : "Cuenta origen"} value={form.from} onChange={v => setForm(f => ({ ...f, from: v }))} balances={balances} filter={type === "crypto_sell" ? "USDT" : type === "crypto_buy" ? "ARS" : null} />
+      )}
+      {typeInfo.requires.includes("to") && (
+        <AccountPicker label={type === "income" || type === "transfer" || type.startsWith("crypto") ? "Hacia cuenta" : "Cuenta destino"} value={form.to} onChange={v => setForm(f => ({ ...f, to: v }))} balances={balances} filter={type === "crypto_buy" ? "USDT" : type === "crypto_sell" ? "ARS" : null} exclude={form.from} />
+      )}
+
+      {/* Amount */}
+      <div>
+        <label style={lblStyle}>
+          {type === "crypto_buy" ? "Pesos a gastar" : type === "crypto_sell" ? "Pesos a recibir" : "Monto"}
+        </label>
+        <input type="number" value={form.amount}
+          onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
+          placeholder="0"
+          style={fieldStyle()} />
+      </div>
+
+      {/* Crypto USDT */}
+      {(type === "crypto_buy" || type === "crypto_sell") && (
+        <div>
+          <label style={lblStyle}>USDT {type === "crypto_buy" ? "recibidos" : "entregados"}</label>
+          <div style={{ display: "flex", gap: 6 }}>
+            <input type="number" value={form.amountUSDT}
+              onChange={e => setForm(f => ({ ...f, amountUSDT: e.target.value }))}
+              placeholder="0.00" step="0.01"
+              style={{ ...fieldStyle(), flex: 1 }} />
+            <button onClick={suggestUSDT} type="button" style={{
+              padding: "0 12px", borderRadius: 10, border: `1px solid ${T.border}`,
+              background: T.card, color: T.textSub, fontSize: 12, fontWeight: 600,
+              cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
+            }}>Usar blue ${exchangeRate}</button>
+          </div>
+          {rate > 0 && (
+            <div style={{
+              marginTop: 6, padding: "6px 10px",
+              background: T.amberBg, color: T.amber, borderRadius: 8, fontSize: 12, fontWeight: 600,
+              border: `1px solid ${T.amberBorder}`,
+            }}>
+              Cotización: <strong style={{ fontFamily: T.fontDisplay }}>${rate}</strong> por USDT
+              {rate > exchangeRate * 1.05 && <span style={{ color: T.red, marginLeft: 6 }}>· más alto que blue</span>}
+              {rate < exchangeRate * 0.95 && <span style={{ color: T.green, marginLeft: 6 }}>· más bajo que blue</span>}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Description */}
+      <div>
+        <label style={lblStyle}>Concepto / descripción</label>
+        <input value={form.description}
+          onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+          placeholder={type === "expense" ? "ej: Pago proveedor Paraguay" : type === "income" ? "ej: Depósito inicial" : "ej: Pasé plata a Lemon para comprar USDT"}
+          style={fieldStyle()} />
+      </div>
+
+      {/* Advanced */}
+      <button type="button" onClick={() => setShowMore(v => !v)} style={{
+        background: "none", border: "none", color: T.primary, fontSize: 12, fontWeight: 600,
+        cursor: "pointer", textAlign: "left", fontFamily: "inherit", padding: 0,
+      }}>
+        {showMore ? "▾" : "▸"} Fecha
+      </button>
+      {showMore && (
+        <div>
+          <label style={lblStyle}>Fecha</label>
+          <input type="date" value={form.date}
+            onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
+            style={fieldStyle()} />
+        </div>
+      )}
+
+      {/* Actions */}
+      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 4 }}>
+        <button onClick={onCancel} style={ghostBtn()}>Cancelar</button>
+        <button onClick={() => onSave({ ...form, type })} disabled={!canSave} style={{
+          ...primaryBtn(),
+          background: canSave ? T.primary : T.borderSoft,
+          color: canSave ? "#fff" : T.textFaint,
+          cursor: canSave ? "pointer" : "not-allowed",
+          boxShadow: canSave ? T.shadowSm : "none",
+        }}>Registrar</button>
+      </div>
+    </div>
+  );
+};
+
+const AccountPicker = ({ label, value, onChange, balances, filter, exclude }) => {
+  const opts = ACCOUNTS.filter(a => (!filter || a.currency === filter) && a.id !== exclude);
+  return (
+    <div>
+      <label style={lblStyle}>{label}</label>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 6 }}>
+        {opts.map(a => (
+          <button key={a.id} type="button" onClick={() => onChange(a.id)}
+            style={{
+              padding: "8px 10px", borderRadius: 10, textAlign: "left",
+              border: `1px solid ${value === a.id ? a.accent : T.borderSoft}`,
+              background: value === a.id ? `${a.accent}15` : T.card,
+              cursor: "pointer", fontFamily: "inherit",
+              display: "flex", alignItems: "center", gap: 8,
+            }}>
+            <span style={{ fontSize: 16 }}>{a.icon}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: value === a.id ? a.accent : T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.short}</div>
+              <div style={{ fontSize: 10, color: T.textMuted }}>
+                {formatMoney(balances[a.id] || 0, a.currency)}
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const lblStyle = {
+  display: "block", fontSize: 11, fontWeight: 700, color: T.textMuted,
+  textTransform: "uppercase", letterSpacing: 0.7, marginBottom: 6,
+};
+const fieldStyle = (err) => ({
+  width: "100%", padding: "11px 14px",
+  background: T.surface2, border: `1px solid ${err ? T.red : T.borderSoft}`,
+  borderRadius: 10, color: T.text, fontSize: 14, outline: "none",
+  boxSizing: "border-box", fontFamily: "inherit",
+});
+
+// ============================================
+// HISTORY LIST
+// ============================================
+const HistoryList = ({ ledger, isMobile, onDelete, confirmDel }) => {
+  const [accountFilter, setAccountFilter] = useState([]);
+  const [typeFilter, setTypeFilter] = useState(""); // "", "income", "expense"
+  const [kindFilter, setKindFilter] = useState(""); // "", sale, expense, purchase, movement
+  const [byFilter, setByFilter] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [minAmount, setMinAmount] = useState("");
+  const [maxAmount, setMaxAmount] = useState("");
+  const [search, setSearch] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [limit, setLimit] = useState(50);
+
+  const filtered = useMemo(() => {
+    let list = ledger;
+    if (accountFilter.length > 0) list = list.filter(e => accountFilter.includes(e.accountId));
+    if (typeFilter) list = list.filter(e => e.type === typeFilter);
+    if (kindFilter) list = list.filter(e => e.kind === kindFilter);
+    if (byFilter) list = list.filter(e => (e.createdBy || "").toLowerCase() === byFilter.toLowerCase());
+    if (dateFrom) list = list.filter(e => (e.date || "").slice(0, 10) >= dateFrom);
+    if (dateTo) list = list.filter(e => (e.date || "").slice(0, 10) <= dateTo);
+    if (minAmount) list = list.filter(e => e.amount >= Number(minAmount));
+    if (maxAmount) list = list.filter(e => e.amount <= Number(maxAmount));
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter(e => (e.description || "").toLowerCase().includes(q) || (e.category || "").toLowerCase().includes(q) || (e.account || "").toLowerCase().includes(q));
+    }
+    return list;
+  }, [ledger, accountFilter, typeFilter, kindFilter, byFilter, dateFrom, dateTo, minAmount, maxAmount, search]);
+
+  const toggleAccount = (id) => setAccountFilter(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  const clearFilters = () => {
+    setAccountFilter([]); setTypeFilter(""); setKindFilter(""); setByFilter("");
+    setDateFrom(""); setDateTo(""); setMinAmount(""); setMaxAmount(""); setSearch("");
+  };
+  const hasFilters = accountFilter.length > 0 || typeFilter || kindFilter || byFilter || dateFrom || dateTo || minAmount || maxAmount || search;
+
+  return (
+    <div style={{
+      background: T.card, border: `1px solid ${T.borderSoft}`, borderRadius: T.radiusLg,
+      padding: isMobile ? 12 : 16, boxShadow: T.shadowXs, marginBottom: 24,
+    }}>
+      {/* Search + kind filter */}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+        <div style={{ position: "relative", flex: "1 1 180px" }}>
+          <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: T.textMuted, pointerEvents: "none" }}>🔍</span>
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Buscar descripción, cuenta, categoría..."
+            style={{
+              width: "100%", padding: "9px 12px 9px 34px", background: T.surface2,
+              border: `1px solid ${T.borderSoft}`, borderRadius: 10,
+              fontSize: 13, outline: "none", fontFamily: "inherit", boxSizing: "border-box",
+              color: T.text,
+            }} />
+        </div>
+        <button onClick={() => setShowFilters(v => !v)} style={{
+          padding: "9px 14px", borderRadius: 10, border: `1px solid ${hasFilters ? T.primary : T.border}`,
+          background: hasFilters ? T.primarySoft : T.card,
+          color: hasFilters ? T.primary : T.textSub,
+          fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+        }}>
+          Filtros {hasFilters && `(${accountFilter.length + (typeFilter ? 1 : 0) + (kindFilter ? 1 : 0) + (byFilter ? 1 : 0) + (dateFrom || dateTo ? 1 : 0) + (minAmount || maxAmount ? 1 : 0)})`}
+        </button>
+      </div>
+
+      {/* Kind quick pills */}
+      <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: showFilters ? 12 : 14 }}>
+        {[
+          { k: "", l: "Todo", c: T.textSub },
+          { k: "sale", l: "Ventas", c: T.green },
+          { k: "expense", l: "Gastos", c: T.red },
+          { k: "purchase", l: "Compras", c: T.primary },
+          { k: "movement", l: "Movimientos", c: T.amber },
+          { k: "conciliation", l: "Conciliación", c: T.textMuted },
+        ].map(o => (
+          <button key={o.k} onClick={() => setKindFilter(o.k)} style={{
+            padding: "5px 12px", fontSize: 12, fontWeight: 600,
+            border: `1px solid ${kindFilter === o.k ? o.c : T.borderSoft}`,
+            background: kindFilter === o.k ? `${o.c}15` : T.card,
+            color: kindFilter === o.k ? o.c : T.textSub,
+            borderRadius: 999, cursor: "pointer", fontFamily: "inherit",
+          }}>{o.l}</button>
+        ))}
+      </div>
+
+      {/* Advanced filters */}
+      {showFilters && (
+        <div style={{
+          padding: 12, background: T.surface2, borderRadius: 10, marginBottom: 12,
+          border: `1px solid ${T.borderSoft}`,
+          display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 10,
+        }}>
+          <div style={{ gridColumn: "1 / -1" }}>
+            <label style={lblStyle}>Cuentas</label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+              {ACCOUNTS.map(a => (
+                <button key={a.id} onClick={() => toggleAccount(a.id)} style={{
+                  padding: "4px 10px", fontSize: 11, fontWeight: 600,
+                  border: `1px solid ${accountFilter.includes(a.id) ? a.accent : T.borderSoft}`,
+                  background: accountFilter.includes(a.id) ? `${a.accent}15` : T.card,
+                  color: accountFilter.includes(a.id) ? a.accent : T.textSub,
+                  borderRadius: 999, cursor: "pointer", fontFamily: "inherit",
+                }}>{a.icon} {a.short}</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label style={lblStyle}>Tipo</label>
+            <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)} style={selectStyle()}>
+              <option value="">Todos</option>
+              <option value="income">Ingresos</option>
+              <option value="expense">Egresos</option>
+            </select>
+          </div>
+          <div>
+            <label style={lblStyle}>Por socio</label>
+            <select value={byFilter} onChange={e => setByFilter(e.target.value)} style={selectStyle()}>
+              <option value="">Cualquiera</option>
+              <option value="Diego">Diego</option>
+              <option value="Gustavo">Gustavo</option>
+            </select>
+          </div>
+          <div>
+            <label style={lblStyle}>Desde</label>
+            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={selectStyle()} />
+          </div>
+          <div>
+            <label style={lblStyle}>Hasta</label>
+            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={selectStyle()} />
+          </div>
+          <div>
+            <label style={lblStyle}>Monto mín.</label>
+            <input type="number" value={minAmount} onChange={e => setMinAmount(e.target.value)} placeholder="0" style={selectStyle()} />
+          </div>
+          <div>
+            <label style={lblStyle}>Monto máx.</label>
+            <input type="number" value={maxAmount} onChange={e => setMaxAmount(e.target.value)} placeholder="∞" style={selectStyle()} />
+          </div>
+          {hasFilters && (
+            <div style={{ gridColumn: "1 / -1" }}>
+              <button onClick={clearFilters} style={{
+                background: "none", border: "none", color: T.red, fontSize: 12, fontWeight: 600,
+                cursor: "pointer", fontFamily: "inherit", padding: 0,
+              }}>✕ Limpiar todos los filtros</button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Count */}
+      <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 8 }}>
+        {filtered.length === ledger.length ? `${filtered.length} movimientos` : `${filtered.length} de ${ledger.length} movimientos`}
+      </div>
+
+      {/* Entries */}
+      {filtered.length === 0 ? (
+        <div style={{ textAlign: "center", padding: 40, color: T.textMuted, fontSize: 13 }}>
+          Sin movimientos con esos filtros
+        </div>
+      ) : (
+        <>
+          {filtered.slice(0, limit).map((e, idx) => {
+            const prevDate = idx > 0 ? (filtered[idx - 1].date || "").slice(0, 10) : null;
+            const thisDate = (e.date || "").slice(0, 10);
+            const showDate = thisDate !== prevDate;
+            return (
+              <div key={`${e.refId}-${e.type}-${e.accountId}-${idx}`}>
+                {showDate && (
+                  <div style={{
+                    padding: "12px 0 6px", fontSize: 11, fontWeight: 700, color: T.primary,
+                    textTransform: "uppercase", letterSpacing: 0.6,
+                    borderBottom: `1px solid ${T.borderSoft}`, marginBottom: 4, marginTop: idx > 0 ? 12 : 0,
+                  }}>
+                    {formatDate(e.date)}
+                  </div>
+                )}
+                <HistoryEntry entry={e} onDelete={onDelete} confirmDel={confirmDel} isMobile={isMobile} />
+              </div>
+            );
+          })}
+          {filtered.length > limit && (
+            <button onClick={() => setLimit(l => l + 50)} style={{
+              width: "100%", padding: "12px", marginTop: 10,
+              background: "none", border: `1px dashed ${T.border}`, color: T.primary,
+              borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+            }}>
+              Mostrar más ({filtered.length - limit} restantes)
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
+const HistoryEntry = ({ entry: e, onDelete, confirmDel, isMobile }) => {
+  const isIncome = e.type === "income";
+  const canDelete = e.kind === "movement" || e.kind === "conciliation";
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 10, padding: "10px 4px",
+      borderBottom: `1px solid ${T.borderSoft}`,
+    }}>
+      <div style={{
+        width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+        background: `${e.color}15`, color: e.color,
+        display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14,
+      }}>{e.icon}</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+          <span style={{
+            fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 5,
+            background: `${e.color}15`, color: e.color, textTransform: "uppercase", letterSpacing: 0.3,
+          }}>{e.category}</span>
+          <span style={{ fontSize: 11, color: T.textMuted }}>{e.account}</span>
+          {e.createdBy && (
+            <span style={{
+              fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 4,
+              background: e.createdBy === "Diego" ? T.primarySoft : T.greenBg,
+              color: e.createdBy === "Diego" ? T.primary : T.green,
+            }}>{e.createdBy}</span>
+          )}
+        </div>
+        <div style={{ fontSize: 12, color: T.textSub, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {e.description}
+        </div>
+      </div>
+      <div style={{ textAlign: "right", flexShrink: 0, display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{
+          fontSize: 14, fontWeight: 800,
+          color: isIncome ? T.green : T.red,
+          fontFamily: T.fontDisplay, letterSpacing: "-0.01em",
+        }}>
+          {isIncome ? "+" : "−"}{formatMoney(e.amount, e.currency)}
+        </div>
+        {canDelete && (
+          <button onClick={() => onDelete(e.refId)} style={{
+            width: 28, height: 28, borderRadius: 6,
+            background: confirmDel === e.refId ? T.red : "transparent",
+            border: `1px solid ${confirmDel === e.refId ? T.red : T.borderSoft}`,
+            color: confirmDel === e.refId ? "#fff" : T.textMuted,
+            fontSize: 11, cursor: "pointer", fontFamily: "inherit",
+          }} title={confirmDel === e.refId ? "Confirmar" : "Eliminar"}>
+            {confirmDel === e.refId ? "✓" : "🗑"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const selectStyle = () => ({
+  width: "100%", padding: "9px 12px",
+  background: T.card, border: `1px solid ${T.borderSoft}`,
+  borderRadius: 10, color: T.text, fontSize: 13,
+  outline: "none", fontFamily: "inherit", boxSizing: "border-box",
+});
+
+// ============================================
+// CONCILIATION FORM
+// ============================================
+const ConciliationForm = ({ balances, onSave, onCancel }) => {
+  const [real, setReal] = useState(() => {
+    const r = {};
+    ACCOUNTS.forEach(a => { r[a.id] = String(Math.round((balances[a.id] || 0) * 100) / 100); });
+    return r;
+  });
+  const [notes, setNotes] = useState({});
+
+  const diffs = ACCOUNTS.map(a => {
+    const realVal = Number(real[a.id]);
+    const sysVal = balances[a.id] || 0;
+    const delta = isNaN(realVal) ? 0 : Math.round((realVal - sysVal) * 100) / 100;
+    return { account: a, realVal, sysVal, delta };
+  });
+  const withDiffs = diffs.filter(d => Math.abs(d.delta) >= 0.01);
+  const totalARSDiff = withDiffs.reduce((s, d) => s + (d.account.currency === "ARS" ? d.delta : 0), 0);
+
+  const submit = () => {
+    const adjustments = withDiffs.map(d => ({ accountId: d.account.id, delta: d.delta, note: notes[d.account.id] || "" }));
+    onSave(adjustments);
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <p style={{ fontSize: 13, color: T.textSub, margin: 0, lineHeight: 1.5 }}>
+        Ingresá el saldo real de cada cuenta. Si hay diferencia con lo que dice el sistema, se registra un ajuste con tu nota.
+      </p>
+
+      {diffs.map(d => {
+        const hasDiff = Math.abs(d.delta) >= 0.01;
+        return (
+          <div key={d.account.id} style={{
+            padding: 12, borderRadius: 10,
+            border: `1px solid ${hasDiff ? T.redBorder : T.borderSoft}`,
+            background: hasDiff ? T.redBg : T.surface2,
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+              <span style={{ fontSize: 18 }}>{d.account.icon}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{d.account.label}</div>
+                <div style={{ fontSize: 11, color: T.textMuted }}>
+                  Sistema: <strong style={{ color: T.text, fontFamily: T.fontDisplay }}>{formatMoney(d.sysVal, d.account.currency)}</strong>
+                </div>
+              </div>
+              {hasDiff && (
+                <span style={{
+                  fontSize: 12, fontWeight: 800, padding: "4px 10px", borderRadius: 999,
+                  background: T.red, color: "#fff", fontFamily: T.fontDisplay,
+                }}>
+                  {d.delta > 0 ? "+" : "−"}{formatMoney(Math.abs(d.delta), d.account.currency)}
+                </span>
+              )}
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: 120 }}>
+                <label style={lblStyle}>Saldo real</label>
+                <input type="number" value={real[d.account.id]}
+                  onChange={e => setReal(r => ({ ...r, [d.account.id]: e.target.value }))}
+                  step="0.01"
+                  style={fieldStyle()} />
+              </div>
+              {hasDiff && (
+                <div style={{ flex: 2, minWidth: 160 }}>
+                  <label style={lblStyle}>Nota (opcional)</label>
+                  <input value={notes[d.account.id] || ""}
+                    onChange={e => setNotes(n => ({ ...n, [d.account.id]: e.target.value }))}
+                    placeholder="ej: vuelto no registrado"
+                    style={fieldStyle()} />
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+
+      {withDiffs.length > 0 && (
+        <div style={{
+          background: T.amberBg, border: `1px solid ${T.amberBorder}`, borderRadius: 10, padding: "10px 14px",
+          fontSize: 12, color: T.text,
+        }}>
+          Se registrarán <strong>{withDiffs.length}</strong> ajuste{withDiffs.length > 1 ? "s" : ""}.
+          {Math.abs(totalARSDiff) > 0 && (
+            <span> Diferencia neta en ARS: <strong style={{ color: totalARSDiff >= 0 ? T.green : T.red, fontFamily: T.fontDisplay }}>
+              {totalARSDiff >= 0 ? "+" : ""}{formatMoney(totalARSDiff)}
+            </strong></span>
+          )}
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+        <button onClick={onCancel} style={ghostBtn()}>Cancelar</button>
+        <button onClick={submit} disabled={withDiffs.length === 0} style={{
+          ...primaryBtn(),
+          background: withDiffs.length > 0 ? T.primary : T.borderSoft,
+          color: withDiffs.length > 0 ? "#fff" : T.textFaint,
+          cursor: withDiffs.length > 0 ? "pointer" : "not-allowed",
+        }}>
+          {withDiffs.length === 0 ? "Todo cuadra" : `Registrar ${withDiffs.length} ajuste${withDiffs.length > 1 ? "s" : ""}`}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// ============================================
+// DAILY CLOSES LIST
+// ============================================
+const DailyClosesList = ({ closes, isMobile }) => {
+  const [expanded, setExpanded] = useState(false);
+  const visible = expanded ? closes : closes.slice(0, 3);
+  return (
+    <div style={{
+      background: T.card, border: `1px solid ${T.borderSoft}`, borderRadius: T.radiusLg,
+      padding: isMobile ? 12 : 16, boxShadow: T.shadowXs, marginBottom: 20,
+    }}>
+      {visible.map((dc, i) => (
+        <div key={dc.id} style={{
+          padding: "10px 0",
+          borderBottom: i < visible.length - 1 ? `1px solid ${T.borderSoft}` : "none",
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6, flexWrap: "wrap", gap: 8 }}>
+            <div>
+              <span style={{ fontWeight: 700, color: T.text, fontSize: 14 }}>{formatDate(dc.date)}</span>
+              {dc.patrimonyARS && (
+                <span style={{ marginLeft: 10, fontSize: 13, fontWeight: 700, color: T.green, fontFamily: T.fontDisplay }}>
+                  {formatMoney(dc.patrimonyARS)} patrimonio
+                </span>
+              )}
+            </div>
+            <span style={{ color: T.textMuted, fontSize: 11 }}>
+              por <strong>{dc.createdBy}</strong> · Blue ${dc.exchangeRate}
+            </span>
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+            {dc.snapshot && ACCOUNTS.map(a => (
+              <span key={a.id} style={{
+                fontSize: 10, color: T.textSub, background: T.surface2,
+                padding: "3px 8px", borderRadius: 6, border: `1px solid ${T.borderSoft}`,
+              }}>
+                {a.icon} <strong style={{ color: a.accent, fontFamily: T.fontDisplay }}>{formatMoney(dc.snapshot[a.id] || 0, a.currency)}</strong>
+              </span>
+            ))}
+          </div>
+        </div>
+      ))}
+      {closes.length > 3 && (
+        <button onClick={() => setExpanded(v => !v)} style={{
+          background: "none", border: "none", color: T.primary, fontSize: 12, fontWeight: 600,
+          cursor: "pointer", fontFamily: "inherit", padding: "8px 0 0", textAlign: "left",
+        }}>
+          {expanded ? "Ver menos" : `+${closes.length - 3} cierres más`}
+        </button>
+      )}
     </div>
   );
 };
