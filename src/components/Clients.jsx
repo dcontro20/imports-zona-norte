@@ -6,6 +6,16 @@ import { PAYMENT_METHODS, MP_ACCOUNTS } from "../constants.js";
 import { T, pickAvatarColor } from "../theme.js";
 
 // ---------- helpers ----------
+// Resuelve el nombre de un item de venta aunque no lo tenga guardado:
+// QuickSale guarda `name`, Sales.jsx no. Buscamos el producto por productId.
+const resolveItemName = (item, productsById) => {
+  if (item.name) return item.name;
+  if (item.productName) return item.productName;
+  const p = item.productId ? productsById[item.productId] : null;
+  if (p) return `${p.brand} ${p.model} - ${p.flavor}`;
+  return "Producto eliminado";
+};
+
 const digitsOnly = (s) => String(s || "").replace(/\D/g, "");
 const isValidPhone = (s) => digitsOnly(s).length >= 10;
 const cleanIG = (s) => String(s || "").replace(/^@/, "").replace(/^https?:\/\/(www\.)?instagram\.com\//, "").replace(/\/$/, "").trim();
@@ -119,6 +129,13 @@ export const Clients = ({ clients, setClients, sales, products }) => {
   const [balanceModal, setBalanceModal] = useState(false);
   const [balanceForm, setBalanceForm] = useState({ clientId: "", clientName: "", currentBalance: 0, type: "payment", amount: "", method: "", mpAccount: "", notes: "" });
 
+  // ---- products lookup by id (used to resolve item names) ----
+  const productsById = useMemo(() => {
+    const map = {};
+    (products || []).forEach(p => { map[p.id] = p; });
+    return map;
+  }, [products]);
+
   // ---- stats per client ----
   const clientStats = useMemo(() => {
     const map = {};
@@ -129,12 +146,16 @@ export const Clients = ({ clients, setClients, sales, products }) => {
       const sorted = [...cs].sort((a, b) => new Date(b.date) - new Date(a.date));
       const lastPurchase = sorted[0] || null;
       const firstPurchase = sorted[sorted.length - 1] || null;
+      // Favorites: group by productId when available, else by resolved name.
+      // Así dos ventas con el mismo producto (una con name, otra solo productId) cuentan juntas.
       const prodFreq = {};
       cs.forEach(s => (s.items || []).forEach(item => {
-        const name = item.name || item.productName || "?";
-        prodFreq[name] = (prodFreq[name] || 0) + (item.qty || 1);
+        const key = item.productId || item.name || "unknown";
+        const name = resolveItemName(item, productsById);
+        if (!prodFreq[key]) prodFreq[key] = { name, qty: 0 };
+        prodFreq[key].qty += item.qty || 1;
       }));
-      const favProducts = Object.entries(prodFreq).sort((a, b) => b[1] - a[1]).slice(0, 3);
+      const favProducts = Object.values(prodFreq).sort((a, b) => b.qty - a.qty).slice(0, 3);
       // monthly spending
       const byMonth = {};
       cs.forEach(s => { const k = monthKey(s.date); byMonth[k] = (byMonth[k] || 0) + (s.total || 0); });
@@ -147,7 +168,7 @@ export const Clients = ({ clients, setClients, sales, products }) => {
       map[c.id] = { salesCount: cs.length, totalSpent, totalUnits, lastPurchase, firstPurchase, favProducts, byMonth, avgDays, sales: cs };
     });
     return map;
-  }, [clients, sales]);
+  }, [clients, sales, productsById]);
 
   // ---- global stats for metric cards ----
   const now = new Date();
@@ -389,6 +410,7 @@ export const Clients = ({ clients, setClients, sales, products }) => {
               key={c.id}
               client={c}
               stats={clientStats[c.id]}
+              productsById={productsById}
               onEdit={() => openEdit(c)}
               onHistory={() => setHistoryClient(c.id)}
               onBalance={() => openBalanceAdjust(c)}
@@ -404,6 +426,7 @@ export const Clients = ({ clients, setClients, sales, products }) => {
         <HistoryModal
           client={clients.find(c => c.id === historyClient)}
           stats={clientStats[historyClient]}
+          productsById={productsById}
           onClose={() => setHistoryClient(null)}
         />
       )}
@@ -438,12 +461,13 @@ export const Clients = ({ clients, setClients, sales, products }) => {
 // ============================================
 // ClientCard — una tarjeta por cliente
 // ============================================
-const ClientCard = ({ client: c, stats, onEdit, onHistory, onBalance, onDelete, confirmDelete }) => {
+const ClientCard = ({ client: c, stats, productsById, onEdit, onHistory, onBalance, onDelete, confirmDelete }) => {
   const [hover, setHover] = useState(false);
   const st = stats || {};
   const bal = c.balance || 0;
   const hasBalance = bal !== 0;
-  const lastName = st.lastPurchase?.items?.[0]?.name || "";
+  const lastItems = st.lastPurchase?.items || [];
+  const lastName = lastItems[0] ? resolveItemName(lastItems[0], productsById) : "";
   const lastShort = lastName.length > 34 ? lastName.slice(0, 32) + "…" : lastName;
 
   return (
@@ -546,14 +570,14 @@ const ClientCard = ({ client: c, stats, onEdit, onHistory, onBalance, onDelete, 
       {/* Favorite products */}
       {st.favProducts && st.favProducts.length > 0 && (
         <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-          {st.favProducts.slice(0, 3).map(([name, qty], i) => {
-            const { bg, fg } = pickAvatarColor(name);
-            const short = name.length > 22 ? name.slice(0, 20) + "…" : name;
+          {st.favProducts.slice(0, 3).map((fav, i) => {
+            const { bg, fg } = pickAvatarColor(fav.name);
+            const short = fav.name.length > 22 ? fav.name.slice(0, 20) + "…" : fav.name;
             return (
               <span key={i} style={{
                 fontSize: 11, padding: "3px 8px", borderRadius: 999,
                 background: bg, color: fg, fontWeight: 600,
-              }}>{short} ×{qty}</span>
+              }}>{short} ×{fav.qty}</span>
             );
           })}
         </div>
@@ -778,7 +802,7 @@ const fieldStyle = (error) => ({
 // ============================================
 // HistoryModal — full client purchase history
 // ============================================
-const HistoryModal = ({ client, stats, onClose }) => {
+const HistoryModal = ({ client, stats, productsById, onClose }) => {
   const { isMobile } = useResponsive();
   if (!client || !stats) return null;
 
@@ -834,15 +858,15 @@ const HistoryModal = ({ client, stats, onClose }) => {
             Productos favoritos
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {stats.favProducts.map(([name, qty], i) => {
-              const { bg, fg } = pickAvatarColor(name);
+            {stats.favProducts.map((fav, i) => {
+              const { bg, fg } = pickAvatarColor(fav.name);
               return (
                 <div key={i} style={{
                   display: "inline-flex", alignItems: "center", gap: 6,
                   padding: "6px 12px", borderRadius: 999,
                   background: bg, color: fg, fontSize: 13, fontWeight: 600,
                 }}>
-                  <span>{["🥇", "🥈", "🥉"][i]}</span> {name} · ×{qty}
+                  <span>{["🥇", "🥈", "🥉"][i]}</span> {fav.name} · ×{fav.qty}
                 </div>
               );
             })}
@@ -869,7 +893,7 @@ const HistoryModal = ({ client, stats, onClose }) => {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12, color: T.textMuted, fontWeight: 500 }}>{formatDate(s.date)}</div>
                   <div style={{ fontSize: 13, color: T.text, marginTop: 3, lineHeight: 1.45 }}>
-                    {(s.items || []).map(i => `${i.qty || 1}× ${i.name || "?"}`).join(" · ") || "—"}
+                    {(s.items || []).map(i => `${i.qty || 1}× ${resolveItemName(i, productsById)}`).join(" · ") || "—"}
                   </div>
                   {(s.paymentMethod || (s.payments || [])[0]?.method) && (
                     <div style={{ fontSize: 11, color: T.textMuted, marginTop: 3 }}>
