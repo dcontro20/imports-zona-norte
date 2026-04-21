@@ -9,7 +9,7 @@ export const WITHDRAW_PERSONS = ["Diego", "Gustavo"];
 export const WITHDRAW_TYPES = ["Consumo propio", "Garantía / Devolución", "Regalo / Canje"];
 export const DISCOUNT_REASONS = ["Promo", "Volumen (3+)", "Cliente frecuente", "Negociación", "Otro"];
 export const BRAND_COLORS = {
-  "Elfbar": "#00b894", "Geek Bar": "#6c5ce7", "Ignite": "#EF4444",
+  "Elfbar": "#00b894", "Geek Bar": "#6c5ce7", "Ignite": "#E03E3E",
   "Lost Mary": "#fdcb6e", "Nikbar": "#00cec9", "Supreme": "#e17055"
 };
 

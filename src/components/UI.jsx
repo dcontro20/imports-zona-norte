@@ -12,14 +12,14 @@ export const Modal = ({ open, onClose, title, children }) => {
       /* backdrop-filter removed for performance */
     }} onClick={onClose}>
       <div style={{
-        background: "#1E293B", borderRadius: isMobile ? "16px 16px 0 0" : 16, padding: isMobile ? "14px" : "24px", maxWidth: isMobile ? "100%" : 520,
-        width: "100%", maxHeight: isMobile ? "92vh" : "85vh", overflowY: "auto", border: isMobile ? "none" : "1px solid #334155",
+        background: "#FFFFFF", borderRadius: isMobile ? "16px 16px 0 0" : 16, padding: isMobile ? "14px" : "24px", maxWidth: isMobile ? "100%" : 520,
+        width: "100%", maxHeight: isMobile ? "92vh" : "85vh", overflowY: "auto", border: isMobile ? "none" : "1px solid #E8E7E3",
         boxShadow: "0 24px 48px rgba(0,0,0,0.12)",
         ...(isMobile ? { paddingBottom: 24 } : {}),
       }} onClick={e => e.stopPropagation()}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <h3 style={{ margin: 0, color: "#F8FAFC", fontSize: 18, fontWeight: 700 }}>{title}</h3>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#64748B", fontSize: 22, cursor: "pointer" }}>✕</button>
+          <h3 style={{ margin: 0, color: "#37352F", fontSize: 18, fontWeight: 700 }}>{title}</h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#B1AFA7", fontSize: 22, cursor: "pointer" }}>✕</button>
         </div>
         {children}
       </div>
@@ -32,7 +32,7 @@ export const Card = ({ children, style }) => {
 
   return (
     <div style={{
-      background: "#1E293B", borderRadius: isMobile ? 10 : 14, padding: isMobile ? "14px" : "20px", border: "1px solid #334155",
+      background: "#FFFFFF", borderRadius: isMobile ? 10 : 14, padding: isMobile ? "14px" : "20px", border: "1px solid #E8E7E3",
       ...style
     }}>{children}</div>
   );
@@ -42,10 +42,10 @@ export const Btn = ({ children, variant = "primary", ...props }) => {
   const { isMobile } = useResponsive();
 
   const styles = {
-    primary: { background: "#6366f1", color: "#fff" },
-    secondary: { background: "#334155", color: "#CBD5E1" },
-    danger: { background: "#EF444418", color: "#EF4444", border: "1px solid #EF444440" },
-    success: { background: "#22C55E18", color: "#22C55E", border: "1px solid #22C55E40" },
+    primary: { background: "#5E6AD2", color: "#fff" },
+    secondary: { background: "#E8E7E3", color: "#555247" },
+    danger: { background: "#FBE4E4", color: "#E03E3E", border: "1px solid #F1B8B6" },
+    success: { background: "#DDEDEA", color: "#0F7B6C", border: "1px solid #B6D4CC" },
   };
   return (
     <button {...props} style={{
@@ -57,10 +57,10 @@ export const Btn = ({ children, variant = "primary", ...props }) => {
 
 export const Input = ({ label, ...props }) => (
   <div style={{ marginBottom: 14 }}>
-    {label && <label style={{ display: "block", fontSize: 12, color: "#94A3B8", marginBottom: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</label>}
+    {label && <label style={{ display: "block", fontSize: 12, color: "#8C8A82", marginBottom: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</label>}
     <input {...props} style={{
-      width: "100%", padding: "10px 12px", background: "#0F172A", border: "1px solid #334155",
-      borderRadius: 8, color: "#F8FAFC", fontSize: 14, outline: "none", boxSizing: "border-box",
+      width: "100%", padding: "10px 12px", background: "#FAFAF9", border: "1px solid #E8E7E3",
+      borderRadius: 8, color: "#37352F", fontSize: 14, outline: "none", boxSizing: "border-box",
       ...props.style
     }} />
   </div>
@@ -68,10 +68,10 @@ export const Input = ({ label, ...props }) => (
 
 export const Select = ({ label, options, ...props }) => (
   <div style={{ marginBottom: 14 }}>
-    {label && <label style={{ display: "block", fontSize: 12, color: "#94A3B8", marginBottom: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</label>}
+    {label && <label style={{ display: "block", fontSize: 12, color: "#8C8A82", marginBottom: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</label>}
     <select {...props} style={{
-      width: "100%", padding: "10px 12px", background: "#0F172A", border: "1px solid #334155",
-      borderRadius: 8, color: "#F8FAFC", fontSize: 14, outline: "none", boxSizing: "border-box"
+      width: "100%", padding: "10px 12px", background: "#FAFAF9", border: "1px solid #E8E7E3",
+      borderRadius: 8, color: "#37352F", fontSize: 14, outline: "none", boxSizing: "border-box"
     }}>
       <option value="">Seleccionar...</option>
       {options.map(o => <option key={typeof o === "string" ? o : o.value} value={typeof o === "string" ? o : o.value}>
@@ -92,23 +92,23 @@ export const Table = ({ columns, data, onRowClick, emptyMsg = "Sin datos", mobil
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
         {data.length === 0 ? (
-          <div style={{ padding: 32, textAlign: "center", color: "#64748B" }}>{emptyMsg}</div>
+          <div style={{ padding: 32, textAlign: "center", color: "#B1AFA7" }}>{emptyMsg}</div>
         ) : (
           data.map((row, i) => (
             <div
               key={row.id || i}
               onClick={() => onRowClick?.(row)}
               style={{
-                background: "#1E293B", borderRadius: 10, padding: "14px", border: "1px solid #334155",
+                background: "#FFFFFF", borderRadius: 10, padding: "14px", border: "1px solid #E8E7E3",
                 cursor: onRowClick ? "pointer" : "default", transition: "background 0.15s"
               }}
             >
               {displayColumns.map(c => (
                 <div key={c.key} style={{ marginBottom: "10px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                  <div style={{ fontSize: 11, color: "#94A3B8", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, minWidth: "50%" }}>
+                  <div style={{ fontSize: 11, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700, minWidth: "50%" }}>
                     {c.label}
                   </div>
-                  <div style={{ fontSize: 13, color: "#CBD5E1", textAlign: "right", flex: 1 }}>
+                  <div style={{ fontSize: 13, color: "#555247", textAlign: "right", flex: 1 }}>
                     {c.render ? c.render(row) : row[c.key]}
                   </div>
                 </div>
@@ -128,8 +128,8 @@ export const Table = ({ columns, data, onRowClick, emptyMsg = "Sin datos", mobil
           <tr>
             {columns.map(c => (
               <th key={c.key} style={{
-                textAlign: "left", padding: "10px 12px", fontSize: 11, color: "#94A3B8",
-                textTransform: "uppercase", letterSpacing: 0.5, borderBottom: "1px solid #334155",
+                textAlign: "left", padding: "10px 12px", fontSize: 11, color: "#8C8A82",
+                textTransform: "uppercase", letterSpacing: 0.5, borderBottom: "1px solid #E8E7E3",
                 fontWeight: 700
               }}>{c.label}</th>
             ))}
@@ -137,14 +137,14 @@ export const Table = ({ columns, data, onRowClick, emptyMsg = "Sin datos", mobil
         </thead>
         <tbody>
           {data.length === 0 ? (
-            <tr><td colSpan={columns.length} style={{ padding: 32, textAlign: "center", color: "#64748B" }}>{emptyMsg}</td></tr>
+            <tr><td colSpan={columns.length} style={{ padding: 32, textAlign: "center", color: "#B1AFA7" }}>{emptyMsg}</td></tr>
           ) : data.map((row, i) => (
             <tr key={row.id || i} onClick={() => onRowClick?.(row)} style={{
               cursor: onRowClick ? "pointer" : "default", transition: "background 0.15s"
-            }} onMouseEnter={e => e.currentTarget.style.background = "#0F172A"}
+            }} onMouseEnter={e => e.currentTarget.style.background = "#FAFAF9"}
                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
               {columns.map(c => (
-                <td key={c.key} style={{ padding: "10px 12px", fontSize: 13, color: "#CBD5E1", borderBottom: "1px solid #273246" }}>
+                <td key={c.key} style={{ padding: "10px 12px", fontSize: 13, color: "#555247", borderBottom: "1px solid #F0EFEB" }}>
                   {c.render ? c.render(row) : row[c.key]}
                 </td>
               ))}
@@ -163,9 +163,9 @@ export const StatCard = ({ label, value, sub, color = "#a855f7", icon }) => {
     <Card style={{ flex: 1, minWidth: isMobile ? 120 : 150 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
-          <div style={{ fontSize: 12, color: "#94A3B8", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>{label}</div>
+          <div style={{ fontSize: 12, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>{label}</div>
           <div style={{ fontSize: isMobile ? 20 : 26, fontWeight: 800, color, lineHeight: 1 }}>{value}</div>
-          {sub && <div style={{ fontSize: 12, color: "#94A3B8", marginTop: 6 }}>{sub}</div>}
+          {sub && <div style={{ fontSize: 12, color: "#8C8A82", marginTop: 6 }}>{sub}</div>}
         </div>
         {icon && <div style={{ fontSize: 28, opacity: 0.5 }}>{icon}</div>}
       </div>
@@ -185,8 +185,8 @@ export const SearchBar = ({ value, onChange, placeholder = "Buscar..." }) => {
 
   return (
     <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={{
-      padding: "10px 16px", background: "#0F172A", border: "1px solid #334155", borderRadius: 10,
-      color: "#F8FAFC", fontSize: 14, outline: "none", width: "100%", maxWidth: isMobile ? "100%" : 300, boxSizing: "border-box"
+      padding: "10px 16px", background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10,
+      color: "#37352F", fontSize: 14, outline: "none", width: "100%", maxWidth: isMobile ? "100%" : 300, boxSizing: "border-box"
     }} />
   );
 };

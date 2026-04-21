@@ -7,14 +7,14 @@ import { useResponsive } from "../App.jsx";
 // ---- Design tokens ----
 const F = "'Rubik', 'Inter', sans-serif";
 const C = {
-  bg: "#0F172A", card: "#1E293B", cardHover: "#253347", border: "#334155",
-  text: "#F8FAFC", textSub: "#94A3B8", textMuted: "#64748B",
-  green: "#22C55E", greenBg: "#22C55E18", red: "#EF4444", redBg: "#EF444418",
-  blue: "#3B82F6", blueBg: "#3B82F618", amber: "#F59E0B", amberBg: "#F59E0B18",
-  purple: "#8B5CF6", purpleBg: "#8B5CF618", cyan: "#06B6D4",
-  gradBlue: "linear-gradient(135deg, #3B82F6, #6366f1)",
-  gradGreen: "linear-gradient(135deg, #059669, #22C55E)",
-  gradRed: "linear-gradient(135deg, #DC2626, #EF4444)",
+  bg: "#FAFAF9", card: "#FFFFFF", cardHover: "#F6F5F2", border: "#E8E7E3",
+  text: "#37352F", textSub: "#8C8A82", textMuted: "#B1AFA7",
+  green: "#0F7B6C", greenBg: "#DDEDEA", red: "#E03E3E", redBg: "#FBE4E4",
+  blue: "#2383E2", blueBg: "#DDEBF1", amber: "#CB912F", amberBg: "#FDECC8",
+  purple: "#6940A5", purpleBg: "#EAE4F2", cyan: "#0E8BA8",
+  gradBlue: "linear-gradient(135deg, #2383E2, #5E6AD2)",
+  gradGreen: "linear-gradient(135deg, #059669, #0F7B6C)",
+  gradRed: "linear-gradient(135deg, #DC2626, #E03E3E)",
 };
 
 // ---- Trend indicator ----
@@ -217,7 +217,7 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, e
     return list;
   }, [outOfStock, lowStock, products, sales, clients, now]);
 
-  const alertColor = { danger: { bg: "#EF444415", border: "#EF444440", dot: C.red }, warning: { bg: "#F59E0B15", border: "#F59E0B40", dot: C.amber }, info: { bg: "#3B82F615", border: "#3B82F640", dot: C.blue } };
+  const alertColor = { danger: { bg: "#E03E3E15", border: "#F1B8B6", dot: C.red }, warning: { bg: "#CB912F15", border: "#F2D59A", dot: C.amber }, info: { bg: "#2383E215", border: "#B1D4E8", dot: C.blue } };
 
   // ---- Mermas & Descuentos ----
   const mermasQty = monthWithdrawals.reduce((s, w) => s + w.qty, 0);

@@ -5,7 +5,7 @@ import { Card, Input, Select, Table, Badge, StatCard } from "./UI.jsx";
 // -- STOCK LOG --
 const STOCK_LOG_TYPES = {
   "venta": { label: "Venta", color: "#00b894", icon: "🛒" },
-  "compra": { label: "Compra", color: "#6366f1", icon: "📦" },
+  "compra": { label: "Compra", color: "#5E6AD2", icon: "📦" },
   "consumo": { label: "Consumo", color: "#e17055", icon: "🚬" },
   "ajuste": { label: "Ajuste", color: "#fdcb6e", icon: "⚡" },
   "devolucion": { label: "Devolución", color: "#00cec9", icon: "↩️" },
@@ -36,15 +36,15 @@ export const StockLog = ({ stockLog, setStockLog, products }) => {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h2 style={{ color: "#F8FAFC", margin: 0, fontSize: 22 }}>Historial de Stock</h2>
-          <span style={{ color: "#94A3B8", fontSize: 13 }}>{filtered.length} movimientos{hasFilters ? " (filtrados)" : ""}</span>
+          <h2 style={{ color: "#37352F", margin: 0, fontSize: 22 }}>Historial de Stock</h2>
+          <span style={{ color: "#8C8A82", fontSize: 13 }}>{filtered.length} movimientos{hasFilters ? " (filtrados)" : ""}</span>
         </div>
       </div>
 
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 16 }}>
         <StatCard label="Entradas" value={`+${totalIn}`} icon="📥" color="#00b894" />
-        <StatCard label="Salidas" value={`-${totalOut}`} icon="📤" color="#EF4444" />
-        <StatCard label="Neto" value={totalIn - totalOut >= 0 ? `+${totalIn - totalOut}` : `${totalIn - totalOut}`} icon="📊" color="#6366f1" />
+        <StatCard label="Salidas" value={`-${totalOut}`} icon="📤" color="#E03E3E" />
+        <StatCard label="Neto" value={totalIn - totalOut >= 0 ? `+${totalIn - totalOut}` : `${totalIn - totalOut}`} icon="📊" color="#5E6AD2" />
       </div>
 
       {/* Filters */}
@@ -66,7 +66,7 @@ export const StockLog = ({ stockLog, setStockLog, products }) => {
             }).sort((a, b) => a.label.localeCompare(b.label))} value={filterProduct} onChange={e => setFilterProduct(e.target.value)} />
           </div>
           {hasFilters && <button onClick={() => { setFilterType(""); setFilterProduct(""); setFilterDateFrom(""); setFilterDateTo(""); }}
-            style={{ background: "none", border: "1px solid #EF444455", color: "#EF4444", padding: "8px 14px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, marginBottom: 14 }}>✕ Limpiar</button>}
+            style={{ background: "none", border: "1px solid #E03E3E55", color: "#E03E3E", padding: "8px 14px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, marginBottom: 14 }}>✕ Limpiar</button>}
         </div>
       </Card>
 
@@ -82,7 +82,7 @@ export const StockLog = ({ stockLog, setStockLog, products }) => {
             return p ? `${p.brand} ${p.model} - ${p.flavor}` : "?";
           }},
           { key: "qty", label: "Cantidad", render: r => (
-            <span style={{ color: r.qty > 0 ? "#00b894" : "#EF4444", fontWeight: 700 }}>
+            <span style={{ color: r.qty > 0 ? "#00b894" : "#E03E3E", fontWeight: 700 }}>
               {r.qty > 0 ? `+${r.qty}` : r.qty}
             </span>
           )},

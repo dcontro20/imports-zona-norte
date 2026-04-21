@@ -52,7 +52,7 @@ const QuickSale = lazy(() => import("./components/QuickSale.jsx").then(m => ({ d
 
 const LoadingSpinner = () => (
   <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: 60 }}>
-    <span style={{ color: "#6366f1", fontSize: 15, fontWeight: 500 }}>Cargando...</span>
+    <span style={{ color: "#5E6AD2", fontSize: 15, fontWeight: 500 }}>Cargando...</span>
   </div>
 );
 
@@ -73,10 +73,10 @@ class ErrorBoundary extends Component {
       return (
         <div style={{ padding: 40, textAlign: "center" }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
-          <h2 style={{ color: "#F8FAFC", marginBottom: 8 }}>Algo salió mal</h2>
-          <p style={{ color: "#94A3B8", fontSize: 14, marginBottom: 20 }}>{this.state.error?.message || "Error inesperado"}</p>
+          <h2 style={{ color: "#37352F", marginBottom: 8 }}>Algo salió mal</h2>
+          <p style={{ color: "#8C8A82", fontSize: 14, marginBottom: 20 }}>{this.state.error?.message || "Error inesperado"}</p>
           <button onClick={() => this.setState({ hasError: false, error: null })} style={{
-            padding: "10px 24px", background: "#6366f1", color: "#fff", border: "none",
+            padding: "10px 24px", background: "#5E6AD2", color: "#fff", border: "none",
             borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: "pointer"
           }}>Reintentar</button>
         </div>
@@ -223,10 +223,10 @@ export default function App() {
   // ---- Loading screen ----
   if (authLoading) {
     return (
-      <div style={{ minHeight: "100vh", background: "#0F172A", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ minHeight: "100vh", background: "#FAFAF9", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ textAlign: "center" }}>
           <span style={{ fontSize: 48 }}>💨</span>
-          <p style={{ color: "#6366f1", fontSize: 15, fontWeight: 500, marginTop: 12 }}>Cargando...</p>
+          <p style={{ color: "#5E6AD2", fontSize: 15, fontWeight: 500, marginTop: 12 }}>Cargando...</p>
         </div>
       </div>
     );
@@ -235,11 +235,11 @@ export default function App() {
   // ---- Login screen ----
   if (!currentUser) {
     return (
-      <div style={{ minHeight: "100vh", background: "#0F172A", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Open Sans', 'Inter', -apple-system, sans-serif" }}>
-        <div style={{ background: "#1E293B", border: "1px solid #334155", borderRadius: 16, padding: "40px 32px", width: "100%", maxWidth: 360, textAlign: "center", boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
+      <div style={{ minHeight: "100vh", background: "#FAFAF9", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Open Sans', 'Inter', -apple-system, sans-serif" }}>
+        <div style={{ background: "#FFFFFF", border: "1px solid #E8E7E3", borderRadius: 16, padding: "40px 32px", width: "100%", maxWidth: 360, textAlign: "center", boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
           <span style={{ fontSize: 48 }}>💨</span>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: "#F8FAFC", margin: "12px 0 6px", fontFamily: "'Poppins', sans-serif" }}>IMPORTS ZONA NORTE</h1>
-          <p style={{ color: "#64748B", fontSize: 13, marginBottom: 24 }}>Sistema de Gestión</p>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: "#37352F", margin: "12px 0 6px", fontFamily: "'Poppins', sans-serif" }}>IMPORTS ZONA NORTE</h1>
+          <p style={{ color: "#B1AFA7", fontSize: 13, marginBottom: 24 }}>Sistema de Gestión</p>
           <input
             type="email"
             value={loginEmail}
@@ -247,9 +247,9 @@ export default function App() {
             onKeyDown={e => e.key === "Enter" && document.getElementById("login-pass")?.focus()}
             placeholder="Email"
             style={{
-              width: "100%", padding: "14px 18px", background: "#0F172A",
-              border: `1px solid ${loginError ? "#ef4444" : "#334155"}`,
-              borderRadius: 10, color: "#F8FAFC", fontSize: 16, outline: "none",
+              width: "100%", padding: "14px 18px", background: "#FAFAF9",
+              border: `1px solid ${loginError ? "#E03E3E" : "#E8E7E3"}`,
+              borderRadius: 10, color: "#37352F", fontSize: 16, outline: "none",
               marginBottom: 10, boxSizing: "border-box",
               transition: "border-color 0.3s"
             }}
@@ -263,19 +263,19 @@ export default function App() {
             onKeyDown={e => e.key === "Enter" && handleLogin()}
             placeholder="Contraseña"
             style={{
-              width: "100%", padding: "14px 18px", background: "#0F172A",
-              border: `1px solid ${loginError ? "#ef4444" : "#334155"}`,
-              borderRadius: 10, color: "#F8FAFC", fontSize: 16, outline: "none",
+              width: "100%", padding: "14px 18px", background: "#FAFAF9",
+              border: `1px solid ${loginError ? "#E03E3E" : "#E8E7E3"}`,
+              borderRadius: 10, color: "#37352F", fontSize: 16, outline: "none",
               marginBottom: 14, boxSizing: "border-box",
               transition: "border-color 0.3s"
             }}
           />
           <button onClick={handleLogin} style={{
-            width: "100%", padding: "14px", background: "#6366f1",
+            width: "100%", padding: "14px", background: "#5E6AD2",
             border: "none", borderRadius: 10, color: "#fff", fontSize: 16, fontWeight: 700,
             cursor: "pointer"
           }}>Entrar</button>
-          {loginError && <p style={{ color: "#ef4444", fontSize: 13, marginTop: 10 }}>{loginError}</p>}
+          {loginError && <p style={{ color: "#E03E3E", fontSize: 13, marginTop: 10 }}>{loginError}</p>}
         </div>
       </div>
     );
@@ -308,23 +308,23 @@ export default function App() {
   return (
     <AppContext.Provider value={ctxValue}>
       <div style={{
-        minHeight: "100vh", background: "#0F172A", fontFamily: "'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif",
-        color: "#F8FAFC"
+        minHeight: "100vh", background: "#FAFAF9", fontFamily: "'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif",
+        color: "#37352F"
       }}>
         {/* Top bar */}
         <div style={{
-          background: "#1E293B", borderBottom: "1px solid #334155", padding: "10px 20px",
+          background: "#FFFFFF", borderBottom: "1px solid #E8E7E3", padding: "10px 20px",
           display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 100,
           boxShadow: "0 1px 3px rgba(0,0,0,0.04)"
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <button onClick={() => setMenuOpen(!menuOpen)} style={{
-              background: "none", border: "none", color: "#6366f1", fontSize: 22, cursor: "pointer",
+              background: "none", border: "none", color: "#5E6AD2", fontSize: 22, cursor: "pointer",
               display: isMobile ? "block" : "none"
             }}>☰</button>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ fontSize: 22 }}>💨</span>
-              <span style={{ fontSize: isMobile ? 14 : 18, fontWeight: 800, color: "#F8FAFC", letterSpacing: "-0.3px" }}>IMPORTS ZONA NORTE</span>
+              <span style={{ fontSize: isMobile ? 14 : 18, fontWeight: 800, color: "#37352F", letterSpacing: "-0.3px" }}>IMPORTS ZONA NORTE</span>
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 6 : 12 }}>
@@ -334,24 +334,24 @@ export default function App() {
                 <input value={globalSearch} onChange={e => { setGlobalSearch(e.target.value); setShowGlobalResults(true); }}
                   onFocus={() => setShowGlobalResults(true)}
                   placeholder="Buscar..."
-                  style={{ padding: "7px 14px 7px 32px", background: "#0F172A", border: "1px solid #334155", borderRadius: 8, color: "#F8FAFC", fontSize: 13, width: 180, outline: "none" }} />
-                <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "#64748B", pointerEvents: "none" }}>🔍</span>
+                  style={{ padding: "7px 14px 7px 32px", background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 8, color: "#37352F", fontSize: 13, width: 180, outline: "none" }} />
+                <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "#B1AFA7", pointerEvents: "none" }}>🔍</span>
                 {showGlobalResults && globalResults.length > 0 && (
                   <div style={{
-                    position: "absolute", top: "100%", right: 0, marginTop: 6, background: "#1E293B",
-                    border: "1px solid #334155", borderRadius: 12, width: 350, maxHeight: 400, overflowY: "auto",
+                    position: "absolute", top: "100%", right: 0, marginTop: 6, background: "#FFFFFF",
+                    border: "1px solid #E8E7E3", borderRadius: 12, width: 350, maxHeight: 400, overflowY: "auto",
                     boxShadow: "0 12px 32px rgba(0,0,0,0.1)", zIndex: 200
                   }}>
                     {globalResults.map((r, i) => (
                       <div key={i} onClick={() => { setPage(r.page); setGlobalSearch(""); setShowGlobalResults(false); }}
                         style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", cursor: "pointer",
-                          borderBottom: i < globalResults.length - 1 ? "1px solid #334155" : "none" }}
-                        onMouseEnter={e => e.currentTarget.style.background = "#0F172A"}
+                          borderBottom: i < globalResults.length - 1 ? "1px solid #E8E7E3" : "none" }}
+                        onMouseEnter={e => e.currentTarget.style.background = "#FAFAF9"}
                         onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                         <span style={{ fontSize: 18 }}>{r.icon}</span>
                         <div style={{ flex: 1 }}>
-                          <div style={{ color: "#F8FAFC", fontSize: 13, fontWeight: 600 }}>{r.label}</div>
-                          <div style={{ color: "#64748B", fontSize: 11 }}>{r.sub}</div>
+                          <div style={{ color: "#37352F", fontSize: 13, fontWeight: 600 }}>{r.label}</div>
+                          <div style={{ color: "#B1AFA7", fontSize: 11 }}>{r.sub}</div>
                         </div>
                       </div>
                     ))}
@@ -359,9 +359,9 @@ export default function App() {
                 )}
                 {showGlobalResults && globalSearch.length >= 2 && globalResults.length === 0 && (
                   <div style={{
-                    position: "absolute", top: "100%", right: 0, marginTop: 6, background: "#1E293B",
-                    border: "1px solid #334155", borderRadius: 12, width: 250, padding: "16px",
-                    boxShadow: "0 12px 32px rgba(0,0,0,0.1)", zIndex: 200, textAlign: "center", color: "#64748B", fontSize: 13
+                    position: "absolute", top: "100%", right: 0, marginTop: 6, background: "#FFFFFF",
+                    border: "1px solid #E8E7E3", borderRadius: 12, width: 250, padding: "16px",
+                    boxShadow: "0 12px 32px rgba(0,0,0,0.1)", zIndex: 200, textAlign: "center", color: "#B1AFA7", fontSize: 13
                   }}>Sin resultados</div>
                 )}
               </div>
@@ -370,12 +370,12 @@ export default function App() {
             <div style={{
               display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600,
               padding: "4px 10px", borderRadius: 20,
-              background: syncStatus === "online" ? "#22C55E18" : syncStatus === "error" ? "#EF444418" : syncStatus === "offline" ? "#EF444418" : "#F59E0B18",
-              color: syncStatus === "online" ? "#22C55E" : syncStatus === "error" ? "#EF4444" : syncStatus === "offline" ? "#EF4444" : "#F59E0B",
-              border: `1px solid ${syncStatus === "online" ? "#22C55E40" : syncStatus === "error" ? "#EF444440" : syncStatus === "offline" ? "#EF444440" : "#F59E0B40"}`,
+              background: syncStatus === "online" ? "#DDEDEA" : syncStatus === "error" ? "#FBE4E4" : syncStatus === "offline" ? "#FBE4E4" : "#FDECC8",
+              color: syncStatus === "online" ? "#0F7B6C" : syncStatus === "error" ? "#E03E3E" : syncStatus === "offline" ? "#E03E3E" : "#CB912F",
+              border: `1px solid ${syncStatus === "online" ? "#B6D4CC" : syncStatus === "error" ? "#F1B8B6" : syncStatus === "offline" ? "#F1B8B6" : "#F2D59A"}`,
               cursor: syncStatus === "error" ? "pointer" : "default",
             }} onClick={() => syncStatus === "error" && window.location.reload()} title={syncStatus === "error" ? "Click para reintentar" : ""}>
-              <span style={{ width: 6, height: 6, borderRadius: "50%", background: syncStatus === "online" ? "#22C55E" : syncStatus === "error" || syncStatus === "offline" ? "#EF4444" : "#F59E0B", display: "inline-block" }} />
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: syncStatus === "online" ? "#0F7B6C" : syncStatus === "error" || syncStatus === "offline" ? "#E03E3E" : "#CB912F", display: "inline-block" }} />
               {syncStatus === "online" && "Online"}
               {syncStatus === "offline" && "Offline"}
               {syncStatus === "syncing" && "Sync..."}
@@ -383,15 +383,15 @@ export default function App() {
             </div>
             {/* Dolar Blue — hidden on mobile to save space */}
             {!isMobile && (
-              <div style={{ fontSize: 13, color: "#94A3B8", fontWeight: 500 }}>
-                Blue: <span style={{ color: "#F8FAFC", fontWeight: 700 }}>${exchangeRate}</span>
+              <div style={{ fontSize: 13, color: "#8C8A82", fontWeight: 500 }}>
+                Blue: <span style={{ color: "#37352F", fontWeight: 700 }}>${exchangeRate}</span>
               </div>
             )}
             {/* User badge */}
-            <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#0F172A", border: "1px solid #334155", borderRadius: 8, padding: isMobile ? "5px 8px" : "5px 12px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 8, padding: isMobile ? "5px 8px" : "5px 12px" }}>
               <span style={{ width: 8, height: 8, borderRadius: "50%", background: currentUser.color, display: "inline-block" }} />
-              <span style={{ color: "#F8FAFC", fontSize: 13, fontWeight: 600 }}>{currentUser.name}</span>
-              <button onClick={handleLogout} style={{ background: "none", border: "none", color: "#64748B", cursor: "pointer", fontSize: 12, marginLeft: 4 }} title="Cerrar sesión">✕</button>
+              <span style={{ color: "#37352F", fontSize: 13, fontWeight: 600 }}>{currentUser.name}</span>
+              <button onClick={handleLogout} style={{ background: "none", border: "none", color: "#B1AFA7", cursor: "pointer", fontSize: 12, marginLeft: 4 }} title="Cerrar sesión">✕</button>
             </div>
           </div>
         </div>
@@ -399,7 +399,7 @@ export default function App() {
         <div style={{ display: "flex" }}>
           {/* Sidebar */}
           <nav style={{
-            width: 220, minHeight: "calc(100vh - 52px)", background: "#1E293B", borderRight: "1px solid #334155",
+            width: 220, minHeight: "calc(100vh - 52px)", background: "#FFFFFF", borderRight: "1px solid #E8E7E3",
             padding: "12px 0", flexShrink: 0,
             ...(isMobile ? {
               position: "fixed", top: 52, left: menuOpen ? 0 : -240, zIndex: 99,
@@ -409,9 +409,9 @@ export default function App() {
             {NAV_ITEMS.map(item => (
               <button key={item.key} onClick={() => { setPage(item.key); setMenuOpen(false); }} style={{
                 display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 20px",
-                background: page === item.key ? "#6366f120" : "transparent",
-                border: "none", borderLeft: page === item.key ? "3px solid #6366f1" : "3px solid transparent",
-                color: page === item.key ? "#F8FAFC" : "#94A3B8", cursor: "pointer",
+                background: page === item.key ? "#EEF0FC" : "transparent",
+                border: "none", borderLeft: page === item.key ? "3px solid #5E6AD2" : "3px solid transparent",
+                color: page === item.key ? "#37352F" : "#8C8A82", cursor: "pointer",
                 fontSize: 13, fontWeight: page === item.key ? 700 : 500, textAlign: "left",
                 transition: "all 0.2s"
               }}>
@@ -424,7 +424,7 @@ export default function App() {
           {/* Content */}
           <main style={{ flex: 1, padding: isMobile ? "16px" : "24px", maxWidth: 1100 }} onClick={() => setShowGlobalResults(false)}>
             {syncStatus === "offline" && (
-              <div style={{ background: "#EF444418", border: "1px solid #EF444440", borderRadius: 10, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#EF4444" }}>
+              <div style={{ background: "#FBE4E4", border: "1px solid #F1B8B6", borderRadius: 10, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#E03E3E" }}>
                 <span>⚠️</span>
                 <span>Sin conexión a Firebase. Estás viendo datos de caché. Los cambios que hagas <b>no se guardarán</b> hasta que se restablezca la conexión.</span>
               </div>
@@ -448,7 +448,7 @@ export default function App() {
         {isMobile && !quickSaleOpen && (
           <button onClick={() => setQuickSaleOpen(true)} style={{
             position: "fixed", bottom: 24, right: 24, width: 56, height: 56,
-            borderRadius: "50%", background: "#6366f1", border: "none",
+            borderRadius: "50%", background: "#5E6AD2", border: "none",
             color: "#fff", fontSize: 24, cursor: "pointer", zIndex: 90,
             boxShadow: "0 4px 16px rgba(99,102,241,0.4)",
             display: "flex", alignItems: "center", justifyContent: "center",

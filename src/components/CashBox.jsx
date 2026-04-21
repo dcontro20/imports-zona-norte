@@ -134,7 +134,7 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
           date: s.date || "", type: "income", category: "Venta",
           description: `${s.clientName || "Sin cliente"} — ${(s.items || []).map(i => i.name || "?").join(", ")}`,
           account: acct, amount: Number(pay.amount), currency: s.currency || "ARS",
-          icon: "🛒", color: "#22C55E", refId: s.id, createdBy: s.createdBy || "",
+          icon: "🛒", color: "#0F7B6C", refId: s.id, createdBy: s.createdBy || "",
         });
       });
       // Change (vuelto) given → expense from account
@@ -155,7 +155,7 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
         date: e.date || "", type: "expense", category: e.category || "Gasto",
         description: e.description || e.category || "Gasto",
         account: "Pesos Cash", amount: e.amountARS || 0, currency: "ARS",
-        icon: "💸", color: "#EF4444", refId: e.id, createdBy: e.createdBy || "",
+        icon: "💸", color: "#E03E3E", refId: e.id, createdBy: e.createdBy || "",
       });
     });
 
@@ -165,7 +165,7 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
         date: p.date || "", type: "expense", category: "Compra importación",
         description: `${p.supplier || "Proveedor"} — ${(p.items || p.groups || []).length} productos`,
         account: "Lemon (USDT)", amount: p.totalUSDT || 0, currency: "USDT",
-        icon: "🚚", color: "#6366f1", refId: p.id, createdBy: p.createdBy || "",
+        icon: "🚚", color: "#5E6AD2", refId: p.id, createdBy: p.createdBy || "",
       });
     });
 
@@ -177,7 +177,7 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
           date: m.date || "", type: "expense", category: typeLabels[m.type] || m.type,
           description: m.description || `${typeLabels[m.type] || "Movimiento"} → ${m.to ? getAccountLabel(m.to) : ""}`,
           account: getAccountLabel(m.from), amount: Number(m.amount) || 0, currency: ACCOUNTS.find(a => a.id === m.from)?.currency || "ARS",
-          icon: m.type === "crypto_buy" ? "🪙" : "💱", color: "#F59E0B", refId: m.id, createdBy: m.createdBy || "",
+          icon: m.type === "crypto_buy" ? "🪙" : "💱", color: "#CB912F", refId: m.id, createdBy: m.createdBy || "",
         });
       }
       if (m.to) {
@@ -187,7 +187,7 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
           date: m.date || "", type: "income", category: typeLabels[m.type] || m.type,
           description: m.description || `${typeLabels[m.type] || "Movimiento"} ← ${m.from ? getAccountLabel(m.from) : ""}`,
           account: getAccountLabel(m.to), amount: amtIn, currency: cur,
-          icon: m.type === "crypto_buy" ? "🪙" : "💱", color: "#F59E0B", refId: m.id, createdBy: m.createdBy || "",
+          icon: m.type === "crypto_buy" ? "🪙" : "💱", color: "#CB912F", refId: m.id, createdBy: m.createdBy || "",
         });
       }
     });
@@ -239,27 +239,27 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
-        <h2 style={{ color: "#F8FAFC", margin: 0, fontSize: 22 }}>Caja Multi-Moneda</h2>
+        <h2 style={{ color: "#37352F", margin: 0, fontSize: 22 }}>Caja Multi-Moneda</h2>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           {!isMobile && <>
-            <span style={{ color: "#94A3B8", fontSize: 13 }}>Blue:</span>
+            <span style={{ color: "#8C8A82", fontSize: 13 }}>Blue:</span>
             <input type="number" value={exchangeRate} onChange={e => setExchangeRate(Number(e.target.value))}
-              style={{ width: 80, padding: "6px 10px", background: "#0F172A", border: "1px solid #334155", borderRadius: 8, color: "#00b894", fontSize: 14, fontWeight: 700 }} />
+              style={{ width: 80, padding: "6px 10px", background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 8, color: "#00b894", fontSize: 14, fontWeight: 700 }} />
           </>}
           <Btn onClick={() => setModal(true)} style={{ padding: "8px 12px", fontSize: isMobile ? 12 : 14 }}>{isMobile ? "💱" : "💱 Movimiento"}</Btn>
           {!todayAlreadyClosed ? (
             <Btn variant="success" onClick={() => setShowDailyClose(true)} style={{ padding: "8px 14px" }}>📋 Cerrar caja</Btn>
           ) : (
-            <Badge color="#22C55E">✅ Caja cerrada hoy</Badge>
+            <Badge color="#0F7B6C">✅ Caja cerrada hoy</Badge>
           )}
         </div>
       </div>
 
       {/* Daily close confirm */}
       {showDailyClose && (
-        <Card style={{ marginBottom: 14, background: "#22C55E18", border: "1px solid #22C55E40" }}>
-          <h4 style={{ color: "#22C55E", margin: "0 0 8px", fontSize: 14 }}>📋 Cerrar caja de hoy ({todayStr})</h4>
-          <p style={{ color: "#94A3B8", fontSize: 13, margin: "0 0 10px" }}>
+        <Card style={{ marginBottom: 14, background: "#DDEDEA", border: "1px solid #B6D4CC" }}>
+          <h4 style={{ color: "#0F7B6C", margin: "0 0 8px", fontSize: 14 }}>📋 Cerrar caja de hoy ({todayStr})</h4>
+          <p style={{ color: "#8C8A82", fontSize: 13, margin: "0 0 10px" }}>
             Se guarda una foto de los saldos actuales. Ventas hoy: {todaySalesCount} · Movimientos hoy: {todayMovementsCount}
           </p>
           <div style={{ display: "flex", gap: 10 }}>
@@ -270,23 +270,23 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
       )}
 
       {/* Totals */}
-      <Card style={{ marginBottom: 16, background: "linear-gradient(135deg, #f8f9fc 0%, #f0f1f8 100%)", border: "1px solid #334155" }}>
+      <Card style={{ marginBottom: 16, background: "linear-gradient(135deg, #f8f9fc 0%, #f0f1f8 100%)", border: "1px solid #E8E7E3" }}>
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 0, textAlign: "center" }}>
           <div style={{ padding: "8px 12px" }}>
-            <div style={{ color: "#94A3B8", fontSize: 10, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, fontWeight: 600 }}>Total Pesos</div>
-            <div style={{ color: "#6366f1", fontSize: isMobile ? 16 : 20, fontWeight: 800 }}>{formatMoney(totalARS)}</div>
+            <div style={{ color: "#8C8A82", fontSize: 10, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, fontWeight: 600 }}>Total Pesos</div>
+            <div style={{ color: "#5E6AD2", fontSize: isMobile ? 16 : 20, fontWeight: 800 }}>{formatMoney(totalARS)}</div>
           </div>
-          <div style={{ padding: "8px 12px", borderLeft: "1px solid #334155" }}>
-            <div style={{ color: "#94A3B8", fontSize: 10, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, fontWeight: 600 }}>Total USD</div>
+          <div style={{ padding: "8px 12px", borderLeft: "1px solid #E8E7E3" }}>
+            <div style={{ color: "#8C8A82", fontSize: 10, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, fontWeight: 600 }}>Total USD</div>
             <div style={{ color: "#00b8a9", fontSize: isMobile ? 16 : 20, fontWeight: 800 }}>{formatMoney(totalUSD, "USD")}</div>
           </div>
-          <div style={{ padding: "8px 12px", borderLeft: "1px solid #334155" }}>
-            <div style={{ color: "#94A3B8", fontSize: 10, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, fontWeight: 600 }}>Total USDT</div>
+          <div style={{ padding: "8px 12px", borderLeft: "1px solid #E8E7E3" }}>
+            <div style={{ color: "#8C8A82", fontSize: 10, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, fontWeight: 600 }}>Total USDT</div>
             <div style={{ color: "#26de81", fontSize: isMobile ? 16 : 20, fontWeight: 800 }}>{formatMoney(totalUSDT, "USDT")}</div>
           </div>
-          <div style={{ padding: "8px 12px", borderLeft: "1px solid #334155" }}>
-            <div style={{ color: "#94A3B8", fontSize: 10, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, fontWeight: 600 }}>Todo en ARS</div>
-            <div style={{ color: "#F59E0B", fontSize: isMobile ? 16 : 20, fontWeight: 800 }}>{formatMoney(totalARS + (totalUSD * exchangeRate) + (totalUSDT * exchangeRate))}</div>
+          <div style={{ padding: "8px 12px", borderLeft: "1px solid #E8E7E3" }}>
+            <div style={{ color: "#8C8A82", fontSize: 10, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6, fontWeight: 600 }}>Todo en ARS</div>
+            <div style={{ color: "#CB912F", fontSize: isMobile ? 16 : 20, fontWeight: 800 }}>{formatMoney(totalARS + (totalUSD * exchangeRate) + (totalUSDT * exchangeRate))}</div>
           </div>
         </div>
       </Card>
@@ -299,7 +299,7 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
           return (
             <Card key={a.id} style={{ position: "relative", overflow: "hidden", padding: isMobile ? "12px 14px" : "16px 18px" }}>
               <div style={{ position: "absolute", top: 10, right: 10, fontSize: 20, opacity: 0.15 }}>{a.icon}</div>
-              <div style={{ fontSize: 11, color: "#94A3B8", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6, fontWeight: 600, whiteSpace: "nowrap" }}>{a.label}</div>
+              <div style={{ fontSize: 11, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6, fontWeight: 600, whiteSpace: "nowrap" }}>{a.label}</div>
               <div style={{ fontSize: isMobile ? (isLong ? 16 : 18) : (isLong ? 20 : 24), fontWeight: 800, color: a.color, lineHeight: 1.1 }}>{val}</div>
             </Card>
           );
@@ -311,36 +311,36 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
       {/* ============================================ */}
       <Card style={{ marginBottom: 14 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
-          <h4 style={{ color: "#F8FAFC", margin: 0, fontSize: 16, fontWeight: 800 }}>📒 Libro Diario</h4>
-          <span style={{ color: "#94A3B8", fontSize: 12 }}>{filteredLedger.length} movimientos</span>
+          <h4 style={{ color: "#37352F", margin: 0, fontSize: 16, fontWeight: 800 }}>📒 Libro Diario</h4>
+          <span style={{ color: "#8C8A82", fontSize: 12 }}>{filteredLedger.length} movimientos</span>
         </div>
 
         {/* Filters */}
         <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
           {[
-            { key: "all", label: "Todo", color: "#F8FAFC" },
-            { key: "sales", label: "Ventas", color: "#22C55E" },
-            { key: "expenses", label: "Gastos", color: "#EF4444" },
-            { key: "purchases", label: "Compras", color: "#6366f1" },
-            { key: "movements", label: "Movimientos", color: "#F59E0B" },
+            { key: "all", label: "Todo", color: "#37352F" },
+            { key: "sales", label: "Ventas", color: "#0F7B6C" },
+            { key: "expenses", label: "Gastos", color: "#E03E3E" },
+            { key: "purchases", label: "Compras", color: "#5E6AD2" },
+            { key: "movements", label: "Movimientos", color: "#CB912F" },
           ].map(f => (
             <button key={f.key} onClick={() => { setLedgerFilter(f.key); setLedgerLimit(50); }}
               style={{
                 padding: "5px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                border: `1.5px solid ${ledgerFilter === f.key ? f.color : "#334155"}`,
-                background: ledgerFilter === f.key ? `${f.color}15` : "#0F172A",
-                color: ledgerFilter === f.key ? f.color : "#94A3B8",
+                border: `1.5px solid ${ledgerFilter === f.key ? f.color : "#E8E7E3"}`,
+                background: ledgerFilter === f.key ? `${f.color}15` : "#FAFAF9",
+                color: ledgerFilter === f.key ? f.color : "#8C8A82",
               }}>{f.label}</button>
           ))}
           <div style={{ flex: 1, minWidth: 150 }}>
             <input value={ledgerSearch} onChange={e => setLedgerSearch(e.target.value)} placeholder="Buscar..."
-              style={{ width: "100%", padding: "6px 12px", background: "#0F172A", border: "1px solid #334155", borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+              style={{ width: "100%", padding: "6px 12px", background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
           </div>
         </div>
 
         {/* Entries */}
         {filteredLedger.length === 0 ? (
-          <div style={{ textAlign: "center", padding: 30, color: "#64748B" }}>Sin movimientos</div>
+          <div style={{ textAlign: "center", padding: 30, color: "#B1AFA7" }}>Sin movimientos</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
             {filteredLedger.slice(0, ledgerLimit).map((entry, idx) => {
@@ -353,13 +353,13 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
               return (
                 <div key={`${entry.refId}-${entry.type}-${entry.account}-${idx}`}>
                   {showDateHeader && (
-                    <div style={{ padding: "10px 0 6px", fontSize: 12, fontWeight: 700, color: "#6366f1", borderBottom: "1px solid #334155", marginBottom: 4, marginTop: idx > 0 ? 8 : 0 }}>
+                    <div style={{ padding: "10px 0 6px", fontSize: 12, fontWeight: 700, color: "#5E6AD2", borderBottom: "1px solid #E8E7E3", marginBottom: 4, marginTop: idx > 0 ? 8 : 0 }}>
                       {thisDate}
                     </div>
                   )}
                   <div style={{
                     display: "flex", alignItems: "center", gap: 10, padding: "8px 4px",
-                    borderBottom: "1px solid #334155",
+                    borderBottom: "1px solid #E8E7E3",
                   }}>
                     {/* Icon */}
                     <span style={{ fontSize: 16, flexShrink: 0 }}>{entry.icon}</span>
@@ -367,18 +367,18 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                         <Badge color={entry.color}>{entry.category}</Badge>
-                        <span style={{ fontSize: 11, color: "#64748B" }}>{entry.account}</span>
+                        <span style={{ fontSize: 11, color: "#B1AFA7" }}>{entry.account}</span>
                       </div>
-                      <div style={{ fontSize: 12, color: "#CBD5E1", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <div style={{ fontSize: 12, color: "#555247", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {entry.description}
                       </div>
                     </div>
                     {/* Amount */}
                     <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: isIncome ? "#22C55E" : "#EF4444" }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: isIncome ? "#0F7B6C" : "#E03E3E" }}>
                         {isIncome ? "+" : "-"}{formatMoney(entry.amount, entry.currency)}
                       </div>
-                      {entry.createdBy && <div style={{ fontSize: 10, color: "#64748B" }}>{entry.createdBy}</div>}
+                      {entry.createdBy && <div style={{ fontSize: 10, color: "#B1AFA7" }}>{entry.createdBy}</div>}
                     </div>
                   </div>
                 </div>
@@ -386,7 +386,7 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
             })}
             {filteredLedger.length > ledgerLimit && (
               <button onClick={() => setLedgerLimit(l => l + 50)} style={{
-                background: "none", border: "1px dashed #6366f133", color: "#6366f1", padding: "10px",
+                background: "none", border: "1px dashed #5E6AD233", color: "#5E6AD2", padding: "10px",
                 borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, width: "100%", marginTop: 8,
               }}>Mostrar más ({filteredLedger.length - ledgerLimit} restantes)</button>
             )}
@@ -397,21 +397,21 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
       {/* Daily closes history */}
       {dailyCloses.length > 0 && (
         <Card style={{ marginTop: 14 }}>
-          <h4 style={{ color: "#22C55E", margin: "0 0 14px", fontSize: 14, textTransform: "uppercase" }}>📋 Cierres de caja diarios</h4>
+          <h4 style={{ color: "#0F7B6C", margin: "0 0 14px", fontSize: 14, textTransform: "uppercase" }}>📋 Cierres de caja diarios</h4>
           {dailyCloses.slice(0, 10).map((dc, i) => (
-            <div key={dc.id} style={{ padding: "10px 0", borderBottom: i < Math.min(dailyCloses.length, 10) - 1 ? "1px solid #334155" : "none" }}>
+            <div key={dc.id} style={{ padding: "10px 0", borderBottom: i < Math.min(dailyCloses.length, 10) - 1 ? "1px solid #E8E7E3" : "none" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                <span style={{ fontWeight: 700, color: "#F8FAFC", fontSize: 14 }}>{formatDate(dc.date)}</span>
-                <span style={{ color: "#94A3B8", fontSize: 11 }}>por {dc.createdBy} · Blue: ${dc.exchangeRate}</span>
+                <span style={{ fontWeight: 700, color: "#37352F", fontSize: 14 }}>{formatDate(dc.date)}</span>
+                <span style={{ color: "#8C8A82", fontSize: 11 }}>por {dc.createdBy} · Blue: ${dc.exchangeRate}</span>
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {dc.snapshot && ACCOUNTS.map(a => (
-                  <span key={a.id} style={{ fontSize: 11, color: "#CBD5E1", background: "#0F172A", padding: "3px 8px", borderRadius: 6, border: "1px solid #334155" }}>
+                  <span key={a.id} style={{ fontSize: 11, color: "#555247", background: "#FAFAF9", padding: "3px 8px", borderRadius: 6, border: "1px solid #E8E7E3" }}>
                     {a.icon} {a.label}: <b style={{ color: a.color }}>{formatMoney(dc.snapshot[a.id] || 0, a.currency)}</b>
                   </span>
                 ))}
               </div>
-              <div style={{ fontSize: 11, color: "#64748B", marginTop: 4 }}>{dc.description}</div>
+              <div style={{ fontSize: 11, color: "#B1AFA7", marginTop: 4 }}>{dc.description}</div>
             </div>
           ))}
         </Card>

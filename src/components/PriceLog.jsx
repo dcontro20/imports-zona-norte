@@ -172,15 +172,15 @@ export const PriceLog = ({ priceLog, products, setProducts, logPrice, exchangeRa
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
         <div>
-          <h2 style={{ color: "#F8FAFC", margin: 0, fontSize: isMobile ? 20 : 22, fontWeight: 800 }}>Precios</h2>
-          <div style={{ fontSize: 12, color: "#64748B", marginTop: 2 }}>
-            Blue: <strong style={{ color: "#6366f1" }}>${exchangeRate.toLocaleString("es-AR")}</strong>
+          <h2 style={{ color: "#37352F", margin: 0, fontSize: isMobile ? 20 : 22, fontWeight: 800 }}>Precios</h2>
+          <div style={{ fontSize: 12, color: "#B1AFA7", marginTop: 2 }}>
+            Blue: <strong style={{ color: "#5E6AD2" }}>${exchangeRate.toLocaleString("es-AR")}</strong>
           </div>
         </div>
         {editMode ? (
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {changesCount > 0 && (
-              <Badge color="#F59E0B">{changesCount} cambio{changesCount > 1 ? "s" : ""}</Badge>
+              <Badge color="#CB912F">{changesCount} cambio{changesCount > 1 ? "s" : ""}</Badge>
             )}
             <Btn variant="success" onClick={saveAll} style={{ fontSize: 13, padding: "8px 16px" }}>
               Guardar todo
@@ -199,18 +199,18 @@ export const PriceLog = ({ priceLog, products, setProducts, logPrice, exchangeRa
       {/* Summary stats */}
       <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
         {[
-          { label: "Modelos", value: stats.totalModels, color: "#6366f1" },
+          { label: "Modelos", value: stats.totalModels, color: "#5E6AD2" },
           { label: "Precio prom.", value: `US$${stats.avgPrice}`, color: "#00b894" },
-          { label: "Stock total", value: `${stats.totalStock} uds`, color: "#F59E0B" },
-          { label: "Valor stock", value: formatMoney(stats.stockValue, "USD"), color: "#22C55E" },
+          { label: "Stock total", value: `${stats.totalStock} uds`, color: "#CB912F" },
+          { label: "Valor stock", value: formatMoney(stats.stockValue, "USD"), color: "#0F7B6C" },
           ...(stats.avgMargin ? [{ label: "Margen prom.", value: `${stats.avgMargin}%`, color: "#a855f7" }] : []),
         ].map(s => (
           <div key={s.label} style={{
             flex: isMobile ? "1 1 calc(50% - 6px)" : "1 1 0",
-            minWidth: isMobile ? 120 : 100, background: "#1E293B", borderRadius: 10, padding: "12px 14px",
-            border: "1px solid #334155"
+            minWidth: isMobile ? 120 : 100, background: "#FFFFFF", borderRadius: 10, padding: "12px 14px",
+            border: "1px solid #E8E7E3"
           }}>
-            <div style={{ fontSize: 10, color: "#64748B", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4, fontWeight: 700 }}>{s.label}</div>
+            <div style={{ fontSize: 10, color: "#B1AFA7", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4, fontWeight: 700 }}>{s.label}</div>
             <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 800, color: s.color }}>{s.value}</div>
           </div>
         ))}
@@ -218,9 +218,9 @@ export const PriceLog = ({ priceLog, products, setProducts, logPrice, exchangeRa
 
       {/* Edit mode toolbar */}
       {editMode && (
-        <Card style={{ marginBottom: 14, background: "#f0f1ff", border: "1px solid #6366f133" }}>
+        <Card style={{ marginBottom: 14, background: "#f0f1ff", border: "1px solid #5E6AD233" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 13, color: "#6366f1", fontWeight: 600, flex: 1, minWidth: 200 }}>
+            <span style={{ fontSize: 13, color: "#5E6AD2", fontWeight: 600, flex: 1, minWidth: 200 }}>
               Editando precios — Usa +/- o escribi directo. ARS se calcula con blue (${exchangeRate}).
             </span>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -240,22 +240,22 @@ export const PriceLog = ({ priceLog, products, setProducts, logPrice, exchangeRa
       {/* Brand filter chips */}
       <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
         <button onClick={() => setBrandFilter("all")} style={{
-          padding: "6px 14px", borderRadius: 20, border: brandFilter === "all" ? "2px solid #6366f1" : "1px solid #334155",
-          background: brandFilter === "all" ? "#6366f1" : "#0F172A",
-          color: brandFilter === "all" ? "#fff" : "#94A3B8",
+          padding: "6px 14px", borderRadius: 20, border: brandFilter === "all" ? "2px solid #5E6AD2" : "1px solid #E8E7E3",
+          background: brandFilter === "all" ? "#5E6AD2" : "#FAFAF9",
+          color: brandFilter === "all" ? "#fff" : "#8C8A82",
           fontSize: 12, fontWeight: 700, cursor: "pointer", transition: "all 0.2s"
         }}>
           Todas ({Object.values(modelsByBrand).flat().length})
         </button>
         {brands.map(b => {
-          const c = BRAND_COLORS[b] || "#6366f1";
+          const c = BRAND_COLORS[b] || "#5E6AD2";
           const active = brandFilter === b;
           const count = (modelsByBrand[b] || []).length;
           return (
             <button key={b} onClick={() => setBrandFilter(active ? "all" : b)} style={{
               padding: "6px 14px", borderRadius: 20,
-              border: active ? `2px solid ${c}` : "1px solid #334155",
-              background: active ? c : "#0F172A", color: active ? "#fff" : c,
+              border: active ? `2px solid ${c}` : "1px solid #E8E7E3",
+              background: active ? c : "#FAFAF9", color: active ? "#fff" : c,
               fontSize: 12, fontWeight: 700, cursor: "pointer", transition: "all 0.2s"
             }}>
               {b} ({count})
@@ -268,7 +268,7 @@ export const PriceLog = ({ priceLog, products, setProducts, logPrice, exchangeRa
       {displayBrands.map(brand => {
         const models = modelsByBrand[brand] || [];
         if (models.length === 0) return null;
-        const brandColor = BRAND_COLORS[brand] || "#6366f1";
+        const brandColor = BRAND_COLORS[brand] || "#5E6AD2";
         const isCollapsed = collapsed[brand];
         const brandStock = models.reduce((s, m) => s + m.totalStock, 0);
 
@@ -287,8 +287,8 @@ export const PriceLog = ({ priceLog, products, setProducts, logPrice, exchangeRa
                   width: 6, height: 28, borderRadius: 3, background: brandColor
                 }} />
                 <div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: "#F8FAFC" }}>{brand}</div>
-                  <div style={{ fontSize: 11, color: "#64748B" }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: "#37352F" }}>{brand}</div>
+                  <div style={{ fontSize: 11, color: "#B1AFA7" }}>
                     {models.length} modelo{models.length > 1 ? "s" : ""} · {brandStock} uds en stock
                   </div>
                 </div>
@@ -304,7 +304,7 @@ export const PriceLog = ({ priceLog, products, setProducts, logPrice, exchangeRa
                     % {brand}
                   </button>
                 )}
-                <span style={{ color: "#64748B", fontSize: 16, transition: "transform 0.2s", transform: isCollapsed ? "rotate(-90deg)" : "rotate(0)" }}>
+                <span style={{ color: "#B1AFA7", fontSize: 16, transition: "transform 0.2s", transform: isCollapsed ? "rotate(-90deg)" : "rotate(0)" }}>
                   ▼
                 </span>
               </div>
@@ -317,7 +317,7 @@ export const PriceLog = ({ priceLog, products, setProducts, logPrice, exchangeRa
                 {!isMobile ? (
                   <table style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead>
-                      <tr style={{ background: "#0F172A" }}>
+                      <tr style={{ background: "#FAFAF9" }}>
                         {[
                           "Modelo", "Puffs",
                           ...(editMode ? ["Precio USD", ""] : ["Precio USD"]),
@@ -328,8 +328,8 @@ export const PriceLog = ({ priceLog, products, setProducts, logPrice, exchangeRa
                         ].map(h => (
                           <th key={h} style={{
                             textAlign: h === "Stock" ? "center" : "left", padding: "8px 16px",
-                            fontSize: 10, color: "#64748B", textTransform: "uppercase", letterSpacing: 0.5,
-                            fontWeight: 700, borderBottom: "1px solid #334155"
+                            fontSize: 10, color: "#B1AFA7", textTransform: "uppercase", letterSpacing: 0.5,
+                            fontWeight: 700, borderBottom: "1px solid #E8E7E3"
                           }}>{h}</th>
                         ))}
                       </tr>
@@ -350,96 +350,96 @@ export const PriceLog = ({ priceLog, products, setProducts, logPrice, exchangeRa
                             background: priceChanged || costChanged ? "#f5f3ff" : "transparent",
                             transition: "background 0.2s"
                           }}>
-                            <td style={{ padding: "10px 16px", fontSize: 14, color: "#F8FAFC", fontWeight: 700, borderBottom: "1px solid #334155" }}>
+                            <td style={{ padding: "10px 16px", fontSize: 14, color: "#37352F", fontWeight: 700, borderBottom: "1px solid #E8E7E3" }}>
                               {m.model}
                             </td>
-                            <td style={{ padding: "10px 16px", fontSize: 12, color: "#64748B", borderBottom: "1px solid #334155" }}>
+                            <td style={{ padding: "10px 16px", fontSize: 12, color: "#B1AFA7", borderBottom: "1px solid #E8E7E3" }}>
                               {Number(m.puffs).toLocaleString("es-AR")}
                             </td>
                             {editMode ? (
                               <>
-                                <td style={{ padding: "8px 16px", borderBottom: "1px solid #334155" }}>
+                                <td style={{ padding: "8px 16px", borderBottom: "1px solid #E8E7E3" }}>
                                   <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                                     <button onClick={() => adjustPrice(m.key, -1)} style={{
-                                      width: 28, height: 28, borderRadius: 6, border: "1px solid #334155",
-                                      background: "#0F172A", color: "#94A3B8", fontSize: 16, cursor: "pointer",
+                                      width: 28, height: 28, borderRadius: 6, border: "1px solid #E8E7E3",
+                                      background: "#FAFAF9", color: "#8C8A82", fontSize: 16, cursor: "pointer",
                                       display: "flex", alignItems: "center", justifyContent: "center"
                                     }}>−</button>
                                     <input type="number" value={newPrices[m.key] ?? m.priceUSD}
                                       onChange={e => setNewPrices(prev => ({ ...prev, [m.key]: e.target.value }))}
                                       style={{
                                         width: 60, padding: "5px 4px", textAlign: "center",
-                                        background: priceChanged ? "#6366f115" : "#0F172A",
-                                        border: `1px solid ${priceChanged? "#6366f1" : "#334155"}`,
-                                        borderRadius: 6, color: "#F8FAFC", fontSize: 15, fontWeight: 800
+                                        background: priceChanged ? "#F1F2FD" : "#FAFAF9",
+                                        border: `1px solid ${priceChanged? "#5E6AD2" : "#E8E7E3"}`,
+                                        borderRadius: 6, color: "#37352F", fontSize: 15, fontWeight: 800
                                       }} />
                                     <button onClick={() => adjustPrice(m.key, 1)} style={{
-                                      width: 28, height: 28, borderRadius: 6, border: "1px solid #334155",
-                                      background: "#0F172A", color: "#94A3B8", fontSize: 16, cursor: "pointer",
+                                      width: 28, height: 28, borderRadius: 6, border: "1px solid #E8E7E3",
+                                      background: "#FAFAF9", color: "#8C8A82", fontSize: 16, cursor: "pointer",
                                       display: "flex", alignItems: "center", justifyContent: "center"
                                     }}>+</button>
                                   </div>
                                 </td>
-                                <td style={{ padding: "8px 4px", borderBottom: "1px solid #334155", fontSize: 11, color: "#64748B" }}>
+                                <td style={{ padding: "8px 4px", borderBottom: "1px solid #E8E7E3", fontSize: 11, color: "#B1AFA7" }}>
                                   {priceChanged && (
-                                    <span style={{ color: Number(newPrices[m.key]) > m.priceUSD ? "#EF4444" : "#00b894", fontWeight: 700 }}>
+                                    <span style={{ color: Number(newPrices[m.key]) > m.priceUSD ? "#E03E3E" : "#00b894", fontWeight: 700 }}>
                                       {Number(newPrices[m.key]) > m.priceUSD ? "+" : ""}{Number(newPrices[m.key]) - m.priceUSD}
                                     </span>
                                   )}
                                 </td>
                               </>
                             ) : (
-                              <td style={{ padding: "10px 16px", borderBottom: "1px solid #334155" }}>
+                              <td style={{ padding: "10px 16px", borderBottom: "1px solid #E8E7E3" }}>
                                 <span style={{ color: "#00b894", fontWeight: 800, fontSize: 16 }}>US${m.priceUSD}</span>
                               </td>
                             )}
-                            <td style={{ padding: "10px 16px", fontSize: 14, color: "#CBD5E1", borderBottom: "1px solid #334155", fontWeight: 600 }}>
+                            <td style={{ padding: "10px 16px", fontSize: 14, color: "#555247", borderBottom: "1px solid #E8E7E3", fontWeight: 600 }}>
                               ${arsPrice.toLocaleString("es-AR")}
                             </td>
                             {showCostCol && (
-                              <td style={{ padding: "8px 16px", borderBottom: "1px solid #334155" }}>
+                              <td style={{ padding: "8px 16px", borderBottom: "1px solid #E8E7E3" }}>
                                           {editMode && costMode ? (
                                   <input type="number" step="0.5" value={newCosts[m.key] ?? (m.costUSDT || "")}
                                     placeholder="0.00"
                                     onChange={e => setNewCosts(prev => ({ ...prev, [m.key]: e.target.value }))}
                                     style={{
                                       width: 70, padding: "5px 6px", textAlign: "center",
-                                      background: costChanged ? "#a855f715" : "#0F172A",
-                                      border: `1px solid ${costChanged ? "#a855f7" : "#334155"}`,
-                                      borderRadius: 6, color: "#F8FAFC", fontSize: 13, fontWeight: 600
+                                      background: costChanged ? "#a855f715" : "#FAFAF9",
+                                      border: `1px solid ${costChanged ? "#a855f7" : "#E8E7E3"}`,
+                                      borderRadius: 6, color: "#37352F", fontSize: 13, fontWeight: 600
                                     }} />
                                 ) : (
-                                  <span style={{ fontSize: 13, color: currentCost > 0 ? "#94A3B8" : "#94A3B8", fontWeight: 600 }}>
+                                  <span style={{ fontSize: 13, color: currentCost > 0 ? "#8C8A82" : "#8C8A82", fontWeight: 600 }}>
                                     {currentCost > 0 ? `₮${currentCost.toFixed(1)}` : "—"}
                                   </span>
                                 )}
                               </td>
                             )}
                             {showMarginCol && (
-                              <td style={{ padding: "10px 16px", borderBottom: "1px solid #334155" }}>
+                              <td style={{ padding: "10px 16px", borderBottom: "1px solid #E8E7E3" }}>
                                 {margin ? (
                                   <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                                     <span style={{
                                       padding: "2px 8px", borderRadius: 10, fontSize: 12, fontWeight: 700,
-                                      background: Number(margin.pct) > 40 ? "#22C55E18" : Number(margin.pct) > 20 ? "#F59E0B18" : "#EF444418",
-                                      color: Number(margin.pct) > 40 ? "#22C55E" : Number(margin.pct) > 20 ? "#F59E0B" : "#ef4444"
+                                      background: Number(margin.pct) > 40 ? "#DDEDEA" : Number(margin.pct) > 20 ? "#FDECC8" : "#FBE4E4",
+                                      color: Number(margin.pct) > 40 ? "#0F7B6C" : Number(margin.pct) > 20 ? "#CB912F" : "#E03E3E"
                                     }}>
                                       {margin.pct}%
                                     </span>
-                                    <span style={{ fontSize: 11, color: "#64748B" }}>
+                                    <span style={{ fontSize: 11, color: "#B1AFA7" }}>
                                       +${margin.margin.toFixed(1)}
                                     </span>
                                   </div>
                                 ) : (
-                                  <span style={{ fontSize: 12, color: "#94A3B8" }}>—</span>
+                                  <span style={{ fontSize: 12, color: "#8C8A82" }}>—</span>
                                 )}
                               </td>
                             )}
-                            <td style={{ padding: "10px 16px", borderBottom: "1px solid #334155", textAlign: "center" }}>
+                            <td style={{ padding: "10px 16px", borderBottom: "1px solid #E8E7E3", textAlign: "center" }}>
                               <span style={{
                                 padding: "3px 10px", borderRadius: 10, fontSize: 12, fontWeight: 700,
-                                background: m.totalStock > 10 ? "#22C55E18" : m.totalStock > 0 ? "#F59E0B18" : "#334155",
-                                color: m.totalStock > 10 ? "#22C55E" : m.totalStock > 0 ? "#F59E0B" : "#64748B"
+                                background: m.totalStock > 10 ? "#DDEDEA" : m.totalStock > 0 ? "#FDECC8" : "#E8E7E3",
+                                color: m.totalStock > 10 ? "#0F7B6C" : m.totalStock > 0 ? "#CB912F" : "#B1AFA7"
                               }}>
                                 {m.totalStock}
                               </span>
@@ -461,46 +461,46 @@ export const PriceLog = ({ priceLog, products, setProducts, logPrice, exchangeRa
 
                       return (
                         <div key={m.key} style={{
-                          padding: "12px 0", borderBottom: "1px solid #334155",
+                          padding: "12px 0", borderBottom: "1px solid #E8E7E3",
                           background: priceChanged ? "#f5f3ff" : "transparent"
                         }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
                             <div>
-                              <div style={{ fontSize: 14, fontWeight: 700, color: "#F8FAFC" }}>{m.model}</div>
-                              <div style={{ fontSize: 11, color: "#64748B" }}>{Number(m.puffs).toLocaleString("es-AR")} puffs · {m.totalStock} uds</div>
+                              <div style={{ fontSize: 14, fontWeight: 700, color: "#37352F" }}>{m.model}</div>
+                              <div style={{ fontSize: 11, color: "#B1AFA7" }}>{Number(m.puffs).toLocaleString("es-AR")} puffs · {m.totalStock} uds</div>
                             </div>
                             {!editMode && (
                               <div style={{ textAlign: "right" }}>
                                 <div style={{ fontSize: 17, fontWeight: 800, color: "#00b894" }}>US${m.priceUSD}</div>
-                                <div style={{ fontSize: 12, color: "#94A3B8" }}>${arsPrice.toLocaleString("es-AR")}</div>
+                                <div style={{ fontSize: 12, color: "#8C8A82" }}>${arsPrice.toLocaleString("es-AR")}</div>
                               </div>
                             )}
                           </div>
                           {editMode && (
                             <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
                               <button onClick={() => adjustPrice(m.key, -1)} style={{
-                                width: 36, height: 36, borderRadius: 8, border: "1px solid #334155",
-                                background: "#0F172A", color: "#94A3B8", fontSize: 18, cursor: "pointer"
+                                width: 36, height: 36, borderRadius: 8, border: "1px solid #E8E7E3",
+                                background: "#FAFAF9", color: "#8C8A82", fontSize: 18, cursor: "pointer"
                               }}>−</button>
                               <div style={{ flex: 1, textAlign: "center" }}>
                                 <input type="number" value={newPrices[m.key] ?? m.priceUSD}
                                   onChange={e => setNewPrices(prev => ({ ...prev, [m.key]: e.target.value }))}
                                   style={{
                                     width: 70, padding: "6px", textAlign: "center",
-                                    background: priceChanged ? "#6366f115" : "#0F172A",
-                                    border: `1px solid ${priceChanged ? "#6366f1" : "#334155"}`,
-                                    borderRadius: 8, fontSize: 18, fontWeight: 800, color: "#F8FAFC"
+                                    background: priceChanged ? "#F1F2FD" : "#FAFAF9",
+                                    border: `1px solid ${priceChanged ? "#5E6AD2" : "#E8E7E3"}`,
+                                    borderRadius: 8, fontSize: 18, fontWeight: 800, color: "#37352F"
                                   }} />
-                                <div style={{ fontSize: 11, color: "#64748B", marginTop: 2 }}>${arsPrice.toLocaleString("es-AR")}</div>
+                                <div style={{ fontSize: 11, color: "#B1AFA7", marginTop: 2 }}>${arsPrice.toLocaleString("es-AR")}</div>
                               </div>
                               <button onClick={() => adjustPrice(m.key, 1)} style={{
-                                width: 36, height: 36, borderRadius: 8, border: "1px solid #334155",
-                                background: "#0F172A", color: "#94A3B8", fontSize: 18, cursor: "pointer"
+                                width: 36, height: 36, borderRadius: 8, border: "1px solid #E8E7E3",
+                                background: "#FAFAF9", color: "#8C8A82", fontSize: 18, cursor: "pointer"
                               }}>+</button>
                               {priceChanged && (
                                 <span style={{
                                   fontSize: 12, fontWeight: 700, minWidth: 30,
-                                  color: Number(newPrices[m.key]) > m.priceUSD ? "#EF4444" : "#00b894"
+                                  color: Number(newPrices[m.key]) > m.priceUSD ? "#E03E3E" : "#00b894"
                                 }}>
                                   {Number(newPrices[m.key]) > m.priceUSD ? "+" : ""}{Number(newPrices[m.key]) - m.priceUSD}
                                 </span>
@@ -509,20 +509,20 @@ export const PriceLog = ({ priceLog, products, setProducts, logPrice, exchangeRa
                           )}
                           {editMode && costMode && (
                             <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
-                              <span style={{ fontSize: 11, color: "#64748B", fontWeight: 600 }}>Costo USDT:</span>
+                              <span style={{ fontSize: 11, color: "#B1AFA7", fontWeight: 600 }}>Costo USDT:</span>
                               <input type="number" step="0.5" value={newCosts[m.key] ?? (m.costUSDT || "")}
                                 placeholder="0.00"
                                 onChange={e => setNewCosts(prev => ({ ...prev, [m.key]: e.target.value }))}
                                 style={{
                                   width: 70, padding: "4px 6px", textAlign: "center",
-                                  background: "#0F172A", border: "1px solid #334155",
+                                  background: "#FAFAF9", border: "1px solid #E8E7E3",
                                   borderRadius: 6, fontSize: 13, fontWeight: 600
                                 }} />
                               {margin && (
                                 <span style={{
                                   padding: "2px 8px", borderRadius: 10, fontSize: 11, fontWeight: 700,
-                                  background: Number(margin.pct) > 40 ? "#22C55E18" : "#F59E0B18",
-                                  color: Number(margin.pct) > 40 ? "#22C55E" : "#F59E0B"
+                                  background: Number(margin.pct) > 40 ? "#DDEDEA" : "#FDECC8",
+                                  color: Number(margin.pct) > 40 ? "#0F7B6C" : "#CB912F"
                                 }}>
                                   {margin.pct}%
                                 </span>
@@ -533,8 +533,8 @@ export const PriceLog = ({ priceLog, products, setProducts, logPrice, exchangeRa
                             <div style={{ marginTop: 4 }}>
                               <span style={{
                                 padding: "2px 8px", borderRadius: 10, fontSize: 11, fontWeight: 700,
-                                background: Number(margin.pct) > 40 ? "#22C55E18" : Number(margin.pct) > 20 ? "#F59E0B18" : "#EF444418",
-                                color: Number(margin.pct) > 40 ? "#22C55E" : Number(margin.pct) > 20 ? "#F59E0B" : "#ef4444"
+                                background: Number(margin.pct) > 40 ? "#DDEDEA" : Number(margin.pct) > 20 ? "#FDECC8" : "#FBE4E4",
+                                color: Number(margin.pct) > 40 ? "#0F7B6C" : Number(margin.pct) > 20 ? "#CB912F" : "#E03E3E"
                               }}>
                                 Margen: {margin.pct}% (+US${margin.margin.toFixed(1)})
                               </span>
@@ -556,20 +556,20 @@ export const PriceLog = ({ priceLog, products, setProducts, logPrice, exchangeRa
         <div onClick={() => setHistoryExpanded(!historyExpanded)}
           style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <h4 style={{ color: "#F59E0B", margin: 0, fontSize: 14, textTransform: "uppercase" }}>
+            <h4 style={{ color: "#CB912F", margin: 0, fontSize: 14, textTransform: "uppercase" }}>
               Historial de cambios
             </h4>
             {priceLog && priceLog.length > 0 && (
-              <Badge color="#F59E0B">{priceLog.length}</Badge>
+              <Badge color="#CB912F">{priceLog.length}</Badge>
             )}
           </div>
-          <span style={{ color: "#64748B", fontSize: 14, transition: "transform 0.2s", transform: historyExpanded ? "rotate(0)" : "rotate(-90deg)" }}>▼</span>
+          <span style={{ color: "#B1AFA7", fontSize: 14, transition: "transform 0.2s", transform: historyExpanded ? "rotate(0)" : "rotate(-90deg)" }}>▼</span>
         </div>
         {historyExpanded && (
           <div style={{ marginTop: 14 }}>
             {(!priceLog || priceLog.length === 0) ? (
               <div style={{ textAlign: "center", padding: 20 }}>
-                <span style={{ color: "#64748B", fontSize: 13 }}>Cuando edites precios, los cambios van a aparecer aca.</span>
+                <span style={{ color: "#B1AFA7", fontSize: 13 }}>Cuando edites precios, los cambios van a aparecer aca.</span>
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -579,20 +579,20 @@ export const PriceLog = ({ priceLog, products, setProducts, logPrice, exchangeRa
                   return (
                     <div key={r.id || i} style={{
                       display: "flex", alignItems: "center", gap: 10, padding: "8px 12px",
-                      background: "#0F172A", borderRadius: 8, flexWrap: "wrap"
+                      background: "#FAFAF9", borderRadius: 8, flexWrap: "wrap"
                     }}>
-                      <span style={{ fontSize: 11, color: "#64748B", minWidth: 80 }}>{formatDate(r.date)}</span>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "#F8FAFC", flex: 1, minWidth: 100 }}>
+                      <span style={{ fontSize: 11, color: "#B1AFA7", minWidth: 80 }}>{formatDate(r.date)}</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "#37352F", flex: 1, minWidth: 100 }}>
                         {p ? `${p.brand} ${p.model}` : "?"}
                       </span>
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <span style={{ fontSize: 13, color: "#64748B" }}>US${r.oldPrice}</span>
-                        <span style={{ color: isUp ? "#EF4444" : "#22C55E", fontWeight: 700 }}>{isUp ? "▲" : "▼"}</span>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: "#F8FAFC" }}>US${r.newPrice}</span>
+                        <span style={{ fontSize: 13, color: "#B1AFA7" }}>US${r.oldPrice}</span>
+                        <span style={{ color: isUp ? "#E03E3E" : "#0F7B6C", fontWeight: 700 }}>{isUp ? "▲" : "▼"}</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: "#37352F" }}>US${r.newPrice}</span>
                         <span style={{
                           padding: "1px 6px", borderRadius: 6, fontSize: 10, fontWeight: 700,
-                          background: isUp ? "#EF444418" : "#22C55E18",
-                          color: isUp ? "#EF4444" : "#22C55E"
+                          background: isUp ? "#FBE4E4" : "#DDEDEA",
+                          color: isUp ? "#E03E3E" : "#0F7B6C"
                         }}>
                           {isUp ? "+" : ""}{r.newPrice - r.oldPrice}
                         </span>
@@ -611,7 +611,7 @@ export const PriceLog = ({ priceLog, products, setProducts, logPrice, exchangeRa
         <Modal open={true} onClose={() => { setBulkModal(null); setBulkPercent(""); }}
           title={`Ajuste masivo — ${bulkModal === "all" ? "Todos los modelos" : bulkModal}`}>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <div style={{ fontSize: 13, color: "#94A3B8" }}>
+            <div style={{ fontSize: 13, color: "#8C8A82" }}>
               Ingresa un porcentaje para ajustar {bulkModal === "all" ? "todos los precios" : `los precios de ${bulkModal}`}.
               Usa numeros positivos para subir y negativos para bajar.
             </div>
@@ -620,13 +620,13 @@ export const PriceLog = ({ priceLog, products, setProducts, logPrice, exchangeRa
                 placeholder="ej: 5 o -10"
                 style={{
                   flex: 1, padding: "12px", fontSize: 20, fontWeight: 800, textAlign: "center",
-                  background: "#0F172A", border: "1px solid #334155", borderRadius: 10, color: "#F8FAFC"
+                  background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10, color: "#37352F"
                 }} />
-              <span style={{ fontSize: 24, fontWeight: 800, color: "#6366f1" }}>%</span>
+              <span style={{ fontSize: 24, fontWeight: 800, color: "#5E6AD2" }}>%</span>
             </div>
             {bulkPercent && (
-              <div style={{ padding: "10px 14px", background: "#0F172A", borderRadius: 8 }}>
-                <div style={{ fontSize: 12, color: "#94A3B8", marginBottom: 6 }}>Vista previa:</div>
+              <div style={{ padding: "10px 14px", background: "#FAFAF9", borderRadius: 8 }}>
+                <div style={{ fontSize: 12, color: "#8C8A82", marginBottom: 6 }}>Vista previa:</div>
                 {Object.values(modelsByBrand).flat()
                   .filter(m => bulkModal === "all" || m.brand === bulkModal)
                   .slice(0, 5)
@@ -635,11 +635,11 @@ export const PriceLog = ({ priceLog, products, setProducts, logPrice, exchangeRa
                     const next = Math.max(1, Math.round(current * (1 + Number(bulkPercent) / 100)));
                     return (
                       <div key={m.key} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "2px 0" }}>
-                        <span style={{ color: "#CBD5E1" }}>{m.brand} {m.model}</span>
+                        <span style={{ color: "#555247" }}>{m.brand} {m.model}</span>
                         <span>
-                          <span style={{ color: "#64748B" }}>US${current}</span>
-                          <span style={{ color: "#6366f1", margin: "0 4px" }}>→</span>
-                          <span style={{ fontWeight: 700, color: next > current ? "#EF4444" : "#22C55E" }}>US${next}</span>
+                          <span style={{ color: "#B1AFA7" }}>US${current}</span>
+                          <span style={{ color: "#5E6AD2", margin: "0 4px" }}>→</span>
+                          <span style={{ fontWeight: 700, color: next > current ? "#E03E3E" : "#0F7B6C" }}>US${next}</span>
                         </span>
                       </div>
                     );

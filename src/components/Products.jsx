@@ -108,8 +108,8 @@ export const Products = ({ products, setProducts, exchangeRate, logStock, logPri
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h2 style={{ color: "#F8FAFC", margin: 0, fontSize: 22 }}>Stock</h2>
-          <span style={{ color: "#94A3B8", fontSize: 13 }}>{totalWithStock} productos con stock · {totalInStock} unidades totales · {filtered.length} productos listados</span>
+          <h2 style={{ color: "#37352F", margin: 0, fontSize: 22 }}>Stock</h2>
+          <span style={{ color: "#8C8A82", fontSize: 13 }}>{totalWithStock} productos con stock · {totalInStock} unidades totales · {filtered.length} productos listados</span>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <SearchBar value={search} onChange={setSearch} placeholder="Buscar producto..." />
@@ -131,17 +131,17 @@ export const Products = ({ products, setProducts, exchangeRate, logStock, logPri
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
         {["", ...BRANDS].map(b => (
           <button key={b} onClick={() => setBrandFilter(b)} style={{
-            padding: "6px 14px", borderRadius: 20, border: "1px solid " + (brandFilter === b ? (BRAND_COLORS[b] || "#6366f1") : "#334155"),
-            background: brandFilter === b ? (BRAND_COLORS[b] || "#6366f1") + "22" : "transparent",
-            color: brandFilter === b ? (BRAND_COLORS[b] || "#6366f1") : "#94A3B8",
+            padding: "6px 14px", borderRadius: 20, border: "1px solid " + (brandFilter === b ? (BRAND_COLORS[b] || "#5E6AD2") : "#E8E7E3"),
+            background: brandFilter === b ? (BRAND_COLORS[b] || "#5E6AD2") + "22" : "transparent",
+            color: brandFilter === b ? (BRAND_COLORS[b] || "#5E6AD2") : "#8C8A82",
             cursor: "pointer", fontSize: 12, fontWeight: 600
           }}>{b || "Todas"}</button>
         ))}
-        <span style={{ color: "#334155", margin: "0 2px" }}>|</span>
+        <span style={{ color: "#E8E7E3", margin: "0 2px" }}>|</span>
         {[["all", "Todos"], ["instock", "Con stock"], ["nostock", "Sin stock"]].map(([val, label]) => (
           <button key={val} onClick={() => setStockFilter(val)} style={{
-            padding: "6px 14px", borderRadius: 20, border: "1px solid " + (stockFilter === val ? "#00b894" : "#334155"),
-            background: stockFilter === val ? "#00b89422" : "transparent", color: stockFilter === val ? "#00b894" : "#94A3B8",
+            padding: "6px 14px", borderRadius: 20, border: "1px solid " + (stockFilter === val ? "#00b894" : "#E8E7E3"),
+            background: stockFilter === val ? "#00b89422" : "transparent", color: stockFilter === val ? "#00b894" : "#8C8A82",
             cursor: "pointer", fontSize: 12, fontWeight: 600
           }}>{label}</button>
         ))}
@@ -149,10 +149,10 @@ export const Products = ({ products, setProducts, exchangeRate, logStock, logPri
 
       {/* Quick edit banner */}
       {quickEdit && (
-        <Card style={{ marginBottom: 14, background: "#6366f111", border: "1px solid #6366f144" }}>
+        <Card style={{ marginBottom: 14, background: "#5E6AD211", border: "1px solid #5E6AD244" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ fontSize: 18 }}>⚡</span>
-            <span style={{ color: "#6366f1", fontSize: 13, fontWeight: 600 }}>
+            <span style={{ color: "#5E6AD2", fontSize: 13, fontWeight: 600 }}>
               Modo edición rápida — Cambiá las cantidades directo y dale "Guardar todo". Los campos modificados se resaltan en violeta.
             </span>
           </div>
@@ -161,20 +161,20 @@ export const Products = ({ products, setProducts, exchangeRate, logStock, logPri
 
       {/* Grouped Cards */}
       {grouped.length === 0 ? (
-        <Card><p style={{ color: "#64748B", textAlign: "center", padding: 20 }}>No hay productos que coincidan con los filtros.</p></Card>
+        <Card><p style={{ color: "#B1AFA7", textAlign: "center", padding: 20 }}>No hay productos que coincidan con los filtros.</p></Card>
       ) : grouped.map(group => {
         const key = `${group.brand}-${group.model}`;
         const isCollapsed = collapsed[key];
         const groupStock = group.items.reduce((s, p) => s + (p.stock || 0), 0);
         const groupInStock = group.items.filter(p => p.stock > 0).length;
-        const brandColor = BRAND_COLORS[group.brand] || "#6366f1";
+        const brandColor = BRAND_COLORS[group.brand] || "#5E6AD2";
         const puffsFormatted = Number(group.puffs).toLocaleString("es-AR");
 
         return (
           <div key={key} style={{ marginBottom: 12 }}>
             {/* Group Header */}
             <div onClick={() => toggleCollapse(key)} style={{
-              background: "#0F172A", borderRadius: isCollapsed ? 12 : "12px 12px 0 0", padding: "14px 18px",
+              background: "#FAFAF9", borderRadius: isCollapsed ? 12 : "12px 12px 0 0", padding: "14px 18px",
               border: `1px solid ${brandColor}33`, borderBottom: isCollapsed ? `1px solid ${brandColor}33` : "none",
               cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center",
               transition: "all 0.2s"
@@ -182,36 +182,36 @@ export const Products = ({ products, setProducts, exchangeRate, logStock, logPri
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <span style={{ fontSize: 18, transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)", transition: "transform 0.2s", display: "inline-block" }}>▼</span>
                 <Badge color={brandColor}>{group.brand}</Badge>
-                <span style={{ color: "#F8FAFC", fontWeight: 700, fontSize: 15 }}>{group.model}</span>
-                <span style={{ color: "#94A3B8", fontSize: 13 }}>· {puffsFormatted} puffs</span>
-                <span style={{ color: "#94A3B8", fontSize: 13 }}>· {formatMoney(group.priceUSD, "USD")} / {formatMoney(Math.round(group.priceUSD * exchangeRate))}</span>
+                <span style={{ color: "#37352F", fontWeight: 700, fontSize: 15 }}>{group.model}</span>
+                <span style={{ color: "#8C8A82", fontSize: 13 }}>· {puffsFormatted} puffs</span>
+                <span style={{ color: "#8C8A82", fontSize: 13 }}>· {formatMoney(group.priceUSD, "USD")} / {formatMoney(Math.round(group.priceUSD * exchangeRate))}</span>
               </div>
               <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                <span style={{ color: "#94A3B8", fontSize: 12 }}>{groupInStock}/{group.items.length} sabores</span>
-                <Badge color={groupStock > 0 ? "#00b894" : "#EF4444"}>{groupStock} uds</Badge>
+                <span style={{ color: "#8C8A82", fontSize: 12 }}>{groupInStock}/{group.items.length} sabores</span>
+                <Badge color={groupStock > 0 ? "#00b894" : "#E03E3E"}>{groupStock} uds</Badge>
               </div>
             </div>
 
             {/* Flavors List */}
             {!isCollapsed && (
               <div style={{
-                background: "#0F172A", borderRadius: "0 0 12px 12px", border: `1px solid ${brandColor}22`,
+                background: "#FAFAF9", borderRadius: "0 0 12px 12px", border: `1px solid ${brandColor}22`,
                 borderTop: `1px solid ${brandColor}15`, overflow: "hidden"
               }}>
                 {group.items.map((p, i) => (
                   <div key={p.id} style={{
                     display: "flex", alignItems: "center", justifyContent: "space-between",
-                    padding: "10px 18px", borderBottom: i < group.items.length - 1 ? "1px solid #273246" : "none",
+                    padding: "10px 18px", borderBottom: i < group.items.length - 1 ? "1px solid #F0EFEB" : "none",
                     opacity: p.stock === 0 ? 0.4 : 1, transition: "opacity 0.2s"
                   }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
                       <span style={{
                         width: 8, height: 8, borderRadius: "50%",
-                        background: p.stock > 0 ? "#00b894" : "#EF4444",
+                        background: p.stock > 0 ? "#00b894" : "#E03E3E",
                         flexShrink: 0
                       }} />
                       <span style={{
-                        color: p.stock > 0 ? "#F8FAFC" : "#64748B",
+                        color: p.stock > 0 ? "#37352F" : "#B1AFA7",
                         fontSize: 14,
                         textDecoration: p.stock === 0 ? "line-through" : "none"
                       }}>{p.flavor}</span>
@@ -221,9 +221,9 @@ export const Products = ({ products, setProducts, exchangeRate, logStock, logPri
                         <input type="number" min={0} value={quickStocks[p.id] ?? p.stock ?? 0}
                           onChange={e => setQuickStocks(prev => ({ ...prev, [p.id]: Number(e.target.value) }))}
                           style={{
-                            width: 60, padding: "4px 8px", background: (quickStocks[p.id] ?? p.stock) !== (p.stock || 0) ? "#6366f122" : "#0F172A",
-                            border: `1px solid ${(quickStocks[p.id] ?? p.stock) !== (p.stock || 0) ? "#6366f1" : "#334155"}`,
-                            borderRadius: 6, color: "#F8FAFC", fontSize: 14, fontWeight: 700, textAlign: "center"
+                            width: 60, padding: "4px 8px", background: (quickStocks[p.id] ?? p.stock) !== (p.stock || 0) ? "#EAECF9" : "#FAFAF9",
+                            border: `1px solid ${(quickStocks[p.id] ?? p.stock) !== (p.stock || 0) ? "#5E6AD2" : "#E8E7E3"}`,
+                            borderRadius: 6, color: "#37352F", fontSize: 14, fontWeight: 700, textAlign: "center"
                           }} />
                       ) : (
                         <span style={{
@@ -233,10 +233,10 @@ export const Products = ({ products, setProducts, exchangeRate, logStock, logPri
                       )}
                       {!quickEdit && <>
                         <button onClick={(e) => { e.stopPropagation(); openEdit(p); }}
-                          style={{ background: "none", border: "none", color: "#94A3B8", cursor: "pointer", fontSize: 14, padding: "2px 4px" }}
+                          style={{ background: "none", border: "none", color: "#8C8A82", cursor: "pointer", fontSize: 14, padding: "2px 4px" }}
                           title="Editar">✏️</button>
                         <button onClick={(e) => { e.stopPropagation(); remove(p.id); }}
-                          style={{ background: "none", border: "none", color: "#94A3B8", cursor: "pointer", fontSize: 14, padding: "2px 4px" }}
+                          style={{ background: "none", border: "none", color: "#8C8A82", cursor: "pointer", fontSize: 14, padding: "2px 4px" }}
                           title="Eliminar">🗑️</button>
                       </>}
                     </div>

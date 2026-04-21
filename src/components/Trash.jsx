@@ -118,9 +118,9 @@ export function Trash({
   };
 
   const tabStyle = (active) => ({
-    padding: "6px 14px", border: "1px solid " + (active ? "#6366f1" : "#334155"),
+    padding: "6px 14px", border: "1px solid " + (active ? "#5E6AD2" : "#E8E7E3"),
     borderRadius: 20, fontSize: 12, fontWeight: active ? 700 : 500,
-    background: active ? "#6366f120" : "#0F172A", color: active ? "#6366f1" : "#94A3B8",
+    background: active ? "#EEF0FC" : "#FAFAF9", color: active ? "#5E6AD2" : "#8C8A82",
     cursor: "pointer"
   });
 
@@ -128,8 +128,8 @@ export function Trash({
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
-          <h2 style={{ fontSize: 20, fontWeight: 800, color: "#F8FAFC", margin: 0 }}>Papelera</h2>
-          <p style={{ color: "#64748B", fontSize: 13, margin: "4px 0 0" }}>
+          <h2 style={{ fontSize: 20, fontWeight: 800, color: "#37352F", margin: 0 }}>Papelera</h2>
+          <p style={{ color: "#B1AFA7", fontSize: 13, margin: "4px 0 0" }}>
             {trashItems.length} elementos eliminados · Se eliminan permanentemente después de 30 días
           </p>
         </div>
@@ -152,9 +152,9 @@ export function Trash({
       </div>
 
       {/* Items */}
-      <div style={{ background: "#1E293B", border: "1px solid #334155", borderRadius: 12, overflow: "hidden" }}>
+      <div style={{ background: "#FFFFFF", border: "1px solid #E8E7E3", borderRadius: 12, overflow: "hidden" }}>
         {filtered.length === 0 ? (
-          <div style={{ padding: 40, textAlign: "center", color: "#64748B", fontSize: 14 }}>
+          <div style={{ padding: 40, textAlign: "center", color: "#B1AFA7", fontSize: 14 }}>
             La papelera está vacía
           </div>
         ) : (
@@ -166,31 +166,31 @@ export function Trash({
             return (
               <div key={item.id} style={{
                 display: "flex", alignItems: "center", gap: 12, padding: "12px 16px",
-                borderBottom: i < filtered.length - 1 ? "1px solid #334155" : "none",
+                borderBottom: i < filtered.length - 1 ? "1px solid #E8E7E3" : "none",
               }}>
                 <span style={{ fontSize: 20 }}>{entityInfo.icon}</span>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, color: "#F8FAFC", fontWeight: 600 }}>{item._label}</div>
-                  <div style={{ fontSize: 12, color: "#64748B" }}>
+                  <div style={{ fontSize: 13, color: "#37352F", fontWeight: 600 }}>{item._label}</div>
+                  <div style={{ fontSize: 12, color: "#B1AFA7" }}>
                     {item._sub} · Eliminado por {item.deletedBy || "?"} · {daysLeft} días restantes
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
                   {confirmRestore === item.id ? (
-                    <button onClick={() => restore(item)} style={{ ...btnStyle, background: "#22C55E18", color: "#22C55E" }}>
+                    <button onClick={() => restore(item)} style={{ ...btnStyle, background: "#DDEDEA", color: "#0F7B6C" }}>
                       Confirmar restaurar
                     </button>
                   ) : (
-                    <button onClick={() => restore(item)} style={{ ...btnStyle, background: "#6366f120", color: "#6366f1" }} title="Restaurar">
+                    <button onClick={() => restore(item)} style={{ ...btnStyle, background: "#EEF0FC", color: "#5E6AD2" }} title="Restaurar">
                       ↩️ Restaurar
                     </button>
                   )}
                   {confirmPermanent === item.id ? (
-                    <button onClick={() => permanentDelete(item)} style={{ ...btnStyle, background: "#EF444418", color: "#EF4444" }}>
+                    <button onClick={() => permanentDelete(item)} style={{ ...btnStyle, background: "#FBE4E4", color: "#E03E3E" }}>
                       Confirmar eliminar
                     </button>
                   ) : (
-                    <button onClick={() => permanentDelete(item)} style={{ ...btnStyle, background: "#EF444418", color: "#EF4444" }} title="Eliminar permanentemente">
+                    <button onClick={() => permanentDelete(item)} style={{ ...btnStyle, background: "#FBE4E4", color: "#E03E3E" }} title="Eliminar permanentemente">
                       ✕
                     </button>
                   )}

@@ -1,47 +1,65 @@
-// Dark theme tokens — alineados con Dashboard v3.
-// Fuente única de verdad para superficies, texto, bordes y acentos.
+// Light theme tokens — estilo Notion/Linear.
+// Cálido, generoso en espaciado, apto para lectura al sol desde mobile.
 export const T = {
   // Surfaces
-  bg: "#0F172A",        // Fondo general de la app
-  card: "#1E293B",      // Cards, modales, topbar, sidebar
-  cardHover: "#253347", // Hover sobre filas/botones sutiles
-  input: "#0F172A",     // Fondo de inputs (más oscuro que card para contraste)
-  border: "#334155",    // Bordes y separadores
-  borderSoft: "#273246",// Bordes muy sutiles (table row divider)
+  bg: "#FAFAF9",        // Page background (warm off-white, no harsh)
+  card: "#FFFFFF",      // Cards, modals, topbar
+  cardHover: "#F6F5F2", // Hover sobre filas
+  surface2: "#F5F4F0",  // Secciones secundarias, inputs
+  input: "#FFFFFF",     // Input bg (white, contrast with surface2)
+  border: "#E8E7E3",    // Bordes principales
+  borderSoft: "#F0EFEB",// Separadores sutiles
 
-  // Text
-  text: "#F8FAFC",      // Texto principal
-  textSub: "#CBD5E1",   // Texto secundario
-  textMuted: "#94A3B8", // Labels, metadata
-  textFaint: "#64748B", // Texto muy tenue
+  // Text (Notion-style: warm brown-black, no true black)
+  text: "#37352F",      // Texto primario
+  textSub: "#555247",   // Texto secundario
+  textMuted: "#8C8A82", // Muted (labels, metadata)
+  textFaint: "#B1AFA7", // Texto muy tenue
 
   // Accent
-  primary: "#6366f1",   // Indigo (accent histórico)
-  primarySoft: "#6366f120",
+  primary: "#5E6AD2",   // Linear indigo (modern + warm)
+  primarySoft: "#EEF0FC",
 
-  // Status (valores brightos sobre fondo oscuro)
-  green: "#22C55E", greenBg: "#22C55E18", greenBorder: "#22C55E40",
-  red: "#EF4444", redBg: "#EF444418", redBorder: "#EF444440",
-  blue: "#3B82F6", blueBg: "#3B82F618", blueBorder: "#3B82F640",
-  amber: "#F59E0B", amberBg: "#F59E0B18", amberBorder: "#F59E0B40",
-  purple: "#8B5CF6", purpleBg: "#8B5CF618", purpleBorder: "#8B5CF640",
-  cyan: "#06B6D4",
+  // Status — Notion colors, muted pero claros
+  green: "#0F7B6C", greenBg: "#DDEDEA", greenBorder: "#B6D4CC",
+  red: "#E03E3E", redBg: "#FBE4E4", redBorder: "#F1B8B6",
+  blue: "#2383E2", blueBg: "#DDEBF1", blueBorder: "#B1D4E8",
+  amber: "#CB912F", amberBg: "#FDECC8", amberBorder: "#F2D59A",
+  purple: "#6940A5", purpleBg: "#EAE4F2", purpleBorder: "#CDB8E2",
+  pink: "#E255A1", pinkBg: "#F5E0EE", pinkBorder: "#E8BDDB",
 
-  // Shadows
-  shadowSm: "0 1px 3px rgba(0,0,0,0.4)",
-  shadow: "0 4px 24px rgba(0,0,0,0.5)",
+  // Shadows — muy sutiles tipo Notion
+  shadowXs: "0 1px 2px rgba(15, 15, 15, 0.04)",
+  shadowSm: "0 1px 3px rgba(15, 15, 15, 0.06), 0 1px 2px rgba(15, 15, 15, 0.04)",
+  shadow: "0 4px 12px rgba(15, 15, 15, 0.08)",
+  shadowLg: "0 12px 32px rgba(15, 15, 15, 0.1)",
+
+  // Radius
+  radiusSm: 6, radius: 10, radiusLg: 14, radiusXl: 18,
+
+  // Font
+  font: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Rubik', sans-serif",
+  fontDisplay: "'Rubik', 'Inter', -apple-system, sans-serif",
 };
 
-// Mapping light → dark para componentes que todavía usan colores viejos.
-// Útil si se quiere hacer migración gradual.
-export const LEGACY = {
-  white: T.card,
-  pageBg: T.bg,
-  border: T.border,
-  textPrimary: T.text,
-  textBody: T.textSub,
-  textMuted: T.textMuted,
-  textFaint: T.textFaint,
-  inputBg: T.input,
-  secondaryBg: T.border,
+// Pastel palette para avatares de clientes (12 combinaciones cálidas).
+export const AVATAR_PALETTE = [
+  { bg: "#FED7AA", fg: "#9A3412" }, // peach
+  { bg: "#FBCFE8", fg: "#9F1239" }, // rose
+  { bg: "#DDD6FE", fg: "#5B21B6" }, // lavender
+  { bg: "#BAE6FD", fg: "#075985" }, // sky
+  { bg: "#A7F3D0", fg: "#065F46" }, // mint
+  { bg: "#FEF08A", fg: "#854D0E" }, // lemon
+  { bg: "#FECACA", fg: "#991B1B" }, // coral
+  { bg: "#FDE68A", fg: "#92400E" }, // apricot
+  { bg: "#E9D5FF", fg: "#6B21A8" }, // lilac
+  { bg: "#A5F3FC", fg: "#155E75" }, // seafoam
+  { bg: "#FECDD3", fg: "#9F1239" }, // blush
+  { bg: "#BBF7D0", fg: "#166534" }, // sage
+];
+
+export const pickAvatarColor = (seed) => {
+  let h = 0;
+  for (const c of String(seed || "?")) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return AVATAR_PALETTE[h % AVATAR_PALETTE.length];
 };

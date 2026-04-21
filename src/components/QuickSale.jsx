@@ -154,11 +154,11 @@ export const QuickSale = ({
       <Modal open={true} onClose={handleClose} title="Venta registrada">
         <div style={{ textAlign: "center", padding: "20px 0" }}>
           <div style={{ fontSize: 56, marginBottom: 12 }}>✅</div>
-          <p style={{ fontSize: 18, fontWeight: 700, color: "#22C55E", marginBottom: 4 }}>Venta exitosa</p>
-          <p style={{ color: "#94A3B8", fontSize: 14 }}>
+          <p style={{ fontSize: 18, fontWeight: 700, color: "#0F7B6C", marginBottom: 4 }}>Venta exitosa</p>
+          <p style={{ color: "#8C8A82", fontSize: 14 }}>
             {qty}x {selected?.brand} {selected?.model} - {selected?.flavor}
           </p>
-          <p style={{ color: "#22C55E", fontSize: 22, fontWeight: 800 }}>{formatMoney(total)}</p>
+          <p style={{ color: "#0F7B6C", fontSize: 22, fontWeight: 800 }}>{formatMoney(total)}</p>
         </div>
       </Modal>
     );
@@ -174,41 +174,41 @@ export const QuickSale = ({
           placeholder="Buscar producto..."
           autoFocus
           style={{
-            width: "100%", padding: "12px 14px", background: "#0F172A",
-            border: "1px solid #334155", borderRadius: 10, fontSize: 15,
+            width: "100%", padding: "12px 14px", background: "#FAFAF9",
+            border: "1px solid #E8E7E3", borderRadius: 10, fontSize: 15,
             outline: "none", boxSizing: "border-box", marginBottom: 12,
           }}
         />
         <div style={{ maxHeight: "55vh", overflowY: "auto" }}>
           {grouped.length === 0 && (
-            <p style={{ textAlign: "center", color: "#64748B", padding: 20 }}>
+            <p style={{ textAlign: "center", color: "#B1AFA7", padding: 20 }}>
               {search ? "Sin resultados" : "No hay productos con stock"}
             </p>
           )}
           {grouped.map(([brand, prods]) => (
             <div key={brand} style={{ marginBottom: 12 }}>
               <div style={{
-                fontSize: 11, fontWeight: 700, color: BRAND_COLORS[brand] || "#6366f1",
+                fontSize: 11, fontWeight: 700, color: BRAND_COLORS[brand] || "#5E6AD2",
                 textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6, padding: "0 4px"
               }}>{brand}</div>
               {prods.map(p => (
                 <button key={p.id} onClick={() => pickProduct(p)} style={{
                   display: "flex", justifyContent: "space-between", alignItems: "center",
-                  width: "100%", padding: "10px 12px", background: "#1E293B",
-                  border: "1px solid #334155", borderRadius: 8, marginBottom: 4,
+                  width: "100%", padding: "10px 12px", background: "#FFFFFF",
+                  border: "1px solid #E8E7E3", borderRadius: 8, marginBottom: 4,
                   cursor: "pointer", textAlign: "left", transition: "background 0.15s",
                 }}>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#F8FAFC" }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#37352F" }}>
                       {p.model} - {p.flavor}
                     </div>
-                    <div style={{ fontSize: 11, color: "#94A3B8" }}>{p.puffs}p</div>
+                    <div style={{ fontSize: 11, color: "#8C8A82" }}>{p.puffs}p</div>
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: "#22C55E" }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#0F7B6C" }}>
                       {formatMoney(p.priceUSD * exchangeRate)}
                     </div>
-                    <Badge color={p.stock <= 3 ? "#EF4444" : "#22C55E"}>{p.stock} uds</Badge>
+                    <Badge color={p.stock <= 3 ? "#E03E3E" : "#0F7B6C"}>{p.stock} uds</Badge>
                   </div>
                 </button>
               ))}
@@ -224,36 +224,36 @@ export const QuickSale = ({
     <Modal open={true} onClose={handleClose} title="Confirmar Venta">
       {/* Product summary */}
       <div style={{
-        background: "#0F172A", borderRadius: 10, padding: "12px 16px",
-        marginBottom: 16, border: "1px solid #334155"
+        background: "#FAFAF9", borderRadius: 10, padding: "12px 16px",
+        marginBottom: 16, border: "1px solid #E8E7E3"
       }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: "#F8FAFC" }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: "#37352F" }}>
           {selected?.brand} {selected?.model} - {selected?.flavor}
         </div>
-        <div style={{ fontSize: 12, color: "#94A3B8" }}>
+        <div style={{ fontSize: 12, color: "#8C8A82" }}>
           Stock: {selected?.stock} · {selected?.puffs}p
         </div>
       </div>
 
       {/* Quantity */}
       <div style={{ marginBottom: 16 }}>
-        <label style={{ display: "block", fontSize: 12, color: "#94A3B8", marginBottom: 6, fontWeight: 600, textTransform: "uppercase" }}>Cantidad</label>
+        <label style={{ display: "block", fontSize: 12, color: "#8C8A82", marginBottom: 6, fontWeight: 600, textTransform: "uppercase" }}>Cantidad</label>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button onClick={() => setQty(q => Math.max(1, q - 1))} style={{
-            width: 40, height: 40, borderRadius: 10, border: "1px solid #334155",
-            background: "#0F172A", fontSize: 20, cursor: "pointer", color: "#F8FAFC", fontWeight: 700
+            width: 40, height: 40, borderRadius: 10, border: "1px solid #E8E7E3",
+            background: "#FAFAF9", fontSize: 20, cursor: "pointer", color: "#37352F", fontWeight: 700
           }}>-</button>
-          <span style={{ fontSize: 28, fontWeight: 800, color: "#F8FAFC", minWidth: 40, textAlign: "center" }}>{qty}</span>
+          <span style={{ fontSize: 28, fontWeight: 800, color: "#37352F", minWidth: 40, textAlign: "center" }}>{qty}</span>
           <button onClick={() => setQty(q => Math.min(selected?.stock || 99, q + 1))} style={{
-            width: 40, height: 40, borderRadius: 10, border: "1px solid #334155",
-            background: "#0F172A", fontSize: 20, cursor: "pointer", color: "#F8FAFC", fontWeight: 700
+            width: 40, height: 40, borderRadius: 10, border: "1px solid #E8E7E3",
+            background: "#FAFAF9", fontSize: 20, cursor: "pointer", color: "#37352F", fontWeight: 700
           }}>+</button>
         </div>
       </div>
 
       {/* Price (editable) */}
       <div style={{ marginBottom: 16 }}>
-        <label style={{ display: "block", fontSize: 12, color: "#94A3B8", marginBottom: 6, fontWeight: 600, textTransform: "uppercase" }}>
+        <label style={{ display: "block", fontSize: 12, color: "#8C8A82", marginBottom: 6, fontWeight: 600, textTransform: "uppercase" }}>
           Precio unitario ARS
         </label>
         <input
@@ -261,8 +261,8 @@ export const QuickSale = ({
           value={customPrice !== "" ? customPrice : Math.round((selected?.priceUSD || 0) * exchangeRate)}
           onChange={e => setCustomPrice(e.target.value)}
           style={{
-            width: "100%", padding: "10px 12px", background: "#0F172A",
-            border: "1px solid #334155", borderRadius: 8, fontSize: 16,
+            width: "100%", padding: "10px 12px", background: "#FAFAF9",
+            border: "1px solid #E8E7E3", borderRadius: 8, fontSize: 16,
             outline: "none", boxSizing: "border-box"
           }}
         />
@@ -270,14 +270,14 @@ export const QuickSale = ({
 
       {/* Payment method */}
       <div style={{ marginBottom: 16 }}>
-        <label style={{ display: "block", fontSize: 12, color: "#94A3B8", marginBottom: 6, fontWeight: 600, textTransform: "uppercase" }}>Método de pago</label>
+        <label style={{ display: "block", fontSize: 12, color: "#8C8A82", marginBottom: 6, fontWeight: 600, textTransform: "uppercase" }}>Método de pago</label>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
           {PAYMENT_METHODS.map(m => (
             <button key={m} onClick={() => setPayMethod(m)} style={{
               padding: "8px 14px", borderRadius: 8, fontSize: 13, fontWeight: 600,
-              border: payMethod === m ? "2px solid #6366f1" : "1px solid #334155",
-              background: payMethod === m ? "#6366f120" : "#0F172A",
-              color: payMethod === m ? "#6366f1" : "#CBD5E1",
+              border: payMethod === m ? "2px solid #5E6AD2" : "1px solid #E8E7E3",
+              background: payMethod === m ? "#EEF0FC" : "#FAFAF9",
+              color: payMethod === m ? "#5E6AD2" : "#555247",
               cursor: "pointer",
             }}>{m}</button>
           ))}
@@ -287,9 +287,9 @@ export const QuickSale = ({
             {MP_ACCOUNTS.map(a => (
               <button key={a} onClick={() => setMpAccount(a)} style={{
                 padding: "6px 12px", borderRadius: 6, fontSize: 12, fontWeight: 600,
-                border: mpAccount === a ? "2px solid #6366f1" : "1px solid #334155",
-                background: mpAccount === a ? "#6366f120" : "#0F172A",
-                color: mpAccount === a ? "#6366f1" : "#94A3B8",
+                border: mpAccount === a ? "2px solid #5E6AD2" : "1px solid #E8E7E3",
+                background: mpAccount === a ? "#EEF0FC" : "#FAFAF9",
+                color: mpAccount === a ? "#5E6AD2" : "#8C8A82",
                 cursor: "pointer",
               }}>{a}</button>
             ))}
@@ -299,12 +299,12 @@ export const QuickSale = ({
 
       {/* Total */}
       <div style={{
-        background: "#22C55E18", borderRadius: 10, padding: "14px 16px",
-        marginBottom: 16, border: "1px solid #22C55E40", textAlign: "center"
+        background: "#DDEDEA", borderRadius: 10, padding: "14px 16px",
+        marginBottom: 16, border: "1px solid #B6D4CC", textAlign: "center"
       }}>
-        <div style={{ fontSize: 12, color: "#22C55E", fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>Total</div>
-        <div style={{ fontSize: 28, fontWeight: 800, color: "#22C55E" }}>{formatMoney(total)}</div>
-        {qty > 1 && <div style={{ fontSize: 12, color: "#94A3B8" }}>{qty} x {formatMoney(unitPrice)}</div>}
+        <div style={{ fontSize: 12, color: "#0F7B6C", fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>Total</div>
+        <div style={{ fontSize: 28, fontWeight: 800, color: "#0F7B6C" }}>{formatMoney(total)}</div>
+        {qty > 1 && <div style={{ fontSize: 12, color: "#8C8A82" }}>{qty} x {formatMoney(unitPrice)}</div>}
       </div>
 
       {/* Actions */}
