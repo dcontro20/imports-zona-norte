@@ -528,9 +528,9 @@ export const Sales = ({
 
   const chipStyle = (active) => ({
     padding: "7px 14px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer",
-    border: `1.5px solid ${active ? "#6366f1" : "#e2e4e9"}`,
-    background: active ? "#6366f1" : "#fff",
-    color: active ? "#fff" : "#4b5563",
+    border: `1.5px solid ${active ? "#6366f1" : "#334155"}`,
+    background: active ? "#6366f1" : "#0F172A",
+    color: active ? "#fff" : "#CBD5E1",
     transition: "all .15s",
     whiteSpace: "nowrap",
   });
@@ -538,7 +538,7 @@ export const Sales = ({
   // ---- Product picker (cascading) ----
   const renderProductPicker = () => (
     <div>
-      <label style={{ display: "block", fontSize: 12, color: "#6b7280", marginBottom: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
+      <label style={{ display: "block", fontSize: 12, color: "#94A3B8", marginBottom: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
         Productos ({totalQty} {totalQty === 1 ? "unidad" : "unidades"})
       </label>
 
@@ -550,19 +550,19 @@ export const Sales = ({
 
         return (
           <div key={i} style={{
-            background: "#f9fafb", border: "1px solid #e2e4e9", borderRadius: 12, padding: isMobile ? 12 : 14,
+            background: "#0F172A", border: "1px solid #334155", borderRadius: 12, padding: isMobile ? 12 : 14,
             marginBottom: 10, position: "relative",
           }}>
             {form.items.length > 1 && (
               <button onClick={() => removeItem(i)} style={{
                 position: "absolute", top: 8, right: 8, background: "none", border: "none",
-                color: "#e74c3c", cursor: "pointer", fontSize: 16, lineHeight: 1,
+                color: "#EF4444", cursor: "pointer", fontSize: 16, lineHeight: 1,
               }}>✕</button>
             )}
 
             {/* Row 1: Brand chips */}
             <div style={{ marginBottom: 10 }}>
-              <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 6, fontWeight: 600 }}>MARCA</div>
+              <div style={{ fontSize: 11, color: "#64748B", marginBottom: 6, fontWeight: 600 }}>MARCA</div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {brands.map(b => (
                   <button key={b} onClick={() => updateItem(i, "brand", b)}
@@ -579,7 +579,7 @@ export const Sales = ({
             {/* Row 2: Model chips */}
             {item.brand && modelsForBrand.length > 0 && (
               <div style={{ marginBottom: 10 }}>
-                <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 6, fontWeight: 600 }}>MODELO</div>
+                <div style={{ fontSize: 11, color: "#64748B", marginBottom: 6, fontWeight: 600 }}>MODELO</div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {modelsForBrand.map(m => {
                     const stockForModel = availableProducts.filter(p => p.brand === item.brand && p.model === m).reduce((s, p) => s + p.stock, 0);
@@ -601,11 +601,11 @@ export const Sales = ({
                 : flavorsForModel;
               return (
                 <div style={{ marginBottom: 10 }}>
-                  <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 6, fontWeight: 600 }}>SABOR ({flavorsForModel.length})</div>
+                  <div style={{ fontSize: 11, color: "#64748B", marginBottom: 6, fontWeight: 600 }}>SABOR ({flavorsForModel.length})</div>
                   {flavorsForModel.length >= 8 && (
                     <input value={flavorSearch} onChange={e => setFlavorSearch(e.target.value)}
                       placeholder="Filtrar sabor..."
-                      style={{ width: "100%", padding: "7px 10px", background: "#fff", border: "1px solid #e2e4e9", borderRadius: 8, fontSize: 13, outline: "none", marginBottom: 8, boxSizing: "border-box" }} />
+                      style={{ width: "100%", padding: "7px 10px", background: "#1E293B", border: "1px solid #334155", borderRadius: 8, fontSize: 13, outline: "none", marginBottom: 8, boxSizing: "border-box" }} />
                   )}
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap", maxHeight: 180, overflowY: "auto" }}>
                     {filteredFlavors.map(p => (
@@ -618,7 +618,7 @@ export const Sales = ({
                         {p.flavor} <span style={{ opacity: 0.6, fontSize: 10, marginLeft: 2 }}>({p.stock})</span>
                       </button>
                     ))}
-                    {filteredFlavors.length === 0 && <span style={{ color: "#9ca3af", fontSize: 12 }}>Sin resultados</span>}
+                    {filteredFlavors.length === 0 && <span style={{ color: "#64748B", fontSize: 12 }}>Sin resultados</span>}
                   </div>
                 </div>
               );
@@ -629,21 +629,21 @@ export const Sales = ({
               <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <button onClick={() => updateItem(i, "qty", Math.max(1, (item.qty || 1) - 1))}
-                    style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid #e2e4e9", background: "#fff", cursor: "pointer", fontSize: 16, fontWeight: 700 }}>−</button>
+                    style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid #334155", background: "#1E293B", cursor: "pointer", fontSize: 16, fontWeight: 700 }}>−</button>
                   <span style={{ fontSize: 18, fontWeight: 800, minWidth: 28, textAlign: "center" }}>{item.qty || 1}</span>
                   <button onClick={() => updateItem(i, "qty", Math.min(selectedProd.stock, (item.qty || 1) + 1))}
-                    style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid #e2e4e9", background: "#fff", cursor: "pointer", fontSize: 16, fontWeight: 700 }}>+</button>
+                    style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid #334155", background: "#1E293B", cursor: "pointer", fontSize: 16, fontWeight: 700 }}>+</button>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                   <input type="number" value={item.customPrice !== undefined && item.customPrice !== "" ? item.customPrice : ""}
                     onChange={e => updateItem(i, "customPrice", e.target.value)}
                     placeholder={String(priceDisplay.replace(/[^\d]/g, ""))}
-                    style={{ width: 75, padding: "4px 6px", border: "1px solid #e2e4e9", borderRadius: 6, fontSize: 13, textAlign: "center", background: item.customPrice ? "#fff7ed" : "#fff" }}
+                    style={{ width: 75, padding: "4px 6px", border: "1px solid #334155", borderRadius: 6, fontSize: 13, textAlign: "center", background: item.customPrice ? "#F59E0B22" : "#0F172A", color: "#F8FAFC" }}
                   />
-                  <span style={{ fontSize: 11, color: "#9ca3af" }}>/u</span>
+                  <span style={{ fontSize: 11, color: "#64748B" }}>/u</span>
                 </div>
-                <span style={{ fontSize: 11, color: "#9ca3af" }}>Stock: {selectedProd.stock}</span>
-                <div style={{ marginLeft: "auto", fontSize: 16, fontWeight: 800, color: "#10b981" }}>
+                <span style={{ fontSize: 11, color: "#64748B" }}>Stock: {selectedProd.stock}</span>
+                <div style={{ marginLeft: "auto", fontSize: 16, fontWeight: 800, color: "#22C55E" }}>
                   {formatMoney(getItemPrice(item) * (item.qty || 1), form.currency)}
                 </div>
               </div>
@@ -653,7 +653,7 @@ export const Sales = ({
       })}
 
       <button onClick={addItem} style={{
-        background: "none", border: "2px dashed #e2e4e9", color: "#6366f1", padding: "10px 14px",
+        background: "none", border: "2px dashed #334155", color: "#6366f1", padding: "10px 14px",
         borderRadius: 10, cursor: "pointer", fontSize: 13, width: "100%", fontWeight: 600,
         transition: "border-color .15s",
       }}>+ Agregar otro producto</button>
@@ -678,34 +678,34 @@ export const Sales = ({
   // ---- Client selector ----
   const renderClientSelector = () => (
     <div style={{ marginBottom: 14 }}>
-      <label style={{ display: "block", fontSize: 12, color: "#6b7280", marginBottom: 6, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
+      <label style={{ display: "block", fontSize: 12, color: "#94A3B8", marginBottom: 6, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
         Cliente
       </label>
 
       {form.clientId ? (
         // Selected client
         <div style={{
-          display: "flex", alignItems: "center", gap: 10, background: "#f0fdf4", border: "1px solid #bbf7d0",
+          display: "flex", alignItems: "center", gap: 10, background: "#22C55E18", border: "1px solid #22C55E40",
           borderRadius: 10, padding: "10px 14px",
         }}>
           <div style={{
-            width: 32, height: 32, borderRadius: "50%", background: "#10b981", color: "#fff",
+            width: 32, height: 32, borderRadius: "50%", background: "#22C55E", color: "#fff",
             display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14, flexShrink: 0,
           }}>{form.clientName.charAt(0).toUpperCase()}</div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: "#1a1a2e" }}>{form.clientName}</div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: "#F8FAFC" }}>{form.clientName}</div>
             {clientCredit !== 0 && (
-              <div style={{ fontSize: 12, color: clientCredit > 0 ? "#10b981" : "#e74c3c", fontWeight: 600 }}>
+              <div style={{ fontSize: 12, color: clientCredit > 0 ? "#22C55E" : "#EF4444", fontWeight: 600 }}>
                 {clientCredit > 0 ? `Saldo a favor: ${formatMoney(clientCredit)}` : `Deuda: ${formatMoney(Math.abs(clientCredit))}`}
               </div>
             )}
           </div>
           <button onClick={() => { setForm(f => ({ ...f, clientId: "", clientName: "", isNewClient: false })); setClientSearch(""); }}
-            style={{ background: "none", border: "none", color: "#9ca3af", cursor: "pointer", fontSize: 16 }}>✕</button>
+            style={{ background: "none", border: "none", color: "#64748B", cursor: "pointer", fontSize: 16 }}>✕</button>
         </div>
       ) : form.isNewClient ? (
         // New client inline form
-        <div style={{ background: "#eef2ff", border: "1px solid #c7d2fe", borderRadius: 10, padding: 14 }}>
+        <div style={{ background: "#6366f122", border: "1px solid #6366f140", borderRadius: 10, padding: 14 }}>
           <div style={{ fontSize: 12, color: "#6366f1", fontWeight: 700, marginBottom: 10 }}>NUEVO CLIENTE</div>
           <Input placeholder="Nombre *" value={form.clientName} onChange={e => setForm(f => ({ ...f, clientName: e.target.value }))} />
           <div style={{ display: "flex", gap: 10 }}>
@@ -713,7 +713,7 @@ export const Sales = ({
             <div style={{ flex: 1 }}><Input placeholder="Instagram" value={form.clientInstagram} onChange={e => setForm(f => ({ ...f, clientInstagram: e.target.value }))} /></div>
           </div>
           <button onClick={() => setForm(f => ({ ...f, isNewClient: false, clientName: "", clientPhone: "", clientInstagram: "" }))}
-            style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontSize: 12 }}>Cancelar</button>
+            style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 12 }}>Cancelar</button>
         </div>
       ) : (
         // Search / select
@@ -724,14 +724,14 @@ export const Sales = ({
             onFocus={() => setShowClientDropdown(true)}
             placeholder="Buscar cliente por nombre, tel o IG..."
             style={{
-              width: "100%", padding: "10px 14px", background: "#f7f8fa", border: "1px solid #e2e4e9",
+              width: "100%", padding: "10px 14px", background: "#0F172A", border: "1px solid #334155",
               borderRadius: 10, fontSize: 14, outline: "none", boxSizing: "border-box",
             }}
           />
           {showClientDropdown && (clientSearch.length > 0) && (
             <div style={{
-              position: "absolute", top: "100%", left: 0, right: 0, background: "#fff",
-              border: "1px solid #e2e4e9", borderRadius: 10, marginTop: 4, zIndex: 50,
+              position: "absolute", top: "100%", left: 0, right: 0, background: "#1E293B",
+              border: "1px solid #334155", borderRadius: 10, marginTop: 4, zIndex: 50,
               maxHeight: 250, overflowY: "auto", boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
             }}>
               {filteredClients.map(c => (
@@ -741,7 +741,7 @@ export const Sales = ({
                   setShowClientDropdown(false);
                 }} style={{
                   display: "flex", alignItems: "center", gap: 10, padding: "10px 14px",
-                  background: "none", border: "none", borderBottom: "1px solid #f3f4f6",
+                  background: "none", border: "none", borderBottom: "1px solid #334155",
                   cursor: "pointer", width: "100%", textAlign: "left",
                 }}>
                   <div style={{
@@ -749,18 +749,18 @@ export const Sales = ({
                     display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 12, flexShrink: 0,
                   }}>{c.name.charAt(0).toUpperCase()}</div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: 13, color: "#1a1a2e" }}>{c.name}</div>
-                    <div style={{ fontSize: 11, color: "#9ca3af" }}>{c.phone || c.instagram || ""}</div>
+                    <div style={{ fontWeight: 600, fontSize: 13, color: "#F8FAFC" }}>{c.name}</div>
+                    <div style={{ fontSize: 11, color: "#64748B" }}>{c.phone || c.instagram || ""}</div>
                   </div>
                   {(c.balance || 0) !== 0 && (
-                    <span style={{ fontSize: 11, fontWeight: 700, color: c.balance > 0 ? "#10b981" : "#e74c3c" }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: c.balance > 0 ? "#22C55E" : "#EF4444" }}>
                       {c.balance > 0 ? `+${formatMoney(c.balance)}` : formatMoney(c.balance)}
                     </span>
                   )}
                 </button>
               ))}
               {filteredClients.length === 0 && (
-                <div style={{ padding: "14px", textAlign: "center", color: "#9ca3af", fontSize: 13 }}>
+                <div style={{ padding: "14px", textAlign: "center", color: "#64748B", fontSize: 13 }}>
                   No se encontró "{clientSearch}"
                 </div>
               )}
@@ -769,8 +769,8 @@ export const Sales = ({
                 setShowClientDropdown(false);
               }} style={{
                 display: "flex", alignItems: "center", gap: 8, padding: "10px 14px",
-                background: "#f7f8fa", border: "none", cursor: "pointer", width: "100%",
-                color: "#6366f1", fontWeight: 600, fontSize: 13, borderTop: "1px solid #e2e4e9",
+                background: "#0F172A", border: "none", cursor: "pointer", width: "100%",
+                color: "#6366f1", fontWeight: 600, fontSize: 13, borderTop: "1px solid #334155",
               }}>
                 + Registrar nuevo cliente
               </button>
@@ -784,18 +784,18 @@ export const Sales = ({
   // ---- Payment section ----
   const renderPaymentSection = () => (
     <div style={{ marginBottom: 14 }}>
-      <label style={{ display: "block", fontSize: 12, color: "#6b7280", marginBottom: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
+      <label style={{ display: "block", fontSize: 12, color: "#94A3B8", marginBottom: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
         Pago {form.payments.length > 1 ? "(Mixto)" : ""}
       </label>
 
       {/* Client credit notice */}
       {clientCredit > 0 && (
         <div style={{
-          background: "#ecfdf5", border: "1px solid #bbf7d0", borderRadius: 10, padding: "8px 14px",
+          background: "#22C55E18", border: "1px solid #22C55E40", borderRadius: 10, padding: "8px 14px",
           marginBottom: 10, display: "flex", alignItems: "center", gap: 8,
         }}>
           <span style={{ fontSize: 14 }}>💚</span>
-          <span style={{ color: "#10b981", fontSize: 13, fontWeight: 600 }}>
+          <span style={{ color: "#22C55E", fontSize: 13, fontWeight: 600 }}>
             {form.clientName} tiene saldo a favor: {formatMoney(clientCredit)} (se descuenta del total)
           </span>
         </div>
@@ -803,11 +803,11 @@ export const Sales = ({
 
       {clientCredit < 0 && (
         <div style={{
-          background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "8px 14px",
+          background: "#EF444418", border: "1px solid #EF444440", borderRadius: 10, padding: "8px 14px",
           marginBottom: 10, display: "flex", alignItems: "center", gap: 8,
         }}>
           <span style={{ fontSize: 14 }}>⚠️</span>
-          <span style={{ color: "#e74c3c", fontSize: 13, fontWeight: 600 }}>
+          <span style={{ color: "#EF4444", fontSize: 13, fontWeight: 600 }}>
             {form.clientName} tiene una deuda de {formatMoney(Math.abs(clientCredit))}
           </span>
         </div>
@@ -839,7 +839,7 @@ export const Sales = ({
           </div>
           {form.payments.length > 1 && (
             <button onClick={() => removePayment(i)} style={{
-              background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontSize: 16, marginBottom: 14,
+              background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 16, marginBottom: 14,
             }}>✕</button>
           )}
         </div>
@@ -853,32 +853,32 @@ export const Sales = ({
       {/* Payment summary */}
       {totalPaid > 0 && (
         <div style={{
-          background: difference > 0 ? "#fff7ed" : difference < 0 ? "#fef2f2" : "#ecfdf5",
-          border: `1px solid ${difference > 0 ? "#fdba74" : difference < 0 ? "#fecaca" : "#bbf7d0"}`,
+          background: difference > 0 ? "#F59E0B18" : difference < 0 ? "#EF444418" : "#22C55E18",
+          border: `1px solid ${difference > 0 ? "#F59E0B40" : difference < 0 ? "#EF444440" : "#22C55E40"}`,
           borderRadius: 10, padding: "10px 14px", marginTop: 10,
         }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-            <span style={{ fontSize: 13, color: "#6b7280" }}>Total a cobrar</span>
-            <span style={{ fontSize: 14, fontWeight: 700, color: "#1a1a2e" }}>{formatMoney(effectiveTotal, form.currency)}</span>
+            <span style={{ fontSize: 13, color: "#94A3B8" }}>Total a cobrar</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#F8FAFC" }}>{formatMoney(effectiveTotal, form.currency)}</span>
           </div>
           {creditUsed > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-              <span style={{ fontSize: 12, color: "#10b981" }}>Saldo a favor aplicado</span>
-              <span style={{ fontSize: 13, fontWeight: 600, color: "#10b981" }}>-{formatMoney(creditUsed)}</span>
+              <span style={{ fontSize: 12, color: "#22C55E" }}>Saldo a favor aplicado</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: "#22C55E" }}>-{formatMoney(creditUsed)}</span>
             </div>
           )}
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-            <span style={{ fontSize: 13, color: "#6b7280" }}>Pagó</span>
-            <span style={{ fontSize: 14, fontWeight: 700, color: "#1a1a2e" }}>{formatMoney(totalPaid, form.currency)}</span>
+            <span style={{ fontSize: 13, color: "#94A3B8" }}>Pagó</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#F8FAFC" }}>{formatMoney(totalPaid, form.currency)}</span>
           </div>
 
           {difference > 0 && (
-            <div style={{ borderTop: "1px solid #fdba74", paddingTop: 10, marginTop: 10 }}>
+            <div style={{ borderTop: "1px solid #F59E0B40", paddingTop: 10, marginTop: 10 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
                 <span style={{ fontSize: 14, color: "#ea580c", fontWeight: 700 }}>Vuelto a dar</span>
                 <span style={{ fontSize: 18, fontWeight: 800, color: "#ea580c" }}>{formatMoney(difference, form.currency)}</span>
               </div>
-              <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 8, fontWeight: 600 }}>
+              <div style={{ fontSize: 12, color: "#94A3B8", marginBottom: 8, fontWeight: 600 }}>
                 ¿Cómo le devolvés el vuelto?
               </div>
 
@@ -887,39 +887,39 @@ export const Sales = ({
                 <button onClick={() => setForm(f => ({ ...f, changeMethod: f.changeMethod && f.changeMethod !== "credit" ? f.changeMethod : "Pesos Cash", changeMpAccount: "" }))}
                   style={{
                     flex: 1, padding: "14px 12px", borderRadius: 12, cursor: "pointer", border: "none",
-                    background: form.changeMethod && form.changeMethod !== "credit" ? "#fff7ed" : "#f9fafb",
-                    outline: form.changeMethod && form.changeMethod !== "credit" ? "2px solid #ea580c" : "2px solid #e2e4e9",
+                    background: form.changeMethod && form.changeMethod !== "credit" ? "#F59E0B18" : "#0F172A",
+                    outline: form.changeMethod && form.changeMethod !== "credit" ? "2px solid #ea580c" : "2px solid #334155",
                     textAlign: "center",
                   }}>
                   <div style={{ fontSize: 24, marginBottom: 4 }}>💸</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: form.changeMethod && form.changeMethod !== "credit" ? "#ea580c" : "#4b5563" }}>Devolver vuelto</div>
-                  <div style={{ fontSize: 11, color: "#9ca3af" }}>Efectivo, transferencia, etc.</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: form.changeMethod && form.changeMethod !== "credit" ? "#ea580c" : "#CBD5E1" }}>Devolver vuelto</div>
+                  <div style={{ fontSize: 11, color: "#64748B" }}>Efectivo, transferencia, etc.</div>
                 </button>
                 <button onClick={() => setForm(f => ({ ...f, changeMethod: "credit", changeMpAccount: "" }))}
                   style={{
                     flex: 1, padding: "14px 12px", borderRadius: 12, cursor: "pointer", border: "none",
-                    background: form.changeMethod === "credit" ? "#eef2ff" : "#f9fafb",
-                    outline: form.changeMethod === "credit" ? "2px solid #6366f1" : "2px solid #e2e4e9",
+                    background: form.changeMethod === "credit" ? "#6366f122" : "#0F172A",
+                    outline: form.changeMethod === "credit" ? "2px solid #6366f1" : "2px solid #334155",
                     textAlign: "center",
                   }}>
                   <div style={{ fontSize: 24, marginBottom: 4 }}>🏦</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: form.changeMethod === "credit" ? "#6366f1" : "#4b5563" }}>Dejar a favor</div>
-                  <div style={{ fontSize: 11, color: "#9ca3af" }}>Crédito para próxima compra</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: form.changeMethod === "credit" ? "#6366f1" : "#CBD5E1" }}>Dejar a favor</div>
+                  <div style={{ fontSize: 11, color: "#64748B" }}>Crédito para próxima compra</div>
                 </button>
               </div>
 
               {/* Sub-picker: which payment method for return */}
               {form.changeMethod && form.changeMethod !== "credit" && (
-                <div style={{ background: "#fff7ed", border: "1px solid #fdba74", borderRadius: 10, padding: 12 }}>
+                <div style={{ background: "#F59E0B18", border: "1px solid #F59E0B40", borderRadius: 10, padding: 12 }}>
                   <div style={{ fontSize: 11, color: "#ea580c", fontWeight: 600, marginBottom: 8 }}>MEDIO DE DEVOLUCIÓN</div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {PAYMENT_METHODS.map(m => (
                       <button key={m} onClick={() => setForm(f => ({ ...f, changeMethod: m, changeMpAccount: "" }))}
                         style={{
                           padding: "8px 14px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer",
-                          border: `2px solid ${form.changeMethod === m ? "#ea580c" : "#e2e4e9"}`,
-                          background: form.changeMethod === m ? "#ea580c" : "#fff",
-                          color: form.changeMethod === m ? "#fff" : "#4b5563",
+                          border: `2px solid ${form.changeMethod === m ? "#ea580c" : "#334155"}`,
+                          background: form.changeMethod === m ? "#ea580c" : "#0F172A",
+                          color: form.changeMethod === m ? "#fff" : "#CBD5E1",
                         }}>{m}</button>
                     ))}
                   </div>
@@ -931,9 +931,9 @@ export const Sales = ({
                           <button key={acc} onClick={() => setForm(f => ({ ...f, changeMpAccount: acc }))}
                             style={{
                               padding: "8px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer",
-                              border: `2px solid ${form.changeMpAccount === acc ? "#ea580c" : "#e2e4e9"}`,
-                              background: form.changeMpAccount === acc ? "#ea580c" : "#fff",
-                              color: form.changeMpAccount === acc ? "#fff" : "#4b5563",
+                              border: `2px solid ${form.changeMpAccount === acc ? "#ea580c" : "#334155"}`,
+                              background: form.changeMpAccount === acc ? "#ea580c" : "#0F172A",
+                              color: form.changeMpAccount === acc ? "#fff" : "#CBD5E1",
                             }}>{acc}</button>
                         ))}
                       </div>
@@ -943,7 +943,7 @@ export const Sales = ({
               )}
 
               {form.changeMethod === "credit" && (
-                <div style={{ background: "#eef2ff", border: "1px solid #c7d2fe", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#6366f1", fontWeight: 600 }}>
+                <div style={{ background: "#6366f122", border: "1px solid #6366f140", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#6366f1", fontWeight: 600 }}>
                   Se guardará {formatMoney(difference)} como saldo a favor de {form.clientName || "este cliente"} para su próxima compra.
                 </div>
               )}
@@ -951,55 +951,55 @@ export const Sales = ({
           )}
 
           {difference < 0 && (
-            <div style={{ borderTop: "1px solid #fecaca", paddingTop: 10, marginTop: 10 }}>
+            <div style={{ borderTop: "1px solid #EF444440", paddingTop: 10, marginTop: 10 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-                <span style={{ fontSize: 14, color: "#dc2626", fontWeight: 700 }}>Falta cobrar</span>
-                <span style={{ fontSize: 18, fontWeight: 800, color: "#dc2626" }}>{formatMoney(Math.abs(difference), form.currency)}</span>
+                <span style={{ fontSize: 14, color: "#EF4444", fontWeight: 700 }}>Falta cobrar</span>
+                <span style={{ fontSize: 18, fontWeight: 800, color: "#EF4444" }}>{formatMoney(Math.abs(difference), form.currency)}</span>
               </div>
 
               {!form.debtConfirmed ? (
-                <div style={{ background: "#fef2f2", border: "2px solid #fecaca", borderRadius: 12, padding: 14 }}>
-                  <div style={{ fontSize: 13, color: "#dc2626", fontWeight: 600, marginBottom: 10 }}>
+                <div style={{ background: "#EF444418", border: "2px solid #EF444440", borderRadius: 12, padding: 14 }}>
+                  <div style={{ fontSize: 13, color: "#EF4444", fontWeight: 600, marginBottom: 10 }}>
                     {form.clientName ? `${form.clientName} quedaría debiendo ${formatMoney(Math.abs(difference))}.` : `Faltan ${formatMoney(Math.abs(difference))} por cobrar.`}
                   </div>
                   <div style={{ display: "flex", gap: 10 }}>
                     <button onClick={() => setForm(f => ({ ...f, debtConfirmed: true, debtReason: "paga_despues" }))}
                       style={{
                         flex: 1, padding: "12px", borderRadius: 10, cursor: "pointer",
-                        border: "2px solid #dc2626", background: "#fef2f2", color: "#dc2626",
+                        border: "2px solid #EF4444", background: "#EF444418", color: "#EF4444",
                         fontWeight: 700, fontSize: 13,
                       }}>Paga el resto después</button>
                     <button onClick={() => setForm(f => ({ ...f, debtConfirmed: true, debtReason: "precio_acordado" }))}
                       style={{
                         flex: 1, padding: "12px", borderRadius: 10, cursor: "pointer",
-                        border: "2px solid #f59e0b", background: "#fffbeb", color: "#b8860b",
+                        border: "2px solid #F59E0B", background: "#F59E0B18", color: "#b8860b",
                         fontWeight: 700, fontSize: 13,
                       }}>Precio acordado</button>
                   </div>
                 </div>
               ) : form.debtReason === "paga_despues" ? (
-                <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 13, color: "#dc2626", fontWeight: 600 }}>
+                <div style={{ background: "#EF444418", border: "1px solid #EF444440", borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: 13, color: "#EF4444", fontWeight: 600 }}>
                     Se registra deuda de {formatMoney(Math.abs(difference))}
                   </span>
                   <button onClick={() => setForm(f => ({ ...f, debtConfirmed: false, debtReason: "" }))}
-                    style={{ background: "none", border: "none", color: "#9ca3af", cursor: "pointer", fontSize: 12 }}>Cambiar</button>
+                    style={{ background: "none", border: "none", color: "#64748B", cursor: "pointer", fontSize: 12 }}>Cambiar</button>
                 </div>
               ) : (
-                <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ background: "#F59E0B18", border: "1px solid #fcd34d", borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <span style={{ fontSize: 13, color: "#b8860b", fontWeight: 600 }}>
                     Sin deuda — precio final: {formatMoney(totalPaid)}
                   </span>
                   <button onClick={() => setForm(f => ({ ...f, debtConfirmed: false, debtReason: "" }))}
-                    style={{ background: "none", border: "none", color: "#9ca3af", cursor: "pointer", fontSize: 12 }}>Cambiar</button>
+                    style={{ background: "none", border: "none", color: "#64748B", cursor: "pointer", fontSize: 12 }}>Cambiar</button>
                 </div>
               )}
             </div>
           )}
 
           {difference === 0 && totalPaid > 0 && (
-            <div style={{ borderTop: "1px solid #bbf7d0", paddingTop: 6, marginTop: 6, textAlign: "center" }}>
-              <span style={{ color: "#10b981", fontSize: 13, fontWeight: 700 }}>✓ Pago exacto</span>
+            <div style={{ borderTop: "1px solid #22C55E40", paddingTop: 6, marginTop: 6, textAlign: "center" }}>
+              <span style={{ color: "#22C55E", fontSize: 13, fontWeight: 700 }}>✓ Pago exacto</span>
             </div>
           )}
         </div>
@@ -1009,7 +1009,7 @@ export const Sales = ({
 
   // ---- Discount section ----
   const renderDiscountSection = () => (
-    <div style={{ background: "#f7f8fa", border: "1px solid #e2e4e9", borderRadius: 10, padding: 14, marginBottom: 14 }}>
+    <div style={{ background: "#0F172A", border: "1px solid #334155", borderRadius: 10, padding: 14, marginBottom: 14 }}>
       <label style={{ display: "block", fontSize: 12, color: "#b8860b", marginBottom: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>🏷️ Descuento</label>
       <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
         {[
@@ -1021,9 +1021,9 @@ export const Sales = ({
           <button key={opt.value} onClick={() => setForm(f => ({ ...f, discountType: opt.value, discountValue: opt.value === "none" ? "" : f.discountValue }))}
             style={{
               padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer",
-              border: `1px solid ${form.discountType === opt.value ? "#b8860b" : "#e2e4e9"}`,
+              border: `1px solid ${form.discountType === opt.value ? "#b8860b" : "#334155"}`,
               background: form.discountType === opt.value ? "#fdcb6e22" : "transparent",
-              color: form.discountType === opt.value ? "#b8860b" : "#6b7280",
+              color: form.discountType === opt.value ? "#b8860b" : "#94A3B8",
             }}>{opt.label}</button>
         ))}
       </div>
@@ -1050,17 +1050,17 @@ export const Sales = ({
 
   // ---- Extras ----
   const renderExtras = () => (
-    <div style={{ background: "#f7f8fa", border: "1px solid #e2e4e9", borderRadius: 10, padding: 14, marginBottom: 14 }}>
-      <label style={{ display: "block", fontSize: 12, color: "#10b981", marginBottom: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>➕ Extras</label>
+    <div style={{ background: "#0F172A", border: "1px solid #334155", borderRadius: 10, padding: 14, marginBottom: 14 }}>
+      <label style={{ display: "block", fontSize: 12, color: "#22C55E", marginBottom: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>➕ Extras</label>
       {(form.extras || []).map((extra, i) => (
         <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "flex-end" }}>
           <div style={{ flex: 2 }}><Input placeholder="Concepto" value={extra.concept} onChange={e => setForm(f => ({ ...f, extras: f.extras.map((ex, j) => j === i ? { ...ex, concept: e.target.value } : ex) }))} /></div>
           <div style={{ flex: 0.7 }}><Input type="number" placeholder="$" value={extra.amount} onChange={e => setForm(f => ({ ...f, extras: f.extras.map((ex, j) => j === i ? { ...ex, amount: e.target.value } : ex) }))} /></div>
-          <button onClick={() => setForm(f => ({ ...f, extras: f.extras.filter((_, j) => j !== i) }))} style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontSize: 16, marginBottom: 14 }}>✕</button>
+          <button onClick={() => setForm(f => ({ ...f, extras: f.extras.filter((_, j) => j !== i) }))} style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 16, marginBottom: 14 }}>✕</button>
         </div>
       ))}
       <button onClick={() => setForm(f => ({ ...f, extras: [...(f.extras || []), { concept: "", amount: "" }] }))}
-        style={{ background: "none", border: "1px dashed #10b98133", color: "#10b981", padding: "5px 12px", borderRadius: 8, cursor: "pointer", fontSize: 12, width: "100%", fontWeight: 600 }}>
+        style={{ background: "none", border: "1px dashed #22C55E33", color: "#22C55E", padding: "5px 12px", borderRadius: 8, cursor: "pointer", fontSize: 12, width: "100%", fontWeight: 600 }}>
         + Agregar extra (envío, etc.)
       </button>
     </div>
@@ -1068,10 +1068,10 @@ export const Sales = ({
 
   // ---- Totals ----
   const renderTotals = () => (
-    <div style={{ background: "#f7f8fa", borderRadius: 10, padding: 14, marginBottom: 14, border: "1px solid #e2e4e9" }}>
+    <div style={{ background: "#0F172A", borderRadius: 10, padding: 14, marginBottom: 14, border: "1px solid #334155" }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-        <span style={{ color: "#6b7280", fontSize: 13 }}>Subtotal</span>
-        <span style={{ color: "#4b5563", fontSize: 14 }}>{formatMoney(subtotal, form.currency)}</span>
+        <span style={{ color: "#94A3B8", fontSize: 13 }}>Subtotal</span>
+        <span style={{ color: "#CBD5E1", fontSize: 14 }}>{formatMoney(subtotal, form.currency)}</span>
       </div>
       {discountAmount > 0 && (
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
@@ -1081,19 +1081,19 @@ export const Sales = ({
       )}
       {extrasTotal > 0 && (
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-          <span style={{ color: "#10b981", fontSize: 13 }}>Extras</span>
-          <span style={{ color: "#10b981", fontSize: 14 }}>+{formatMoney(extrasTotal, form.currency)}</span>
+          <span style={{ color: "#22C55E", fontSize: 13 }}>Extras</span>
+          <span style={{ color: "#22C55E", fontSize: 14 }}>+{formatMoney(extrasTotal, form.currency)}</span>
         </div>
       )}
       {clientCredit > 0 && (
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-          <span style={{ color: "#10b981", fontSize: 13 }}>Saldo a favor</span>
-          <span style={{ color: "#10b981", fontSize: 14 }}>-{formatMoney(Math.min(clientCredit, finalTotal))}</span>
+          <span style={{ color: "#22C55E", fontSize: 13 }}>Saldo a favor</span>
+          <span style={{ color: "#22C55E", fontSize: 14 }}>-{formatMoney(Math.min(clientCredit, finalTotal))}</span>
         </div>
       )}
-      <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #e2e4e9", paddingTop: 8 }}>
-        <span style={{ color: "#1a1a2e", fontSize: 15, fontWeight: 700 }}>Total</span>
-        <span style={{ color: "#10b981", fontSize: 20, fontWeight: 800 }}>{formatMoney(finalTotal, form.currency)}</span>
+      <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #334155", paddingTop: 8 }}>
+        <span style={{ color: "#F8FAFC", fontSize: 15, fontWeight: 700 }}>Total</span>
+        <span style={{ color: "#22C55E", fontSize: 20, fontWeight: 800 }}>{formatMoney(finalTotal, form.currency)}</span>
       </div>
     </div>
   );
@@ -1106,8 +1106,8 @@ export const Sales = ({
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h2 style={{ color: "#1a1a2e", margin: 0, fontSize: 22 }}>Ventas ({filtered.length})</h2>
-          {filtered.length > 0 && <span style={{ color: "#6b7280", fontSize: 13 }}>Total filtrado: {formatMoney(filteredRevenue)}</span>}
+          <h2 style={{ color: "#F8FAFC", margin: 0, fontSize: 22 }}>Ventas ({filtered.length})</h2>
+          {filtered.length > 0 && <span style={{ color: "#94A3B8", fontSize: 13 }}>Total filtrado: {formatMoney(filteredRevenue)}</span>}
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <SearchBar value={search} onChange={setSearch} placeholder="Buscar producto o cliente..." />
@@ -1122,7 +1122,7 @@ export const Sales = ({
       {showSaveSuccess && (
         <div style={{
           position: "fixed", top: 70, left: "50%", transform: "translateX(-50%)", zIndex: 300,
-          background: "#059669", color: "#fff", padding: "10px 24px", borderRadius: 10,
+          background: "#22C55E", color: "#fff", padding: "10px 24px", borderRadius: 10,
           fontSize: 14, fontWeight: 700, boxShadow: "0 4px 16px rgba(5,150,105,0.3)",
           animation: "fadeIn 0.2s ease",
         }}>✅ Venta registrada</div>
@@ -1130,14 +1130,14 @@ export const Sales = ({
 
       {/* Filter bar */}
       {showFilters && (
-        <Card style={{ marginBottom: 14, background: "#f7f8fa" }}>
+        <Card style={{ marginBottom: 14, background: "#0F172A" }}>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
             <div style={{ flex: 1, minWidth: 130 }}><Input label="Desde" type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} /></div>
             <div style={{ flex: 1, minWidth: 130 }}><Input label="Hasta" type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} /></div>
             <div style={{ flex: 1, minWidth: 130 }}><Select label="Canal" options={CHANNELS} value={filterChannel} onChange={e => setFilterChannel(e.target.value)} /></div>
             <div style={{ flex: 1, minWidth: 130 }}><Select label="Pago" options={PAYMENT_METHODS} value={filterPayment} onChange={e => setFilterPayment(e.target.value)} /></div>
             {hasActiveFilters && (
-              <button onClick={clearFilters} style={{ background: "none", border: "1px solid #e74c3c55", color: "#e74c3c", padding: "8px 14px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, marginBottom: 14 }}>
+              <button onClick={clearFilters} style={{ background: "none", border: "1px solid #EF444455", color: "#EF4444", padding: "8px 14px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, marginBottom: 14 }}>
                 ✕ Limpiar
               </button>
             )}
@@ -1156,7 +1156,7 @@ export const Sales = ({
 
       {/* Sales list — rich cards */}
       {filtered.length === 0 ? (
-        <Card><div style={{ textAlign: "center", padding: 40, color: "#9ca3af" }}>No hay ventas registradas</div></Card>
+        <Card><div style={{ textAlign: "center", padding: 40, color: "#64748B" }}>No hay ventas registradas</div></Card>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {filtered.map(r => {
@@ -1167,26 +1167,26 @@ export const Sales = ({
                 {/* Top row: date + total + actions */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                   <div>
-                    <div style={{ fontSize: 12, color: "#6b7280" }}>
+                    <div style={{ fontSize: 12, color: "#94A3B8" }}>
                       {formatDate(r.date)}{r.channel ? ` · ${r.channel}` : ""}
-                      {r.exchangeRate && <span style={{ color: "#9ca3af" }}> · Blue: ${r.exchangeRate}</span>}
+                      {r.exchangeRate && <span style={{ color: "#64748B" }}> · Blue: ${r.exchangeRate}</span>}
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 2 }}>
                       {r.clientName && (
-                        <span style={{ fontWeight: 700, fontSize: 15, color: "#1a1a2e" }}>{r.clientName}</span>
+                        <span style={{ fontWeight: 700, fontSize: 15, color: "#F8FAFC" }}>{r.clientName}</span>
                       )}
-                      {r.createdBy && <Badge color={r.createdBy === "Diego" ? "#6366f1" : "#10b981"}>{r.createdBy}</Badge>}
-                      {r.quickSale && <Badge color="#f59e0b">Rápida</Badge>}
+                      {r.createdBy && <Badge color={r.createdBy === "Diego" ? "#6366f1" : "#22C55E"}>{r.createdBy}</Badge>}
+                      {r.quickSale && <Badge color="#F59E0B">Rápida</Badge>}
                     </div>
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: "#10b981" }}>{formatMoney(r.total, r.currency)}</div>
-                    <div style={{ fontSize: 11, color: "#9ca3af" }}>{itemCount} {itemCount === 1 ? "unidad" : "unidades"}</div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: "#22C55E" }}>{formatMoney(r.total, r.currency)}</div>
+                    <div style={{ fontSize: 11, color: "#64748B" }}>{itemCount} {itemCount === 1 ? "unidad" : "unidades"}</div>
                   </div>
                 </div>
 
                 {/* Products detail */}
-                <div style={{ background: "#f9fafb", borderRadius: 8, padding: "8px 10px", marginBottom: 8 }}>
+                <div style={{ background: "#0F172A", borderRadius: 8, padding: "8px 10px", marginBottom: 8 }}>
                   {(r.items || []).map((item, idx) => {
                     const p = products.find(pr => pr.id === item.productId);
                     const prodName = item.name || (p ? `${p.brand} ${p.model} - ${p.flavor}` : "Producto eliminado");
@@ -1200,15 +1200,15 @@ export const Sales = ({
                       return r.currency === "USD" ? p.priceUSD : Math.round(p.priceUSD * saleRate);
                     })();
                     return (
-                      <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "3px 0", borderBottom: idx < (r.items || []).length - 1 ? "1px solid #edf0f2" : "none" }}>
+                      <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "3px 0", borderBottom: idx < (r.items || []).length - 1 ? "1px solid #273246" : "none" }}>
                         <div>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: "#1a1a2e" }}>{prodName.split(" - ")[0]}</span>
-                          {prodName.includes(" - ") && <span style={{ fontSize: 12, color: "#6b7280" }}> — {prodName.split(" - ").slice(1).join(" - ")}</span>}
-                          {puffs && <span style={{ fontSize: 11, color: "#9ca3af" }}> · {puffs}p</span>}
+                          <span style={{ fontSize: 13, fontWeight: 600, color: "#F8FAFC" }}>{prodName.split(" - ")[0]}</span>
+                          {prodName.includes(" - ") && <span style={{ fontSize: 12, color: "#94A3B8" }}> — {prodName.split(" - ").slice(1).join(" - ")}</span>}
+                          {puffs && <span style={{ fontSize: 11, color: "#64748B" }}> · {puffs}p</span>}
                         </div>
                         <div style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                          <span style={{ fontSize: 12, color: "#4b5563" }}>x{item.qty}</span>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: "#1a1a2e", marginLeft: 8 }}>{formatMoney(unitPrice * item.qty, r.currency)}</span>
+                          <span style={{ fontSize: 12, color: "#CBD5E1" }}>x{item.qty}</span>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: "#F8FAFC", marginLeft: 8 }}>{formatMoney(unitPrice * item.qty, r.currency)}</span>
                         </div>
                       </div>
                     );
@@ -1220,7 +1220,7 @@ export const Sales = ({
                   <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
                     {/* Payment methods */}
                     {payments.map((pay, i) => (
-                      <span key={i} style={{ fontSize: 11, color: "#4b5563", background: "#f0f1f5", padding: "2px 8px", borderRadius: 6 }}>
+                      <span key={i} style={{ fontSize: 11, color: "#CBD5E1", background: "#334155", padding: "2px 8px", borderRadius: 6 }}>
                         {pay.method}{pay.mpAccount ? ` (${pay.mpAccount})` : ""}{payments.length > 1 ? `: ${formatMoney(Number(pay.amount) || 0)}` : ""}
                       </span>
                     ))}
@@ -1230,7 +1230,7 @@ export const Sales = ({
                     )}
                     {/* Debt/credit badges */}
                     {(r.debtAmount || 0) > 0 && (
-                      <Badge color="#dc2626">Debe {formatMoney(r.debtAmount)}</Badge>
+                      <Badge color="#EF4444">Debe {formatMoney(r.debtAmount)}</Badge>
                     )}
                     {(r.changeAmount || 0) > 0 && r.changeMethod === "credit" && (
                       <Badge color="#6366f1">Crédito {formatMoney(r.changeAmount)}</Badge>
@@ -1238,15 +1238,15 @@ export const Sales = ({
                     {(r.changeAmount || 0) > 0 && r.changeMethod && r.changeMethod !== "credit" && (
                       <Badge color="#ea580c">Vuelto {formatMoney(r.changeAmount)} ({r.changeMethod})</Badge>
                     )}
-                    {r.notes && <span style={{ fontSize: 11, color: "#9ca3af", fontStyle: "italic" }}>"{r.notes}"</span>}
+                    {r.notes && <span style={{ fontSize: 11, color: "#64748B", fontStyle: "italic" }}>"{r.notes}"</span>}
                   </div>
                   {/* Action buttons */}
                   <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={() => repeatSale(r)} style={{ background: "#fffbeb", border: "1px solid #fcd34d", color: "#b8860b", cursor: "pointer", fontSize: 15, borderRadius: 8, padding: "6px 10px", minWidth: 36, minHeight: 36, display: "flex", alignItems: "center", justifyContent: "center" }} title="Repetir">🔄</button>
-                    <button onClick={() => openEdit(r)} style={{ background: "#eef2ff", border: "1px solid #c7d2fe", color: "#6366f1", cursor: "pointer", fontSize: 15, borderRadius: 8, padding: "6px 10px", minWidth: 36, minHeight: 36, display: "flex", alignItems: "center", justifyContent: "center" }} title="Editar">✏️</button>
+                    <button onClick={() => repeatSale(r)} style={{ background: "#F59E0B18", border: "1px solid #fcd34d", color: "#b8860b", cursor: "pointer", fontSize: 15, borderRadius: 8, padding: "6px 10px", minWidth: 36, minHeight: 36, display: "flex", alignItems: "center", justifyContent: "center" }} title="Repetir">🔄</button>
+                    <button onClick={() => openEdit(r)} style={{ background: "#6366f122", border: "1px solid #6366f140", color: "#6366f1", cursor: "pointer", fontSize: 15, borderRadius: 8, padding: "6px 10px", minWidth: 36, minHeight: 36, display: "flex", alignItems: "center", justifyContent: "center" }} title="Editar">✏️</button>
                     {confirmDeleteSale === r.id
-                      ? <button onClick={() => deleteSale(r)} style={{ background: "#dc2626", border: "none", color: "#fff", padding: "6px 12px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, minHeight: 36 }}>Eliminar</button>
-                      : <button onClick={() => deleteSale(r)} style={{ background: "#fef2f2", border: "1px solid #fecaca", color: "#dc2626", cursor: "pointer", fontSize: 15, borderRadius: 8, padding: "6px 10px", minWidth: 36, minHeight: 36, display: "flex", alignItems: "center", justifyContent: "center" }} title="Eliminar">🗑️</button>
+                      ? <button onClick={() => deleteSale(r)} style={{ background: "#EF4444", border: "none", color: "#fff", padding: "6px 12px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, minHeight: 36 }}>Eliminar</button>
+                      : <button onClick={() => deleteSale(r)} style={{ background: "#EF444418", border: "1px solid #EF444440", color: "#EF4444", cursor: "pointer", fontSize: 15, borderRadius: 8, padding: "6px 10px", minWidth: 36, minHeight: 36, display: "flex", alignItems: "center", justifyContent: "center" }} title="Eliminar">🗑️</button>
                     }
                   </div>
                 </div>
@@ -1263,9 +1263,9 @@ export const Sales = ({
 
         {/* Exchange rate indicator */}
         {editing && editingRate && (
-          <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "6px 12px", marginBottom: 12, fontSize: 12, color: "#2563eb", fontWeight: 600, display: "flex", justifyContent: "space-between" }}>
+          <div style={{ background: "#3B82F618", border: "1px solid #3B82F640", borderRadius: 8, padding: "6px 12px", marginBottom: 12, fontSize: 12, color: "#3B82F6", fontWeight: 600, display: "flex", justifyContent: "space-between" }}>
             <span>Tipo de cambio de esta venta: ${editingRate}</span>
-            {editingRate !== exchangeRate && <span style={{ color: "#9ca3af", fontWeight: 400 }}>Actual: ${exchangeRate}</span>}
+            {editingRate !== exchangeRate && <span style={{ color: "#64748B", fontWeight: 400 }}>Actual: ${exchangeRate}</span>}
           </div>
         )}
 
@@ -1277,8 +1277,8 @@ export const Sales = ({
           ].map(s => (
             <button key={s.n} onClick={() => setStep(s.n)} style={{
               flex: 1, padding: "8px 0", border: "none", cursor: "pointer",
-              background: step === s.n ? "#6366f1" : "#f3f4f6",
-              color: step === s.n ? "#fff" : "#6b7280",
+              background: step === s.n ? "#6366f1" : "#334155",
+              color: step === s.n ? "#fff" : "#94A3B8",
               fontWeight: 700, fontSize: 13,
               borderRadius: s.n === 1 ? "8px 0 0 8px" : "0 8px 8px 0",
             }}>
@@ -1294,7 +1294,7 @@ export const Sales = ({
         }}>
           {showAdvanced ? "▾" : "▸"} Fecha y moneda
           {(form.currency !== "ARS" || form.date !== new Date().toISOString().slice(0, 10)) && (
-            <span style={{ color: "#f59e0b", fontSize: 10 }}>● modificado</span>
+            <span style={{ color: "#F59E0B", fontSize: 10 }}>● modificado</span>
           )}
         </button>
         {showAdvanced && (
@@ -1306,7 +1306,7 @@ export const Sales = ({
 
         {/* Validation error */}
         {validationError && (
-          <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "8px 12px", marginBottom: 12, color: "#dc2626", fontSize: 13, fontWeight: 600 }}>
+          <div style={{ background: "#EF444418", border: "1px solid #EF444440", borderRadius: 8, padding: "8px 12px", marginBottom: 12, color: "#EF4444", fontSize: 13, fontWeight: 600 }}>
             {validationError}
           </div>
         )}

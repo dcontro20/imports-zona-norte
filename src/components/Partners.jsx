@@ -37,56 +37,56 @@ export const Partners = ({ partnerWithdrawals, setPartnerWithdrawals, sales, pur
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
-        <h2 style={{ color: "#1a1a2e", margin: 0, fontSize: 22 }}>Socios — Diego & Gustavo</h2>
+        <h2 style={{ color: "#F8FAFC", margin: 0, fontSize: 22 }}>Socios — Diego & Gustavo</h2>
         <Btn onClick={() => setModal(true)}>💸 Registrar Retiro</Btn>
       </div>
 
       {/* Profit overview */}
-      <Card style={{ marginBottom: 14, background: "#f7f8fa", border: "1px solid #6366f133" }}>
+      <Card style={{ marginBottom: 14, background: "#0F172A", border: "1px solid #6366f133" }}>
         <div style={{ display: "flex", justifyContent: "space-around", flexWrap: "wrap", gap: 16, textAlign: "center", marginBottom: 14 }}>
           <div>
-            <div style={{ color: "#6b7280", fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>Ganancia neta total</div>
-            <div style={{ color: netProfit >= 0 ? "#00b894" : "#e74c3c", fontSize: 24, fontWeight: 800 }}>{formatMoney(netProfit)}</div>
+            <div style={{ color: "#94A3B8", fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>Ganancia neta total</div>
+            <div style={{ color: netProfit >= 0 ? "#00b894" : "#EF4444", fontSize: 24, fontWeight: 800 }}>{formatMoney(netProfit)}</div>
           </div>
           <div>
-            <div style={{ color: "#6b7280", fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>Retirado total</div>
+            <div style={{ color: "#94A3B8", fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>Retirado total</div>
             <div style={{ color: "#fdcb6e", fontSize: 24, fontWeight: 800 }}>{formatMoney(totalWithdrawn)}</div>
           </div>
           <div>
-            <div style={{ color: "#6b7280", fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>Ganancia sin retirar</div>
+            <div style={{ color: "#94A3B8", fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>Ganancia sin retirar</div>
             <div style={{ color: "#6366f1", fontSize: 24, fontWeight: 800 }}>{formatMoney(profitRemaining)}</div>
           </div>
         </div>
-        <div style={{ borderTop: "1px solid #e2e4e9", paddingTop: 14, display: "flex", justifyContent: "space-around", flexWrap: "wrap", gap: 20, textAlign: "center" }}>
+        <div style={{ borderTop: "1px solid #334155", paddingTop: 14, display: "flex", justifyContent: "space-around", flexWrap: "wrap", gap: 20, textAlign: "center" }}>
           <div style={{ flex: 1, minWidth: 200 }}>
             <div style={{ color: "#6366f1", fontSize: 14, fontWeight: 700, marginBottom: 8 }}>💜 Diego (50%)</div>
             <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}>
-              <span style={{ color: "#6b7280", fontSize: 13 }}>Le corresponde</span>
-              <span style={{ color: "#1a1a2e", fontWeight: 600 }}>{formatMoney(halfProfit)}</span>
+              <span style={{ color: "#94A3B8", fontSize: 13 }}>Le corresponde</span>
+              <span style={{ color: "#F8FAFC", fontWeight: 600 }}>{formatMoney(halfProfit)}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}>
-              <span style={{ color: "#6b7280", fontSize: 13 }}>Ya retiró</span>
+              <span style={{ color: "#94A3B8", fontSize: 13 }}>Ya retiró</span>
               <span style={{ color: "#fdcb6e", fontWeight: 600 }}>{formatMoney(diegoTotal)}</span>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderTop: "1px solid #edf0f2", marginTop: 4 }}>
-              <span style={{ color: "#1a1a2e", fontSize: 14, fontWeight: 700 }}>Saldo pendiente</span>
-              <span style={{ color: diegoBalance >= 0 ? "#00b894" : "#e74c3c", fontSize: 16, fontWeight: 800 }}>{formatMoney(diegoBalance)}</span>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderTop: "1px solid #273246", marginTop: 4 }}>
+              <span style={{ color: "#F8FAFC", fontSize: 14, fontWeight: 700 }}>Saldo pendiente</span>
+              <span style={{ color: diegoBalance >= 0 ? "#00b894" : "#EF4444", fontSize: 16, fontWeight: 800 }}>{formatMoney(diegoBalance)}</span>
             </div>
           </div>
-          <div style={{ width: 1, background: "#e2e4e9" }} />
+          <div style={{ width: 1, background: "#334155" }} />
           <div style={{ flex: 1, minWidth: 200 }}>
             <div style={{ color: "#00b894", fontSize: 14, fontWeight: 700, marginBottom: 8 }}>💙 Gustavo (50%)</div>
             <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}>
-              <span style={{ color: "#6b7280", fontSize: 13 }}>Le corresponde</span>
-              <span style={{ color: "#1a1a2e", fontWeight: 600 }}>{formatMoney(halfProfit)}</span>
+              <span style={{ color: "#94A3B8", fontSize: 13 }}>Le corresponde</span>
+              <span style={{ color: "#F8FAFC", fontWeight: 600 }}>{formatMoney(halfProfit)}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}>
-              <span style={{ color: "#6b7280", fontSize: 13 }}>Ya retiró</span>
+              <span style={{ color: "#94A3B8", fontSize: 13 }}>Ya retiró</span>
               <span style={{ color: "#fdcb6e", fontWeight: 600 }}>{formatMoney(gustavoTotal)}</span>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderTop: "1px solid #edf0f2", marginTop: 4 }}>
-              <span style={{ color: "#1a1a2e", fontSize: 14, fontWeight: 700 }}>Saldo pendiente</span>
-              <span style={{ color: gustavoBalance >= 0 ? "#00b894" : "#e74c3c", fontSize: 16, fontWeight: 800 }}>{formatMoney(gustavoBalance)}</span>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderTop: "1px solid #273246", marginTop: 4 }}>
+              <span style={{ color: "#F8FAFC", fontSize: 14, fontWeight: 700 }}>Saldo pendiente</span>
+              <span style={{ color: gustavoBalance >= 0 ? "#00b894" : "#EF4444", fontSize: 16, fontWeight: 800 }}>{formatMoney(gustavoBalance)}</span>
             </div>
           </div>
         </div>
@@ -103,8 +103,8 @@ export const Partners = ({ partnerWithdrawals, setPartnerWithdrawals, sales, pur
           { key: "description", label: "Detalle", render: r => r.description || "—" },
           { key: "actions", label: "", render: r => (
             confirmDel === r.id
-              ? <button onClick={() => deleteW(r.id)} style={{ background: "#e74c3c22", border: "1px solid #e74c3c55", color: "#e74c3c", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Confirmar</button>
-              : <button onClick={() => deleteW(r.id)} style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontSize: 14 }}>🗑️</button>
+              ? <button onClick={() => deleteW(r.id)} style={{ background: "#EF444422", border: "1px solid #EF444455", color: "#EF4444", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Confirmar</button>
+              : <button onClick={() => deleteW(r.id)} style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 14 }}>🗑️</button>
           )},
         ]} data={(partnerWithdrawals || []).filter(w => !w.isDeleted)} emptyMsg="No hay retiros registrados" />
       </Card>

@@ -6,15 +6,15 @@ import { BRAND_COLORS } from "../constants.js";
 
 // -- REPORTS --
 const BarChart = ({ data, colorKey, valueKey, labelKey, maxBars = 10, suffix = "" }) => {
-  if (!data || data.length === 0) return <p style={{ color: "#9ca3af", fontSize: 13 }}>Sin datos</p>;
+  if (!data || data.length === 0) return <p style={{ color: "#64748B", fontSize: 13 }}>Sin datos</p>;
   const sorted = [...data].slice(0, maxBars);
   const maxVal = Math.max(...sorted.map(d => d[valueKey] || 0), 1);
   return (
     <div>
       {sorted.map((d, i) => (
         <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-          <span style={{ color: "#4b5563", fontSize: 12, minWidth: 100, textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d[labelKey]}</span>
-          <div style={{ flex: 1, background: "#edf0f2", borderRadius: 6, height: 24, overflow: "hidden" }}>
+          <span style={{ color: "#CBD5E1", fontSize: 12, minWidth: 100, textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d[labelKey]}</span>
+          <div style={{ flex: 1, background: "#273246", borderRadius: 6, height: 24, overflow: "hidden" }}>
             <div style={{
               width: `${Math.max(2, (d[valueKey] / maxVal) * 100)}%`, height: "100%",
               background: `linear-gradient(90deg, ${d[colorKey] || "#6366f1"}88, ${d[colorKey] || "#6366f1"})`,
@@ -30,7 +30,7 @@ const BarChart = ({ data, colorKey, valueKey, labelKey, maxBars = 10, suffix = "
 };
 
 const DonutChart = ({ data, size = 160 }) => {
-  if (!data || data.length === 0) return <p style={{ color: "#9ca3af", fontSize: 13 }}>Sin datos</p>;
+  if (!data || data.length === 0) return <p style={{ color: "#64748B", fontSize: 13 }}>Sin datos</p>;
   const total = data.reduce((s, d) => s + d.value, 0);
   if (total === 0) return <p style={{ color: "#555", fontSize: 13 }}>Sin datos</p>;
   const r = size / 2 - 10;
@@ -54,15 +54,15 @@ const DonutChart = ({ data, size = 160 }) => {
     <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
       <svg width={size} height={size}>
         {slices.map((s, i) => <path key={i} d={s.path} fill={s.color} opacity={0.85} />)}
-        <text x={cx} y={cy - 6} textAnchor="middle" fill="#1a1a2e" fontSize={18} fontWeight={800}>{total}</text>
-        <text x={cx} y={cy + 12} textAnchor="middle" fill="#6b7280" fontSize={10}>unidades</text>
+        <text x={cx} y={cy - 6} textAnchor="middle" fill="#F8FAFC" fontSize={18} fontWeight={800}>{total}</text>
+        <text x={cx} y={cy + 12} textAnchor="middle" fill="#94A3B8" fontSize={10}>unidades</text>
       </svg>
       <div>
         {slices.map((s, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
             <span style={{ width: 10, height: 10, borderRadius: 3, background: s.color, flexShrink: 0 }} />
-            <span style={{ color: "#4b5563", fontSize: 12 }}>{s.label}</span>
-            <span style={{ color: "#6b7280", fontSize: 11 }}>{s.pct}%</span>
+            <span style={{ color: "#CBD5E1", fontSize: 12 }}>{s.label}</span>
+            <span style={{ color: "#94A3B8", fontSize: 11 }}>{s.pct}%</span>
           </div>
         ))}
       </div>
@@ -143,13 +143,13 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, exc
     return Object.entries(stats).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
   }, [products]);
 
-  const brandColors = { Elfbar: "#00b894", "Geek Bar": "#6c5ce7", Ignite: "#e74c3c", "Lost Mary": "#fdcb6e", Nikbar: "#00cec9", Supreme: "#e17055" };
+  const brandColors = { Elfbar: "#00b894", "Geek Bar": "#6c5ce7", Ignite: "#EF4444", "Lost Mary": "#fdcb6e", Nikbar: "#00cec9", Supreme: "#e17055" };
   const channelColors = { WhatsApp: "#25d366", Instagram: "#e1306c", Delivery: "#fdcb6e", Presencial: "#a855f7" };
   const paymentColors = { "Mercado Pago": "#00b2ff", Lemon: "#f9ca24", "USD Cash": "#00cec9", USDT: "#26de81", "Pesos Cash": "#fdcb6e" };
 
   return (
     <div>
-      <h2 style={{ color: "#1a1a2e", margin: "0 0 20px", fontSize: 22 }}>Reportes</h2>
+      <h2 style={{ color: "#F8FAFC", margin: "0 0 20px", fontSize: 22 }}>Reportes</h2>
 
       {/* Financial summary */}
       <Card style={{ marginBottom: 14 }}>
@@ -166,12 +166,12 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, exc
             const discounts = sales.filter(s => !s.isDeleted && mFilter(s.date)).reduce((sum, s) => sum + (s.discountAmount || 0), 0);
             const consumed = (withdrawals || []).filter(w => !w.isDeleted && mFilter(w.date)).reduce((sum, w) => sum + w.qty, 0);
             return (<>
-              <div><span style={{ color: "#6b7280", fontSize: 12 }}>Ingresos</span><div style={{ color: "#00b894", fontSize: 20, fontWeight: 700 }}>{formatMoney(rev)}</div></div>
-              <div><span style={{ color: "#6b7280", fontSize: 12 }}>Costos</span><div style={{ color: "#e74c3c", fontSize: 20, fontWeight: 700 }}>{formatMoney(cost)}</div></div>
-              <div><span style={{ color: "#6b7280", fontSize: 12 }}>Gastos</span><div style={{ color: "#fdcb6e", fontSize: 20, fontWeight: 700 }}>{formatMoney(exp)}</div></div>
-              <div><span style={{ color: "#6b7280", fontSize: 12 }}>Descuentos</span><div style={{ color: "#fdcb6e", fontSize: 20, fontWeight: 700 }}>{formatMoney(discounts)}</div></div>
-              <div><span style={{ color: "#6b7280", fontSize: 12 }}>Consumo</span><div style={{ color: "#e17055", fontSize: 20, fontWeight: 700 }}>{consumed} uds</div></div>
-              <div><span style={{ color: "#6b7280", fontSize: 12 }}>Ganancia est.</span><div style={{ color: "#6366f1", fontSize: 20, fontWeight: 700 }}>{formatMoney(rev - cost - exp)}</div></div>
+              <div><span style={{ color: "#94A3B8", fontSize: 12 }}>Ingresos</span><div style={{ color: "#00b894", fontSize: 20, fontWeight: 700 }}>{formatMoney(rev)}</div></div>
+              <div><span style={{ color: "#94A3B8", fontSize: 12 }}>Costos</span><div style={{ color: "#EF4444", fontSize: 20, fontWeight: 700 }}>{formatMoney(cost)}</div></div>
+              <div><span style={{ color: "#94A3B8", fontSize: 12 }}>Gastos</span><div style={{ color: "#fdcb6e", fontSize: 20, fontWeight: 700 }}>{formatMoney(exp)}</div></div>
+              <div><span style={{ color: "#94A3B8", fontSize: 12 }}>Descuentos</span><div style={{ color: "#fdcb6e", fontSize: 20, fontWeight: 700 }}>{formatMoney(discounts)}</div></div>
+              <div><span style={{ color: "#94A3B8", fontSize: 12 }}>Consumo</span><div style={{ color: "#e17055", fontSize: 20, fontWeight: 700 }}>{consumed} uds</div></div>
+              <div><span style={{ color: "#94A3B8", fontSize: 12 }}>Ganancia est.</span><div style={{ color: "#6366f1", fontSize: 20, fontWeight: 700 }}>{formatMoney(rev - cost - exp)}</div></div>
             </>);
           })()}
         </div>
@@ -200,21 +200,21 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, exc
           return (
             <div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 12, marginBottom: 14 }}>
-                <div><span style={{ color: "#6b7280", fontSize: 12 }}>Gastos fijos mes</span><div style={{ color: "#e74c3c", fontSize: 18, fontWeight: 700 }}>{formatMoney(fixedCosts)}</div></div>
-                <div><span style={{ color: "#6b7280", fontSize: 12 }}>Precio prom/ud</span><div style={{ color: "#1a1a2e", fontSize: 18, fontWeight: 700 }}>{formatMoney(avgPricePerUnit)}</div></div>
-                <div><span style={{ color: "#6b7280", fontSize: 12 }}>Costo prom/ud</span><div style={{ color: "#fdcb6e", fontSize: 18, fontWeight: 700 }}>{formatMoney(avgCostPerUnit)}</div></div>
-                <div><span style={{ color: "#6b7280", fontSize: 12 }}>Margen/ud</span><div style={{ color: "#059669", fontSize: 18, fontWeight: 700 }}>{formatMoney(marginPerUnit)}</div></div>
+                <div><span style={{ color: "#94A3B8", fontSize: 12 }}>Gastos fijos mes</span><div style={{ color: "#EF4444", fontSize: 18, fontWeight: 700 }}>{formatMoney(fixedCosts)}</div></div>
+                <div><span style={{ color: "#94A3B8", fontSize: 12 }}>Precio prom/ud</span><div style={{ color: "#F8FAFC", fontSize: 18, fontWeight: 700 }}>{formatMoney(avgPricePerUnit)}</div></div>
+                <div><span style={{ color: "#94A3B8", fontSize: 12 }}>Costo prom/ud</span><div style={{ color: "#fdcb6e", fontSize: 18, fontWeight: 700 }}>{formatMoney(avgCostPerUnit)}</div></div>
+                <div><span style={{ color: "#94A3B8", fontSize: 12 }}>Margen/ud</span><div style={{ color: "#22C55E", fontSize: 18, fontWeight: 700 }}>{formatMoney(marginPerUnit)}</div></div>
               </div>
               <div style={{ marginBottom: 8 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#4b5563", marginBottom: 4 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#CBD5E1", marginBottom: 4 }}>
                   <span>Vendiste <b>{totalUnits}</b> uds este mes</span>
                   <span>Necesitás <b>{breakEvenUnits}</b> para cubrir gastos</span>
                 </div>
-                <div style={{ height: 10, background: "#f0f1f5", borderRadius: 5, overflow: "hidden" }}>
-                  <div style={{ width: `${progress}%`, height: "100%", background: reached ? "#059669" : "#6366f1", borderRadius: 5, transition: "width 0.5s" }} />
+                <div style={{ height: 10, background: "#334155", borderRadius: 5, overflow: "hidden" }}>
+                  <div style={{ width: `${progress}%`, height: "100%", background: reached ? "#22C55E" : "#6366f1", borderRadius: 5, transition: "width 0.5s" }} />
                 </div>
               </div>
-              <div style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: reached ? "#059669" : "#d97706" }}>
+              <div style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: reached ? "#22C55E" : "#F59E0B" }}>
                 {reached ? "✅ Punto de equilibrio alcanzado" : `Faltan ${breakEvenUnits - totalUnits} unidades para cubrir gastos`}
               </div>
             </div>
@@ -250,7 +250,7 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, exc
 
       {/* Top flavors */}
       <Card style={{ marginBottom: 14 }}>
-        <h4 style={{ color: "#e74c3c", margin: "0 0 14px", fontSize: 14, textTransform: "uppercase" }}>🏆 Top 10 Sabores más vendidos</h4>
+        <h4 style={{ color: "#EF4444", margin: "0 0 14px", fontSize: 14, textTransform: "uppercase" }}>🏆 Top 10 Sabores más vendidos</h4>
         <BarChart data={topFlavors.map(([name, data]) => ({ label: name, value: data.sold, color: brandColors[data.brand] || "#a855f7" }))} labelKey="label" valueKey="value" colorKey="color" suffix=" uds" />
       </Card>
 
@@ -293,20 +293,20 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, exc
                 <thead>
                   <tr>
                     {["Marca", "Modelo", "Costo prom. USDT", "Costo total/ud ARS", "Precio venta ARS", "Margen/ud", "Margen %"].map(h => (
-                      <th key={h} style={{ textAlign: "left", padding: "8px 10px", fontSize: 11, color: "#6b7280", textTransform: "uppercase", borderBottom: "1px solid #e2e4e9", fontWeight: 700 }}>{h}</th>
+                      <th key={h} style={{ textAlign: "left", padding: "8px 10px", fontSize: 11, color: "#94A3B8", textTransform: "uppercase", borderBottom: "1px solid #334155", fontWeight: 700 }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {margins.map((m, i) => (
                     <tr key={i}>
-                      <td style={{ padding: "8px 10px", fontSize: 13, color: "#4b5563", borderBottom: "1px solid #edf0f2" }}><Badge color={BRAND_COLORS[m.brand] || "#6366f1"}>{m.brand}</Badge></td>
-                      <td style={{ padding: "8px 10px", fontSize: 13, color: "#4b5563", borderBottom: "1px solid #edf0f2" }}>{m.model}</td>
-                      <td style={{ padding: "8px 10px", fontSize: 13, color: "#4b5563", borderBottom: "1px solid #edf0f2" }}>{formatMoney(m.avgCostUSDT, "USDT")}</td>
-                      <td style={{ padding: "8px 10px", fontSize: 13, color: "#e74c3c", borderBottom: "1px solid #edf0f2", fontWeight: 600 }}>{formatMoney(m.totalCostARS)}</td>
-                      <td style={{ padding: "8px 10px", fontSize: 13, color: "#4b5563", borderBottom: "1px solid #edf0f2" }}>{formatMoney(m.salePriceARS)}</td>
-                      <td style={{ padding: "8px 10px", fontSize: 13, borderBottom: "1px solid #edf0f2", fontWeight: 700, color: m.marginARS >= 0 ? "#00b894" : "#e74c3c" }}>{formatMoney(m.marginARS)}</td>
-                      <td style={{ padding: "8px 10px", borderBottom: "1px solid #edf0f2" }}><Badge color={m.marginPct >= 50 ? "#00b894" : m.marginPct >= 30 ? "#fdcb6e" : "#e74c3c"}>{m.marginPct}%</Badge></td>
+                      <td style={{ padding: "8px 10px", fontSize: 13, color: "#CBD5E1", borderBottom: "1px solid #273246" }}><Badge color={BRAND_COLORS[m.brand] || "#6366f1"}>{m.brand}</Badge></td>
+                      <td style={{ padding: "8px 10px", fontSize: 13, color: "#CBD5E1", borderBottom: "1px solid #273246" }}>{m.model}</td>
+                      <td style={{ padding: "8px 10px", fontSize: 13, color: "#CBD5E1", borderBottom: "1px solid #273246" }}>{formatMoney(m.avgCostUSDT, "USDT")}</td>
+                      <td style={{ padding: "8px 10px", fontSize: 13, color: "#EF4444", borderBottom: "1px solid #273246", fontWeight: 600 }}>{formatMoney(m.totalCostARS)}</td>
+                      <td style={{ padding: "8px 10px", fontSize: 13, color: "#CBD5E1", borderBottom: "1px solid #273246" }}>{formatMoney(m.salePriceARS)}</td>
+                      <td style={{ padding: "8px 10px", fontSize: 13, borderBottom: "1px solid #273246", fontWeight: 700, color: m.marginARS >= 0 ? "#00b894" : "#EF4444" }}>{formatMoney(m.marginARS)}</td>
+                      <td style={{ padding: "8px 10px", borderBottom: "1px solid #273246" }}><Badge color={m.marginPct >= 50 ? "#00b894" : m.marginPct >= 30 ? "#fdcb6e" : "#EF4444"}>{m.marginPct}%</Badge></td>
                     </tr>
                   ))}
                 </tbody>
@@ -322,8 +322,8 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, exc
         <Card>
           <h4 style={{ color: "#6366f1", margin: "0 0 14px", fontSize: 14, textTransform: "uppercase" }}>📈 Evolución Mensual</h4>
           <BarChart data={monthlySales.map(m => ({ label: m.label, value: m.count, color: "#6366f1" }))} labelKey="label" valueKey="value" colorKey="color" suffix=" ventas" />
-          <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #edf0f2" }}>
-            <span style={{ color: "#6b7280", fontSize: 12, textTransform: "uppercase" }}>Ingresos mensuales</span>
+          <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #273246" }}>
+            <span style={{ color: "#94A3B8", fontSize: 12, textTransform: "uppercase" }}>Ingresos mensuales</span>
             <BarChart data={monthlySales.map(m => ({ label: m.label, value: Math.round(m.revenue), color: "#00b894" }))} labelKey="label" valueKey="value" colorKey="color" />
           </div>
         </Card>
@@ -364,48 +364,48 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, exc
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
               <div>
                 <div style={{ color: "#00b894", fontSize: 13, fontWeight: 700, marginBottom: 10, textTransform: "uppercase" }}>Activos</div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #edf0f2" }}>
-                  <span style={{ color: "#6b7280", fontSize: 13 }}>Stock en mercadería ({stockUnits} uds)</span>
-                  <span style={{ color: "#1a1a2e", fontWeight: 600 }}>{formatMoney(stockValue)}</span>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #273246" }}>
+                  <span style={{ color: "#94A3B8", fontSize: 13 }}>Stock en mercadería ({stockUnits} uds)</span>
+                  <span style={{ color: "#F8FAFC", fontWeight: 600 }}>{formatMoney(stockValue)}</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #edf0f2" }}>
-                  <span style={{ color: "#6b7280", fontSize: 13 }}>Efectivo ARS</span>
-                  <span style={{ color: "#1a1a2e", fontWeight: 600 }}>{formatMoney(Math.max(0, totalCashARS))}</span>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #273246" }}>
+                  <span style={{ color: "#94A3B8", fontSize: 13 }}>Efectivo ARS</span>
+                  <span style={{ color: "#F8FAFC", fontWeight: 600 }}>{formatMoney(Math.max(0, totalCashARS))}</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #edf0f2" }}>
-                  <span style={{ color: "#6b7280", fontSize: 13 }}>USDT</span>
-                  <span style={{ color: "#1a1a2e", fontWeight: 600 }}>{formatMoney(Math.max(0, totalCashUSDT), "USDT")} (~{formatMoney(Math.max(0, totalCashUSDT) * exchangeRate)})</span>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #273246" }}>
+                  <span style={{ color: "#94A3B8", fontSize: 13 }}>USDT</span>
+                  <span style={{ color: "#F8FAFC", fontWeight: 600 }}>{formatMoney(Math.max(0, totalCashUSDT), "USDT")} (~{formatMoney(Math.max(0, totalCashUSDT) * exchangeRate)})</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #edf0f2" }}>
-                  <span style={{ color: "#6b7280", fontSize: 13 }}>USD Cash</span>
-                  <span style={{ color: "#1a1a2e", fontWeight: 600 }}>{formatMoney(totalCashUSD, "USD")} (~{formatMoney(totalCashUSD * exchangeRate)})</span>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #273246" }}>
+                  <span style={{ color: "#94A3B8", fontSize: 13 }}>USD Cash</span>
+                  <span style={{ color: "#F8FAFC", fontWeight: 600 }}>{formatMoney(totalCashUSD, "USD")} (~{formatMoney(totalCashUSD * exchangeRate)})</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderTop: "2px solid #e2e4e9", marginTop: 6 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderTop: "2px solid #334155", marginTop: 6 }}>
                   <span style={{ color: "#00b894", fontSize: 15, fontWeight: 700 }}>Total Activos (est.)</span>
                   <span style={{ color: "#00b894", fontSize: 18, fontWeight: 800 }}>{formatMoney(totalAssets)}</span>
                 </div>
               </div>
               <div>
                 <div style={{ color: "#6366f1", fontSize: 13, fontWeight: 700, marginBottom: 10, textTransform: "uppercase" }}>Resultados acumulados</div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #edf0f2" }}>
-                  <span style={{ color: "#6b7280", fontSize: 13 }}>Ingresos por ventas</span>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #273246" }}>
+                  <span style={{ color: "#94A3B8", fontSize: 13 }}>Ingresos por ventas</span>
                   <span style={{ color: "#00b894", fontWeight: 600 }}>{formatMoney(totalRevenue)}</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #edf0f2" }}>
-                  <span style={{ color: "#6b7280", fontSize: 13 }}>Costo mercadería</span>
-                  <span style={{ color: "#e74c3c", fontWeight: 600 }}>-{formatMoney(totalCosts)}</span>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #273246" }}>
+                  <span style={{ color: "#94A3B8", fontSize: 13 }}>Costo mercadería</span>
+                  <span style={{ color: "#EF4444", fontWeight: 600 }}>-{formatMoney(totalCosts)}</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #edf0f2" }}>
-                  <span style={{ color: "#6b7280", fontSize: 13 }}>Gastos operativos</span>
-                  <span style={{ color: "#e74c3c", fontWeight: 600 }}>-{formatMoney(totalExpenses)}</span>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #273246" }}>
+                  <span style={{ color: "#94A3B8", fontSize: 13 }}>Gastos operativos</span>
+                  <span style={{ color: "#EF4444", fontWeight: 600 }}>-{formatMoney(totalExpenses)}</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #edf0f2" }}>
-                  <span style={{ color: "#6b7280", fontSize: 13 }}>Consumo propio (merma)</span>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #273246" }}>
+                  <span style={{ color: "#94A3B8", fontSize: 13 }}>Consumo propio (merma)</span>
                   <span style={{ color: "#e17055", fontWeight: 600 }}>-{formatMoney(consumoValue)}</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderTop: "2px solid #e2e4e9", marginTop: 6 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderTop: "2px solid #334155", marginTop: 6 }}>
                   <span style={{ color: "#6366f1", fontSize: 15, fontWeight: 700 }}>Resultado neto</span>
-                  <span style={{ color: totalRevenue - totalCosts - totalExpenses - consumoValue >= 0 ? "#00b894" : "#e74c3c", fontSize: 18, fontWeight: 800 }}>
+                  <span style={{ color: totalRevenue - totalCosts - totalExpenses - consumoValue >= 0 ? "#00b894" : "#EF4444", fontSize: 18, fontWeight: 800 }}>
                     {formatMoney(totalRevenue - totalCosts - totalExpenses - consumoValue)}
                   </span>
                 </div>

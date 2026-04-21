@@ -23,7 +23,7 @@ export const onAuthChange = (callback) => onAuthStateChanged(auth, callback);
 // User mapping: Firebase Auth UID → app user profile
 const USER_PROFILES = {
   "dcontro20@gmail.com": { name: "Diego", color: "#6366f1", icon: "💜" },
-  "dcontro20@hotmail.com": { name: "Gustavo", color: "#10b981", icon: "💙" },
+  "dcontro20@hotmail.com": { name: "Gustavo", color: "#22C55E", icon: "💙" },
 };
 export const getUserProfile = (firebaseUser) => {
   if (!firebaseUser) return null;

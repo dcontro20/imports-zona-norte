@@ -134,8 +134,8 @@ export const Clients = ({ clients, setClients, sales, products }) => {
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
         <div>
-          <h2 style={{ fontSize: 22, fontWeight: 800, color: "#1a1a2e", margin: 0 }}>Clientes</h2>
-          <p style={{ fontSize: 13, color: "#6b7280", margin: "4px 0 0" }}>
+          <h2 style={{ fontSize: 22, fontWeight: 800, color: "#F8FAFC", margin: 0 }}>Clientes</h2>
+          <p style={{ fontSize: 13, color: "#94A3B8", margin: "4px 0 0" }}>
             Base de clientes con historial de compras
           </p>
         </div>
@@ -145,8 +145,8 @@ export const Clients = ({ clients, setClients, sales, products }) => {
       {/* Stats Cards */}
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: isMobile ? 8 : 14, marginBottom: 20 }}>
         <StatCard label="Total clientes" value={globalStats.total} sub="registrados" color="#6366f1" />
-        <StatCard label="Activos este mes" value={globalStats.activeThisMonth} sub="con compras" color="#10b981" />
-        <StatCard label="Facturado total" value={formatMoney(globalStats.totalRevenue)} sub="todas las ventas" color="#f59e0b" />
+        <StatCard label="Activos este mes" value={globalStats.activeThisMonth} sub="con compras" color="#22C55E" />
+        <StatCard label="Facturado total" value={formatMoney(globalStats.totalRevenue)} sub="todas las ventas" color="#F59E0B" />
         <StatCard label="Top cliente" value={globalStats.topClient} sub="mayor gasto" color="#ec4899" />
       </div>
 
@@ -168,8 +168,8 @@ export const Clients = ({ clients, setClients, sales, products }) => {
               key={opt.key}
               onClick={() => setSortBy(opt.key)}
               style={{
-                background: sortBy === opt.key ? "#6366f1" : "#f3f4f6",
-                color: sortBy === opt.key ? "#fff" : "#6b7280",
+                background: sortBy === opt.key ? "#6366f1" : "#334155",
+                color: sortBy === opt.key ? "#fff" : "#94A3B8",
                 fontSize: 12,
                 padding: "6px 12px",
               }}
@@ -184,7 +184,7 @@ export const Clients = ({ clients, setClients, sales, products }) => {
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(320px, 1fr))", gap: isMobile ? 10 : 14, marginBottom: 20 }}>
         {filtered.length === 0 ? (
           <Card>
-            <div style={{ textAlign: "center", padding: 40, color: "#9ca3af" }}>
+            <div style={{ textAlign: "center", padding: 40, color: "#64748B" }}>
               {clients.length === 0 ? "No hay clientes registrados" : "No hay resultados"}
             </div>
           </Card>
@@ -204,33 +204,33 @@ export const Clients = ({ clients, setClients, sales, products }) => {
                       {c.name.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: 15, color: "#1a1a2e" }}>{c.name}</div>
+                      <div style={{ fontWeight: 700, fontSize: 15, color: "#F8FAFC" }}>{c.name}</div>
                       {c.instagram && (
                         <div style={{ fontSize: 12, color: "#6366f1" }}>@{c.instagram.replace("@", "")}</div>
                       )}
                     </div>
                   </div>
                   {c.phone && (
-                    <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>Tel: {c.phone}</div>
+                    <div style={{ fontSize: 12, color: "#94A3B8", marginTop: 4 }}>Tel: {c.phone}</div>
                   )}
                 </div>
                 <div style={{ textAlign: "right" }}>
-                  <div style={{ fontWeight: 800, fontSize: 16, color: "#10b981" }}>
+                  <div style={{ fontWeight: 800, fontSize: 16, color: "#22C55E" }}>
                     {formatMoney(st.totalSpent || 0)}
                   </div>
-                  <div style={{ fontSize: 11, color: "#9ca3af" }}>
+                  <div style={{ fontSize: 11, color: "#64748B" }}>
                     {st.salesCount || 0} compras
                   </div>
                   {(c.balance || 0) !== 0 && (
                     <div style={{
                       marginTop: 6, padding: "6px 10px", borderRadius: 8,
-                      background: (c.balance || 0) > 0 ? "#ecfdf5" : "#fef2f2",
-                      border: `1px solid ${(c.balance || 0) > 0 ? "#bbf7d0" : "#fecaca"}`,
+                      background: (c.balance || 0) > 0 ? "#22C55E18" : "#EF444418",
+                      border: `1px solid ${(c.balance || 0) > 0 ? "#22C55E40" : "#EF444440"}`,
                     }}>
-                      <div style={{ fontSize: 10, fontWeight: 600, color: "#6b7280", textTransform: "uppercase" }}>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: "#94A3B8", textTransform: "uppercase" }}>
                         {(c.balance || 0) > 0 ? "Saldo a favor" : "Deuda"}
                       </div>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: (c.balance || 0) > 0 ? "#10b981" : "#dc2626" }}>
+                      <div style={{ fontSize: 16, fontWeight: 800, color: (c.balance || 0) > 0 ? "#22C55E" : "#EF4444" }}>
                         {formatMoney(Math.abs(c.balance))}
                       </div>
                     </div>
@@ -242,7 +242,7 @@ export const Clients = ({ clients, setClients, sales, products }) => {
               {st.favProducts && st.favProducts.length > 0 && (
                 <div style={{ marginTop: 10, display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {st.favProducts.map(([name, qty], i) => (
-                    <Badge key={i} color={["#6366f1", "#f59e0b", "#10b981"][i] || "#6366f1"}>
+                    <Badge key={i} color={["#6366f1", "#F59E0B", "#22C55E"][i] || "#6366f1"}>
                       {name.length > 18 ? name.substring(0, 16) + "..." : name} x{qty}
                     </Badge>
                   ))}
@@ -251,7 +251,7 @@ export const Clients = ({ clients, setClients, sales, products }) => {
 
               {/* Last purchase */}
               {st.lastPurchase && (
-                <div style={{ marginTop: 8, fontSize: 11, color: "#9ca3af" }}>
+                <div style={{ marginTop: 8, fontSize: 11, color: "#64748B" }}>
                   Ultima compra: {formatDate(st.lastPurchase)}
                 </div>
               )}
@@ -260,15 +260,15 @@ export const Clients = ({ clients, setClients, sales, products }) => {
               <div style={{ display: "flex", gap: 6, marginTop: 10, justifyContent: "flex-end", flexWrap: "wrap" }}
                 onClick={e => e.stopPropagation()}>
                 <Btn onClick={() => openBalanceAdjust(c)}
-                  style={{ background: (c.balance || 0) < 0 ? "#dc2626" : (c.balance || 0) > 0 ? "#10b981" : "#6366f1", color: "#fff", fontSize: 11, padding: "4px 10px" }}>
+                  style={{ background: (c.balance || 0) < 0 ? "#EF4444" : (c.balance || 0) > 0 ? "#22C55E" : "#6366f1", color: "#fff", fontSize: 11, padding: "4px 10px" }}>
                   {(c.balance || 0) < 0 ? "Registrar pago" : (c.balance || 0) > 0 ? "Ajustar saldo" : "Ajustar saldo"}
                 </Btn>
                 <Btn onClick={() => openEdit(c)}
-                  style={{ background: "#f3f4f6", color: "#6b7280", fontSize: 11, padding: "4px 10px" }}>
+                  style={{ background: "#334155", color: "#94A3B8", fontSize: 11, padding: "4px 10px" }}>
                   Editar
                 </Btn>
                 <Btn onClick={() => handleDelete(c)}
-                  style={{ background: "#fef2f2", color: "#dc2626", fontSize: 11, padding: "4px 10px" }}>
+                  style={{ background: "#EF444418", color: "#EF4444", fontSize: 11, padding: "4px 10px" }}>
                   Eliminar
                 </Btn>
               </div>
@@ -281,11 +281,11 @@ export const Clients = ({ clients, setClients, sales, products }) => {
       {detailClient && detailStats && (
         <Card style={{ marginBottom: 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#1a1a2e", margin: 0 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#F8FAFC", margin: 0 }}>
               Historial de compras - {detailClient.name}
             </h3>
             <Btn onClick={() => setDetail(null)}
-              style={{ background: "#f3f4f6", color: "#6b7280", fontSize: 11, padding: "4px 10px" }}>
+              style={{ background: "#334155", color: "#94A3B8", fontSize: 11, padding: "4px 10px" }}>
               Cerrar
             </Btn>
           </div>
@@ -293,21 +293,21 @@ export const Clients = ({ clients, setClients, sales, products }) => {
           {/* Summary row */}
           <div style={{ display: "flex", gap: 20, marginBottom: 14, flexWrap: "wrap" }}>
             <div style={{ fontSize: 13 }}>
-              <span style={{ color: "#6b7280" }}>Total gastado: </span>
-              <span style={{ fontWeight: 700, color: "#10b981" }}>{formatMoney(detailStats.totalSpent)}</span>
+              <span style={{ color: "#94A3B8" }}>Total gastado: </span>
+              <span style={{ fontWeight: 700, color: "#22C55E" }}>{formatMoney(detailStats.totalSpent)}</span>
             </div>
             <div style={{ fontSize: 13 }}>
-              <span style={{ color: "#6b7280" }}>Compras: </span>
+              <span style={{ color: "#94A3B8" }}>Compras: </span>
               <span style={{ fontWeight: 700 }}>{detailStats.salesCount}</span>
             </div>
             <div style={{ fontSize: 13 }}>
-              <span style={{ color: "#6b7280" }}>Unidades: </span>
+              <span style={{ color: "#94A3B8" }}>Unidades: </span>
               <span style={{ fontWeight: 700 }}>{detailStats.totalUnits}</span>
             </div>
             {(detailClient.balance || 0) !== 0 && (
               <div style={{ fontSize: 13 }}>
-                <span style={{ color: "#6b7280" }}>{(detailClient.balance || 0) > 0 ? "Saldo a favor: " : "Deuda: "}</span>
-                <span style={{ fontWeight: 700, color: (detailClient.balance || 0) > 0 ? "#00b894" : "#e74c3c" }}>
+                <span style={{ color: "#94A3B8" }}>{(detailClient.balance || 0) > 0 ? "Saldo a favor: " : "Deuda: "}</span>
+                <span style={{ fontWeight: 700, color: (detailClient.balance || 0) > 0 ? "#00b894" : "#EF4444" }}>
                   {(detailClient.balance || 0) > 0 ? `+${formatMoney(detailClient.balance)}` : formatMoney(detailClient.balance)}
                 </span>
               </div>
@@ -316,33 +316,33 @@ export const Clients = ({ clients, setClients, sales, products }) => {
 
           {/* Purchase history table */}
           {detailStats.sales.length === 0 ? (
-            <div style={{ textAlign: "center", padding: 20, color: "#9ca3af", fontSize: 13 }}>
+            <div style={{ textAlign: "center", padding: 20, color: "#64748B", fontSize: 13 }}>
               Este cliente no tiene compras registradas
             </div>
           ) : (
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                 <thead>
-                  <tr style={{ borderBottom: "2px solid #e2e4e9" }}>
-                    <th style={{ padding: "8px 12px", textAlign: "left", color: "#6b7280", fontWeight: 600 }}>Fecha</th>
-                    <th style={{ padding: "8px 12px", textAlign: "left", color: "#6b7280", fontWeight: 600 }}>Productos</th>
-                    <th style={{ padding: "8px 12px", textAlign: "right", color: "#6b7280", fontWeight: 600 }}>Total</th>
-                    <th style={{ padding: "8px 12px", textAlign: "center", color: "#6b7280", fontWeight: 600 }}>Items</th>
+                  <tr style={{ borderBottom: "2px solid #334155" }}>
+                    <th style={{ padding: "8px 12px", textAlign: "left", color: "#94A3B8", fontWeight: 600 }}>Fecha</th>
+                    <th style={{ padding: "8px 12px", textAlign: "left", color: "#94A3B8", fontWeight: 600 }}>Productos</th>
+                    <th style={{ padding: "8px 12px", textAlign: "right", color: "#94A3B8", fontWeight: 600 }}>Total</th>
+                    <th style={{ padding: "8px 12px", textAlign: "center", color: "#94A3B8", fontWeight: 600 }}>Items</th>
                   </tr>
                 </thead>
                 <tbody>
                   {detailStats.sales
                     .sort((a, b) => new Date(b.date) - new Date(a.date))
                     .map(s => (
-                      <tr key={s.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
-                        <td style={{ padding: "8px 12px", color: "#6b7280", whiteSpace: "nowrap" }}>
+                      <tr key={s.id} style={{ borderBottom: "1px solid #334155" }}>
+                        <td style={{ padding: "8px 12px", color: "#94A3B8", whiteSpace: "nowrap" }}>
                           {formatDate(s.date)}
                         </td>
-                        <td style={{ padding: "8px 12px", color: "#1a1a2e" }}>
+                        <td style={{ padding: "8px 12px", color: "#F8FAFC" }}>
                           {(s.items || []).map(i => i.name || i.productName || "?").join(", ").substring(0, 50)}
                           {(s.items || []).map(i => i.name || i.productName || "?").join(", ").length > 50 ? "..." : ""}
                         </td>
-                        <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 700, color: "#10b981" }}>
+                        <td style={{ padding: "8px 12px", textAlign: "right", fontWeight: 700, color: "#22C55E" }}>
                           {formatMoney(s.total || 0)}
                         </td>
                         <td style={{ padding: "8px 12px", textAlign: "center" }}>
@@ -358,16 +358,16 @@ export const Clients = ({ clients, setClients, sales, products }) => {
           {/* Favorite products section */}
           {detailStats.favProducts.length > 0 && (
             <div style={{ marginTop: 14 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "#6b7280", marginBottom: 6 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "#94A3B8", marginBottom: 6 }}>
                 Productos favoritos
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {detailStats.favProducts.map(([name, qty], i) => (
                   <div key={i} style={{
                     padding: "6px 12px", borderRadius: 8,
-                    background: ["#eef2ff", "#fff7ed", "#ecfdf5"][i] || "#f3f4f6",
+                    background: ["#6366f122", "#F59E0B18", "#22C55E18"][i] || "#334155",
                     fontSize: 13, fontWeight: 600,
-                    color: ["#6366f1", "#f59e0b", "#10b981"][i] || "#6b7280",
+                    color: ["#6366f1", "#F59E0B", "#22C55E"][i] || "#94A3B8",
                   }}>
                     {i === 0 ? "🥇" : i === 1 ? "🥈" : "🥉"} {name} ({qty} un.)
                   </div>
@@ -379,7 +379,7 @@ export const Clients = ({ clients, setClients, sales, products }) => {
           {/* Balance History */}
           {(detailClient.balanceHistory || []).length > 0 && (
             <div style={{ marginTop: 14 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "#1a1a2e", marginBottom: 10 }}>Historial de saldo</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#F8FAFC", marginBottom: 10 }}>Historial de saldo</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {[...(detailClient.balanceHistory || [])].reverse().slice(0, 20).map(h => {
                   const typeLabels = { payment: "Pago de deuda", credit: "Crédito agregado", debit: "Deuda agregada", settle_credit: "Crédito liquidado", sale_credit_used: "Crédito usado en venta", sale_debt: "Deuda por venta", sale_credit_given: "Vuelto como crédito", adjustment: "Ajuste manual" };
@@ -387,22 +387,22 @@ export const Clients = ({ clients, setClients, sales, products }) => {
                   return (
                     <div key={h.id} style={{
                       display: "flex", justifyContent: "space-between", alignItems: "center",
-                      padding: "8px 12px", background: "#f9fafb", borderRadius: 8,
-                      borderLeft: `3px solid ${isPositive ? "#10b981" : "#dc2626"}`,
+                      padding: "8px 12px", background: "#0F172A", borderRadius: 8,
+                      borderLeft: `3px solid ${isPositive ? "#22C55E" : "#EF4444"}`,
                     }}>
                       <div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: "#1a1a2e" }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "#F8FAFC" }}>
                           {typeLabels[h.type] || h.type}
                           {h.method ? ` (${h.method}${h.mpAccount ? ` - ${h.mpAccount}` : ""})` : ""}
                         </div>
-                        {h.notes && <div style={{ fontSize: 11, color: "#9ca3af" }}>{h.notes}</div>}
-                        <div style={{ fontSize: 11, color: "#9ca3af" }}>{formatDate(h.date)}</div>
+                        {h.notes && <div style={{ fontSize: 11, color: "#64748B" }}>{h.notes}</div>}
+                        <div style={{ fontSize: 11, color: "#64748B" }}>{formatDate(h.date)}</div>
                       </div>
                       <div style={{ textAlign: "right" }}>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: isPositive ? "#10b981" : "#dc2626" }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: isPositive ? "#22C55E" : "#EF4444" }}>
                           {isPositive ? "+" : "-"}{formatMoney(h.amount)}
                         </div>
-                        <div style={{ fontSize: 10, color: "#9ca3af" }}>Saldo: {formatMoney(h.balanceAfter)}</div>
+                        <div style={{ fontSize: 10, color: "#64748B" }}>Saldo: {formatMoney(h.balanceAfter)}</div>
                       </div>
                     </div>
                   );
@@ -413,7 +413,7 @@ export const Clients = ({ clients, setClients, sales, products }) => {
 
           {/* Notes */}
           {detailClient.notes && (
-            <div style={{ marginTop: 12, padding: "8px 12px", background: "#f9fafb", borderRadius: 8, fontSize: 12, color: "#6b7280" }}>
+            <div style={{ marginTop: 12, padding: "8px 12px", background: "#0F172A", borderRadius: 8, fontSize: 12, color: "#94A3B8" }}>
               Notas: {detailClient.notes}
             </div>
           )}
@@ -431,10 +431,10 @@ export const Clients = ({ clients, setClients, sales, products }) => {
             </div>
             <Input label="Notas" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Opcional..." />
             {editing && (form.balance || 0) !== 0 && (
-              <div style={{ padding: "8px 12px", borderRadius: 8, background: (form.balance || 0) > 0 ? "#ecfdf5" : "#fef2f2", fontSize: 13 }}>
-                <span style={{ color: "#6b7280" }}>Saldo actual: </span>
-                <span style={{ fontWeight: 700, color: (form.balance || 0) > 0 ? "#10b981" : "#dc2626" }}>{formatMoney(form.balance || 0)}</span>
-                <span style={{ color: "#9ca3af", fontSize: 11 }}> (usá "Registrar pago" o "Ajustar saldo" para modificar)</span>
+              <div style={{ padding: "8px 12px", borderRadius: 8, background: (form.balance || 0) > 0 ? "#22C55E18" : "#EF444418", fontSize: 13 }}>
+                <span style={{ color: "#94A3B8" }}>Saldo actual: </span>
+                <span style={{ fontWeight: 700, color: (form.balance || 0) > 0 ? "#22C55E" : "#EF4444" }}>{formatMoney(form.balance || 0)}</span>
+                <span style={{ color: "#64748B", fontSize: 11 }}> (usá "Registrar pago" o "Ajustar saldo" para modificar)</span>
               </div>
             )}
             <Btn onClick={save} disabled={!form.name}>{editing ? "Guardar Cambios" : "Agregar Cliente"}</Btn>
@@ -446,15 +446,15 @@ export const Clients = ({ clients, setClients, sales, products }) => {
       {balanceModal && (
         <Modal title={`Ajustar saldo — ${balanceForm.clientName}`} onClose={() => setBalanceModal(false)} open={true}>
           {/* Current balance display */}
-          <div style={{ textAlign: "center", marginBottom: 16, padding: "14px", background: balanceForm.currentBalance > 0 ? "#ecfdf5" : balanceForm.currentBalance < 0 ? "#fef2f2" : "#f9fafb", borderRadius: 12, border: `1px solid ${balanceForm.currentBalance > 0 ? "#bbf7d0" : balanceForm.currentBalance < 0 ? "#fecaca" : "#e2e4e9"}` }}>
-            <div style={{ fontSize: 12, color: "#6b7280", textTransform: "uppercase", fontWeight: 600 }}>Saldo actual</div>
+          <div style={{ textAlign: "center", marginBottom: 16, padding: "14px", background: balanceForm.currentBalance > 0 ? "#22C55E18" : balanceForm.currentBalance < 0 ? "#EF444418" : "#0F172A", borderRadius: 12, border: `1px solid ${balanceForm.currentBalance > 0 ? "#22C55E40" : balanceForm.currentBalance < 0 ? "#EF444440" : "#334155"}` }}>
+            <div style={{ fontSize: 12, color: "#94A3B8", textTransform: "uppercase", fontWeight: 600 }}>Saldo actual</div>
             <div style={{
               fontSize: 32, fontWeight: 800,
-              color: balanceForm.currentBalance > 0 ? "#10b981" : balanceForm.currentBalance < 0 ? "#dc2626" : "#6b7280",
+              color: balanceForm.currentBalance > 0 ? "#22C55E" : balanceForm.currentBalance < 0 ? "#EF4444" : "#94A3B8",
             }}>
               {balanceForm.currentBalance > 0 ? "+" : ""}{formatMoney(balanceForm.currentBalance)}
             </div>
-            <div style={{ fontSize: 12, color: "#6b7280", fontWeight: 600 }}>
+            <div style={{ fontSize: 12, color: "#94A3B8", fontWeight: 600 }}>
               {balanceForm.currentBalance > 0 ? "Le debemos al cliente" : balanceForm.currentBalance < 0 ? "El cliente nos debe" : "Sin saldo pendiente"}
             </div>
           </div>
@@ -467,7 +467,7 @@ export const Clients = ({ clients, setClients, sales, products }) => {
               setBalanceForm(f => ({ ...f, type, amount: String(abs), notes: balanceForm.currentBalance < 0 ? "Deuda saldada" : "Crédito liquidado" }));
             }} style={{
               width: "100%", padding: "12px", borderRadius: 10, cursor: "pointer", marginBottom: 14,
-              border: "2px solid #059669", background: "#f0fdf4", color: "#059669",
+              border: "2px solid #22C55E", background: "#22C55E18", color: "#22C55E",
               fontWeight: 700, fontSize: 14, textAlign: "center",
             }}>
               ✅ Saldar todo ({formatMoney(Math.abs(balanceForm.currentBalance))})
@@ -477,17 +477,17 @@ export const Clients = ({ clients, setClients, sales, products }) => {
           {/* Type selector */}
           <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
             {[
-              { key: "payment", label: "Cliente pagó deuda", color: "#10b981", icon: "💰", show: true },
-              { key: "settle_credit", label: "Le pagamos al cliente", color: "#2563eb", icon: "💸", show: true },
+              { key: "payment", label: "Cliente pagó deuda", color: "#22C55E", icon: "💰", show: true },
+              { key: "settle_credit", label: "Le pagamos al cliente", color: "#3B82F6", icon: "💸", show: true },
               { key: "credit", label: "Dar crédito", color: "#6366f1", icon: "🏦", show: true },
-              { key: "debit", label: "Agregar deuda", color: "#dc2626", icon: "📝", show: true },
+              { key: "debit", label: "Agregar deuda", color: "#EF4444", icon: "📝", show: true },
             ].filter(o => o.show).map(opt => (
               <button key={opt.key} onClick={() => setBalanceForm(f => ({ ...f, type: opt.key }))}
                 style={{
                   flex: "1 1 45%", padding: "10px 6px", borderRadius: 10, cursor: "pointer",
-                  border: `2px solid ${balanceForm.type === opt.key ? opt.color : "#e2e4e9"}`,
-                  background: balanceForm.type === opt.key ? `${opt.color}15` : "#fff",
-                  color: balanceForm.type === opt.key ? opt.color : "#6b7280",
+                  border: `2px solid ${balanceForm.type === opt.key ? opt.color : "#334155"}`,
+                  background: balanceForm.type === opt.key ? `${opt.color}15` : "#0F172A",
+                  color: balanceForm.type === opt.key ? opt.color : "#94A3B8",
                   fontWeight: 700, fontSize: 11, textAlign: "center",
                 }}>
                 <div style={{ fontSize: 16, marginBottom: 2 }}>{opt.icon}</div>
@@ -521,9 +521,9 @@ export const Clients = ({ clients, setClients, sales, products }) => {
 
           {/* Preview */}
           {Number(balanceForm.amount) > 0 && (
-            <div style={{ padding: "12px 14px", borderRadius: 10, marginTop: 8, background: "#f9fafb", border: "1px solid #e2e4e9" }}>
+            <div style={{ padding: "12px 14px", borderRadius: 10, marginTop: 8, background: "#0F172A", border: "1px solid #334155" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ color: "#6b7280", fontSize: 13 }}>Saldo después</span>
+                <span style={{ color: "#94A3B8", fontSize: 13 }}>Saldo después</span>
                 {(() => {
                   const amt = Number(balanceForm.amount);
                   let nb = balanceForm.currentBalance;
@@ -531,7 +531,7 @@ export const Clients = ({ clients, setClients, sales, products }) => {
                   else nb -= amt; // debit and settle_credit both reduce balance
                   nb = Math.round(nb * 100) / 100;
                   return (
-                    <span style={{ fontSize: 20, fontWeight: 800, color: nb > 0 ? "#10b981" : nb < 0 ? "#dc2626" : "#059669" }}>
+                    <span style={{ fontSize: 20, fontWeight: 800, color: nb > 0 ? "#22C55E" : nb < 0 ? "#EF4444" : "#22C55E" }}>
                       {nb === 0 ? "✅ $0 — Saldado" : formatMoney(nb)}
                     </span>
                   );

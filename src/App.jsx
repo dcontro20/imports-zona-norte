@@ -73,8 +73,8 @@ class ErrorBoundary extends Component {
       return (
         <div style={{ padding: 40, textAlign: "center" }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
-          <h2 style={{ color: "#1a1a2e", marginBottom: 8 }}>Algo salió mal</h2>
-          <p style={{ color: "#6b7280", fontSize: 14, marginBottom: 20 }}>{this.state.error?.message || "Error inesperado"}</p>
+          <h2 style={{ color: "#F8FAFC", marginBottom: 8 }}>Algo salió mal</h2>
+          <p style={{ color: "#94A3B8", fontSize: 14, marginBottom: 20 }}>{this.state.error?.message || "Error inesperado"}</p>
           <button onClick={() => this.setState({ hasError: false, error: null })} style={{
             padding: "10px 24px", background: "#6366f1", color: "#fff", border: "none",
             borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: "pointer"
@@ -223,7 +223,7 @@ export default function App() {
   // ---- Loading screen ----
   if (authLoading) {
     return (
-      <div style={{ minHeight: "100vh", background: "#e5e7eb", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ minHeight: "100vh", background: "#0F172A", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ textAlign: "center" }}>
           <span style={{ fontSize: 48 }}>💨</span>
           <p style={{ color: "#6366f1", fontSize: 15, fontWeight: 500, marginTop: 12 }}>Cargando...</p>
@@ -235,11 +235,11 @@ export default function App() {
   // ---- Login screen ----
   if (!currentUser) {
     return (
-      <div style={{ minHeight: "100vh", background: "#e5e7eb", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Open Sans', 'Inter', -apple-system, sans-serif" }}>
-        <div style={{ background: "#fff", border: "1px solid #e2e4e9", borderRadius: 16, padding: "40px 32px", width: "100%", maxWidth: 360, textAlign: "center", boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
+      <div style={{ minHeight: "100vh", background: "#0F172A", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Open Sans', 'Inter', -apple-system, sans-serif" }}>
+        <div style={{ background: "#1E293B", border: "1px solid #334155", borderRadius: 16, padding: "40px 32px", width: "100%", maxWidth: 360, textAlign: "center", boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
           <span style={{ fontSize: 48 }}>💨</span>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: "#1a1a2e", margin: "12px 0 6px", fontFamily: "'Poppins', sans-serif" }}>IMPORTS ZONA NORTE</h1>
-          <p style={{ color: "#9ca3af", fontSize: 13, marginBottom: 24 }}>Sistema de Gestión</p>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: "#F8FAFC", margin: "12px 0 6px", fontFamily: "'Poppins', sans-serif" }}>IMPORTS ZONA NORTE</h1>
+          <p style={{ color: "#64748B", fontSize: 13, marginBottom: 24 }}>Sistema de Gestión</p>
           <input
             type="email"
             value={loginEmail}
@@ -247,9 +247,9 @@ export default function App() {
             onKeyDown={e => e.key === "Enter" && document.getElementById("login-pass")?.focus()}
             placeholder="Email"
             style={{
-              width: "100%", padding: "14px 18px", background: "#f7f8fa",
-              border: `1px solid ${loginError ? "#ef4444" : "#e2e4e9"}`,
-              borderRadius: 10, color: "#1a1a2e", fontSize: 16, outline: "none",
+              width: "100%", padding: "14px 18px", background: "#0F172A",
+              border: `1px solid ${loginError ? "#ef4444" : "#334155"}`,
+              borderRadius: 10, color: "#F8FAFC", fontSize: 16, outline: "none",
               marginBottom: 10, boxSizing: "border-box",
               transition: "border-color 0.3s"
             }}
@@ -263,9 +263,9 @@ export default function App() {
             onKeyDown={e => e.key === "Enter" && handleLogin()}
             placeholder="Contraseña"
             style={{
-              width: "100%", padding: "14px 18px", background: "#f7f8fa",
-              border: `1px solid ${loginError ? "#ef4444" : "#e2e4e9"}`,
-              borderRadius: 10, color: "#1a1a2e", fontSize: 16, outline: "none",
+              width: "100%", padding: "14px 18px", background: "#0F172A",
+              border: `1px solid ${loginError ? "#ef4444" : "#334155"}`,
+              borderRadius: 10, color: "#F8FAFC", fontSize: 16, outline: "none",
               marginBottom: 14, boxSizing: "border-box",
               transition: "border-color 0.3s"
             }}
@@ -308,12 +308,12 @@ export default function App() {
   return (
     <AppContext.Provider value={ctxValue}>
       <div style={{
-        minHeight: "100vh", background: "#e5e7eb", fontFamily: "'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif",
-        color: "#1a1a2e"
+        minHeight: "100vh", background: "#0F172A", fontFamily: "'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif",
+        color: "#F8FAFC"
       }}>
         {/* Top bar */}
         <div style={{
-          background: "#fff", borderBottom: "1px solid #e2e4e9", padding: "10px 20px",
+          background: "#1E293B", borderBottom: "1px solid #334155", padding: "10px 20px",
           display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 100,
           boxShadow: "0 1px 3px rgba(0,0,0,0.04)"
         }}>
@@ -324,7 +324,7 @@ export default function App() {
             }}>☰</button>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ fontSize: 22 }}>💨</span>
-              <span style={{ fontSize: isMobile ? 14 : 18, fontWeight: 800, color: "#1a1a2e", letterSpacing: "-0.3px" }}>IMPORTS ZONA NORTE</span>
+              <span style={{ fontSize: isMobile ? 14 : 18, fontWeight: 800, color: "#F8FAFC", letterSpacing: "-0.3px" }}>IMPORTS ZONA NORTE</span>
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 6 : 12 }}>
@@ -334,24 +334,24 @@ export default function App() {
                 <input value={globalSearch} onChange={e => { setGlobalSearch(e.target.value); setShowGlobalResults(true); }}
                   onFocus={() => setShowGlobalResults(true)}
                   placeholder="Buscar..."
-                  style={{ padding: "7px 14px 7px 32px", background: "#f7f8fa", border: "1px solid #e2e4e9", borderRadius: 8, color: "#1a1a2e", fontSize: 13, width: 180, outline: "none" }} />
-                <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "#9ca3af", pointerEvents: "none" }}>🔍</span>
+                  style={{ padding: "7px 14px 7px 32px", background: "#0F172A", border: "1px solid #334155", borderRadius: 8, color: "#F8FAFC", fontSize: 13, width: 180, outline: "none" }} />
+                <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "#64748B", pointerEvents: "none" }}>🔍</span>
                 {showGlobalResults && globalResults.length > 0 && (
                   <div style={{
-                    position: "absolute", top: "100%", right: 0, marginTop: 6, background: "#fff",
-                    border: "1px solid #e2e4e9", borderRadius: 12, width: 350, maxHeight: 400, overflowY: "auto",
+                    position: "absolute", top: "100%", right: 0, marginTop: 6, background: "#1E293B",
+                    border: "1px solid #334155", borderRadius: 12, width: 350, maxHeight: 400, overflowY: "auto",
                     boxShadow: "0 12px 32px rgba(0,0,0,0.1)", zIndex: 200
                   }}>
                     {globalResults.map((r, i) => (
                       <div key={i} onClick={() => { setPage(r.page); setGlobalSearch(""); setShowGlobalResults(false); }}
                         style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", cursor: "pointer",
-                          borderBottom: i < globalResults.length - 1 ? "1px solid #f0f1f5" : "none" }}
-                        onMouseEnter={e => e.currentTarget.style.background = "#f7f8fa"}
+                          borderBottom: i < globalResults.length - 1 ? "1px solid #334155" : "none" }}
+                        onMouseEnter={e => e.currentTarget.style.background = "#0F172A"}
                         onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                         <span style={{ fontSize: 18 }}>{r.icon}</span>
                         <div style={{ flex: 1 }}>
-                          <div style={{ color: "#1a1a2e", fontSize: 13, fontWeight: 600 }}>{r.label}</div>
-                          <div style={{ color: "#9ca3af", fontSize: 11 }}>{r.sub}</div>
+                          <div style={{ color: "#F8FAFC", fontSize: 13, fontWeight: 600 }}>{r.label}</div>
+                          <div style={{ color: "#64748B", fontSize: 11 }}>{r.sub}</div>
                         </div>
                       </div>
                     ))}
@@ -359,9 +359,9 @@ export default function App() {
                 )}
                 {showGlobalResults && globalSearch.length >= 2 && globalResults.length === 0 && (
                   <div style={{
-                    position: "absolute", top: "100%", right: 0, marginTop: 6, background: "#fff",
-                    border: "1px solid #e2e4e9", borderRadius: 12, width: 250, padding: "16px",
-                    boxShadow: "0 12px 32px rgba(0,0,0,0.1)", zIndex: 200, textAlign: "center", color: "#9ca3af", fontSize: 13
+                    position: "absolute", top: "100%", right: 0, marginTop: 6, background: "#1E293B",
+                    border: "1px solid #334155", borderRadius: 12, width: 250, padding: "16px",
+                    boxShadow: "0 12px 32px rgba(0,0,0,0.1)", zIndex: 200, textAlign: "center", color: "#64748B", fontSize: 13
                   }}>Sin resultados</div>
                 )}
               </div>
@@ -370,12 +370,12 @@ export default function App() {
             <div style={{
               display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600,
               padding: "4px 10px", borderRadius: 20,
-              background: syncStatus === "online" ? "#ecfdf5" : syncStatus === "error" ? "#fef2f2" : syncStatus === "offline" ? "#fef2f2" : "#fffbeb",
-              color: syncStatus === "online" ? "#059669" : syncStatus === "error" ? "#dc2626" : syncStatus === "offline" ? "#dc2626" : "#d97706",
-              border: `1px solid ${syncStatus === "online" ? "#a7f3d0" : syncStatus === "error" ? "#fecaca" : syncStatus === "offline" ? "#fecaca" : "#fde68a"}`,
+              background: syncStatus === "online" ? "#22C55E18" : syncStatus === "error" ? "#EF444418" : syncStatus === "offline" ? "#EF444418" : "#F59E0B18",
+              color: syncStatus === "online" ? "#22C55E" : syncStatus === "error" ? "#EF4444" : syncStatus === "offline" ? "#EF4444" : "#F59E0B",
+              border: `1px solid ${syncStatus === "online" ? "#22C55E40" : syncStatus === "error" ? "#EF444440" : syncStatus === "offline" ? "#EF444440" : "#F59E0B40"}`,
               cursor: syncStatus === "error" ? "pointer" : "default",
             }} onClick={() => syncStatus === "error" && window.location.reload()} title={syncStatus === "error" ? "Click para reintentar" : ""}>
-              <span style={{ width: 6, height: 6, borderRadius: "50%", background: syncStatus === "online" ? "#059669" : syncStatus === "error" || syncStatus === "offline" ? "#dc2626" : "#d97706", display: "inline-block" }} />
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: syncStatus === "online" ? "#22C55E" : syncStatus === "error" || syncStatus === "offline" ? "#EF4444" : "#F59E0B", display: "inline-block" }} />
               {syncStatus === "online" && "Online"}
               {syncStatus === "offline" && "Offline"}
               {syncStatus === "syncing" && "Sync..."}
@@ -383,15 +383,15 @@ export default function App() {
             </div>
             {/* Dolar Blue — hidden on mobile to save space */}
             {!isMobile && (
-              <div style={{ fontSize: 13, color: "#6b7280", fontWeight: 500 }}>
-                Blue: <span style={{ color: "#1a1a2e", fontWeight: 700 }}>${exchangeRate}</span>
+              <div style={{ fontSize: 13, color: "#94A3B8", fontWeight: 500 }}>
+                Blue: <span style={{ color: "#F8FAFC", fontWeight: 700 }}>${exchangeRate}</span>
               </div>
             )}
             {/* User badge */}
-            <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#f7f8fa", border: "1px solid #e2e4e9", borderRadius: 8, padding: isMobile ? "5px 8px" : "5px 12px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#0F172A", border: "1px solid #334155", borderRadius: 8, padding: isMobile ? "5px 8px" : "5px 12px" }}>
               <span style={{ width: 8, height: 8, borderRadius: "50%", background: currentUser.color, display: "inline-block" }} />
-              <span style={{ color: "#1a1a2e", fontSize: 13, fontWeight: 600 }}>{currentUser.name}</span>
-              <button onClick={handleLogout} style={{ background: "none", border: "none", color: "#9ca3af", cursor: "pointer", fontSize: 12, marginLeft: 4 }} title="Cerrar sesión">✕</button>
+              <span style={{ color: "#F8FAFC", fontSize: 13, fontWeight: 600 }}>{currentUser.name}</span>
+              <button onClick={handleLogout} style={{ background: "none", border: "none", color: "#64748B", cursor: "pointer", fontSize: 12, marginLeft: 4 }} title="Cerrar sesión">✕</button>
             </div>
           </div>
         </div>
@@ -399,7 +399,7 @@ export default function App() {
         <div style={{ display: "flex" }}>
           {/* Sidebar */}
           <nav style={{
-            width: 220, minHeight: "calc(100vh - 52px)", background: "#fff", borderRight: "1px solid #e2e4e9",
+            width: 220, minHeight: "calc(100vh - 52px)", background: "#1E293B", borderRight: "1px solid #334155",
             padding: "12px 0", flexShrink: 0,
             ...(isMobile ? {
               position: "fixed", top: 52, left: menuOpen ? 0 : -240, zIndex: 99,
@@ -409,9 +409,9 @@ export default function App() {
             {NAV_ITEMS.map(item => (
               <button key={item.key} onClick={() => { setPage(item.key); setMenuOpen(false); }} style={{
                 display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 20px",
-                background: page === item.key ? "#f0f0ff" : "transparent",
+                background: page === item.key ? "#6366f120" : "transparent",
                 border: "none", borderLeft: page === item.key ? "3px solid #6366f1" : "3px solid transparent",
-                color: page === item.key ? "#1a1a2e" : "#6b7280", cursor: "pointer",
+                color: page === item.key ? "#F8FAFC" : "#94A3B8", cursor: "pointer",
                 fontSize: 13, fontWeight: page === item.key ? 700 : 500, textAlign: "left",
                 transition: "all 0.2s"
               }}>
@@ -424,7 +424,7 @@ export default function App() {
           {/* Content */}
           <main style={{ flex: 1, padding: isMobile ? "16px" : "24px", maxWidth: 1100 }} onClick={() => setShowGlobalResults(false)}>
             {syncStatus === "offline" && (
-              <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#dc2626" }}>
+              <div style={{ background: "#EF444418", border: "1px solid #EF444440", borderRadius: 10, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#EF4444" }}>
                 <span>⚠️</span>
                 <span>Sin conexión a Firebase. Estás viendo datos de caché. Los cambios que hagas <b>no se guardarán</b> hasta que se restablezca la conexión.</span>
               </div>

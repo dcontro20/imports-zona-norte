@@ -16,8 +16,8 @@ Sistema web de gestión completa para "Imports Zona Norte", un negocio de import
 - **Base de datos:** Firebase Cloud Firestore (proyecto `imports-zona-norte`, región `southamerica-east1`)
 - **Hosting:** Vercel (deploy automático desde GitHub)
 - **Testing:** Vitest (23 tests de cálculos financieros)
-- **Estilo:** CSS-in-JS inline (no hay framework CSS externo)
-- **Diseño:** tema claro (#e5e7eb fondo, #fff cards), acentos violeta (#6366f1) y verde (#059669)
+- **Estilo:** CSS-in-JS inline (no hay framework CSS externo). Tokens centralizados en `src/theme.js`.
+- **Diseño:** tema oscuro profesional (#0F172A fondo, #1E293B cards, #334155 bordes), acentos violeta (#6366f1), verde (#22C55E), rojo (#EF4444), ámbar (#F59E0B). Tipografía Rubik + Nunito Sans.
 - **API externa:** dolarapi.com para cotización blue venta automática
 
 ---
@@ -270,7 +270,12 @@ La API de dolarapi.com solo actualiza el exchangeRate si Firestore no mandó uno
 
 - Todo en español (labels, comentarios, variables de negocio)
 - CSS inline con objetos de estilo (no clases)
-- Colores del tema: fondo `#e5e7eb`, cards `#fff`, borde `#e2e4e9`, texto `#1a1a2e` / `#4b5563` / `#6b7280`, acento violeta `#6366f1`, verde `#059669`, rojo `#dc2626` / `#e74c3c`, amarillo `#fdcb6e` / `#f59e0b`
+- Tema dark — tokens en `src/theme.js`:
+  - Surfaces: fondo `#0F172A`, cards `#1E293B`, inputs `#0F172A`, bordes `#334155`, borderSoft `#273246`
+  - Texto: primario `#F8FAFC`, secundario `#CBD5E1`, muted `#94A3B8`, faint `#64748B`
+  - Acentos: violeta `#6366f1`, verde `#22C55E`, rojo `#EF4444`, azul `#3B82F6`, ámbar `#F59E0B`, púrpura `#8B5CF6`
+  - Convención: status colors usan su `Bg` variant (18% opacity) como fondo tintado y `Border` (40%) como borde
+- Scripts helper en `scripts/dark-theme-swap*.mjs` para migrar colores light→dark en batch (ya ejecutados, referencia histórica)
 - Componentes reusables en UI.jsx: `Card`, `Badge`, `Btn`, `StatCard`, `Modal`, `Input`, `Select`, `Table`, `SearchBar`
 - IDs generados con helper `uid()` (timestamp base36 + random)
 - Moneda formateada con `formatMoney()` (sin decimales, con separador de miles)

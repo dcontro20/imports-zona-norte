@@ -225,7 +225,7 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, e
   const discountsARS = monthSales.reduce((s, sale) => s + (sale.discountAmount || 0), 0);
 
   return (
-    <div style={{ background: C.bg, margin: "-24px", padding: isMobile ? "16px" : "24px", minHeight: "100vh" }}>
+    <div>
 
       {/* ===== HEADER ===== */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>

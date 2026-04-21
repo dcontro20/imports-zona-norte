@@ -125,41 +125,41 @@ export const Expenses = ({ expenses, setExpenses, currentUser, exchangeRate, log
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h2 style={{ color: "#1a1a2e", margin: 0, fontSize: 22, fontWeight: 800 }}>Gastos Operativos</h2>
-          <p style={{ color: "#6b7280", margin: "4px 0 0", fontSize: 13 }}>Control de egresos del negocio</p>
+          <h2 style={{ color: "#F8FAFC", margin: 0, fontSize: 22, fontWeight: 800 }}>Gastos Operativos</h2>
+          <p style={{ color: "#94A3B8", margin: "4px 0 0", fontSize: 13 }}>Control de egresos del negocio</p>
         </div>
         <Btn onClick={openNew}>+ Registrar Gasto</Btn>
       </div>
 
       {/* Stats row */}
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit, minmax(180px, 1fr))", gap: isMobile ? 8 : 14, marginBottom: 20 }}>
-        <Card style={{ padding: "14px 18px", background: "linear-gradient(135deg, #fef2f2 0%, #fff 100%)" }}>
-          <div style={{ fontSize: 10, color: "#6b7280", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 6 }}>Este mes (ARS)</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: "#e74c3c" }}>{formatMoney(totalMonthARS)}</div>
-          {totalMonthUSD > 0 && <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>+ {formatMoney(totalMonthUSD, "USD")}</div>}
+        <Card style={{ padding: "14px 18px", background: "linear-gradient(135deg, #EF444422 0%, #1E293B 100%)" }}>
+          <div style={{ fontSize: 10, color: "#94A3B8", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 6 }}>Este mes (ARS)</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: "#EF4444" }}>{formatMoney(totalMonthARS)}</div>
+          {totalMonthUSD > 0 && <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 2 }}>+ {formatMoney(totalMonthUSD, "USD")}</div>}
         </Card>
         <Card style={{ padding: "14px 18px" }}>
-          <div style={{ fontSize: 10, color: "#6b7280", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 6 }}>Este mes (USD equiv.)</div>
+          <div style={{ fontSize: 10, color: "#94A3B8", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 6 }}>Este mes (USD equiv.)</div>
           <div style={{ fontSize: 22, fontWeight: 800, color: "#e17055" }}>
             {formatMoney(totalMonthUSD + (exchangeRate ? totalMonthARS / exchangeRate : 0), "USD")}
           </div>
         </Card>
         <Card style={{ padding: "14px 18px" }}>
-          <div style={{ fontSize: 10, color: "#6b7280", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 6 }}>Gastos este mes</div>
+          <div style={{ fontSize: 10, color: "#94A3B8", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 6 }}>Gastos este mes</div>
           <div style={{ fontSize: 22, fontWeight: 800, color: "#6366f1" }}>{monthExpenses.length}</div>
-          <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>{byCategory.length} categorías</div>
+          <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 2 }}>{byCategory.length} categorías</div>
         </Card>
         <Card style={{ padding: "14px 18px" }}>
-          <div style={{ fontSize: 10, color: "#6b7280", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 6 }}>Total histórico</div>
+          <div style={{ fontSize: 10, color: "#94A3B8", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 6 }}>Total histórico</div>
           <div style={{ fontSize: 22, fontWeight: 800, color: "#636e72" }}>{formatMoney(totalAllARS)}</div>
-          {totalAllUSD > 0 && <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>+ {formatMoney(totalAllUSD, "USD")}</div>}
+          {totalAllUSD > 0 && <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 2 }}>+ {formatMoney(totalAllUSD, "USD")}</div>}
         </Card>
       </div>
 
       {/* Category breakdown */}
       {byCategory.length > 0 && (
         <Card style={{ marginBottom: 20 }}>
-          <h4 style={{ color: "#1a1a2e", margin: "0 0 14px", fontSize: 13, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>
+          <h4 style={{ color: "#F8FAFC", margin: "0 0 14px", fontSize: 13, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>
             Desglose por categoría (este mes)
           </h4>
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
@@ -168,15 +168,15 @@ export const Expenses = ({ expenses, setExpenses, currentUser, exchangeRate, log
               const maxTotal = byCategory[0] ? byCategory[0][1].ars + (byCategory[0][1].usd * (exchangeRate || 1)) : 1;
               return (
                 <div key={cat} onClick={() => setFilter(filter === cat ? "all" : cat)}
-                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, cursor: "pointer", background: filter === cat ? "#f5f3ff" : "#f7f8fa", border: filter === cat ? "1px solid #c7d2fe" : "1px solid transparent", transition: "all 0.2s" }}>
+                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, cursor: "pointer", background: filter === cat ? "#f5f3ff" : "#0F172A", border: filter === cat ? "1px solid #6366f140" : "1px solid transparent", transition: "all 0.2s" }}>
                   <div style={{ width: 4, height: 32, borderRadius: 2, background: CAT_COLORS[cat] || "#b2bec3" }} />
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 12, color: "#4b5563", fontWeight: 600 }}>{cat}</div>
-                    <div style={{ fontSize: 11, color: "#9ca3af" }}>{data.count} gasto{data.count > 1 ? "s" : ""}</div>
+                    <div style={{ fontSize: 12, color: "#CBD5E1", fontWeight: 600 }}>{cat}</div>
+                    <div style={{ fontSize: 11, color: "#64748B" }}>{data.count} gasto{data.count > 1 ? "s" : ""}</div>
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: "#1a1a2e" }}>{formatMoney(total)}</div>
-                    {data.usd > 0 && <div style={{ fontSize: 10, color: "#059669" }}>{formatMoney(data.usd, "USD")}</div>}
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#F8FAFC" }}>{formatMoney(total)}</div>
+                    {data.usd > 0 && <div style={{ fontSize: 10, color: "#22C55E" }}>{formatMoney(data.usd, "USD")}</div>}
                   </div>
                 </div>
               );
@@ -193,9 +193,9 @@ export const Expenses = ({ expenses, setExpenses, currentUser, exchangeRate, log
       {/* Table */}
       <Card>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-          <h4 style={{ color: "#1a1a2e", margin: 0, fontSize: 13, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>
+          <h4 style={{ color: "#F8FAFC", margin: 0, fontSize: 13, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>
             {filter === "all" ? "Todos los gastos" : `Gastos: ${filter}`}
-            <span style={{ color: "#9ca3af", fontWeight: 500 }}> ({filteredExpenses.length})</span>
+            <span style={{ color: "#64748B", fontWeight: 500 }}> ({filteredExpenses.length})</span>
           </h4>
         </div>
         <Table
@@ -206,23 +206,23 @@ export const Expenses = ({ expenses, setExpenses, currentUser, exchangeRate, log
             )},
             { key: "description", label: "Descripción", render: r => (
               <div>
-                <div style={{ color: "#1a1a2e", fontSize: 13 }}>{r.description || "—"}</div>
-                {r.relatedTo && <div style={{ fontSize: 10, color: "#9ca3af" }}>Ref: {r.relatedTo}</div>}
+                <div style={{ color: "#F8FAFC", fontSize: 13 }}>{r.description || "—"}</div>
+                {r.relatedTo && <div style={{ fontSize: 10, color: "#64748B" }}>Ref: {r.relatedTo}</div>}
               </div>
             )},
             { key: "amount", label: "Monto", render: r => (
               <div style={{ textAlign: "right" }}>
-                {r.amountARS > 0 && <div style={{ fontWeight: 700, color: "#e74c3c" }}>{formatMoney(r.amountARS)}</div>}
+                {r.amountARS > 0 && <div style={{ fontWeight: 700, color: "#EF4444" }}>{formatMoney(r.amountARS)}</div>}
                 {r.amountUSD > 0 && <div style={{ fontWeight: 700, color: "#e17055" }}>{formatMoney(r.amountUSD, "USD")}</div>}
               </div>
             )},
-            { key: "createdBy", label: "Quién", render: r => r.createdBy ? <Badge color={r.createdBy === "Diego" ? "#6366f1" : "#059669"}>{r.createdBy}</Badge> : "—" },
+            { key: "createdBy", label: "Quién", render: r => r.createdBy ? <Badge color={r.createdBy === "Diego" ? "#6366f1" : "#22C55E"}>{r.createdBy}</Badge> : "—" },
             { key: "actions", label: "", render: r => (
               <div style={{ display: "flex", gap: 6 }}>
                 <button onClick={(e) => { e.stopPropagation(); openEdit(r); }} style={{ background: "none", border: "none", color: "#a855f7", cursor: "pointer", fontSize: 14 }}>✏️</button>
                 {confirmDeleteExp === r.id
-                ? <button onClick={(e) => { e.stopPropagation(); deleteExpense(r.id); }} style={{ background: "#e74c3c22", border: "1px solid #e74c3c55", color: "#e74c3c", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Confirmar</button>
-                : <button onClick={(e) => { e.stopPropagation(); deleteExpense(r.id); }} style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontSize: 14 }}>🗑️</button>
+                ? <button onClick={(e) => { e.stopPropagation(); deleteExpense(r.id); }} style={{ background: "#EF444422", border: "1px solid #EF444455", color: "#EF4444", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Confirmar</button>
+                : <button onClick={(e) => { e.stopPropagation(); deleteExpense(r.id); }} style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 14 }}>🗑️</button>
               }
               </div>
             )},
@@ -246,7 +246,7 @@ export const Expenses = ({ expenses, setExpenses, currentUser, exchangeRate, log
         </div>
 
         {form.amountARS > 0 && exchangeRate > 0 && (
-          <div style={{ color: "#6b7280", fontSize: 12, marginBottom: 8 }}>
+          <div style={{ color: "#94A3B8", fontSize: 12, marginBottom: 8 }}>
             Equivalente: ~{formatMoney(Number(form.amountARS) / exchangeRate, "USD")}
           </div>
         )}

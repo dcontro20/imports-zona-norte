@@ -108,8 +108,8 @@ export const Products = ({ products, setProducts, exchangeRate, logStock, logPri
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h2 style={{ color: "#1a1a2e", margin: 0, fontSize: 22 }}>Stock</h2>
-          <span style={{ color: "#6b7280", fontSize: 13 }}>{totalWithStock} productos con stock · {totalInStock} unidades totales · {filtered.length} productos listados</span>
+          <h2 style={{ color: "#F8FAFC", margin: 0, fontSize: 22 }}>Stock</h2>
+          <span style={{ color: "#94A3B8", fontSize: 13 }}>{totalWithStock} productos con stock · {totalInStock} unidades totales · {filtered.length} productos listados</span>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <SearchBar value={search} onChange={setSearch} placeholder="Buscar producto..." />
@@ -131,17 +131,17 @@ export const Products = ({ products, setProducts, exchangeRate, logStock, logPri
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
         {["", ...BRANDS].map(b => (
           <button key={b} onClick={() => setBrandFilter(b)} style={{
-            padding: "6px 14px", borderRadius: 20, border: "1px solid " + (brandFilter === b ? (BRAND_COLORS[b] || "#6366f1") : "#e2e4e9"),
+            padding: "6px 14px", borderRadius: 20, border: "1px solid " + (brandFilter === b ? (BRAND_COLORS[b] || "#6366f1") : "#334155"),
             background: brandFilter === b ? (BRAND_COLORS[b] || "#6366f1") + "22" : "transparent",
-            color: brandFilter === b ? (BRAND_COLORS[b] || "#6366f1") : "#6b7280",
+            color: brandFilter === b ? (BRAND_COLORS[b] || "#6366f1") : "#94A3B8",
             cursor: "pointer", fontSize: 12, fontWeight: 600
           }}>{b || "Todas"}</button>
         ))}
-        <span style={{ color: "#e2e4e9", margin: "0 2px" }}>|</span>
+        <span style={{ color: "#334155", margin: "0 2px" }}>|</span>
         {[["all", "Todos"], ["instock", "Con stock"], ["nostock", "Sin stock"]].map(([val, label]) => (
           <button key={val} onClick={() => setStockFilter(val)} style={{
-            padding: "6px 14px", borderRadius: 20, border: "1px solid " + (stockFilter === val ? "#00b894" : "#e2e4e9"),
-            background: stockFilter === val ? "#00b89422" : "transparent", color: stockFilter === val ? "#00b894" : "#6b7280",
+            padding: "6px 14px", borderRadius: 20, border: "1px solid " + (stockFilter === val ? "#00b894" : "#334155"),
+            background: stockFilter === val ? "#00b89422" : "transparent", color: stockFilter === val ? "#00b894" : "#94A3B8",
             cursor: "pointer", fontSize: 12, fontWeight: 600
           }}>{label}</button>
         ))}
@@ -161,7 +161,7 @@ export const Products = ({ products, setProducts, exchangeRate, logStock, logPri
 
       {/* Grouped Cards */}
       {grouped.length === 0 ? (
-        <Card><p style={{ color: "#9ca3af", textAlign: "center", padding: 20 }}>No hay productos que coincidan con los filtros.</p></Card>
+        <Card><p style={{ color: "#64748B", textAlign: "center", padding: 20 }}>No hay productos que coincidan con los filtros.</p></Card>
       ) : grouped.map(group => {
         const key = `${group.brand}-${group.model}`;
         const isCollapsed = collapsed[key];
@@ -174,7 +174,7 @@ export const Products = ({ products, setProducts, exchangeRate, logStock, logPri
           <div key={key} style={{ marginBottom: 12 }}>
             {/* Group Header */}
             <div onClick={() => toggleCollapse(key)} style={{
-              background: "#f7f8fa", borderRadius: isCollapsed ? 12 : "12px 12px 0 0", padding: "14px 18px",
+              background: "#0F172A", borderRadius: isCollapsed ? 12 : "12px 12px 0 0", padding: "14px 18px",
               border: `1px solid ${brandColor}33`, borderBottom: isCollapsed ? `1px solid ${brandColor}33` : "none",
               cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center",
               transition: "all 0.2s"
@@ -182,36 +182,36 @@ export const Products = ({ products, setProducts, exchangeRate, logStock, logPri
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <span style={{ fontSize: 18, transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)", transition: "transform 0.2s", display: "inline-block" }}>▼</span>
                 <Badge color={brandColor}>{group.brand}</Badge>
-                <span style={{ color: "#1a1a2e", fontWeight: 700, fontSize: 15 }}>{group.model}</span>
-                <span style={{ color: "#6b7280", fontSize: 13 }}>· {puffsFormatted} puffs</span>
-                <span style={{ color: "#6b7280", fontSize: 13 }}>· {formatMoney(group.priceUSD, "USD")} / {formatMoney(Math.round(group.priceUSD * exchangeRate))}</span>
+                <span style={{ color: "#F8FAFC", fontWeight: 700, fontSize: 15 }}>{group.model}</span>
+                <span style={{ color: "#94A3B8", fontSize: 13 }}>· {puffsFormatted} puffs</span>
+                <span style={{ color: "#94A3B8", fontSize: 13 }}>· {formatMoney(group.priceUSD, "USD")} / {formatMoney(Math.round(group.priceUSD * exchangeRate))}</span>
               </div>
               <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                <span style={{ color: "#6b7280", fontSize: 12 }}>{groupInStock}/{group.items.length} sabores</span>
-                <Badge color={groupStock > 0 ? "#00b894" : "#e74c3c"}>{groupStock} uds</Badge>
+                <span style={{ color: "#94A3B8", fontSize: 12 }}>{groupInStock}/{group.items.length} sabores</span>
+                <Badge color={groupStock > 0 ? "#00b894" : "#EF4444"}>{groupStock} uds</Badge>
               </div>
             </div>
 
             {/* Flavors List */}
             {!isCollapsed && (
               <div style={{
-                background: "#f7f8fa", borderRadius: "0 0 12px 12px", border: `1px solid ${brandColor}22`,
+                background: "#0F172A", borderRadius: "0 0 12px 12px", border: `1px solid ${brandColor}22`,
                 borderTop: `1px solid ${brandColor}15`, overflow: "hidden"
               }}>
                 {group.items.map((p, i) => (
                   <div key={p.id} style={{
                     display: "flex", alignItems: "center", justifyContent: "space-between",
-                    padding: "10px 18px", borderBottom: i < group.items.length - 1 ? "1px solid #edf0f2" : "none",
+                    padding: "10px 18px", borderBottom: i < group.items.length - 1 ? "1px solid #273246" : "none",
                     opacity: p.stock === 0 ? 0.4 : 1, transition: "opacity 0.2s"
                   }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
                       <span style={{
                         width: 8, height: 8, borderRadius: "50%",
-                        background: p.stock > 0 ? "#00b894" : "#e74c3c",
+                        background: p.stock > 0 ? "#00b894" : "#EF4444",
                         flexShrink: 0
                       }} />
                       <span style={{
-                        color: p.stock > 0 ? "#1a1a2e" : "#9ca3af",
+                        color: p.stock > 0 ? "#F8FAFC" : "#64748B",
                         fontSize: 14,
                         textDecoration: p.stock === 0 ? "line-through" : "none"
                       }}>{p.flavor}</span>
@@ -221,9 +221,9 @@ export const Products = ({ products, setProducts, exchangeRate, logStock, logPri
                         <input type="number" min={0} value={quickStocks[p.id] ?? p.stock ?? 0}
                           onChange={e => setQuickStocks(prev => ({ ...prev, [p.id]: Number(e.target.value) }))}
                           style={{
-                            width: 60, padding: "4px 8px", background: (quickStocks[p.id] ?? p.stock) !== (p.stock || 0) ? "#6366f122" : "#f7f8fa",
-                            border: `1px solid ${(quickStocks[p.id] ?? p.stock) !== (p.stock || 0) ? "#6366f1" : "#e2e4e9"}`,
-                            borderRadius: 6, color: "#1a1a2e", fontSize: 14, fontWeight: 700, textAlign: "center"
+                            width: 60, padding: "4px 8px", background: (quickStocks[p.id] ?? p.stock) !== (p.stock || 0) ? "#6366f122" : "#0F172A",
+                            border: `1px solid ${(quickStocks[p.id] ?? p.stock) !== (p.stock || 0) ? "#6366f1" : "#334155"}`,
+                            borderRadius: 6, color: "#F8FAFC", fontSize: 14, fontWeight: 700, textAlign: "center"
                           }} />
                       ) : (
                         <span style={{
@@ -233,10 +233,10 @@ export const Products = ({ products, setProducts, exchangeRate, logStock, logPri
                       )}
                       {!quickEdit && <>
                         <button onClick={(e) => { e.stopPropagation(); openEdit(p); }}
-                          style={{ background: "none", border: "none", color: "#6b7280", cursor: "pointer", fontSize: 14, padding: "2px 4px" }}
+                          style={{ background: "none", border: "none", color: "#94A3B8", cursor: "pointer", fontSize: 14, padding: "2px 4px" }}
                           title="Editar">✏️</button>
                         <button onClick={(e) => { e.stopPropagation(); remove(p.id); }}
-                          style={{ background: "none", border: "none", color: "#6b7280", cursor: "pointer", fontSize: 14, padding: "2px 4px" }}
+                          style={{ background: "none", border: "none", color: "#94A3B8", cursor: "pointer", fontSize: 14, padding: "2px 4px" }}
                           title="Eliminar">🗑️</button>
                       </>}
                     </div>

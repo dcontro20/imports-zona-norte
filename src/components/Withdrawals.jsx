@@ -64,9 +64,9 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
   // ---- chip style (same as Sales) ----
   const chipStyle = (active, color) => ({
     padding: "7px 14px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer",
-    border: `1.5px solid ${active ? (color || "#6366f1") : "#e2e4e9"}`,
-    background: active ? (color || "#6366f1") : "#fff",
-    color: active ? "#fff" : "#4b5563",
+    border: `1.5px solid ${active ? (color || "#6366f1") : "#334155"}`,
+    background: active ? (color || "#6366f1") : "#0F172A",
+    color: active ? "#fff" : "#CBD5E1",
     transition: "all .15s", whiteSpace: "nowrap",
   });
 
@@ -165,8 +165,8 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h2 style={{ color: "#1a1a2e", margin: 0, fontSize: 22 }}>Mermas</h2>
-          <span style={{ color: "#6b7280", fontSize: 13 }}>Consumo propio, garantías, canjes — {active.length} registros</span>
+          <h2 style={{ color: "#F8FAFC", margin: 0, fontSize: 22 }}>Mermas</h2>
+          <span style={{ color: "#94A3B8", fontSize: 13 }}>Consumo propio, garantías, canjes — {active.length} registros</span>
         </div>
         <Btn onClick={() => setModal(true)}>+ Registrar Merma</Btn>
       </div>
@@ -187,7 +187,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
         <StatCard label="Consumo" value={`${totalConsumo}`} icon="🚬" color="#e17055" />
         <StatCard label="Garantías" value={`${totalGarantia}`} icon="🔄" color="#fdcb6e" />
         <StatCard label="Regalos" value={`${totalRegalo}`} icon="🎁" color="#00cec9" />
-        <StatCard label="Pérdida total" value={formatMoney(totalCostUSD, "USD")} sub={exchangeRate ? formatMoney(totalCostUSD * exchangeRate) : ""} icon="📉" color="#e74c3c" />
+        <StatCard label="Pérdida total" value={formatMoney(totalCostUSD, "USD")} sub={exchangeRate ? formatMoney(totalCostUSD * exchangeRate) : ""} icon="📉" color="#EF4444" />
       </div>
 
       {/* Table */}
@@ -199,19 +199,19 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
               const p = products.find(pr => pr.id === r.productId);
               return p ? `${p.brand} ${p.model} - ${p.flavor}` : "?";
             }},
-            { key: "qty", label: "Cant.", render: r => <Badge color="#e74c3c">{r.qty}</Badge> },
+            { key: "qty", label: "Cant.", render: r => <Badge color="#EF4444">{r.qty}</Badge> },
             { key: "type", label: "Tipo", render: r => <Badge color={r.withdrawType === "Garantía / Devolución" ? "#fdcb6e" : r.withdrawType === "Regalo / Canje" ? "#00cec9" : "#e17055"}>{r.withdrawType || "Consumo"}</Badge> },
             { key: "person", label: "Quién", render: r => <Badge color={r.person === "Diego" ? "#a855f7" : "#00b894"}>{r.person}</Badge> },
             { key: "cost", label: "Pérdida", render: r => (
               <div>
-                <div style={{ fontWeight: 600, color: "#e74c3c" }}>{formatMoney(r.costEstimateUSD || 0, "USD")}</div>
-                {exchangeRate && <div style={{ fontSize: 11, color: "#9ca3af" }}>{formatMoney((r.costEstimateUSD || 0) * exchangeRate)}</div>}
+                <div style={{ fontWeight: 600, color: "#EF4444" }}>{formatMoney(r.costEstimateUSD || 0, "USD")}</div>
+                {exchangeRate && <div style={{ fontSize: 11, color: "#64748B" }}>{formatMoney((r.costEstimateUSD || 0) * exchangeRate)}</div>}
               </div>
             )},
             { key: "notes", label: "Nota", render: r => (
               <div>
                 {r.linkedSaleId && (
-                  <div style={{ fontSize: 11, color: "#f59e0b", fontWeight: 600, marginBottom: 2 }}>
+                  <div style={{ fontSize: 11, color: "#F59E0B", fontWeight: 600, marginBottom: 2 }}>
                     🔄 Garantía: {r.linkedSaleClient || "?"} ({formatDate(r.linkedSaleDate)})
                   </div>
                 )}
@@ -220,8 +220,8 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
             )},
             { key: "actions", label: "", render: r => (
               confirmDel === r.id
-                ? <button onClick={() => deleteWithdrawal(r)} style={{ background: "#e74c3c22", border: "1px solid #e74c3c55", color: "#e74c3c", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Confirmar</button>
-                : <button onClick={() => deleteWithdrawal(r)} style={{ background: "none", border: "none", color: "#e74c3c", cursor: "pointer", fontSize: 14 }}>🗑️</button>
+                ? <button onClick={() => deleteWithdrawal(r)} style={{ background: "#EF444422", border: "1px solid #EF444455", color: "#EF4444", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Confirmar</button>
+                : <button onClick={() => deleteWithdrawal(r)} style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: 14 }}>🗑️</button>
             )},
           ]}
           data={active}
@@ -237,24 +237,24 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
 
         {/* Validation error */}
         {validationError && (
-          <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "8px 12px", marginBottom: 12, color: "#dc2626", fontSize: 13, fontWeight: 600 }}>
+          <div style={{ background: "#EF444418", border: "1px solid #EF444440", borderRadius: 8, padding: "8px 12px", marginBottom: 12, color: "#EF4444", fontSize: 13, fontWeight: 600 }}>
             {validationError}
           </div>
         )}
 
         {/* Who consumed — big buttons */}
         <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>QUIÉN</div>
+          <div style={{ fontSize: 11, color: "#64748B", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>QUIÉN</div>
           <div style={{ display: "flex", gap: 10 }}>
             {WITHDRAW_PERSONS.map(p => (
               <button key={p} onClick={() => setForm(f => ({ ...f, person: p }))}
                 style={{
                   flex: 1, padding: "12px", borderRadius: 12, cursor: "pointer", textAlign: "center",
-                  border: "none", outline: `2px solid ${form.person === p ? (p === "Diego" ? "#6366f1" : "#10b981") : "#e2e4e9"}`,
-                  background: form.person === p ? (p === "Diego" ? "#eef2ff" : "#ecfdf5") : "#f9fafb",
+                  border: "none", outline: `2px solid ${form.person === p ? (p === "Diego" ? "#6366f1" : "#22C55E") : "#334155"}`,
+                  background: form.person === p ? (p === "Diego" ? "#6366f122" : "#22C55E18") : "#0F172A",
                 }}>
                 <div style={{ fontSize: 22, marginBottom: 2 }}>{p === "Diego" ? "💜" : "💙"}</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: form.person === p ? (p === "Diego" ? "#6366f1" : "#10b981") : "#4b5563" }}>{p}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: form.person === p ? (p === "Diego" ? "#6366f1" : "#22C55E") : "#CBD5E1" }}>{p}</div>
               </button>
             ))}
           </div>
@@ -262,10 +262,10 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
 
         {/* Type — chip buttons */}
         <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>TIPO DE MERMA</div>
+          <div style={{ fontSize: 11, color: "#64748B", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>TIPO DE MERMA</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {WITHDRAW_TYPES.map(t => {
-              const colors = { "Consumo propio": "#e17055", "Garantía / Devolución": "#f59e0b", "Regalo / Canje": "#00cec9" };
+              const colors = { "Consumo propio": "#e17055", "Garantía / Devolución": "#F59E0B", "Regalo / Canje": "#00cec9" };
               const icons = { "Consumo propio": "🚬", "Garantía / Devolución": "🔄", "Regalo / Canje": "🎁" };
               const active = form.withdrawType === t;
               return (
@@ -284,18 +284,18 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
         {/* Warranty: link to original sale */}
         {form.withdrawType === "Garantía / Devolución" && (
           <div style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 11, color: "#f59e0b", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>
+            <div style={{ fontSize: 11, color: "#F59E0B", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>
               🔄 VENTA ORIGINAL (¿qué vape salió fallido?)
             </div>
 
             {form.linkedSaleId ? (
               // Selected sale
-              <div style={{ background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: 10, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ background: "#F59E0B18", border: "1px solid #fcd34d", borderRadius: 10, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 13, color: "#1a1a2e" }}>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: "#F8FAFC" }}>
                     {form.linkedSaleClient || "Sin cliente"} — {formatDate(form.linkedSaleDate)}
                   </div>
-                  <div style={{ fontSize: 12, color: "#6b7280" }}>
+                  <div style={{ fontSize: 12, color: "#94A3B8" }}>
                     {(() => {
                       const s = (sales || []).find(x => x.id === form.linkedSaleId);
                       if (!s) return "";
@@ -307,7 +307,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                   </div>
                 </div>
                 <button onClick={() => { setForm(f => ({ ...f, linkedSaleId: "", linkedSaleClient: "", linkedSaleDate: "" })); setSaleSearch(""); }}
-                  style={{ background: "none", border: "none", color: "#9ca3af", cursor: "pointer", fontSize: 16 }}>✕</button>
+                  style={{ background: "none", border: "none", color: "#64748B", cursor: "pointer", fontSize: 16 }}>✕</button>
               </div>
             ) : (
               // Search for sale
@@ -317,17 +317,17 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                   onFocus={() => setShowSaleDropdown(true)}
                   placeholder="Buscar por cliente o producto..."
                   style={{
-                    width: "100%", padding: "10px 14px", background: "#fffbeb", border: "1px solid #fcd34d",
+                    width: "100%", padding: "10px 14px", background: "#F59E0B18", border: "1px solid #fcd34d",
                     borderRadius: 10, fontSize: 14, outline: "none", boxSizing: "border-box",
                   }} />
                 {showSaleDropdown && (
                   <div style={{
-                    position: "absolute", top: "100%", left: 0, right: 0, background: "#fff",
-                    border: "1px solid #e2e4e9", borderRadius: 10, marginTop: 4, zIndex: 50,
+                    position: "absolute", top: "100%", left: 0, right: 0, background: "#1E293B",
+                    border: "1px solid #334155", borderRadius: 10, marginTop: 4, zIndex: 50,
                     maxHeight: 280, overflowY: "auto", boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
                   }}>
                     {filteredSales.length === 0 ? (
-                      <div style={{ padding: 14, textAlign: "center", color: "#9ca3af", fontSize: 13 }}>
+                      <div style={{ padding: 14, textAlign: "center", color: "#64748B", fontSize: 13 }}>
                         {saleSearch ? `No se encontró "${saleSearch}"` : "No hay ventas recientes"}
                       </div>
                     ) : filteredSales.map(s => {
@@ -342,16 +342,16 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                           setSaleSearch("");
                         }} style={{
                           display: "block", width: "100%", padding: "10px 14px", background: "none",
-                          border: "none", borderBottom: "1px solid #f3f4f6", cursor: "pointer", textAlign: "left",
+                          border: "none", borderBottom: "1px solid #334155", cursor: "pointer", textAlign: "left",
                         }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <div style={{ fontWeight: 600, fontSize: 13, color: "#1a1a2e" }}>
+                            <div style={{ fontWeight: 600, fontSize: 13, color: "#F8FAFC" }}>
                               {s.clientName || "Sin cliente"}
                             </div>
-                            <span style={{ fontSize: 11, color: "#9ca3af" }}>{formatDate(s.date)}</span>
+                            <span style={{ fontSize: 11, color: "#64748B" }}>{formatDate(s.date)}</span>
                           </div>
-                          <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>{itemsText}</div>
-                          <div style={{ fontSize: 11, color: "#10b981", fontWeight: 600 }}>{formatMoney(s.total, s.currency)}</div>
+                          <div style={{ fontSize: 12, color: "#94A3B8", marginTop: 2 }}>{itemsText}</div>
+                          <div style={{ fontSize: 11, color: "#22C55E", fontWeight: 600 }}>{formatMoney(s.total, s.currency)}</div>
                         </button>
                       );
                     })}
@@ -359,7 +359,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                 )}
               </div>
             )}
-            <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 6 }}>
+            <div style={{ fontSize: 11, color: "#64748B", marginTop: 6 }}>
               Opcional — vinculá esta garantía con la venta original del vape fallido
             </div>
           </div>
@@ -367,7 +367,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
 
         {/* Brand chips */}
         <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>
+          <div style={{ fontSize: 11, color: "#64748B", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>
             {form.withdrawType === "Garantía / Devolución" ? "PRODUCTO DE REEMPLAZO" : "MARCA"}
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -384,7 +384,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
         {/* Model chips */}
         {form.brand && modelsForBrand.length > 0 && (
           <div style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>MODELO</div>
+            <div style={{ fontSize: 11, color: "#64748B", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>MODELO</div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               {modelsForBrand.map(m => {
                 const stockForModel = availableProducts.filter(p => p.brand === form.brand && p.model === m).reduce((s, p) => s + p.stock, 0);
@@ -402,7 +402,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
         {/* Flavor chips */}
         {form.brand && form.model && flavorsForModel.length > 0 && (
           <div style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>SABOR ({flavorsForModel.length})</div>
+            <div style={{ fontSize: 11, color: "#64748B", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>SABOR ({flavorsForModel.length})</div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", maxHeight: 180, overflowY: "auto" }}>
               {flavorsForModel.map(p => (
                 <button key={p.id} onClick={() => setForm(f => ({ ...f, productId: p.id }))}
@@ -416,29 +416,29 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
 
         {/* Selected product + qty */}
         {selectedProd && (
-          <div style={{ background: "#f9fafb", border: "1px solid #e2e4e9", borderRadius: 12, padding: 14, marginBottom: 14 }}>
+          <div style={{ background: "#0F172A", border: "1px solid #334155", borderRadius: 12, padding: 14, marginBottom: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "#1a1a2e" }}>{selectedProd.brand} {selectedProd.model} - {selectedProd.flavor}</div>
-                <div style={{ fontSize: 12, color: "#6b7280" }}>{selectedProd.puffs}p · Stock: {selectedProd.stock}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#F8FAFC" }}>{selectedProd.brand} {selectedProd.model} - {selectedProd.flavor}</div>
+                <div style={{ fontSize: 12, color: "#94A3B8" }}>{selectedProd.puffs}p · Stock: {selectedProd.stock}</div>
               </div>
               <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#e74c3c" }}>{formatMoney(selectedProd.priceUSD, "USD")}/u</div>
-                {exchangeRate && <div style={{ fontSize: 11, color: "#9ca3af" }}>{formatMoney(selectedProd.priceUSD * exchangeRate)}/u</div>}
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#EF4444" }}>{formatMoney(selectedProd.priceUSD, "USD")}/u</div>
+                {exchangeRate && <div style={{ fontSize: 11, color: "#64748B" }}>{formatMoney(selectedProd.priceUSD * exchangeRate)}/u</div>}
               </div>
             </div>
 
             {/* Quantity picker */}
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ fontSize: 12, color: "#6b7280", fontWeight: 600 }}>CANTIDAD</div>
+              <div style={{ fontSize: 12, color: "#94A3B8", fontWeight: 600 }}>CANTIDAD</div>
               <button onClick={() => setForm(f => ({ ...f, qty: Math.max(1, (Number(f.qty) || 1) - 1) }))}
-                style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid #e2e4e9", background: "#fff", cursor: "pointer", fontSize: 18, fontWeight: 700 }}>−</button>
+                style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid #334155", background: "#1E293B", cursor: "pointer", fontSize: 18, fontWeight: 700 }}>−</button>
               <span style={{ fontSize: 22, fontWeight: 800, minWidth: 32, textAlign: "center" }}>{form.qty}</span>
               <button onClick={() => setForm(f => ({ ...f, qty: Math.min(selectedProd.stock, (Number(f.qty) || 1) + 1) }))}
-                style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid #e2e4e9", background: "#fff", cursor: "pointer", fontSize: 18, fontWeight: 700 }}>+</button>
+                style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid #334155", background: "#1E293B", cursor: "pointer", fontSize: 18, fontWeight: 700 }}>+</button>
               <div style={{ marginLeft: "auto", textAlign: "right" }}>
-                <div style={{ fontSize: 16, fontWeight: 800, color: "#e74c3c" }}>{formatMoney(selectedProd.priceUSD * (Number(form.qty) || 1), "USD")}</div>
-                {exchangeRate && <div style={{ fontSize: 12, color: "#9ca3af" }}>{formatMoney(selectedProd.priceUSD * (Number(form.qty) || 1) * exchangeRate)}</div>}
+                <div style={{ fontSize: 16, fontWeight: 800, color: "#EF4444" }}>{formatMoney(selectedProd.priceUSD * (Number(form.qty) || 1), "USD")}</div>
+                {exchangeRate && <div style={{ fontSize: 12, color: "#64748B" }}>{formatMoney(selectedProd.priceUSD * (Number(form.qty) || 1) * exchangeRate)}</div>}
               </div>
             </div>
           </div>
@@ -457,15 +457,15 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
 
         {/* Cost preview */}
         {selectedProd && (
-          <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 14px", marginBottom: 14 }}>
+          <div style={{ background: "#EF444418", border: "1px solid #EF444440", borderRadius: 10, padding: "10px 14px", marginBottom: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
-                <div style={{ fontSize: 11, color: "#dc2626", fontWeight: 600, textTransform: "uppercase" }}>Pérdida estimada</div>
-                <div style={{ fontSize: 11, color: "#9ca3af" }}>Se descuenta del stock y se registra como pérdida</div>
+                <div style={{ fontSize: 11, color: "#EF4444", fontWeight: 600, textTransform: "uppercase" }}>Pérdida estimada</div>
+                <div style={{ fontSize: 11, color: "#64748B" }}>Se descuenta del stock y se registra como pérdida</div>
               </div>
               <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 18, fontWeight: 800, color: "#dc2626" }}>{formatMoney(selectedProd.priceUSD * (Number(form.qty) || 1), "USD")}</div>
-                {exchangeRate && <div style={{ fontSize: 13, color: "#e74c3c" }}>{formatMoney(selectedProd.priceUSD * (Number(form.qty) || 1) * exchangeRate)}</div>}
+                <div style={{ fontSize: 18, fontWeight: 800, color: "#EF4444" }}>{formatMoney(selectedProd.priceUSD * (Number(form.qty) || 1), "USD")}</div>
+                {exchangeRate && <div style={{ fontSize: 13, color: "#EF4444" }}>{formatMoney(selectedProd.priceUSD * (Number(form.qty) || 1) * exchangeRate)}</div>}
               </div>
             </div>
           </div>

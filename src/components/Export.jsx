@@ -180,32 +180,32 @@ export const ExportData = ({ products, sales, purchases, expenses, withdrawals, 
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h2 style={{ color: "#1a1a2e", margin: 0, fontSize: 22 }}>Exportar y Respaldar</h2>
-          <span style={{ color: "#6b7280", fontSize: 13 }}>Descargá backups completos o datos individuales en CSV</span>
+          <h2 style={{ color: "#F8FAFC", margin: 0, fontSize: 22 }}>Exportar y Respaldar</h2>
+          <span style={{ color: "#94A3B8", fontSize: 13 }}>Descargá backups completos o datos individuales en CSV</span>
         </div>
       </div>
 
       {/* BACKUP SECTION */}
-      <Card style={{ marginBottom: 20, background: backupUrgent ? "linear-gradient(135deg, #dc262622, #ef444422)" : backupWarning ? "linear-gradient(135deg, #f59e0b11, #f59e0b22)" : "linear-gradient(135deg, #05966911, #34d39922)", border: `1px solid ${backupUrgent ? "#ef444444" : backupWarning ? "#f59e0b44" : "#05966944"}` }}>
+      <Card style={{ marginBottom: 20, background: backupUrgent ? "linear-gradient(135deg, #EF444422, #ef444422)" : backupWarning ? "linear-gradient(135deg, #F59E0B11, #F59E0B22)" : "linear-gradient(135deg, #22C55E11, #34d39922)", border: `1px solid ${backupUrgent ? "#ef444444" : backupWarning ? "#F59E0B44" : "#22C55E44"}` }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ width: 50, height: 50, borderRadius: 14, background: backupUrgent ? "#ef444422" : backupWarning ? "#f59e0b22" : "#05966922", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>
+            <div style={{ width: 50, height: 50, borderRadius: 14, background: backupUrgent ? "#ef444422" : backupWarning ? "#F59E0B22" : "#22C55E22", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>
               {backupUrgent ? "🚨" : backupWarning ? "⚠️" : "🛡️"}
             </div>
             <div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: "#1a1a2e" }}>Backup Completo</div>
-              <div style={{ fontSize: 12, color: "#6b7280" }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "#F8FAFC" }}>Backup Completo</div>
+              <div style={{ fontSize: 12, color: "#94A3B8" }}>
                 {totalRecords.toLocaleString()} registros totales · {lastBackup ? `Último backup: ${timeSince(lastBackup)}` : "Nunca se hizo un backup"}
               </div>
               {backupUrgent && <div style={{ fontSize: 11, color: "#ef4444", fontWeight: 600, marginTop: 2 }}>Se recomienda hacer backup al menos una vez por semana</div>}
-              {backupWarning && <div style={{ fontSize: 11, color: "#f59e0b", fontWeight: 600, marginTop: 2 }}>Hay datos nuevos desde tu último backup</div>}
+              {backupWarning && <div style={{ fontSize: 11, color: "#F59E0B", fontWeight: 600, marginTop: 2 }}>Hay datos nuevos desde tu último backup</div>}
             </div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <Btn onClick={backupJSON} style={{ background: "#059669", fontSize: 14, padding: "10px 20px" }}>
+            <Btn onClick={backupJSON} style={{ background: "#22C55E", fontSize: 14, padding: "10px 20px" }}>
               🛡️ Descargar Backup JSON
             </Btn>
-            <Btn onClick={exportAll} style={{ background: exporting ? "#9ca3af" : "#6366f1", fontSize: 13 }}>
+            <Btn onClick={exportAll} style={{ background: exporting ? "#64748B" : "#6366f1", fontSize: 13 }}>
               {exporting ? "⏳ Exportando..." : "📥 CSV Todo"}
             </Btn>
           </div>
@@ -223,9 +223,9 @@ export const ExportData = ({ products, sales, purchases, expenses, withdrawals, 
               <span style={{ fontSize: 28 }}>{exp.icon}</span>
               <div>
                 <div style={{ color: exp.color, fontSize: 14, fontWeight: 700 }}>{exp.label}</div>
-                <div style={{ color: "#6b7280", fontSize: 12 }}>{exp.sub}</div>
+                <div style={{ color: "#94A3B8", fontSize: 12 }}>{exp.sub}</div>
               </div>
-              <span style={{ marginLeft: "auto", color: "#6b7280", fontSize: 18 }}>⬇</span>
+              <span style={{ marginLeft: "auto", color: "#94A3B8", fontSize: 18 }}>⬇</span>
             </div>
           </Card>
         ))}
@@ -233,21 +233,21 @@ export const ExportData = ({ products, sales, purchases, expenses, withdrawals, 
 
       {/* Info cards */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-        <Card style={{ background: "#f7f8fa", border: "1px solid #e2e4e9" }}>
+        <Card style={{ background: "#0F172A", border: "1px solid #334155" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 18 }}>🛡️</span>
             <div>
-              <div style={{ color: "#1a1a2e", fontSize: 13, fontWeight: 600 }}>Backup JSON</div>
-              <span style={{ color: "#6b7280", fontSize: 12 }}>Un solo archivo con TODA la información del sistema. Ideal para respaldo completo o migración. Se puede restaurar.</span>
+              <div style={{ color: "#F8FAFC", fontSize: 13, fontWeight: 600 }}>Backup JSON</div>
+              <span style={{ color: "#94A3B8", fontSize: 12 }}>Un solo archivo con TODA la información del sistema. Ideal para respaldo completo o migración. Se puede restaurar.</span>
             </div>
           </div>
         </Card>
-        <Card style={{ background: "#f7f8fa", border: "1px solid #e2e4e9" }}>
+        <Card style={{ background: "#0F172A", border: "1px solid #334155" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 18 }}>📊</span>
             <div>
-              <div style={{ color: "#1a1a2e", fontSize: 13, fontWeight: 600 }}>Archivos CSV</div>
-              <span style={{ color: "#6b7280", fontSize: 12 }}>Archivos individuales compatibles con Excel y Google Sheets para análisis detallado de cada área.</span>
+              <div style={{ color: "#F8FAFC", fontSize: 13, fontWeight: 600 }}>Archivos CSV</div>
+              <span style={{ color: "#94A3B8", fontSize: 12 }}>Archivos individuales compatibles con Excel y Google Sheets para análisis detallado de cada área.</span>
             </div>
           </div>
         </Card>

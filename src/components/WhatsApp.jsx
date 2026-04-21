@@ -142,17 +142,17 @@ export const WhatsAppMessage = ({ products, exchangeRate }) => {
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
-        <h2 style={{ color: "#1a1a2e", margin: 0, fontSize: 22 }}>📲 Mensaje WhatsApp</h2>
+        <h2 style={{ color: "#F8FAFC", margin: 0, fontSize: 22 }}>📲 Mensaje WhatsApp</h2>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <div style={{ display: "flex", gap: 4, background: "#f0f1f5", borderRadius: 8, padding: 3 }}>
+          <div style={{ display: "flex", gap: 4, background: "#334155", borderRadius: 8, padding: 3 }}>
             <button onClick={() => setMode("full")} style={{
               padding: "5px 12px", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer",
-              background: mode === "full" ? "#fff" : "transparent", color: mode === "full" ? "#25d366" : "#6b7280",
+              background: mode === "full" ? "#1E293B" : "transparent", color: mode === "full" ? "#25d366" : "#94A3B8",
               boxShadow: mode === "full" ? "0 1px 3px rgba(0,0,0,0.08)" : "none"
             }}>Completo</button>
             <button onClick={() => setMode("short")} style={{
               padding: "5px 12px", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer",
-              background: mode === "short" ? "#fff" : "transparent", color: mode === "short" ? "#e1306c" : "#6b7280",
+              background: mode === "short" ? "#1E293B" : "transparent", color: mode === "short" ? "#e1306c" : "#94A3B8",
               boxShadow: mode === "short" ? "0 1px 3px rgba(0,0,0,0.08)" : "none"
             }}>Stories</button>
           </div>
@@ -172,7 +172,7 @@ export const WhatsAppMessage = ({ products, exchangeRate }) => {
         <StatCard label="Unidades disponibles" value={productsWithDynamicARS.reduce((s, p) => s + (p.stock || 0), 0)} icon="🔥" color="#fdcb6e" />
       </div>
 
-      <Card style={{ marginBottom: 14, background: "#f7f8fa", border: "1px solid #25d36644" }}>
+      <Card style={{ marginBottom: 14, background: "#0F172A", border: "1px solid #25d36644" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
           <span style={{ fontSize: 20 }}>💡</span>
           <span style={{ color: "#25d366", fontSize: 13, fontWeight: 600 }}>
@@ -183,7 +183,7 @@ export const WhatsAppMessage = ({ products, exchangeRate }) => {
 
       <Card>
         <div style={{
-          whiteSpace: "pre-wrap", fontFamily: "monospace", fontSize: 13, color: "#4b5563",
+          whiteSpace: "pre-wrap", fontFamily: "monospace", fontSize: 13, color: "#CBD5E1",
           lineHeight: 1.7, maxHeight: 600, overflowY: "auto", padding: 8
         }}>
           {message.split("\n").map((line, i) => {
@@ -193,7 +193,7 @@ export const WhatsAppMessage = ({ products, exchangeRate }) => {
             if (isBold) {
               const parts = line.split("*");
               return (
-                <div key={i} style={{ color: isHeader ? "#6366f1" : "#1a1a2e" }}>
+                <div key={i} style={{ color: isHeader ? "#6366f1" : "#F8FAFC" }}>
                   {parts.map((part, j) => j % 2 === 1
                     ? <strong key={j}>{part}</strong>
                     : <span key={j}>{part}</span>
