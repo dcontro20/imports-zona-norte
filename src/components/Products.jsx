@@ -2,11 +2,13 @@ import { useState, useMemo } from "react";
 import { uid, formatMoney } from "../helpers.js";
 import { Modal, Card, Btn, Input, Select, Table, Badge, SearchBar } from "./UI.jsx";
 import { BRANDS, BRAND_COLORS } from "../constants.js";
+import { useResponsive } from "../App.jsx";
 
 // -- PRODUCTS / STOCK --
 
 
 export const Products = ({ products, setProducts, exchangeRate, logStock, logPrice, currentUser, logAudit }) => {
+  const { isMobile } = useResponsive();
   const [search, setSearch] = useState("");
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -127,22 +129,32 @@ export const Products = ({ products, setProducts, exchangeRate, logStock, logPri
         </div>
       </div>
 
-      {/* Filters */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+      {/* Filters — scroll horizontal en mobile */}
+      <div style={{
+        display: "flex", gap: 6, marginBottom: 16, alignItems: "center",
+        overflowX: "auto", WebkitOverflowScrolling: "touch",
+        paddingBottom: 4,
+        scrollbarWidth: "thin",
+      }}>
         {["", ...BRANDS].map(b => (
           <button key={b} onClick={() => setBrandFilter(b)} style={{
-            padding: "6px 14px", borderRadius: 20, border: "1px solid " + (brandFilter === b ? (BRAND_COLORS[b] || "#5E6AD2") : "#E8E7E3"),
+            padding: "8px 14px", borderRadius: 20, minHeight: 36, flexShrink: 0,
+            border: "1px solid " + (brandFilter === b ? (BRAND_COLORS[b] || "#5E6AD2") : "#E8E7E3"),
             background: brandFilter === b ? (BRAND_COLORS[b] || "#5E6AD2") + "22" : "transparent",
             color: brandFilter === b ? (BRAND_COLORS[b] || "#5E6AD2") : "#8C8A82",
-            cursor: "pointer", fontSize: 12, fontWeight: 600
+            cursor: "pointer", fontSize: 12, fontWeight: 600,
+            fontFamily: "inherit", whiteSpace: "nowrap",
           }}>{b || "Todas"}</button>
         ))}
-        <span style={{ color: "#E8E7E3", margin: "0 2px" }}>|</span>
+        <span style={{ color: "#E8E7E3", margin: "0 4px", flexShrink: 0 }}>|</span>
         {[["all", "Todos"], ["instock", "Con stock"], ["nostock", "Sin stock"]].map(([val, label]) => (
           <button key={val} onClick={() => setStockFilter(val)} style={{
-            padding: "6px 14px", borderRadius: 20, border: "1px solid " + (stockFilter === val ? "#00b894" : "#E8E7E3"),
-            background: stockFilter === val ? "#00b89422" : "transparent", color: stockFilter === val ? "#00b894" : "#8C8A82",
-            cursor: "pointer", fontSize: 12, fontWeight: 600
+            padding: "8px 14px", borderRadius: 20, minHeight: 36, flexShrink: 0,
+            border: "1px solid " + (stockFilter === val ? "#00b894" : "#E8E7E3"),
+            background: stockFilter === val ? "#00b89422" : "transparent",
+            color: stockFilter === val ? "#00b894" : "#8C8A82",
+            cursor: "pointer", fontSize: 12, fontWeight: 600,
+            fontFamily: "inherit", whiteSpace: "nowrap",
           }}>{label}</button>
         ))}
       </div>
@@ -254,9 +266,13 @@ export const Products = ({ products, setProducts, exchangeRate, logStock, logPri
         <Input label="Modelo" placeholder="ej: BC5000, A16000..." value={form.model} onChange={e => setForm(f => ({ ...f, model: e.target.value }))} />
         <Input label="Sabor" placeholder="ej: Watermelon Ice, Grape..." value={form.flavor} onChange={e => setForm(f => ({ ...f, flavor: e.target.value }))} />
         <Input label="Puffs" placeholder="ej: 5000, 8000, 16000..." value={form.puffs} onChange={e => setForm(f => ({ ...f, puffs: e.target.value }))} />
-        <div style={{ display: "flex", gap: 12 }}>
-          <Input label="Precio venta USD" type="number" value={form.priceUSD} onChange={e => setForm(f => ({ ...f, priceUSD: e.target.value }))} />
-          <Input label="Precio venta ARS" type="number" value={form.priceARS} onChange={e => setForm(f => ({ ...f, priceARS: e.target.value }))} />
+        <div style={{ display: "flex", gap: 10, flexDirection: isMobile ? "column" : "row" }}>
+          <div style={{ flex: 1 }}>
+            <Input label="Precio venta USD" type="number" value={form.priceUSD} onChange={e => setForm(f => ({ ...f, priceUSD: e.target.value }))} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <Input label="Precio venta ARS" type="number" value={form.priceARS} onChange={e => setForm(f => ({ ...f, priceARS: e.target.value }))} />
+          </div>
         </div>
         <Input label="Stock" type="number" value={form.stock} onChange={e => setForm(f => ({ ...f, stock: Number(e.target.value) }))} />
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 16 }}>

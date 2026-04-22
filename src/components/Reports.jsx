@@ -3,6 +3,7 @@ import { formatMoney, formatDate } from "../helpers.js";
 import { calcTotalRevenue } from "../calcs.js";
 import { Card, Badge, Table } from "./UI.jsx";
 import { BRAND_COLORS } from "../constants.js";
+import { useResponsive } from "../App.jsx";
 
 // -- REPORTS --
 const BarChart = ({ data, colorKey, valueKey, labelKey, maxBars = 10, suffix = "" }) => {
@@ -71,6 +72,7 @@ const DonutChart = ({ data, size = 160 }) => {
 };
 
 export const Reports = ({ products, sales, purchases, expenses, withdrawals, exchangeRate }) => {
+  const { isMobile } = useResponsive();
   // Note: App.jsx already passes active* (filtered) data for most read-only components,
   // but we add safety filters here for any that might slip through
   const brandStats = useMemo(() => {
@@ -222,7 +224,7 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, exc
         })()}
       </Card>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14, marginBottom: 14 }}>
         {/* Sales by brand - bar chart */}
         <Card>
           <h4 style={{ color: "#a855f7", margin: "0 0 14px", fontSize: 14, textTransform: "uppercase" }}>📊 Ventas por Marca</h4>
@@ -361,7 +363,7 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, exc
           const consumoValue = (withdrawals || []).reduce((s, w) => s + (w.costEstimateUSD || 0), 0) * exchangeRate;
           
           return (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 12 : 20 }}>
               <div>
                 <div style={{ color: "#00b894", fontSize: 13, fontWeight: 700, marginBottom: 10, textTransform: "uppercase" }}>Activos</div>
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #F0EFEB" }}>

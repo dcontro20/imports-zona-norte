@@ -313,18 +313,27 @@ export default function App() {
       }}>
         {/* Top bar */}
         <div style={{
-          background: "#FFFFFF", borderBottom: "1px solid #E8E7E3", padding: "10px 20px",
-          display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 100,
-          boxShadow: "0 1px 3px rgba(0,0,0,0.04)"
+          background: "#FFFFFF", borderBottom: "1px solid #E8E7E3",
+          padding: isMobile ? "10px 14px" : "10px 20px",
+          paddingTop: "max(10px, env(safe-area-inset-top))",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          position: "sticky", top: 0, zIndex: 100,
+          boxShadow: "0 1px 3px rgba(15,15,15,0.04)",
+          gap: 8,
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <button onClick={() => setMenuOpen(!menuOpen)} style={{
-              background: "none", border: "none", color: "#5E6AD2", fontSize: 22, cursor: "pointer",
-              display: isMobile ? "block" : "none"
+          <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 6 : 12, minWidth: 0, flex: "0 1 auto" }}>
+            <button onClick={() => setMenuOpen(!menuOpen)} aria-label="Abrir menú" style={{
+              background: "none", border: "none", color: "#5E6AD2", fontSize: 24, cursor: "pointer",
+              display: isMobile ? "flex" : "none", flexShrink: 0,
+              width: 40, height: 40, padding: 0, borderRadius: 8,
+              alignItems: "center", justifyContent: "center",
             }}>☰</button>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 22 }}>💨</span>
-              <span style={{ fontSize: isMobile ? 14 : 18, fontWeight: 800, color: "#37352F", letterSpacing: "-0.3px" }}>IMPORTS ZONA NORTE</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+              <span style={{ fontSize: isMobile ? 20 : 22, flexShrink: 0 }}>💨</span>
+              <span style={{
+                fontSize: isMobile ? 13 : 18, fontWeight: 800, color: "#37352F", letterSpacing: "-0.3px",
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+              }}>{isMobile ? "IMPORTS ZN" : "IMPORTS ZONA NORTE"}</span>
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 6 : 12 }}>
@@ -366,20 +375,28 @@ export default function App() {
                 )}
               </div>
             )}
-            {/* Sync status badge */}
+            {/* Sync status badge — solo dot en mobile */}
             <div style={{
               display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600,
-              padding: "4px 10px", borderRadius: 20,
+              padding: isMobile ? "4px 8px" : "4px 10px",
+              borderRadius: 20, flexShrink: 0,
               background: syncStatus === "online" ? "#DDEDEA" : syncStatus === "error" ? "#FBE4E4" : syncStatus === "offline" ? "#FBE4E4" : "#FDECC8",
               color: syncStatus === "online" ? "#0F7B6C" : syncStatus === "error" ? "#E03E3E" : syncStatus === "offline" ? "#E03E3E" : "#CB912F",
               border: `1px solid ${syncStatus === "online" ? "#B6D4CC" : syncStatus === "error" ? "#F1B8B6" : syncStatus === "offline" ? "#F1B8B6" : "#F2D59A"}`,
               cursor: syncStatus === "error" ? "pointer" : "default",
-            }} onClick={() => syncStatus === "error" && window.location.reload()} title={syncStatus === "error" ? "Click para reintentar" : ""}>
-              <span style={{ width: 6, height: 6, borderRadius: "50%", background: syncStatus === "online" ? "#0F7B6C" : syncStatus === "error" || syncStatus === "offline" ? "#E03E3E" : "#CB912F", display: "inline-block" }} />
-              {syncStatus === "online" && "Online"}
-              {syncStatus === "offline" && "Offline"}
-              {syncStatus === "syncing" && "Sync..."}
-              {syncStatus === "error" && "Error sync"}
+            }} onClick={() => syncStatus === "error" && window.location.reload()} title={
+              syncStatus === "online" ? "Conectado" :
+              syncStatus === "offline" ? "Sin conexión" :
+              syncStatus === "syncing" ? "Sincronizando..." :
+              "Error · click para reintentar"
+            }>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", background: syncStatus === "online" ? "#0F7B6C" : syncStatus === "error" || syncStatus === "offline" ? "#E03E3E" : "#CB912F", display: "inline-block", flexShrink: 0 }} />
+              {!isMobile && (<>
+                {syncStatus === "online" && "Online"}
+                {syncStatus === "offline" && "Offline"}
+                {syncStatus === "syncing" && "Sync..."}
+                {syncStatus === "error" && "Error"}
+              </>)}
             </div>
             {/* Dolar Blue — hidden on mobile to save space */}
             {!isMobile && (
@@ -388,10 +405,24 @@ export default function App() {
               </div>
             )}
             {/* User badge */}
-            <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 8, padding: isMobile ? "5px 8px" : "5px 12px" }}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: currentUser.color, display: "inline-block" }} />
-              <span style={{ color: "#37352F", fontSize: 13, fontWeight: 600 }}>{currentUser.name}</span>
-              <button onClick={handleLogout} style={{ background: "none", border: "none", color: "#B1AFA7", cursor: "pointer", fontSize: 12, marginLeft: 4 }} title="Cerrar sesión">✕</button>
+            <div style={{
+              display: "flex", alignItems: "center", gap: isMobile ? 4 : 6,
+              background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 8,
+              padding: isMobile ? "5px 8px" : "5px 12px",
+              flexShrink: 0, maxWidth: isMobile ? 110 : "none",
+            }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: currentUser.color, display: "inline-block", flexShrink: 0 }} />
+              <span style={{
+                color: "#37352F", fontSize: 13, fontWeight: 600,
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                minWidth: 0,
+              }}>{currentUser.name}</span>
+              <button onClick={handleLogout} aria-label="Cerrar sesión" style={{
+                background: "none", border: "none", color: "#B1AFA7", cursor: "pointer",
+                fontSize: 14, marginLeft: 2, padding: 0,
+                width: 24, height: 24, borderRadius: 4,
+                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+              }}>✕</button>
             </div>
           </div>
         </div>
@@ -399,30 +430,46 @@ export default function App() {
         <div style={{ display: "flex" }}>
           {/* Sidebar */}
           <nav style={{
-            width: 220, minHeight: "calc(100vh - 52px)", background: "#FFFFFF", borderRight: "1px solid #E8E7E3",
+            width: isMobile ? 260 : 220,
+            minHeight: "calc(100vh - 52px)",
+            background: "#FFFFFF", borderRight: "1px solid #E8E7E3",
             padding: "12px 0", flexShrink: 0,
             ...(isMobile ? {
-              position: "fixed", top: 52, left: menuOpen ? 0 : -240, zIndex: 99,
-              transition: "left 0.3s", boxShadow: menuOpen ? "4px 0 20px rgba(0,0,0,0.08)" : "none"
+              position: "fixed", top: 52, bottom: 0,
+              left: menuOpen ? 0 : -280,
+              zIndex: 99,
+              overflowY: "auto",
+              WebkitOverflowScrolling: "touch",
+              transition: "left 0.28s ease",
+              boxShadow: menuOpen ? "4px 0 24px rgba(15,15,15,0.12)" : "none",
+              paddingBottom: "env(safe-area-inset-bottom)",
             } : {})
           }}>
             {NAV_ITEMS.map(item => (
               <button key={item.key} onClick={() => { setPage(item.key); setMenuOpen(false); }} style={{
-                display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "10px 20px",
+                display: "flex", alignItems: "center", gap: 12, width: "100%",
+                padding: isMobile ? "13px 20px" : "10px 20px",
+                minHeight: isMobile ? 48 : 40,
                 background: page === item.key ? "#EEF0FC" : "transparent",
                 border: "none", borderLeft: page === item.key ? "3px solid #5E6AD2" : "3px solid transparent",
                 color: page === item.key ? "#37352F" : "#8C8A82", cursor: "pointer",
-                fontSize: 13, fontWeight: page === item.key ? 700 : 500, textAlign: "left",
-                transition: "all 0.2s"
+                fontSize: isMobile ? 14 : 13, fontWeight: page === item.key ? 700 : 500, textAlign: "left",
+                transition: "all 0.2s", fontFamily: "inherit",
+                WebkitTapHighlightColor: "rgba(94,106,210,0.08)",
               }}>
-                <span style={{ fontSize: 16 }}>{item.icon}</span>
-                {item.label}
+                <span style={{ fontSize: 18, flexShrink: 0 }}>{item.icon}</span>
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</span>
               </button>
             ))}
           </nav>
 
           {/* Content */}
-          <main style={{ flex: 1, padding: isMobile ? "16px" : "24px", maxWidth: 1100 }} onClick={() => setShowGlobalResults(false)}>
+          <main style={{
+            flex: 1,
+            padding: isMobile ? "14px" : "24px",
+            paddingBottom: isMobile ? "max(90px, env(safe-area-inset-bottom))" : "24px",
+            maxWidth: 1100, minWidth: 0,
+          }} onClick={() => setShowGlobalResults(false)}>
             {syncStatus === "offline" && (
               <div style={{ background: "#FBE4E4", border: "1px solid #F1B8B6", borderRadius: 10, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#E03E3E" }}>
                 <span>⚠️</span>
@@ -446,13 +493,18 @@ export default function App() {
 
         {/* Quick Sale FAB (mobile only) */}
         {isMobile && !quickSaleOpen && (
-          <button onClick={() => setQuickSaleOpen(true)} style={{
-            position: "fixed", bottom: 24, right: 24, width: 56, height: 56,
-            borderRadius: "50%", background: "#5E6AD2", border: "none",
-            color: "#fff", fontSize: 24, cursor: "pointer", zIndex: 90,
-            boxShadow: "0 4px 16px rgba(99,102,241,0.4)",
+          <button onClick={() => setQuickSaleOpen(true)} aria-label="Venta rápida" style={{
+            position: "fixed",
+            bottom: "max(20px, env(safe-area-inset-bottom))",
+            right: 20,
+            width: 60, height: 60,
+            borderRadius: "50%",
+            background: "linear-gradient(135deg, #5E6AD2 0%, #6366f1 100%)",
+            border: "none", color: "#fff", fontSize: 26, cursor: "pointer",
+            zIndex: 90,
+            boxShadow: "0 8px 24px rgba(94,106,210,0.45), 0 2px 8px rgba(15,15,15,0.12)",
             display: "flex", alignItems: "center", justifyContent: "center",
-          }} title="Venta rápida">🛒</button>
+          }}>🛒</button>
         )}
 
         {/* Quick Sale Modal */}

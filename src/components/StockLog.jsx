@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { formatMoney, formatDate } from "../helpers.js";
 import { Card, Input, Select, Table, Badge, StatCard } from "./UI.jsx";
+import { useResponsive } from "../App.jsx";
 
 // -- STOCK LOG --
 const STOCK_LOG_TYPES = {
@@ -12,6 +13,7 @@ const STOCK_LOG_TYPES = {
 };
 
 export const StockLog = ({ stockLog, setStockLog, products }) => {
+  const { isMobile } = useResponsive();
   const [filterType, setFilterType] = useState("");
   const [filterProduct, setFilterProduct] = useState("");
   const [filterDateFrom, setFilterDateFrom] = useState("");
@@ -47,27 +49,27 @@ export const StockLog = ({ stockLog, setStockLog, products }) => {
         <StatCard label="Neto" value={totalIn - totalOut >= 0 ? `+${totalIn - totalOut}` : `${totalIn - totalOut}`} icon="📊" color="#5E6AD2" />
       </div>
 
-      {/* Filters */}
+      {/* Filters — responsive grid */}
       <Card style={{ marginBottom: 14 }}>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
-          <div style={{ flex: 1, minWidth: 120 }}>
-            <Input label="Desde" type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} />
-          </div>
-          <div style={{ flex: 1, minWidth: 120 }}>
-            <Input label="Hasta" type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} />
-          </div>
-          <div style={{ flex: 1, minWidth: 120 }}>
-            <Select label="Tipo" options={Object.entries(STOCK_LOG_TYPES).map(([k, v]) => ({ value: k, label: `${v.icon} ${v.label}` }))} value={filterType} onChange={e => setFilterType(e.target.value)} />
-          </div>
-          <div style={{ flex: 2, minWidth: 180 }}>
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 1fr 2fr",
+          gap: 10,
+        }}>
+          <Input label="Desde" type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} />
+          <Input label="Hasta" type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} />
+          <Select label="Tipo" options={Object.entries(STOCK_LOG_TYPES).map(([k, v]) => ({ value: k, label: `${v.icon} ${v.label}` }))} value={filterType} onChange={e => setFilterType(e.target.value)} />
+          <div style={{ gridColumn: isMobile ? "1 / -1" : "auto" }}>
             <Select label="Producto" options={[...new Set((stockLog || []).map(l => l.productId))].map(pid => {
               const p = getProduct(pid);
               return p ? { value: pid, label: `${p.brand} ${p.model} - ${p.flavor}` } : { value: pid, label: pid };
             }).sort((a, b) => a.label.localeCompare(b.label))} value={filterProduct} onChange={e => setFilterProduct(e.target.value)} />
           </div>
-          {hasFilters && <button onClick={() => { setFilterType(""); setFilterProduct(""); setFilterDateFrom(""); setFilterDateTo(""); }}
-            style={{ background: "none", border: "1px solid #E03E3E55", color: "#E03E3E", padding: "8px 14px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, marginBottom: 14 }}>✕ Limpiar</button>}
         </div>
+        {hasFilters && (
+          <button onClick={() => { setFilterType(""); setFilterProduct(""); setFilterDateFrom(""); setFilterDateTo(""); }}
+            style={{ background: "none", border: "1px solid #E03E3E55", color: "#E03E3E", padding: "8px 14px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, marginTop: 4 }}>✕ Limpiar filtros</button>
+        )}
       </Card>
 
       <Card>

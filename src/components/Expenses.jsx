@@ -240,9 +240,13 @@ export const Expenses = ({ expenses, setExpenses, currentUser, exchangeRate, log
 
         <Input label="Descripción" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Detalle del gasto..." />
 
-        <div style={{ display: "flex", gap: 12 }}>
-          <Input label="Monto ARS" type="number" value={form.amountARS} onChange={e => setForm(f => ({ ...f, amountARS: e.target.value }))} placeholder="ej: 15000" />
-          <Input label="Monto USD" type="number" value={form.amountUSD} onChange={e => setForm(f => ({ ...f, amountUSD: e.target.value }))} placeholder="ej: 10" />
+        <div style={{ display: "flex", gap: 10, flexDirection: isMobile ? "column" : "row" }}>
+          <div style={{ flex: 1 }}>
+            <Input label="Monto ARS" type="number" value={form.amountARS} onChange={e => setForm(f => ({ ...f, amountARS: e.target.value }))} placeholder="ej: 15000" />
+          </div>
+          <div style={{ flex: 1 }}>
+            <Input label="Monto USD" type="number" value={form.amountUSD} onChange={e => setForm(f => ({ ...f, amountUSD: e.target.value }))} placeholder="ej: 10" />
+          </div>
         </div>
 
         {form.amountARS > 0 && exchangeRate > 0 && (

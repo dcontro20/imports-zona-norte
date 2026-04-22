@@ -1068,13 +1068,17 @@ export const Sales = ({
       </div>
       {form.discountType !== "none" && (
         <>
-          <div style={{ display: "flex", gap: 12 }}>
-            <Input label={form.discountType === "percent" ? "%" : form.discountType === "per_unit" ? `$/unidad` : `$ Fijo`}
-              type="number" value={form.discountValue}
-              onChange={e => setForm(f => ({ ...f, discountValue: e.target.value }))}
-              placeholder={form.discountType === "percent" ? "ej: 10" : "ej: 5000"} />
-            <Select label="Motivo" options={DISCOUNT_REASONS} value={form.discountReason}
-              onChange={e => setForm(f => ({ ...f, discountReason: e.target.value }))} />
+          <div style={{ display: "flex", gap: 10, flexDirection: isMobile ? "column" : "row" }}>
+            <div style={{ flex: 1 }}>
+              <Input label={form.discountType === "percent" ? "%" : form.discountType === "per_unit" ? `$/unidad` : `$ Fijo`}
+                type="number" value={form.discountValue}
+                onChange={e => setForm(f => ({ ...f, discountValue: e.target.value }))}
+                placeholder={form.discountType === "percent" ? "ej: 10" : "ej: 5000"} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <Select label="Motivo" options={DISCOUNT_REASONS} value={form.discountReason}
+                onChange={e => setForm(f => ({ ...f, discountReason: e.target.value }))} />
+            </div>
           </div>
           {discountAmount > 0 && (
             <div style={{ color: "#b8860b", fontSize: 13, marginTop: 4 }}>
@@ -1323,7 +1327,7 @@ export const Sales = ({
           )}
         </button>
         {showAdvanced && (
-          <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
+          <div style={{ display: "flex", gap: 10, marginBottom: 14, flexDirection: isMobile ? "column" : "row" }}>
             <div style={{ flex: 1 }}><Input label="Fecha" type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} /></div>
             <div style={{ flex: 1 }}><Select label="Moneda" options={["ARS", "USD", "USDT"]} value={form.currency} onChange={e => setForm(f => ({ ...f, currency: e.target.value }))} /></div>
           </div>

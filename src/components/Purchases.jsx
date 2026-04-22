@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { uid, formatMoney, formatDate } from "../helpers.js";
 import { Modal, Card, Btn, Input, Select, Table, Badge, StatCard } from "./UI.jsx";
 import { BRAND_COLORS } from "../constants.js";
+import { useResponsive } from "../App.jsx";
 
 // -- PURCHASES --
 const PURCHASE_STATUSES = [
@@ -19,6 +20,7 @@ const emptyPurchaseForm = () => ({
 });
 
 export const Purchases = ({ purchases, setPurchases, products, setProducts, exchangeRate, logStock, currentUser, logAudit }) => {
+  const { isMobile } = useResponsive();
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [verifyModal, setVerifyModal] = useState(null);
@@ -220,9 +222,13 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
 
       {/* New/Edit Modal */}
       <Modal open={modal} onClose={() => { setModal(false); setEditing(null); }} title={editing ? "Editar Pedido" : "Nuevo Pedido"}>
-        <div style={{ display: "flex", gap: 12 }}>
-          <Input label="Fecha" type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
-          <Input label="Proveedor" placeholder="Nombre..." value={form.supplier} onChange={e => setForm(f => ({ ...f, supplier: e.target.value }))} />
+        <div style={{ display: "flex", gap: 10, flexDirection: isMobile ? "column" : "row" }}>
+          <div style={{ flex: 1 }}>
+            <Input label="Fecha" type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <Input label="Proveedor" placeholder="Nombre..." value={form.supplier} onChange={e => setForm(f => ({ ...f, supplier: e.target.value }))} />
+          </div>
         </div>
 
         {/* Product Groups */}
@@ -271,9 +277,13 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
           <label style={{ display: "block", fontSize: 12, color: "#E03E3E", marginBottom: 10, fontWeight: 700, textTransform: "uppercase" }}>💰 Costos extra</label>
 
           <label style={{ display: "block", fontSize: 11, color: "#8C8A82", marginBottom: 6, fontWeight: 600, textTransform: "uppercase" }}>Comisión proveedor (USDT)</label>
-          <div style={{ display: "flex", gap: 12, marginBottom: 4 }}>
-            <Input label="% del total" type="number" placeholder="ej: 1" value={form.supplierCommPercent} onChange={e => setForm(f => ({ ...f, supplierCommPercent: e.target.value, supplierCommUSDT: "" }))} />
-            <Input label="O monto fijo (USDT)" type="number" placeholder="ej: 6" value={form.supplierCommPercent ? "" : form.supplierCommUSDT} onChange={e => setForm(f => ({ ...f, supplierCommUSDT: e.target.value, supplierCommPercent: "" }))} />
+          <div style={{ display: "flex", gap: 10, marginBottom: 4, flexDirection: isMobile ? "column" : "row" }}>
+            <div style={{ flex: 1 }}>
+              <Input label="% del total" type="number" placeholder="ej: 1" value={form.supplierCommPercent} onChange={e => setForm(f => ({ ...f, supplierCommPercent: e.target.value, supplierCommUSDT: "" }))} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <Input label="O monto fijo (USDT)" type="number" placeholder="ej: 6" value={form.supplierCommPercent ? "" : form.supplierCommUSDT} onChange={e => setForm(f => ({ ...f, supplierCommUSDT: e.target.value, supplierCommPercent: "" }))} />
+            </div>
           </div>
           {supplierCommUSDT > 0 && <div style={{ color: "#26de81", fontSize: 12, marginBottom: 10 }}>
             Comisión: {formatMoney(supplierCommUSDT, "USDT")} · Total a transferir: {formatMoney(totalUSDTwithComm, "USDT")}
@@ -282,9 +292,13 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
 
           <div style={{ borderTop: "1px solid #F0EFEB", paddingTop: 10, marginTop: 6 }}>
             <label style={{ display: "block", fontSize: 11, color: "#8C8A82", marginBottom: 6, fontWeight: 600, textTransform: "uppercase" }}>Pasero + Envío (Pesos)</label>
-            <div style={{ display: "flex", gap: 12 }}>
-              <Input label="Pasero (%)" type="number" placeholder="ej: 5" value={form.paseroPercent} onChange={e => setForm(f => ({ ...f, paseroPercent: e.target.value, paseroCostARS: "" }))} />
-              <Input label="O monto fijo ($)" type="number" value={form.paseroPercent ? "" : form.paseroCostARS} onChange={e => setForm(f => ({ ...f, paseroCostARS: e.target.value, paseroPercent: "" }))} />
+            <div style={{ display: "flex", gap: 10, flexDirection: isMobile ? "column" : "row" }}>
+              <div style={{ flex: 1 }}>
+                <Input label="Pasero (%)" type="number" placeholder="ej: 5" value={form.paseroPercent} onChange={e => setForm(f => ({ ...f, paseroPercent: e.target.value, paseroCostARS: "" }))} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <Input label="O monto fijo ($)" type="number" value={form.paseroPercent ? "" : form.paseroCostARS} onChange={e => setForm(f => ({ ...f, paseroCostARS: e.target.value, paseroPercent: "" }))} />
+              </div>
             </div>
             {paseroARS > 0 && <div style={{ color: "#fdcb6e", fontSize: 12, marginBottom: 8 }}>Pasero: {formatMoney(paseroARS)}</div>}
             <Input label="Envío Vía Cargo ($)" type="number" placeholder="ej: 15000" value={form.envioCostARS} onChange={e => setForm(f => ({ ...f, envioCostARS: e.target.value }))} />

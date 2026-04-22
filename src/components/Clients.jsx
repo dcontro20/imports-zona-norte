@@ -321,7 +321,7 @@ export const Clients = ({ clients, setClients, sales, products }) => {
       </div>
 
       {/* Metrics */}
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit, minmax(180px, 1fr))", gap: isMobile ? 10 : 14, marginBottom: 24 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit, minmax(160px, 1fr))", gap: isMobile ? 8 : 14, marginBottom: 24 }}>
         <MetricCard label="Total clientes" value={globalStats.total} sub="en la base" accent={T.primary} />
         <MetricCard label="Activos este mes" value={globalStats.activeThisMonth} sub="con compras" accent={T.green} />
         <MetricCard label="Facturado total" value={formatMoney(globalStats.totalRevenue)} sub="histórico" accent={T.amber} />
