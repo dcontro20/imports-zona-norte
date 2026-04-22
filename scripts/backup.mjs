@@ -24,6 +24,32 @@ const UPLOAD = process.argv.includes("--upload");
 const QUIET = process.argv.includes("--quiet");
 const log = (...args) => { if (!QUIET) console.log(...args); };
 
+// ---- helpers de nombres amigables ----
+const DIAS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+const MESES_ABR = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+const pad2 = (n) => String(n).padStart(2, "0");
+
+function localFileName(date) {
+  // Orden-friendly: IZN_Backup_2026-04-22_07h27.json
+  const y = date.getFullYear();
+  const m = pad2(date.getMonth() + 1);
+  const d = pad2(date.getDate());
+  const hh = pad2(date.getHours());
+  const mm = pad2(date.getMinutes());
+  return `IZN_Backup_${y}-${m}-${d}_${hh}h${mm}.json`;
+}
+
+function driveFileName(date, records) {
+  // Human-friendly: "IZN · Backup del Martes 22 Abr 2026 · 07h27 · 312 registros.json"
+  const dia = DIAS[date.getDay()];
+  const d = date.getDate();
+  const mes = MESES_ABR[date.getMonth()];
+  const y = date.getFullYear();
+  const hh = pad2(date.getHours());
+  const mm = pad2(date.getMinutes());
+  return `IZN · Backup del ${dia} ${d} ${mes} ${y} · ${hh}h${mm} · ${records} registros.json`;
+}
+
 const firebaseConfig = {
   apiKey: "AIzaSyDAL85SFntaHyupAbrPxJGIpdSSSnecql4",
   authDomain: "imports-zona-norte.firebaseapp.com",
@@ -86,9 +112,8 @@ async function main() {
 
   if (!existsSync(BACKUP_DIR)) mkdirSync(BACKUP_DIR, { recursive: true });
 
-  const dateStr = new Date().toISOString().slice(0, 10);
-  const timeStr = new Date().toTimeString().slice(0, 5).replace(":", "");
-  const filename = `backup-${dateStr}-${timeStr}.json`;
+  const now = new Date();
+  const filename = localFileName(now);
   const filepath = join(BACKUP_DIR, filename);
 
   const content = JSON.stringify(backup, null, 2);
@@ -96,9 +121,9 @@ async function main() {
   log(`\n✅ Backup local: backups/${filename}`);
   log(`   ${totalRecords} registros · ${(content.length / 1024).toFixed(0)} KB`);
 
-  // Cleanup locales viejos (mantiene MAX_LOCAL_BACKUPS)
+  // Cleanup locales viejos (soporta nombres nuevos y legacy)
   const files = readdirSync(BACKUP_DIR)
-    .filter(f => f.startsWith("backup-") && f.endsWith(".json"))
+    .filter(f => (f.startsWith("backup-") || f.startsWith("IZN_Backup_")) && f.endsWith(".json"))
     .sort().reverse();
   if (files.length > MAX_LOCAL_BACKUPS) {
     files.slice(MAX_LOCAL_BACKUPS).forEach(f => {
@@ -107,20 +132,21 @@ async function main() {
     });
   }
 
-  // Upload a Drive (opcional, requiere service account)
+  // Upload a Drive (opcional, requiere OAuth)
   if (UPLOAD) {
-    await uploadToDrive(filepath, filename, content);
+    await uploadToDrive(content, driveFileName(now, totalRecords));
   }
 
   process.exit(0);
 }
 
-async function uploadToDrive(filepath, filename, content) {
-  const credPath = join(PROJECT_ROOT, ".credentials", "drive-sa.json");
-  if (!existsSync(credPath)) {
-    console.error(`\n❌ Upload a Drive falló — falta service account key en:`);
-    console.error(`   ${credPath}`);
-    console.error(`   Seguí los pasos en scripts/BACKUP_SETUP.md`);
+async function uploadToDrive(content, driveName) {
+  const tokenPath = join(PROJECT_ROOT, ".credentials", "drive-oauth-token.json");
+  if (!existsSync(tokenPath)) {
+    console.error(`\n❌ Upload a Drive falló — falta token OAuth en:`);
+    console.error(`   ${tokenPath}`);
+    console.error(`\n   Corré una vez:  node scripts/auth-oauth.mjs`);
+    console.error(`   Después el backup automático funciona sin intervención.`);
     return;
   }
 
@@ -134,32 +160,44 @@ async function uploadToDrive(filepath, filename, content) {
   }
 
   const { google } = googleapis;
-  const credentials = JSON.parse(readFileSync(credPath, "utf8"));
-  const auth = new google.auth.JWT(
-    credentials.client_email,
-    null,
-    credentials.private_key,
-    ["https://www.googleapis.com/auth/drive.file"]
-  );
-  await auth.authorize();
+  const tokenData = JSON.parse(readFileSync(tokenPath, "utf8"));
+  const oauth2 = new google.auth.OAuth2(tokenData.client_id, tokenData.client_secret);
+  oauth2.setCredentials({
+    refresh_token: tokenData.refresh_token,
+    access_token: tokenData.access_token,
+    expiry_date: tokenData.expiry_date,
+  });
 
-  const drive = google.drive({ version: "v3", auth });
+  // Persistir access_token refrescado cuando googleapis lo rote
+  oauth2.on("tokens", (newTokens) => {
+    const merged = { ...tokenData, ...newTokens };
+    try { writeFileSync(tokenPath, JSON.stringify(merged, null, 2)); } catch {}
+  });
+
+  const drive = google.drive({ version: "v3", auth: oauth2 });
 
   log(`\n☁️  Subiendo a Drive...`);
-  const res = await drive.files.create({
-    requestBody: {
-      name: `IZN_Backup_${filename.replace(/^backup-/, "").replace(".json", "")}.json`,
-      parents: [DRIVE_FOLDER_ID],
-      mimeType: "application/json",
-    },
-    media: {
-      mimeType: "application/json",
-      body: content,
-    },
-    fields: "id, name, webViewLink",
-  });
-  log(`✅ Drive: ${res.data.name}`);
-  log(`   ${res.data.webViewLink}`);
+  try {
+    const res = await drive.files.create({
+      requestBody: {
+        name: driveName,
+        parents: [DRIVE_FOLDER_ID],
+        mimeType: "application/json",
+      },
+      media: {
+        mimeType: "application/json",
+        body: content,
+      },
+      fields: "id, name, webViewLink",
+    });
+    log(`✅ Drive: ${res.data.name}`);
+    log(`   ${res.data.webViewLink}`);
+  } catch (err) {
+    console.error(`❌ Drive upload falló: ${err.message}`);
+    if (err.message.includes("invalid_grant")) {
+      console.error(`   El refresh token expiró. Corré:  node scripts/auth-oauth.mjs`);
+    }
+  }
 }
 
 main().catch(err => {
