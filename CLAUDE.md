@@ -380,3 +380,5 @@ El sistema de persistencia de contexto tiene 3 capas:
 **Shortcut manual**: Diego puede decir `"actualizá el contexto"` o `"persistí esta sesión"` y el Claude actual debe ejecutar los 4 pasos de arriba sin preguntar más.
 
 Este protocolo asegura que los rediseños, decisiones y preferencias queden persistidas sin depender de que Diego lo pida cada vez.
+
+<!-- Trigger Vercel redeploy 2026-04-22 20:52 tras switch a SSH -->
