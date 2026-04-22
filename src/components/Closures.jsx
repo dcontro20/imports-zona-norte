@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { uid, formatMoney, formatDate } from "../helpers.js";
 import { Card, Btn, Badge, StatCard } from "./UI.jsx";
+import { useResponsive } from "../App.jsx";
 
 // -- MONTHLY CLOSURES --
 export const MonthlyClosures = ({ monthlyClosures, setMonthlyClosures, sales, purchases, expenses, withdrawals, products, exchangeRate, logAudit }) => {
+  const { isMobile } = useResponsive();
   const [showConfirm, setShowConfirm] = useState(false);
 
   const now = new Date();
@@ -98,7 +100,7 @@ export const MonthlyClosures = ({ monthlyClosures, setMonthlyClosures, sales, pu
       {/* Current month preview */}
       <Card style={{ marginBottom: 14 }}>
         <h4 style={{ color: "#fdcb6e", margin: "0 0 14px", fontSize: 14, textTransform: "uppercase" }}>📊 {currentMonthLabel} (en curso)</h4>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fill, minmax(140px, 1fr))", gap: isMobile ? 8 : 12 }}>
           <div><span style={{ color: "#8C8A82", fontSize: 11 }}>Ventas</span><div style={{ color: "#00b894", fontSize: 18, fontWeight: 700 }}>{preview.totalSalesCount}</div><span style={{ color: "#B1AFA7", fontSize: 11 }}>{preview.totalUnits} uds</span></div>
           <div><span style={{ color: "#8C8A82", fontSize: 11 }}>Ingresos</span><div style={{ color: "#00b894", fontSize: 18, fontWeight: 700 }}>{formatMoney(preview.totalRevenue)}</div></div>
           <div><span style={{ color: "#8C8A82", fontSize: 11 }}>Compras (USDT)</span><div style={{ color: "#5E6AD2", fontSize: 18, fontWeight: 700 }}>{formatMoney(preview.totalCostUSDT, "USDT")}</div><span style={{ color: "#B1AFA7", fontSize: 11 }}>{preview.purchasesCount} pedidos</span></div>

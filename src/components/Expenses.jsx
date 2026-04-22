@@ -134,23 +134,23 @@ export const Expenses = ({ expenses, setExpenses, currentUser, exchangeRate, log
       {/* Stats row */}
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit, minmax(180px, 1fr))", gap: isMobile ? 8 : 14, marginBottom: 20 }}>
         <Card style={{ padding: "14px 18px", background: "linear-gradient(135deg, #F7D7D6 0%, #FFFFFF 100%)" }}>
-          <div style={{ fontSize: 10, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 6 }}>Este mes (ARS)</div>
+          <div style={{ fontSize: 11, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.7, fontWeight: 700, marginBottom: 6 }}>Este mes (ARS)</div>
           <div style={{ fontSize: 22, fontWeight: 800, color: "#E03E3E" }}>{formatMoney(totalMonthARS)}</div>
           {totalMonthUSD > 0 && <div style={{ fontSize: 11, color: "#8C8A82", marginTop: 2 }}>+ {formatMoney(totalMonthUSD, "USD")}</div>}
         </Card>
         <Card style={{ padding: "14px 18px" }}>
-          <div style={{ fontSize: 10, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 6 }}>Este mes (USD equiv.)</div>
+          <div style={{ fontSize: 11, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.7, fontWeight: 700, marginBottom: 6 }}>Este mes (USD equiv.)</div>
           <div style={{ fontSize: 22, fontWeight: 800, color: "#e17055" }}>
             {formatMoney(totalMonthUSD + (exchangeRate ? totalMonthARS / exchangeRate : 0), "USD")}
           </div>
         </Card>
         <Card style={{ padding: "14px 18px" }}>
-          <div style={{ fontSize: 10, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 6 }}>Gastos este mes</div>
+          <div style={{ fontSize: 11, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.7, fontWeight: 700, marginBottom: 6 }}>Gastos este mes</div>
           <div style={{ fontSize: 22, fontWeight: 800, color: "#5E6AD2" }}>{monthExpenses.length}</div>
           <div style={{ fontSize: 11, color: "#8C8A82", marginTop: 2 }}>{byCategory.length} categorías</div>
         </Card>
         <Card style={{ padding: "14px 18px" }}>
-          <div style={{ fontSize: 10, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 1, fontWeight: 600, marginBottom: 6 }}>Total histórico</div>
+          <div style={{ fontSize: 11, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.7, fontWeight: 700, marginBottom: 6 }}>Total histórico</div>
           <div style={{ fontSize: 22, fontWeight: 800, color: "#636e72" }}>{formatMoney(totalAllARS)}</div>
           {totalAllUSD > 0 && <div style={{ fontSize: 11, color: "#8C8A82", marginTop: 2 }}>+ {formatMoney(totalAllUSD, "USD")}</div>}
         </Card>
@@ -176,7 +176,7 @@ export const Expenses = ({ expenses, setExpenses, currentUser, exchangeRate, log
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: "#37352F" }}>{formatMoney(total)}</div>
-                    {data.usd > 0 && <div style={{ fontSize: 10, color: "#0F7B6C" }}>{formatMoney(data.usd, "USD")}</div>}
+                    {data.usd > 0 && <div style={{ fontSize: 11, color: "#0F7B6C", fontWeight: 600 }}>{formatMoney(data.usd, "USD")}</div>}
                   </div>
                 </div>
               );
@@ -207,7 +207,7 @@ export const Expenses = ({ expenses, setExpenses, currentUser, exchangeRate, log
             { key: "description", label: "Descripción", render: r => (
               <div>
                 <div style={{ color: "#37352F", fontSize: 13 }}>{r.description || "—"}</div>
-                {r.relatedTo && <div style={{ fontSize: 10, color: "#B1AFA7" }}>Ref: {r.relatedTo}</div>}
+                {r.relatedTo && <div style={{ fontSize: 11, color: "#8C8A82" }}>Ref: {r.relatedTo}</div>}
               </div>
             )},
             { key: "amount", label: "Monto", render: r => (

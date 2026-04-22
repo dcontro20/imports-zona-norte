@@ -206,12 +206,12 @@ export const PriceLog = ({ priceLog, products, setProducts, logPrice, exchangeRa
           ...(stats.avgMargin ? [{ label: "Margen prom.", value: `${stats.avgMargin}%`, color: "#a855f7" }] : []),
         ].map(s => (
           <div key={s.label} style={{
-            flex: isMobile ? "1 1 calc(50% - 6px)" : "1 1 0",
-            minWidth: isMobile ? 120 : 100, background: "#FFFFFF", borderRadius: 10, padding: "12px 14px",
-            border: "1px solid #E8E7E3"
+            flex: isMobile ? "1 1 calc(50% - 5px)" : "1 1 0",
+            minWidth: 0, background: "#FFFFFF", borderRadius: 10, padding: isMobile ? "10px 12px" : "12px 14px",
+            border: "1px solid #E8E7E3", overflow: "hidden",
           }}>
-            <div style={{ fontSize: 10, color: "#B1AFA7", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4, fontWeight: 700 }}>{s.label}</div>
-            <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 800, color: s.color }}>{s.value}</div>
+            <div style={{ fontSize: 11, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.label}</div>
+            <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 800, color: s.color, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.value}</div>
           </div>
         ))}
       </div>
@@ -220,8 +220,8 @@ export const PriceLog = ({ priceLog, products, setProducts, logPrice, exchangeRa
       {editMode && (
         <Card style={{ marginBottom: 14, background: "#f0f1ff", border: "1px solid #5E6AD233" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 13, color: "#5E6AD2", fontWeight: 600, flex: 1, minWidth: 200 }}>
-              Editando precios — Usa +/- o escribi directo. ARS se calcula con blue (${exchangeRate}).
+            <span style={{ fontSize: 13, color: "#5E6AD2", fontWeight: 600, flex: 1, minWidth: 0 }}>
+              Editando precios — usá +/− o escribí el valor. ARS se calcula con blue (${exchangeRate}).
             </span>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               <Btn onClick={() => setCostMode(!costMode)} variant={costMode ? "primary" : "secondary"}
@@ -582,7 +582,7 @@ export const PriceLog = ({ priceLog, products, setProducts, logPrice, exchangeRa
                       background: "#FAFAF9", borderRadius: 8, flexWrap: "wrap"
                     }}>
                       <span style={{ fontSize: 11, color: "#B1AFA7", minWidth: 80 }}>{formatDate(r.date)}</span>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "#37352F", flex: 1, minWidth: 100 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "#37352F", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {p ? `${p.brand} ${p.model}` : "?"}
                       </span>
                       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>

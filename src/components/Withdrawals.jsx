@@ -407,7 +407,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
               {flavorsForModel.map(p => (
                 <button key={p.id} onClick={() => setForm(f => ({ ...f, productId: p.id }))}
                   style={{ ...chipStyle(form.productId === p.id), fontSize: 12, padding: "5px 10px" }}>
-                  {p.flavor} <span style={{ opacity: 0.6, fontSize: 10, marginLeft: 2 }}>({p.stock})</span>
+                  {p.flavor} <span style={{ opacity: 0.7, fontSize: 11, marginLeft: 2 }}>({p.stock})</span>
                 </button>
               ))}
             </div>

@@ -13,8 +13,8 @@ const BarChart = ({ data, colorKey, valueKey, labelKey, maxBars = 10, suffix = "
   return (
     <div>
       {sorted.map((d, i) => (
-        <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-          <span style={{ color: "#555247", fontSize: 12, minWidth: 100, textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d[labelKey]}</span>
+        <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+          <span style={{ color: "#555247", fontSize: 12, minWidth: 60, maxWidth: 120, textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flexShrink: 0 }}>{d[labelKey]}</span>
           <div style={{ flex: 1, background: "#F0EFEB", borderRadius: 6, height: 24, overflow: "hidden" }}>
             <div style={{
               width: `${Math.max(2, (d[valueKey] / maxVal) * 100)}%`, height: "100%",
@@ -156,7 +156,7 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, exc
       {/* Financial summary */}
       <Card style={{ marginBottom: 14 }}>
         <h4 style={{ color: "#fdcb6e", margin: "0 0 14px", fontSize: 14, textTransform: "uppercase" }}>Resumen financiero del mes</h4>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fill, minmax(150px, 1fr))", gap: isMobile ? 8 : 12 }}>
           {(() => {
             const thisMonth = new Date().getMonth();
             const thisYear = new Date().getFullYear();
@@ -201,7 +201,7 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, exc
 
           return (
             <div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 12, marginBottom: 14 }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fill, minmax(140px, 1fr))", gap: isMobile ? 8 : 12, marginBottom: 14 }}>
                 <div><span style={{ color: "#8C8A82", fontSize: 12 }}>Gastos fijos mes</span><div style={{ color: "#E03E3E", fontSize: 18, fontWeight: 700 }}>{formatMoney(fixedCosts)}</div></div>
                 <div><span style={{ color: "#8C8A82", fontSize: 12 }}>Precio prom/ud</span><div style={{ color: "#37352F", fontSize: 18, fontWeight: 700 }}>{formatMoney(avgPricePerUnit)}</div></div>
                 <div><span style={{ color: "#8C8A82", fontSize: 12 }}>Costo prom/ud</span><div style={{ color: "#fdcb6e", fontSize: 18, fontWeight: 700 }}>{formatMoney(avgCostPerUnit)}</div></div>

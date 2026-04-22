@@ -856,15 +856,15 @@ export const Sales = ({
         <div key={i} style={{
           display: "flex", gap: 8, marginBottom: 8, alignItems: "flex-end", flexWrap: "wrap",
         }}>
-          <div style={{ flex: 1, minWidth: 140 }}>
+          <div style={{ flex: isMobile ? "1 1 100%" : 1, minWidth: 0 }}>
             <Select label={i === 0 ? "Método" : ""} options={PAYMENT_METHODS} value={pay.method} onChange={e => updatePayment(i, "method", e.target.value)} />
           </div>
           {pay.method === "Mercado Pago" && (
-            <div style={{ flex: 0.8, minWidth: 120 }}>
+            <div style={{ flex: isMobile ? "1 1 100%" : 0.8, minWidth: 0 }}>
               <Select label={i === 0 ? "Cuenta" : ""} options={MP_ACCOUNTS} value={pay.mpAccount} onChange={e => updatePayment(i, "mpAccount", e.target.value)} />
             </div>
           )}
-          <div style={{ flex: 0.6, minWidth: 100, position: "relative" }}>
+          <div style={{ flex: isMobile ? "1 1 100%" : 0.6, minWidth: 0, position: "relative" }}>
             <Input label={i === 0 ? "Monto" : ""} type="number" value={pay.amount}
               onChange={e => updatePayment(i, "amount", e.target.value)}
               placeholder={String(Math.round(effectiveTotal || finalTotal))} />

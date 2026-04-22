@@ -664,7 +664,7 @@ const MiniKpi = ({ label, value, sub, accent }) => (
   <PCard padding={14}>
     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
       <span style={{ width: 6, height: 6, borderRadius: "50%", background: accent }} />
-      <span style={{ fontSize: 10, fontWeight: 600, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.7 }}>{label}</span>
+      <span style={{ fontSize: 11, fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.6 }}>{label}</span>
     </div>
     <div style={{
       fontSize: 20, fontWeight: 800, color: T.text, fontFamily: T.fontDisplay,

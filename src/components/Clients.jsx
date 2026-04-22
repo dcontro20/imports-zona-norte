@@ -393,7 +393,7 @@ export const Clients = ({ clients, setClients, sales, products }) => {
 
       {/* Cards grid */}
       {filtered.length === 0 ? (
-        <Card style={{ textAlign: "center", padding: 60 }}>
+        <Card style={{ textAlign: "center", padding: isMobile ? "32px 16px" : 60 }}>
           <div style={{ fontSize: 32, marginBottom: 8 }}>👥</div>
           <p style={{ color: T.textMuted, fontSize: 14, margin: 0 }}>
             {clients.length === 0 ? "Todavía no hay clientes registrados" : "No hay clientes con esos filtros"}

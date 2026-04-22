@@ -51,7 +51,7 @@ const Trash = lazy(() => import("./components/Trash.jsx").then(m => ({ default: 
 const QuickSale = lazy(() => import("./components/QuickSale.jsx").then(m => ({ default: m.QuickSale })));
 
 const LoadingSpinner = () => (
-  <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: 60 }}>
+  <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "40px 16px" }}>
     <span style={{ color: "#5E6AD2", fontSize: 15, fontWeight: 500 }}>Cargando...</span>
   </div>
 );
@@ -71,7 +71,7 @@ class ErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ padding: 40, textAlign: "center" }}>
+        <div style={{ padding: "32px 16px", textAlign: "center" }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
           <h2 style={{ color: "#37352F", marginBottom: 8 }}>Algo salió mal</h2>
           <p style={{ color: "#8C8A82", fontSize: 14, marginBottom: 20 }}>{this.state.error?.message || "Error inesperado"}</p>
@@ -135,6 +135,15 @@ export default function App() {
   const [globalSearch, setGlobalSearch] = useState("");
   const [showGlobalResults, setShowGlobalResults] = useState(false);
   const [quickSaleOpen, setQuickSaleOpen] = useState(false);
+
+  // Body scroll lock cuando sidebar mobile está abierto
+  useEffect(() => {
+    if (isMobile && menuOpen) {
+      const original = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => { document.body.style.overflow = original; };
+    }
+  }, [isMobile, menuOpen]);
 
   // ---- All data + sync from custom hook ----
   const sync = useFirebaseSync();

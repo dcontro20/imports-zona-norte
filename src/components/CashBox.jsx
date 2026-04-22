@@ -713,7 +713,7 @@ const PatrimonyHero = ({ patrimonyARS, patrimonyUSD, totals, trend, exchangeRate
         </div>
 
         {/* Breakdown */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, flex: "1 1 360px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr 1fr" : "1fr 1fr 1fr", gap: isMobile ? 6 : 10, flex: "1 1 100%", width: "100%" }}>
           <MiniBreakdown label="Pesos" value={formatMoney(totals.ars)} color={T.primary} />
           <MiniBreakdown label="USD" value={formatMoney(totals.usd, "USD")} sub={totals.usd > 0 ? `${formatMoney(totals.usd * exchangeRate)} ARS` : ""} color={T.green} />
           <MiniBreakdown label="USDT" value={formatMoney(totals.usdt, "USDT")} sub={totals.usdt > 0 ? `${formatMoney(totals.usdt * exchangeRate)} ARS` : ""} color={T.amber} />
@@ -973,6 +973,7 @@ const FlowStat = ({ label, value, color, span, emphasize }) => (
 // MOVEMENT FORM
 // ============================================
 const MovementForm = ({ presetType, exchangeRate, balances, onSave, onCancel }) => {
+  const { isMobile } = useResponsive();
   const [type, setType] = useState(presetType || "transfer");
   const [form, setForm] = useState({
     from: "", to: "", amount: "", amountUSDT: "", description: "", date: dayKey(new Date()),
@@ -999,7 +1000,7 @@ const MovementForm = ({ presetType, exchangeRate, balances, onSave, onCancel }) 
       {/* Type selector */}
       <div>
         <label style={lblStyle}>Tipo de movimiento</label>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 6 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(140px, 1fr))", gap: 6 }}>
           {MOVEMENT_TYPES.map(t => (
             <button key={t.key} onClick={() => { setType(t.key); setForm(f => ({ ...f, from: "", to: "" })); }}
               style={{
@@ -1107,11 +1108,12 @@ const MovementForm = ({ presetType, exchangeRate, balances, onSave, onCancel }) 
 };
 
 const AccountPicker = ({ label, value, onChange, balances, filter, exclude }) => {
+  const { isMobile } = useResponsive();
   const opts = ACCOUNTS.filter(a => (!filter || a.currency === filter) && a.id !== exclude);
   return (
     <div>
       <label style={lblStyle}>{label}</label>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 6 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit, minmax(140px, 1fr))", gap: 6 }}>
         {opts.map(a => (
           <button key={a.id} type="button" onClick={() => onChange(a.id)}
             style={{
@@ -1305,7 +1307,7 @@ const HistoryList = ({ ledger, isMobile, onDelete, confirmDel }) => {
 
       {/* Entries */}
       {filtered.length === 0 ? (
-        <div style={{ textAlign: "center", padding: 40, color: T.textMuted, fontSize: 13 }}>
+        <div style={{ textAlign: "center", padding: "28px 16px", color: T.textMuted, fontSize: 13 }}>
           Sin movimientos con esos filtros
         </div>
       ) : (
@@ -1411,6 +1413,7 @@ const selectStyle = () => ({
 // CONCILIATION FORM
 // ============================================
 const ConciliationForm = ({ balances, onSave, onCancel }) => {
+  const { isMobile } = useResponsive();
   const [real, setReal] = useState(() => {
     const r = {};
     ACCOUNTS.forEach(a => { r[a.id] = String(Math.round((balances[a.id] || 0) * 100) / 100); });
@@ -1464,7 +1467,7 @@ const ConciliationForm = ({ balances, onSave, onCancel }) => {
               )}
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <div style={{ flex: 1, minWidth: 120 }}>
+              <div style={{ flex: isMobile ? "1 1 100%" : 1, minWidth: 0 }}>
                 <label style={lblStyle}>Saldo real</label>
                 <input type="number" value={real[d.account.id]}
                   onChange={e => setReal(r => ({ ...r, [d.account.id]: e.target.value }))}
@@ -1472,7 +1475,7 @@ const ConciliationForm = ({ balances, onSave, onCancel }) => {
                   style={fieldStyle()} />
               </div>
               {hasDiff && (
-                <div style={{ flex: 2, minWidth: 160 }}>
+                <div style={{ flex: isMobile ? "1 1 100%" : 2, minWidth: 0 }}>
                   <label style={lblStyle}>Nota (opcional)</label>
                   <input value={notes[d.account.id] || ""}
                     onChange={e => setNotes(n => ({ ...n, [d.account.id]: e.target.value }))}

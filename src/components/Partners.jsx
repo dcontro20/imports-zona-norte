@@ -2,9 +2,11 @@ import { useState } from "react";
 import { uid, formatMoney, formatDate } from "../helpers.js";
 import { calcPartnerBalances } from "../calcs.js";
 import { Modal, Card, Btn, Input, Select, Table, Badge, StatCard } from "./UI.jsx";
+import { useResponsive } from "../App.jsx";
 
 // -- PARTNERS --
 export const Partners = ({ partnerWithdrawals, setPartnerWithdrawals, sales, purchases, expenses, withdrawals, exchangeRate, currentUser, logAudit }) => {
+  const { isMobile } = useResponsive();
   const [modal, setModal] = useState(false);
   const [confirmDel, setConfirmDel] = useState(null);
   const [form, setForm] = useState({ person: "Diego", amount: "", currency: "ARS", source: "", description: "", date: new Date().toISOString().slice(0, 10) });
@@ -57,8 +59,8 @@ export const Partners = ({ partnerWithdrawals, setPartnerWithdrawals, sales, pur
             <div style={{ color: "#5E6AD2", fontSize: 24, fontWeight: 800 }}>{formatMoney(profitRemaining)}</div>
           </div>
         </div>
-        <div style={{ borderTop: "1px solid #E8E7E3", paddingTop: 14, display: "flex", justifyContent: "space-around", flexWrap: "wrap", gap: 20, textAlign: "center" }}>
-          <div style={{ flex: 1, minWidth: 200 }}>
+        <div style={{ borderTop: "1px solid #E8E7E3", paddingTop: 14, display: "flex", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 14 : 20, textAlign: "left" }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ color: "#5E6AD2", fontSize: 14, fontWeight: 700, marginBottom: 8 }}>💜 Diego (50%)</div>
             <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}>
               <span style={{ color: "#8C8A82", fontSize: 13 }}>Le corresponde</span>
@@ -73,8 +75,8 @@ export const Partners = ({ partnerWithdrawals, setPartnerWithdrawals, sales, pur
               <span style={{ color: diegoBalance >= 0 ? "#00b894" : "#E03E3E", fontSize: 16, fontWeight: 800 }}>{formatMoney(diegoBalance)}</span>
             </div>
           </div>
-          <div style={{ width: 1, background: "#E8E7E3" }} />
-          <div style={{ flex: 1, minWidth: 200 }}>
+          <div style={{ width: isMobile ? "100%" : 1, height: isMobile ? 1 : "auto", background: "#E8E7E3" }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ color: "#00b894", fontSize: 14, fontWeight: 700, marginBottom: 8 }}>💙 Gustavo (50%)</div>
             <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}>
               <span style={{ color: "#8C8A82", fontSize: 13 }}>Le corresponde</span>
