@@ -1,13 +1,30 @@
 import { useState } from "react";
 import { formatMoney, formatDate } from "../helpers.js";
 import { Card, Btn, Badge } from "./UI.jsx";
+import { useResponsive } from "../App.jsx";
+
+// URL de la carpeta de Drive donde van los backups automáticos
+const DRIVE_BACKUP_FOLDER_URL = "https://drive.google.com/drive/folders/1d57fOksNJePjSM1oC4c994z_UdAUnnuv";
 
 // -- EXPORT DATA & BACKUP --
 export const ExportData = ({ products, sales, purchases, expenses, withdrawals, cashMovements, stockLog, priceLog, clients, partnerWithdrawals, monthlyClosures, exchangeRate }) => {
+  const { isMobile } = useResponsive();
   const [exporting, setExporting] = useState(false);
   const [lastBackup, setLastBackup] = useState(() => {
     try { return localStorage.getItem("vapestock_lastBackup") || null; } catch { return null; }
   });
+  const [driveOpened, setDriveOpened] = useState(false);
+
+  // Descarga el JSON y después abre la carpeta de Drive para arrastrar el archivo
+  const backupToDrive = () => {
+    backupJSON();
+    // Espera 400ms para que el browser termine el download antes de abrir tab
+    setTimeout(() => {
+      window.open(DRIVE_BACKUP_FOLDER_URL, "_blank");
+      setDriveOpened(true);
+      setTimeout(() => setDriveOpened(false), 5000);
+    }, 400);
+  };
 
   const getProduct = (id) => products.find(p => p.id === id);
 
@@ -186,34 +203,83 @@ export const ExportData = ({ products, sales, purchases, expenses, withdrawals, 
       </div>
 
       {/* BACKUP SECTION */}
-      <Card style={{ marginBottom: 20, background: backupUrgent ? "linear-gradient(135deg, #F7D7D6, #F7D7D6)" : backupWarning ? "linear-gradient(135deg, #CB912F11, #FBE3B3)" : "linear-gradient(135deg, #0F7B6C11, #34d39922)", border: `1px solid ${backupUrgent ? "#E03E3E44" : backupWarning ? "#CB912F44" : "#0F7B6C44"}` }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ width: 50, height: 50, borderRadius: 14, background: backupUrgent ? "#F7D7D6" : backupWarning ? "#FBE3B3" : "#D3E5DD", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>
-              {backupUrgent ? "🚨" : backupWarning ? "⚠️" : "🛡️"}
+      <Card style={{
+        marginBottom: 20,
+        background: backupUrgent ? "linear-gradient(135deg, #F7D7D6, #F7D7D6)" : backupWarning ? "linear-gradient(135deg, #CB912F11, #FBE3B3)" : "linear-gradient(135deg, #0F7B6C11, #34d39922)",
+        border: `1px solid ${backupUrgent ? "#E03E3E44" : backupWarning ? "#CB912F44" : "#0F7B6C44"}`,
+      }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 14, flexWrap: isMobile ? "nowrap" : "wrap" }}>
+          <div style={{
+            width: isMobile ? 42 : 50, height: isMobile ? 42 : 50,
+            borderRadius: 14, flexShrink: 0,
+            background: backupUrgent ? "#F7D7D6" : backupWarning ? "#FBE3B3" : "#D3E5DD",
+            display: "flex", alignItems: "center", justifyContent: "center", fontSize: isMobile ? 20 : 24,
+          }}>
+            {backupUrgent ? "🚨" : backupWarning ? "⚠️" : "🛡️"}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: isMobile ? 15 : 16, fontWeight: 700, color: "#37352F" }}>Backup Completo</div>
+            <div style={{ fontSize: 12, color: "#8C8A82", marginTop: 2 }}>
+              {totalRecords.toLocaleString()} registros · {lastBackup ? `Último: ${timeSince(lastBackup)}` : "Nunca se hizo"}
             </div>
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: "#37352F" }}>Backup Completo</div>
-              <div style={{ fontSize: 12, color: "#8C8A82" }}>
-                {totalRecords.toLocaleString()} registros totales · {lastBackup ? `Último backup: ${timeSince(lastBackup)}` : "Nunca se hizo un backup"}
-              </div>
-              {backupUrgent && <div style={{ fontSize: 11, color: "#E03E3E", fontWeight: 600, marginTop: 2 }}>Se recomienda hacer backup al menos una vez por semana</div>}
-              {backupWarning && <div style={{ fontSize: 11, color: "#CB912F", fontWeight: 600, marginTop: 2 }}>Hay datos nuevos desde tu último backup</div>}
+            {backupUrgent && <div style={{ fontSize: 11, color: "#E03E3E", fontWeight: 600, marginTop: 4 }}>Hacé backup al menos 1 vez por semana</div>}
+            {backupWarning && <div style={{ fontSize: 11, color: "#CB912F", fontWeight: 600, marginTop: 4 }}>Hay datos nuevos sin respaldar</div>}
+          </div>
+        </div>
+
+        {/* Info de Drive */}
+        <div style={{
+          background: "rgba(255,255,255,0.6)",
+          border: "1px solid rgba(0,0,0,0.06)",
+          borderRadius: 10,
+          padding: "10px 12px",
+          marginBottom: 12,
+          fontSize: 12,
+          color: "#555247",
+          display: "flex", gap: 8, alignItems: "flex-start",
+        }}>
+          <span style={{ fontSize: 16, flexShrink: 0 }}>☁️</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <strong style={{ color: "#37352F" }}>Carpeta Drive:</strong>{" "}
+            <a href={DRIVE_BACKUP_FOLDER_URL} target="_blank" rel="noreferrer"
+              style={{ color: "#5E6AD2", textDecoration: "none", fontWeight: 600 }}>
+              Ver backups ↗
+            </a>
+            <div style={{ marginTop: 3, fontSize: 11, color: "#8C8A82" }}>
+              El botón <b>Subir a Drive</b> descarga el JSON y abre la carpeta — arrastrás el archivo y listo.
             </div>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <Btn onClick={backupJSON} style={{ background: "#0F7B6C", fontSize: 14, padding: "10px 20px" }}>
-              🛡️ Descargar Backup JSON
-            </Btn>
-            <Btn onClick={exportAll} style={{ background: exporting ? "#B1AFA7" : "#5E6AD2", fontSize: 13 }}>
-              {exporting ? "⏳ Exportando..." : "📥 CSV Todo"}
-            </Btn>
-          </div>
+        </div>
+
+        {/* Action buttons — stack en mobile */}
+        <div style={{
+          display: "flex", gap: 8,
+          flexDirection: isMobile ? "column" : "row",
+        }}>
+          <Btn onClick={backupToDrive} style={{
+            background: driveOpened ? "#0F7B6C" : "#5E6AD2",
+            color: "#fff", fontSize: 14, padding: "12px 20px", flex: 1,
+          }}>
+            {driveOpened ? "✓ Descargado · Subilo a Drive" : "☁️ Subir a Drive"}
+          </Btn>
+          <Btn onClick={backupJSON} style={{
+            background: "#0F7B6C", color: "#fff", fontSize: 14, padding: "12px 20px",
+            flex: isMobile ? 1 : "0 0 auto",
+          }}>
+            🛡️ Sólo descargar
+          </Btn>
+          <Btn onClick={exportAll} style={{
+            background: exporting ? "#B1AFA7" : "#E8E7E3",
+            color: "#37352F", fontSize: 13, padding: "12px 16px",
+            flex: isMobile ? 1 : "0 0 auto",
+          }}>
+            {exporting ? "⏳ Exportando..." : "📥 Todo en CSV"}
+          </Btn>
         </div>
       </Card>
 
       {/* Individual exports */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 14, marginBottom: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fill, minmax(220px, 1fr))", gap: isMobile ? 10 : 14, marginBottom: 20 }}>
         {exports.map(exp => (
           <Card key={exp.label} style={{ cursor: "pointer", transition: "all 0.2s", border: `1px solid ${exp.color}22` }}
             onClick={exp.fn}
@@ -232,7 +298,7 @@ export const ExportData = ({ products, sales, purchases, expenses, withdrawals, 
       </div>
 
       {/* Info cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 10 : 14 }}>
         <Card style={{ background: "#FAFAF9", border: "1px solid #E8E7E3" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 18 }}>🛡️</span>

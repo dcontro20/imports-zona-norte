@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  LaunchAgent para backup diario IZN.
+  Corre cada día a las 3:03 AM y sube a Google Drive.
+
+  Instalación:
+    cp scripts/com.izn.backup.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.izn.backup.plist
+
+  Ver logs:
+    tail /tmp/izn-backup.log
+    tail /tmp/izn-backup.err
+
+  ⚠️  Editar los paths absolutos abajo si el proyecto está en otra carpeta.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.izn.backup</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>-c</string>
+        <string>cd /Users/Diego/Desktop/imports-zona-norte && /usr/local/bin/node scripts/backup.mjs --upload --quiet</string>
+    </array>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>3</integer>
+        <key>Minute</key>
+        <integer>3</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/izn-backup.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/tmp/izn-backup.err</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin</string>
+    </dict>
+</dict>
+</plist>
