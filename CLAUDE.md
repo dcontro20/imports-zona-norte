@@ -302,3 +302,53 @@ La API de dolarapi.com solo actualiza el exchangeRate si Firestore no mandó uno
 ## Nota sobre el estado actual
 
 A partir del 14/04/2026, GitHub está sincronizado y es la fuente de verdad del código. Todos los cambios se pushean directamente al repo. La versión en Vercel se deploya automáticamente desde main.
+
+---
+
+## Estado del proyecto al 22/04/2026
+
+### Sesiones recientes clave (docs/SESSION_2026-04-22.md para narrativa completa)
+
+**Rediseños full estilo Notion/Linear** (21-22/04/2026):
+- `Clients.jsx` — cards con avatar pastel, contact chips clickeables (tel/WA/IG), campo zona con sugerencias, historial modal con sparkline 6 meses
+- `Dashboard.jsx` — period selector (Hoy/Semana/Mes), sparkline 14d, donut, activity feed unificado
+- `Sales.jsx` — SaleCards con avatar del cliente, filtros pills, stats del mes (incluye deudas pendientes). Modal de venta NO se tocó
+- `CashBox.jsx` — hero patrimonio, 6 cuentas con sparkline 30d, 5 tipos de movimiento, conciliación con ajustes, flow por período con chart barras
+
+**Tema**: tema claro cálido Notion/Linear (`#FAFAF9` bg, `#37352F` text, `#5E6AD2` primary). Dark mode fue probado y revertido.
+
+**Tokens centralizados**: `src/theme.js` exporta `T` (surfaces/texto/status/shadows/radius/fonts) + `AVATAR_PALETTE` + `pickAvatarColor(seed)` para identidades visuales consistentes (mismo cliente = mismo color en todas las vistas).
+
+### Sistema de backup automático
+
+**Corre solo todos los días a las 3:03 AM ART.** No depende de Claude.
+- Script: `scripts/backup.mjs --upload --quiet`
+- LaunchAgent: `scripts/com.izn.backup.plist` instalado en `~/Library/LaunchAgents/`
+- Auth: OAuth 2.0 con cuenta Diego (refresh token en `.credentials/drive-oauth-token.json`, gitignoreado)
+- Drive folder: `1d57fOksNJePjSM1oC4c994z_UdAUnnuv`
+- Nombres: local `IZN_Backup_YYYY-MM-DD_HHhMM.json`, Drive `IZN · Backup del [día] DD Mmm YYYY · HHhMM · N registros.json`
+- Doc completa y troubleshooting: `scripts/BACKUP_SETUP.md`
+
+Para forzar un backup ahora: `launchctl kickstart -k gui/$(id -u)/com.izn.backup`
+
+### Mobile-first (iPhone 375px)
+
+Diego opera mucho desde el celular. Mobile es prioridad — no afterthought.
+
+**Reglas al agregar/tocar componentes:**
+- Hook `useResponsive()` desde App.jsx: `{ isMobile, isTablet, isDesktop }` (breakpoint mobile <768px)
+- Tap targets mínimo 44px (padding vertical ≥11px, minHeight 44)
+- Inputs con `fontSize: 16` en mobile para evitar zoom iOS
+- Nunca grids 3+ cols sin variante isMobile
+- Nunca `minWidth > 100` en flex rows (fuerza overflow horizontal)
+- Forms con 2+ inputs lado a lado → `flexDirection: isMobile ? "column" : "row"` o usar `<FormRow>` de UI.jsx
+- Empty states: `padding: isMobile ? "32px 16px" : 60` (padding 60 en 375px consume casi todo)
+- Modales: `maxHeight: 92vh` + `overflowY: auto` (ya en UI.jsx Modal)
+- Safe-area insets aplicados en topbar, main, FAB, sidebar
+- Body scroll lock cuando sidebar mobile abierto
+
+### Preferencias de colaboración (Diego)
+
+- **Auto-commit**: después de cada cambio que compile OK, commit + push (hook post-commit). No preguntar antes.
+- **Rediseños completos sobre parches**: cuando pide "mejorá/rediseñá X", hacer rewrite del render con tokens modernos, no edits quirúrgicos. Preservar lógica de negocio.
+- **Velocidad > perfección**: Diego usa la app todos los días, prefiere cambios grandes y rápidos antes que optimizaciones sutiles.
