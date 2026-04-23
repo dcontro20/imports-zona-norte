@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback } from "react";
 import { uid, formatMoney, formatDate } from "../helpers.js";
 import { useResponsive } from "../App.jsx";
 import { Modal, Card, Btn, Input, Select, Table, Badge, StatCard } from "./UI.jsx";
-import { WITHDRAW_PERSONS, WITHDRAW_TYPES, BRAND_COLORS } from "../constants.js";
+import { WITHDRAW_PERSONS, WITHDRAW_TYPES, BRAND_COLORS, FAILURE_REASONS, FAILURE_REASON_CATEGORY, isGarantia } from "../constants.js";
 
 // -- MERMAS: Consumo propio, Garantías, Canjes --
 // Ventana de detección de duplicados (5 min)
@@ -45,6 +45,8 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
     person: currentUser?.name || "", withdrawType: "Consumo propio",
     linkedSaleId: "", linkedSaleClient: "", linkedSaleDate: "",
     linkedClientId: "", linkedClientName: "",
+    // Garantía: producto que falló (el cliente lo trajo)
+    failedProductId: "", failureReason: "", failureNotes: "",
     reclamableProveedor: false,
     notes: "", date: new Date().toISOString().slice(0, 10),
   });
@@ -112,9 +114,19 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
       return `Stock insuficiente: ${prod.brand} ${prod.model} - ${prod.flavor}. Disponible: ${prod.stock}`;
     }
     // Si tipo Garantía y se vinculó una venta, validar que la venta exista y esté activa
-    if (form.withdrawType === "Garantía / Devolución" && form.linkedSaleId) {
+    if (isGarantia(form.withdrawType) && form.linkedSaleId) {
       const linkedSale = (sales || []).find(s => s.id === form.linkedSaleId && !s.isDeleted);
       if (!linkedSale) return "La venta vinculada no existe o fue eliminada";
+    }
+    // Validaciones específicas de Cambio por garantía
+    if (isGarantia(form.withdrawType)) {
+      if (!form.failedProductId) return "Indicá qué producto falló (el que trajo el cliente)";
+      const failedProd = products.find(p => p.id === form.failedProductId);
+      if (!failedProd) return "El producto fallido indicado no existe";
+      if (!form.failureReason) return "Indicá la razón del fallo";
+      if (form.failureReason === "Otro" && (form.failureNotes || "").trim().length < 5) {
+        return "Describí brevemente qué pasó (mín. 5 caracteres)";
+      }
     }
     // Si vinculó cliente, validar que exista
     if (form.linkedClientId) {
@@ -206,7 +218,13 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
       // Vínculos opcionales
       ...(form.linkedSaleId ? { linkedSaleId: form.linkedSaleId, linkedSaleClient: form.linkedSaleClient, linkedSaleDate: form.linkedSaleDate } : {}),
       ...(form.linkedClientId ? { linkedClientId: form.linkedClientId, linkedClientName: form.linkedClientName } : {}),
-      ...(form.reclamableProveedor && form.withdrawType === "Garantía / Devolución" ? { reclamableProveedor: true } : {}),
+      ...(form.reclamableProveedor && isGarantia(form.withdrawType) ? { reclamableProveedor: true } : {}),
+      // Campos específicos de Cambio por garantía
+      ...(isGarantia(form.withdrawType) ? {
+        failedProductId: form.failedProductId || form.productId,
+        failureReason: form.failureReason || "",
+        ...(form.failureNotes ? { failureNotes: form.failureNotes.trim() } : {}),
+      } : {}),
     };
 
     setWithdrawals(prev => [withdrawal, ...prev]);
@@ -237,6 +255,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
       person: currentUser?.name || "", withdrawType: "Consumo propio",
       linkedSaleId: "", linkedSaleClient: "", linkedSaleDate: "",
       linkedClientId: "", linkedClientName: "",
+      failedProductId: "", failureReason: "", failureNotes: "",
       reclamableProveedor: false,
       notes: "", date: new Date().toISOString().slice(0, 10),
     });
@@ -271,7 +290,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
   const totalBro = active.filter(w => w.person === "Gustavo").reduce((s, w) => s + w.qty, 0);
   const totalCostUSD = active.reduce((s, w) => s + (w.costEstimateUSD || 0), 0);
   const totalConsumo = active.filter(w => !w.withdrawType || w.withdrawType === "Consumo propio").reduce((s, w) => s + w.qty, 0);
-  const totalGarantia = active.filter(w => w.withdrawType === "Garantía / Devolución").reduce((s, w) => s + w.qty, 0);
+  const totalGarantia = active.filter(w => isGarantia(w.withdrawType)).reduce((s, w) => s + w.qty, 0);
   const totalRegalo = active.filter(w => w.withdrawType === "Regalo / Canje").reduce((s, w) => s + w.qty, 0);
 
   // Cascading picker data for current form
@@ -431,7 +450,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                   { key: "qty", label: "Cant.", render: r => <Badge color="#E03E3E">{r.qty}</Badge> },
                   { key: "type", label: "Tipo", render: r => (
                     <div style={{ display: "flex", flexDirection: "column", gap: 3, alignItems: "flex-start" }}>
-                      <Badge color={r.withdrawType === "Garantía / Devolución" ? "#CB912F" : r.withdrawType === "Regalo / Canje" ? "#00cec9" : "#e17055"}>{r.withdrawType || "Consumo"}</Badge>
+                      <Badge color={isGarantia(r.withdrawType) ? "#CB912F" : r.withdrawType === "Regalo / Canje" ? "#00cec9" : "#e17055"}>{isGarantia(r.withdrawType) ? "Cambio por garantía" : (r.withdrawType || "Consumo")}</Badge>
                       {r.reclamableProveedor && (
                         <span style={{
                           fontSize: 9, padding: "1px 6px", borderRadius: 4,
@@ -515,8 +534,8 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
           <div style={{ fontSize: 11, color: "#B1AFA7", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>TIPO DE MERMA</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {WITHDRAW_TYPES.map(t => {
-              const colors = { "Consumo propio": "#e17055", "Garantía / Devolución": "#CB912F", "Regalo / Canje": "#00cec9" };
-              const icons = { "Consumo propio": "🚬", "Garantía / Devolución": "🔄", "Regalo / Canje": "🎁" };
+              const colors = { "Consumo propio": "#e17055", "Cambio por garantía": "#CB912F", "Regalo / Canje": "#00cec9" };
+              const icons = { "Consumo propio": "🚬", "Cambio por garantía": "🛡️", "Regalo / Canje": "🎁" };
               const active = form.withdrawType === t;
               return (
                 <button key={t} onClick={() => { setForm(f => ({ ...f, withdrawType: t, linkedSaleId: "", linkedSaleClient: "", linkedSaleDate: "" })); setSaleSearch(""); }}
@@ -532,7 +551,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
         </div>
 
         {/* Warranty: link to original sale */}
-        {form.withdrawType === "Garantía / Devolución" && (
+        {isGarantia(form.withdrawType) && (
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 11, color: "#CB912F", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>
               🔄 VENTA ORIGINAL (¿qué vape salió fallido?)
@@ -587,6 +606,9 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                       }).join(", ");
                       return (
                         <button key={s.id} onClick={() => {
+                          // Si la venta tiene UN solo item, pre-llenamos failedProductId.
+                          // Si tiene varios, dejamos el form pida cuál falló.
+                          const singleItem = (s.items || []).length === 1 ? s.items[0] : null;
                           setForm(f => ({
                             ...f,
                             linkedSaleId: s.id,
@@ -594,6 +616,10 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                             linkedSaleDate: s.date,
                             // Auto-vincular cliente si la venta tiene clientId
                             ...(s.clientId ? { linkedClientId: s.clientId, linkedClientName: s.clientName || "" } : {}),
+                            // Auto-vincular producto fallido si la venta tiene un único item
+                            ...(isGarantia(f.withdrawType) && singleItem?.productId
+                              ? { failedProductId: singleItem.productId }
+                              : {}),
                           }));
                           setShowSaleDropdown(false);
                           setSaleSearch("");
@@ -622,10 +648,203 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
           </div>
         )}
 
+        {/* ============================================ */}
+        {/* GARANTÍA — ¿Qué falló? + ¿Qué le entregás?    */}
+        {/* ============================================ */}
+        {isGarantia(form.withdrawType) && (() => {
+          const failedProd = form.failedProductId ? products.find(p => p.id === form.failedProductId) : null;
+          const saleItems = form.linkedSaleId
+            ? ((sales || []).find(s => s.id === form.linkedSaleId)?.items || [])
+            : [];
+          const multiItemSale = saleItems.length > 1;
+          const reason = form.failureReason;
+          const reasonCat = FAILURE_REASON_CATEGORY[reason] || "otro";
+          const reasonColor = {
+            electrico: "#E03E3E", liquido: "#2383E2",
+            fisico: "#CB912F", envio: "#6940A5", otro: "#8C8A82",
+          }[reasonCat];
+
+          return (
+            <>
+              {/* SECCIÓN: ¿Qué falló? */}
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 11, color: "#B1AFA7", marginBottom: 8, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  ¿Qué falló? (lo que trajo el cliente)
+                </div>
+
+                {/* Dropdown "cuál falló" si la venta tiene varios items */}
+                {multiItemSale && (
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: 11, color: "#8C8A82", marginBottom: 4, fontWeight: 600 }}>
+                      La venta tiene {saleItems.length} items — ¿cuál falló?
+                    </div>
+                    <select
+                      value={form.failedProductId}
+                      onChange={e => setForm(f => ({ ...f, failedProductId: e.target.value }))}
+                      style={{
+                        width: "100%", padding: "10px 12px", background: "#FAFAF9",
+                        border: "1px solid #E8E7E3", borderRadius: 8,
+                        fontSize: 14, fontFamily: "inherit", color: "#37352F",
+                      }}>
+                      <option value="">Elegí cuál...</option>
+                      {saleItems.map((it, i) => {
+                        const p = products.find(pr => pr.id === it.productId);
+                        const label = p ? `${p.brand} ${p.model} - ${p.flavor}` : `Item #${i + 1}`;
+                        return <option key={i} value={it.productId}>{label} (x{it.qty})</option>;
+                      })}
+                    </select>
+                  </div>
+                )}
+
+                {/* Card del producto fallido */}
+                {failedProd ? (
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "12px 14px",
+                    background: "#FBE4E4", border: "1px solid #F1B8B6", borderRadius: 10,
+                    marginBottom: 10,
+                  }}>
+                    <span style={{ fontSize: 22 }}>⚠️</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#E03E3E" }}>
+                        {failedProd.brand} {failedProd.model} - {failedProd.flavor}
+                      </div>
+                      <div style={{ fontSize: 11, color: "#8C8A82" }}>
+                        {failedProd.puffs}p · producto fallido que trajo el cliente
+                      </div>
+                    </div>
+                    <button onClick={() => setForm(f => ({ ...f, failedProductId: "" }))}
+                      style={{
+                        background: "none", border: "none", color: "#8C8A82",
+                        cursor: "pointer", fontSize: 12, padding: "4px 8px",
+                      }}>Cambiar</button>
+                  </div>
+                ) : (
+                  <div style={{
+                    padding: "10px 12px", background: "#FAFAF9",
+                    border: "1px dashed #E8E7E3", borderRadius: 10,
+                    marginBottom: 10,
+                    fontSize: 12, color: "#8C8A82", fontStyle: "italic",
+                  }}>
+                    Vinculá la venta original arriba o elegí manualmente el producto fallido más abajo.
+                  </div>
+                )}
+
+                {/* Dropdown razón */}
+                <div style={{ marginBottom: 8 }}>
+                  <div style={{ fontSize: 11, color: "#8C8A82", marginBottom: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                    Razón del fallo *
+                  </div>
+                  <select
+                    value={reason}
+                    onChange={e => {
+                      const r = e.target.value;
+                      setForm(f => ({
+                        ...f,
+                        failureReason: r,
+                        // Auto-activar reclamable a proveedor si es daño de envío
+                        reclamableProveedor: r === "Daño de envío Paraguay" ? true : f.reclamableProveedor,
+                      }));
+                    }}
+                    style={{
+                      width: "100%", padding: "10px 12px", background: "#FAFAF9",
+                      border: `1px solid ${reason ? reasonColor : "#E8E7E3"}`, borderRadius: 8,
+                      fontSize: 14, fontFamily: "inherit", color: reason ? reasonColor : "#8C8A82",
+                      fontWeight: 600,
+                    }}>
+                    <option value="">Elegí una razón...</option>
+                    {FAILURE_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </div>
+
+                {/* Campo notas de falla (obligatorio si razón=Otro) */}
+                {reason && (
+                  <input
+                    value={form.failureNotes}
+                    onChange={e => setForm(f => ({ ...f, failureNotes: e.target.value }))}
+                    placeholder={reason === "Otro" ? "Describí qué pasó (obligatorio, mín. 5 chars)" : "Detalle adicional (opcional)"}
+                    style={{
+                      width: "100%", padding: "10px 12px", background: "#FAFAF9",
+                      border: `1px solid ${reason === "Otro" && (form.failureNotes || "").trim().length < 5 ? "#E03E3E" : "#E8E7E3"}`,
+                      borderRadius: 8,
+                      fontSize: 14, fontFamily: "inherit", boxSizing: "border-box",
+                    }} />
+                )}
+              </div>
+
+              {/* SECCIÓN: ¿Qué le entregás? */}
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 11, color: "#B1AFA7", marginBottom: 8, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  ¿Qué le entregás de reemplazo?
+                </div>
+
+                {/* Botón "Mismo modelo" — el 90% de los casos */}
+                {failedProd && (() => {
+                  const sameSelected = form.productId === failedProd.id;
+                  const stock = failedProd.stock || 0;
+                  return (
+                    <button
+                      onClick={() => {
+                        if (stock > 0) {
+                          setForm(f => ({
+                            ...f,
+                            brand: failedProd.brand,
+                            model: failedProd.model,
+                            productId: failedProd.id,
+                          }));
+                        }
+                      }}
+                      disabled={stock === 0}
+                      style={{
+                        width: "100%", padding: "14px 16px",
+                        background: sameSelected ? "#DDEDEA" : stock > 0 ? "#EEF0FC" : "#FAFAF9",
+                        border: `2px solid ${sameSelected ? "#0F7B6C" : stock > 0 ? "#5E6AD2" : "#E8E7E3"}`,
+                        borderRadius: 12, cursor: stock > 0 ? "pointer" : "not-allowed",
+                        textAlign: "left", fontFamily: "inherit",
+                        marginBottom: 10,
+                        opacity: stock === 0 ? 0.6 : 1,
+                      }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ fontSize: 22 }}>{sameSelected ? "✅" : "💡"}</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 14, fontWeight: 800, color: sameSelected ? "#0F7B6C" : "#5E6AD2" }}>
+                            {sameSelected ? "Mismo modelo seleccionado" : `Entregar mismo modelo`}
+                          </div>
+                          <div style={{ fontSize: 12, color: "#555247" }}>
+                            {failedProd.brand} {failedProd.model} - {failedProd.flavor}
+                            {stock > 0
+                              ? ` · ${stock} ${stock === 1 ? "ud" : "uds"} disponibles`
+                              : " · sin stock"}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })()}
+
+                {/* Badge si entregado !== fallido */}
+                {failedProd && form.productId && form.productId !== form.failedProductId && (
+                  <div style={{
+                    padding: "8px 12px", borderRadius: 8, marginBottom: 10,
+                    background: "#FDECC8", border: "1px solid #F2D59A",
+                    fontSize: 12, color: "#CB912F",
+                  }}>
+                    ⓘ Reemplazo por equivalente (no había stock del original o preferiste cambiar el modelo)
+                  </div>
+                )}
+
+                <div style={{ fontSize: 11, color: "#8C8A82", textAlign: "center", margin: "6px 0" }}>
+                  — o elegir otro modelo —
+                </div>
+              </div>
+            </>
+          );
+        })()}
+
         {/* Brand chips */}
         <div style={{ marginBottom: 14 }}>
           <div style={{ fontSize: 11, color: "#B1AFA7", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>
-            {form.withdrawType === "Garantía / Devolución" ? "PRODUCTO DE REEMPLAZO" : "MARCA"}
+            {isGarantia(form.withdrawType) ? "PRODUCTO DE REEMPLAZO" : "MARCA"}
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {brands.map(b => (
@@ -726,7 +945,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
 
         {/* Client picker — visible para Regalo/Canje (encouraged) y Garantía (si no hay venta vinculada) */}
         {(form.withdrawType === "Regalo / Canje" ||
-          (form.withdrawType === "Garantía / Devolución" && !form.linkedSaleId)) && (
+          (isGarantia(form.withdrawType) && !form.linkedSaleId)) && (
           <ClientPicker
             clients={clients}
             sales={sales}
@@ -739,7 +958,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
         )}
 
         {/* Auto-link info para Garantía con venta vinculada */}
-        {form.withdrawType === "Garantía / Devolución" && form.linkedSaleId && form.linkedClientId && (
+        {isGarantia(form.withdrawType) && form.linkedSaleId && form.linkedClientId && (
           <div style={{
             padding: "8px 12px", borderRadius: 8, marginBottom: 14,
             background: "#EEF0FC", border: "1px solid #5E6AD233",
@@ -750,7 +969,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
         )}
 
         {/* Toggle "Imputable a proveedor" — solo Garantía */}
-        {form.withdrawType === "Garantía / Devolución" && (
+        {isGarantia(form.withdrawType) && (
           <label style={{
             display: "flex", alignItems: "center", gap: 10,
             padding: "10px 12px", borderRadius: 10, marginBottom: 14, cursor: "pointer",
@@ -858,6 +1077,10 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                 Solo el <strong>costo real</strong> se registra en los KPIs financieros.
                 {form.withdrawType === "Consumo propio" && form.person && (
                   <span> Como es consumo propio, se imputa 100% a {form.person}, no al pozo común.</span>
+                )}
+                {isGarantia(form.withdrawType) && (
+                  <span> El producto fallido que trajo el cliente <strong>no suma costo</strong> porque
+                  ya estaba vendido y cobrado. Solo perdés el costo del que entregás de reemplazo.</span>
                 )}
               </div>
             </div>

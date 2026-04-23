@@ -7,10 +7,11 @@ import { useResponsive } from "../App.jsx";
 
 // Helper: costo de un withdrawal (prefiere costRealUSD nuevo, fallback a costEstimateUSD viejo)
 const wCost = (w) => Number(w.costRealUSD || w.costEstimateUSD) || 0;
-// Color por tipo
+// Color por tipo (soporta string viejo y nuevo)
 const TYPE_COLOR = {
   "Consumo propio": "#e17055",
-  "Garantía / Devolución": "#CB912F",
+  "Cambio por garantía": "#CB912F",
+  "Garantía / Devolución": "#CB912F", // compat datos viejos
   "Regalo / Canje": "#00cec9",
 };
 
