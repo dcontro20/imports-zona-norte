@@ -83,16 +83,27 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
       return;
     }
 
-    const costPerUnitUSD = Number(prod.priceUSD) || 0;
-    const costTotalUSD = costPerUnitUSD * qty;
-    const costTotalARS = Math.round(costTotalUSD * (exchangeRate || 0));
+    // ---- Cálculo de costo REAL (no precio de venta) ----
+    // Usa costUSDT (lo que efectivamente se pagó al proveedor) si está cargado.
+    // Si no, fallback a priceUSD * 0.55 (estimación basada en margen típico).
+    // Bug histórico: antes usaba priceUSD entero → inflaba la pérdida.
+    const priceUSD = Number(prod.priceUSD) || 0;
+    const costUSDTunit = Number(prod.costUSDT) || 0;
+    const costPerUnitUSD = costUSDTunit > 0 ? costUSDTunit : priceUSD * 0.55;
+    const costRealUSD = costPerUnitUSD * qty;
+    const lucroCesanteUSD = Math.max(0, (priceUSD - costPerUnitUSD) * qty);
+    const costRealARS = Math.round(costRealUSD * (exchangeRate || 0));
     const newId = uid();
     const dateISO = form.date ? `${form.date}T${new Date().toTimeString().slice(0, 8)}` : new Date().toISOString();
 
     const withdrawal = {
       id: newId, productId: form.productId, qty, person: form.person,
       withdrawType: form.withdrawType, notes: form.notes || "",
-      costEstimateUSD: costTotalUSD, costEstimateARS: costTotalARS,
+      // Campos nuevos (fuente de verdad):
+      costRealUSD,
+      lucroCesanteUSD,
+      // Compat: costEstimateUSD/ARS ahora reflejan el costo REAL, no el precio de venta.
+      costEstimateUSD: costRealUSD, costEstimateARS: costRealARS,
       date: dateISO, createdBy: currentUser?.name || "",
       ...(form.linkedSaleId ? { linkedSaleId: form.linkedSaleId, linkedSaleClient: form.linkedSaleClient, linkedSaleDate: form.linkedSaleDate } : {}),
     };
@@ -423,8 +434,11 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                 <div style={{ fontSize: 12, color: "#8C8A82" }}>{selectedProd.puffs}p · Stock: {selectedProd.stock}</div>
               </div>
               <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#E03E3E" }}>{formatMoney(selectedProd.priceUSD, "USD")}/u</div>
-                {exchangeRate && <div style={{ fontSize: 11, color: "#B1AFA7" }}>{formatMoney(selectedProd.priceUSD * exchangeRate)}/u</div>}
+                <div style={{ fontSize: 11, color: "#8C8A82", fontWeight: 600 }}>Costo</div>
+                {(() => {
+                  const c = Number(selectedProd.costUSDT) || (Number(selectedProd.priceUSD) || 0) * 0.55;
+                  return <div style={{ fontSize: 13, fontWeight: 700, color: "#37352F" }}>{formatMoney(c, "USD")}/u</div>;
+                })()}
               </div>
             </div>
 
@@ -436,10 +450,6 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
               <span style={{ fontSize: 22, fontWeight: 800, minWidth: 32, textAlign: "center" }}>{form.qty}</span>
               <button onClick={() => setForm(f => ({ ...f, qty: Math.min(selectedProd.stock, (Number(f.qty) || 1) + 1) }))}
                 style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid #E8E7E3", background: "#FFFFFF", cursor: "pointer", fontSize: 18, fontWeight: 700 }}>+</button>
-              <div style={{ marginLeft: "auto", textAlign: "right" }}>
-                <div style={{ fontSize: 16, fontWeight: 800, color: "#E03E3E" }}>{formatMoney(selectedProd.priceUSD * (Number(form.qty) || 1), "USD")}</div>
-                {exchangeRate && <div style={{ fontSize: 12, color: "#B1AFA7" }}>{formatMoney(selectedProd.priceUSD * (Number(form.qty) || 1) * exchangeRate)}</div>}
-              </div>
             </div>
           </div>
         )}
@@ -455,21 +465,84 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
           <Input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
         </details>
 
-        {/* Cost preview */}
-        {selectedProd && (
-          <div style={{ background: "#FBE4E4", border: "1px solid #F1B8B6", borderRadius: 10, padding: "10px 14px", marginBottom: 14 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <div style={{ fontSize: 11, color: "#E03E3E", fontWeight: 600, textTransform: "uppercase" }}>Pérdida estimada</div>
-                <div style={{ fontSize: 11, color: "#B1AFA7" }}>Se descuenta del stock y se registra como pérdida</div>
+        {/* Cost preview — costo real perdido vs lucro cesante */}
+        {selectedProd && (() => {
+          const qty = Number(form.qty) || 1;
+          const priceUSD = Number(selectedProd.priceUSD) || 0;
+          const costUSDTunit = Number(selectedProd.costUSDT) || 0;
+          const costPerUnitUSD = costUSDTunit > 0 ? costUSDTunit : priceUSD * 0.55;
+          const costRealUSD = costPerUnitUSD * qty;
+          const lucroCesanteUSD = Math.max(0, (priceUSD - costPerUnitUSD) * qty);
+          const totalImpactoUSD = costRealUSD + lucroCesanteUSD; // = priceUSD * qty
+          const usingFallback = costUSDTunit <= 0;
+          return (
+            <div style={{
+              background: "#FFFFFF", border: "1px solid #E8E7E3", borderRadius: 12,
+              padding: "14px 16px", marginBottom: 14,
+              display: "flex", flexDirection: "column", gap: 10,
+            }}>
+              <div style={{ fontSize: 11, color: "#8C8A82", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6 }}>
+                Impacto de esta merma
               </div>
-              <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 18, fontWeight: 800, color: "#E03E3E" }}>{formatMoney(selectedProd.priceUSD * (Number(form.qty) || 1), "USD")}</div>
-                {exchangeRate && <div style={{ fontSize: 13, color: "#E03E3E" }}>{formatMoney(selectedProd.priceUSD * (Number(form.qty) || 1) * exchangeRate)}</div>}
+
+              {/* Línea 1: Costo real */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
+                <div>
+                  <div style={{ fontSize: 13, color: "#37352F", fontWeight: 600 }}>Costo real perdido</div>
+                  <div style={{ fontSize: 11, color: "#8C8A82" }}>
+                    Lo que pagaste al proveedor por estas {qty} unidad{qty === 1 ? "" : "es"}
+                    {usingFallback && " · estimado (sin costUSDT cargado)"}
+                  </div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: "#E03E3E" }}>{formatMoney(costRealUSD, "USD")}</div>
+                  {exchangeRate > 0 && (
+                    <div style={{ fontSize: 12, color: "#8C8A82" }}>≈ {formatMoney(Math.round(costRealUSD * exchangeRate))} ARS</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Línea 2: Lucro cesante */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, paddingTop: 8, borderTop: "1px solid #F0EFEB" }}>
+                <div>
+                  <div style={{ fontSize: 13, color: "#37352F", fontWeight: 600 }}>Lucro cesante</div>
+                  <div style={{ fontSize: 11, color: "#8C8A82" }}>Lo que dejás de ganar al no venderlo</div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "#CB912F" }}>{formatMoney(lucroCesanteUSD, "USD")}</div>
+                  {exchangeRate > 0 && (
+                    <div style={{ fontSize: 11, color: "#8C8A82" }}>≈ {formatMoney(Math.round(lucroCesanteUSD * exchangeRate))} ARS</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Línea 3: Total impacto */}
+              <div style={{
+                display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10,
+                paddingTop: 10, borderTop: "1px solid #E8E7E3",
+              }}>
+                <div style={{ fontSize: 13, color: "#37352F", fontWeight: 700 }}>Total impacto</div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: "#37352F" }}>{formatMoney(totalImpactoUSD, "USD")}</div>
+                  {exchangeRate > 0 && (
+                    <div style={{ fontSize: 12, color: "#8C8A82" }}>≈ {formatMoney(Math.round(totalImpactoUSD * exchangeRate))} ARS</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Aviso clave: solo el costo real entra en KPIs */}
+              <div style={{
+                fontSize: 11, color: "#8C8A82", fontStyle: "italic",
+                paddingTop: 6,
+              }}>
+                Solo el <strong>costo real</strong> se registra en los KPIs financieros.
+                {form.withdrawType === "Consumo propio" && form.person && (
+                  <span> Como es consumo propio, se imputa 100% a {form.person}, no al pozo común.</span>
+                )}
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Actions */}
         <div style={{ display: "flex", gap: 10 }}>

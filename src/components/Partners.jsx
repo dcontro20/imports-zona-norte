@@ -32,9 +32,19 @@ export const Partners = ({ partnerWithdrawals, setPartnerWithdrawals, sales, pur
 
   // Calculate business profit and partner balances using shared logic
   const {
-    netProfit, halfProfit, diegoTotal, gustavoTotal,
-    totalWithdrawn, profitRemaining, diegoBalance, gustavoBalance
+    revenue, costs, expensesTotal, mermasComunes, netProfitComun, halfProfit,
+    consumoDiego, consumoGustavo,
+    diegoTotal, gustavoTotal, totalWithdrawn,
+    netProfit, profitRemaining, diegoBalance, gustavoBalance,
   } = calcPartnerBalances(sales, purchases, expenses, withdrawals || [], partnerWithdrawals || [], exchangeRate);
+
+  // Helper para fila de breakdown del pozo común
+  const Row = ({ label, value, color = "#37352F", bold }) => (
+    <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", fontSize: 13 }}>
+      <span style={{ color: "#555247", fontWeight: bold ? 700 : 500 }}>{label}</span>
+      <span style={{ color, fontWeight: bold ? 800 : 600, fontVariantNumeric: "tabular-nums" }}>{value}</span>
+    </div>
+  );
 
   return (
     <div>
@@ -43,53 +53,98 @@ export const Partners = ({ partnerWithdrawals, setPartnerWithdrawals, sales, pur
         <Btn onClick={() => setModal(true)}>💸 Registrar Retiro</Btn>
       </div>
 
-      {/* Profit overview */}
+      {/* ============================================ */}
+      {/* POZO COMÚN — lo que se reparte 50/50 */}
+      {/* ============================================ */}
       <Card style={{ marginBottom: 14, background: "#FAFAF9", border: "1px solid #5E6AD233" }}>
-        <div style={{ display: "flex", justifyContent: "space-around", flexWrap: "wrap", gap: 16, textAlign: "center", marginBottom: 14 }}>
-          <div>
-            <div style={{ color: "#8C8A82", fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>Ganancia neta total</div>
-            <div style={{ color: netProfit >= 0 ? "#00b894" : "#E03E3E", fontSize: 24, fontWeight: 800 }}>{formatMoney(netProfit)}</div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "#5E6AD2", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 10 }}>
+          Pozo común · ganancia neta dividida 50/50
+        </div>
+        <Row label="Ingresos por ventas" value={`+${formatMoney(revenue)}`} color="#00b894" />
+        <Row label="Costos de importación" value={`−${formatMoney(costs)}`} color="#E03E3E" />
+        <Row label="Gastos operativos" value={`−${formatMoney(expensesTotal)}`} color="#E03E3E" />
+        <Row label="Mermas comunes (garantías + regalos)" value={`−${formatMoney(mermasComunes)}`} color="#CB912F" />
+        <div style={{ borderTop: "1px solid #E8E7E3", marginTop: 6, paddingTop: 6 }}>
+          <Row label="Ganancia neta común" value={formatMoney(netProfitComun)} color={netProfitComun >= 0 ? "#00b894" : "#E03E3E"} bold />
+          <Row label="Le toca a cada socio (50%)" value={formatMoney(halfProfit)} color="#5E6AD2" bold />
+        </div>
+      </Card>
+
+      {/* ============================================ */}
+      {/* POR SOCIO — share - consumo personal - retiros */}
+      {/* ============================================ */}
+      <Card style={{ marginBottom: 14, background: "#FAFAF9", border: "1px solid #E8E7E3" }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 10 }}>
+          Por socio · share común − consumo personal − retiros = saldo pendiente
+        </div>
+
+        <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 14 : 20 }}>
+          {/* Diego */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+              <span style={{ color: "#5E6AD2", fontSize: 14, fontWeight: 700 }}>💜 Diego</span>
+              {consumoDiego > halfProfit * 0.1 && (
+                <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 999, background: "#FDECC8", color: "#CB912F", fontWeight: 700 }}>
+                  consumo personal alto
+                </span>
+              )}
+            </div>
+            <Row label="Le corresponde (50%)" value={formatMoney(halfProfit)} />
+            <Row label="− Su consumo personal" value={`−${formatMoney(consumoDiego)}`} color={consumoDiego > 0 ? "#CB912F" : "#8C8A82"} />
+            <Row label="− Sus retiros en plata" value={`−${formatMoney(diegoTotal)}`} color={diegoTotal > 0 ? "#fdcb6e" : "#8C8A82"} />
+            <div style={{ borderTop: "1px solid #F0EFEB", marginTop: 4, paddingTop: 4 }}>
+              <Row label="Saldo pendiente" value={formatMoney(diegoBalance)} color={diegoBalance >= 0 ? "#00b894" : "#E03E3E"} bold />
+            </div>
           </div>
-          <div>
-            <div style={{ color: "#8C8A82", fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>Retirado total</div>
-            <div style={{ color: "#fdcb6e", fontSize: 24, fontWeight: 800 }}>{formatMoney(totalWithdrawn)}</div>
-          </div>
-          <div>
-            <div style={{ color: "#8C8A82", fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>Ganancia sin retirar</div>
-            <div style={{ color: "#5E6AD2", fontSize: 24, fontWeight: 800 }}>{formatMoney(profitRemaining)}</div>
+
+          <div style={{ width: isMobile ? "100%" : 1, height: isMobile ? 1 : "auto", background: "#E8E7E3" }} />
+
+          {/* Gustavo */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+              <span style={{ color: "#00b894", fontSize: 14, fontWeight: 700 }}>💙 Gustavo</span>
+              {consumoGustavo > halfProfit * 0.1 && (
+                <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 999, background: "#FDECC8", color: "#CB912F", fontWeight: 700 }}>
+                  consumo personal alto
+                </span>
+              )}
+            </div>
+            <Row label="Le corresponde (50%)" value={formatMoney(halfProfit)} />
+            <Row label="− Su consumo personal" value={`−${formatMoney(consumoGustavo)}`} color={consumoGustavo > 0 ? "#CB912F" : "#8C8A82"} />
+            <Row label="− Sus retiros en plata" value={`−${formatMoney(gustavoTotal)}`} color={gustavoTotal > 0 ? "#fdcb6e" : "#8C8A82"} />
+            <div style={{ borderTop: "1px solid #F0EFEB", marginTop: 4, paddingTop: 4 }}>
+              <Row label="Saldo pendiente" value={formatMoney(gustavoBalance)} color={gustavoBalance >= 0 ? "#00b894" : "#E03E3E"} bold />
+            </div>
           </div>
         </div>
-        <div style={{ borderTop: "1px solid #E8E7E3", paddingTop: 14, display: "flex", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 14 : 20, textAlign: "left" }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: "#5E6AD2", fontSize: 14, fontWeight: 700, marginBottom: 8 }}>💜 Diego (50%)</div>
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}>
-              <span style={{ color: "#8C8A82", fontSize: 13 }}>Le corresponde</span>
-              <span style={{ color: "#37352F", fontWeight: 600 }}>{formatMoney(halfProfit)}</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}>
-              <span style={{ color: "#8C8A82", fontSize: 13 }}>Ya retiró</span>
-              <span style={{ color: "#fdcb6e", fontWeight: 600 }}>{formatMoney(diegoTotal)}</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderTop: "1px solid #F0EFEB", marginTop: 4 }}>
-              <span style={{ color: "#37352F", fontSize: 14, fontWeight: 700 }}>Saldo pendiente</span>
-              <span style={{ color: diegoBalance >= 0 ? "#00b894" : "#E03E3E", fontSize: 16, fontWeight: 800 }}>{formatMoney(diegoBalance)}</span>
-            </div>
+
+        {/* Footer aclaratorio */}
+        <div style={{
+          marginTop: 12, padding: "8px 12px",
+          background: "#EEF0FC", border: "1px solid #5E6AD233", borderRadius: 8,
+          fontSize: 11, color: "#555247", lineHeight: 1.5,
+        }}>
+          ℹ️ <strong>Cómo se calcula:</strong> el consumo propio (Diego o Gustavo se fuman/usan
+          un producto) se imputa 100% al socio que lo hizo, no al pozo común. Las garantías y
+          regalos a clientes sí afectan el pozo común porque son gastos del negocio compartidos.
+        </div>
+      </Card>
+
+      {/* Resumen totales (compact) */}
+      <Card style={{ marginBottom: 14, background: "#FFFFFF", border: "1px solid #E8E7E3" }}>
+        <div style={{ display: "flex", justifyContent: "space-around", flexWrap: "wrap", gap: 14, textAlign: "center" }}>
+          <div>
+            <div style={{ color: "#8C8A82", fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>Ganancia neta total</div>
+            <div style={{ color: netProfit >= 0 ? "#00b894" : "#E03E3E", fontSize: 18, fontWeight: 800 }}>{formatMoney(netProfit)}</div>
+            <div style={{ color: "#B1AFA7", fontSize: 10 }}>incluye consumo personal</div>
           </div>
-          <div style={{ width: isMobile ? "100%" : 1, height: isMobile ? 1 : "auto", background: "#E8E7E3" }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: "#00b894", fontSize: 14, fontWeight: 700, marginBottom: 8 }}>💙 Gustavo (50%)</div>
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}>
-              <span style={{ color: "#8C8A82", fontSize: 13 }}>Le corresponde</span>
-              <span style={{ color: "#37352F", fontWeight: 600 }}>{formatMoney(halfProfit)}</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}>
-              <span style={{ color: "#8C8A82", fontSize: 13 }}>Ya retiró</span>
-              <span style={{ color: "#fdcb6e", fontWeight: 600 }}>{formatMoney(gustavoTotal)}</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderTop: "1px solid #F0EFEB", marginTop: 4 }}>
-              <span style={{ color: "#37352F", fontSize: 14, fontWeight: 700 }}>Saldo pendiente</span>
-              <span style={{ color: gustavoBalance >= 0 ? "#00b894" : "#E03E3E", fontSize: 16, fontWeight: 800 }}>{formatMoney(gustavoBalance)}</span>
-            </div>
+          <div>
+            <div style={{ color: "#8C8A82", fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>Retirado en plata</div>
+            <div style={{ color: "#fdcb6e", fontSize: 18, fontWeight: 800 }}>{formatMoney(totalWithdrawn)}</div>
+          </div>
+          <div>
+            <div style={{ color: "#8C8A82", fontSize: 11, textTransform: "uppercase", marginBottom: 4 }}>Sin retirar (común)</div>
+            <div style={{ color: "#5E6AD2", fontSize: 18, fontWeight: 800 }}>{formatMoney(profitRemaining)}</div>
           </div>
         </div>
       </Card>
