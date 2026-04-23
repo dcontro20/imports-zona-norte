@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { formatMoney, formatDate } from "../helpers.js";
 import { calcTotalRevenue, calcTotalRevenueUSD } from "../calcs.js";
-import { BRAND_COLORS } from "../constants.js";
+import { BRAND_COLORS, isGarantia } from "../constants.js";
 import { useResponsive } from "../App.jsx";
 import { T, pickAvatarColor } from "../theme.js";
 
@@ -345,8 +345,68 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, e
       });
     }
 
+    // 8.3 Modelo con alta tasa de falla este mes
+    // Para cada modelo único: count de garantías del mes / ventas del mes del mismo modelo
+    // Si tasa > 3% Y count >= 2: alerta roja
+    const garantiasMes = wActive.filter(w => isGarantia(w.withdrawType) && isThisMonth(w.date));
+    if (garantiasMes.length > 0) {
+      // Contar garantías por modelo (usando failedProductId si existe, sino productId)
+      const garantiasByModel = {}; // modelKey -> { count, productName }
+      garantiasMes.forEach(w => {
+        const pid = w.failedProductId || w.productId;
+        const p = productsById[pid];
+        if (!p) return;
+        const key = `${p.brand}|${p.model}`;
+        if (!garantiasByModel[key]) garantiasByModel[key] = { count: 0, qty: 0, name: `${p.brand} ${p.model}` };
+        garantiasByModel[key].count += 1;
+        garantiasByModel[key].qty += (w.qty || 0);
+      });
+      // Contar ventas del mes por modelo
+      const ventasByModel = {};
+      sales.filter(s => !s.isDeleted && isThisMonth(s.date)).forEach(s => {
+        (s.items || []).forEach(i => {
+          const p = productsById[i.productId];
+          if (!p) return;
+          const key = `${p.brand}|${p.model}`;
+          ventasByModel[key] = (ventasByModel[key] || 0) + (i.qty || 1);
+        });
+      });
+      // Detectar modelos problemáticos
+      const problemModels = [];
+      Object.keys(garantiasByModel).forEach(key => {
+        const g = garantiasByModel[key];
+        const ventas = ventasByModel[key] || 0;
+        if (g.count >= 2 && ventas > 0) {
+          const rate = g.count / ventas;
+          if (rate > 0.03) {
+            problemModels.push({ name: g.name, count: g.count, ventas, rate });
+          }
+        }
+      });
+      if (problemModels.length > 0) {
+        const top = problemModels.sort((a, b) => b.rate - a.rate).slice(0, 2);
+        list.push({
+          t: "danger",
+          msg: `${problemModels.length} modelo${problemModels.length > 1 ? "s" : ""} con alta tasa de falla este mes`,
+          detail: top.map(m => `${m.name}: ${m.count} cambios sobre ${m.ventas} ventas (${(m.rate * 100).toFixed(1)}%)`).join(" · "),
+        });
+      }
+    }
+
+    // 8.4 Cambios por daño de envío Paraguay (>= 3 este mes)
+    const dañoEnvio = garantiasMes.filter(w => w.failureReason === "Daño de envío Paraguay");
+    if (dañoEnvio.length >= 3) {
+      const qty = dañoEnvio.reduce((s, w) => s + (w.qty || 0), 0);
+      const usd = dañoEnvio.reduce((s, w) => s + wCost(w), 0);
+      list.push({
+        t: "warning",
+        msg: `${dañoEnvio.length} cambios por daño de envío este mes`,
+        detail: `${qty} uds · ${formatMoney(usd, "USD")} — revisar embalaje con proveedor`,
+      });
+    }
+
     return list;
-  }, [outOfStock, lowStock, products, sales, clients, withdrawals]);
+  }, [outOfStock, lowStock, products, productsById, sales, clients, withdrawals]);
 
   const alertStyles = {
     danger: { bg: T.redBg, border: T.redBorder, dot: T.red },

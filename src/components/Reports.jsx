@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { formatMoney, formatDate } from "../helpers.js";
 import { calcTotalRevenue } from "../calcs.js";
 import { Card, Badge, Table } from "./UI.jsx";
-import { BRAND_COLORS, WITHDRAW_TYPES } from "../constants.js";
+import { BRAND_COLORS, WITHDRAW_TYPES, FAILURE_REASONS, FAILURE_REASON_CATEGORY, isGarantia } from "../constants.js";
 import { useResponsive } from "../App.jsx";
 
 // Helper: costo de un withdrawal (prefiere costRealUSD nuevo, fallback a costEstimateUSD viejo)
@@ -620,6 +620,221 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, exc
                       <div style={{ fontSize: 10, color: "#8C8A82", textTransform: "capitalize" }}>{m.label.replace(".", "")}</div>
                     </div>
                   ))}
+                </div>
+              </div>
+            </>
+          );
+        })()}
+      </Card>
+
+      {/* ============================================ */}
+      {/* CALIDAD DE PRODUCTOS — solo garantías         */}
+      {/* ============================================ */}
+      <Card style={{ marginBottom: 14 }}>
+        <h4 style={{ color: "#CB912F", margin: "0 0 14px", fontSize: 14, textTransform: "uppercase", letterSpacing: 0.6 }}>
+          🛡️ Calidad de productos
+        </h4>
+        {(() => {
+          const allW = (withdrawals || []).filter(w => !w.isDeleted);
+          const garantias = allW.filter(w => isGarantia(w.withdrawType));
+          if (garantias.length === 0) {
+            return (
+              <div style={{ textAlign: "center", padding: 24, color: "#8C8A82", fontSize: 13 }}>
+                Aún no hay cambios por garantía registrados — los KPIs de calidad
+                van a aparecer acá cuando empieces a cargarlos.
+              </div>
+            );
+          }
+
+          // 5.1 Top 5 modelos con más fallas (por failedProductId)
+          const failureByModel = {};
+          garantias.forEach(w => {
+            const fid = w.failedProductId || w.productId;
+            if (!fid) return;
+            const p = products.find(pr => pr.id === fid);
+            if (!p) return;
+            const key = `${p.brand} ${p.model}`;
+            if (!failureByModel[key]) failureByModel[key] = { qty: 0, usd: 0, productIds: new Set() };
+            failureByModel[key].qty += w.qty || 0;
+            failureByModel[key].usd += wCost(w);
+            failureByModel[key].productIds.add(fid);
+          });
+          // Calcular ventas totales por modelo para la tasa
+          const salesByModel = {};
+          (sales || []).filter(s => !s.isDeleted).forEach(s => {
+            (s.items || []).forEach(it => {
+              const p = products.find(pr => pr.id === it.productId);
+              if (!p) return;
+              const key = `${p.brand} ${p.model}`;
+              salesByModel[key] = (salesByModel[key] || 0) + (Number(it.qty) || 0);
+            });
+          });
+          const top5Failed = Object.entries(failureByModel)
+            .map(([key, v]) => ({ key, ...v, ventas: salesByModel[key] || 0, tasa: salesByModel[key] > 0 ? (v.qty / salesByModel[key]) * 100 : 0 }))
+            .sort((a, b) => b.qty - a.qty)
+            .slice(0, 5);
+          const maxFailureQty = Math.max(1, ...top5Failed.map(x => x.qty));
+
+          // 5.2 Razones más comunes
+          const byReason = {};
+          garantias.forEach(w => {
+            if (!w.failureReason) return;
+            byReason[w.failureReason] = (byReason[w.failureReason] || 0) + 1;
+          });
+          const reasonEntries = Object.entries(byReason).sort((a, b) => b[1] - a[1]);
+          const totalReasons = reasonEntries.reduce((s, [, n]) => s + n, 0);
+          const reasonCatColor = {
+            electrico: "#E03E3E", liquido: "#2383E2",
+            fisico: "#CB912F", envio: "#6940A5", otro: "#8C8A82",
+          };
+
+          // 5.3 % reclamables al proveedor
+          const reclamables = garantias.filter(w => w.reclamableProveedor);
+          const pctReclamables = garantias.length > 0 ? (reclamables.length / garantias.length) * 100 : 0;
+
+          // 5.4 Evolución mensual últimos 6 meses
+          const now = new Date();
+          const months = [];
+          for (let i = 5; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const monthIdx = d.getMonth();
+            const yearIdx = d.getFullYear();
+            const count = garantias.filter(w => {
+              const wd = new Date(w.date);
+              return wd.getMonth() === monthIdx && wd.getFullYear() === yearIdx;
+            }).length;
+            months.push({
+              label: d.toLocaleDateString("es-AR", { month: "short" }),
+              count,
+            });
+          }
+          const maxMonth = Math.max(1, ...months.map(m => m.count));
+
+          return (
+            <>
+              {/* KPI: % reclamables al proveedor */}
+              <div style={{
+                padding: "12px 14px", borderRadius: 10, marginBottom: 14,
+                background: pctReclamables > 15 ? "#FDECC8" : "#FAFAF9",
+                border: `1px solid ${pctReclamables > 15 ? "#F2D59A" : "#E8E7E3"}`,
+                display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
+              }}>
+                <div style={{ fontSize: 24, fontWeight: 800, color: pctReclamables > 15 ? "#CB912F" : "#37352F" }}>
+                  {pctReclamables.toFixed(0)}%
+                </div>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <div style={{ fontSize: 13, color: "#37352F", fontWeight: 600 }}>
+                    de cambios fueron por daño de envío desde Paraguay
+                  </div>
+                  <div style={{ fontSize: 11, color: "#8C8A82", marginTop: 2 }}>
+                    {reclamables.length} reclamables sobre {garantias.length} cambios totales
+                    {pctReclamables > 15 && " · Hablá con el pasero/proveedor sobre el empacado"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Top 5 modelos con más fallas */}
+              {top5Failed.length > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>
+                    Top 5 modelos con más fallas
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {top5Failed.map((m, i) => (
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 12, color: "#555247", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.key}</span>
+                        <div style={{ width: isMobile ? 90 : 180, height: 18, background: "#F0EFEB", borderRadius: 4, overflow: "hidden" }}>
+                          <div style={{ width: `${(m.qty / maxFailureQty) * 100}%`, height: "100%", background: `linear-gradient(90deg, #CB912Faa, #CB912F)`, borderRadius: 4 }} />
+                        </div>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "#CB912F", minWidth: 32, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{m.qty}</span>
+                        {m.ventas > 0 && (
+                          <span style={{
+                            fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 4,
+                            background: m.tasa > 3 ? "#FBE4E4" : "#F0EFEB",
+                            color: m.tasa > 3 ? "#E03E3E" : "#8C8A82",
+                            minWidth: 50, textAlign: "center",
+                            fontVariantNumeric: "tabular-nums",
+                          }} title={`${m.qty} fallas sobre ${m.ventas} ventas`}>
+                            {m.tasa.toFixed(1)}%
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: 10, color: "#8C8A82", marginTop: 6, fontStyle: "italic" }}>
+                    Chip rojo: tasa de falla &gt; 3% (cambios / ventas del mismo modelo)
+                  </div>
+                </div>
+              )}
+
+              {/* Donut razones + evolución mensual */}
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14 }}>
+                {/* Donut razones */}
+                {reasonEntries.length > 0 && (
+                  <div style={{ padding: 12, background: "#FAFAF9", borderRadius: 10, border: "1px solid #E8E7E3" }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>
+                      Razones de falla
+                    </div>
+                    <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                      <svg width={100} height={100} viewBox="0 0 100 100" style={{ flexShrink: 0 }}>
+                        {(() => {
+                          const cx = 50, cy = 50, r = 38;
+                          const circ = 2 * Math.PI * r;
+                          let acc = 0;
+                          return reasonEntries.map(([reason, n], i) => {
+                            const cat = FAILURE_REASON_CATEGORY[reason] || "otro";
+                            const color = reasonCatColor[cat];
+                            const pct = n / totalReasons;
+                            const dash = pct * circ;
+                            const offset = -acc * circ;
+                            acc += pct;
+                            return <circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth={14}
+                              strokeDasharray={`${dash} ${circ - dash}`} strokeDashoffset={offset}
+                              transform={`rotate(-90 ${cx} ${cy})`} />;
+                          });
+                        })()}
+                        <text x={50} y={50} textAnchor="middle" fontSize={18} fontWeight="800" fill="#37352F">{totalReasons}</text>
+                        <text x={50} y={63} textAnchor="middle" fontSize={9} fill="#8C8A82">con razón</text>
+                      </svg>
+                      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>
+                        {reasonEntries.slice(0, 5).map(([reason, n]) => {
+                          const cat = FAILURE_REASON_CATEGORY[reason] || "otro";
+                          const color = reasonCatColor[cat];
+                          return (
+                            <div key={reason} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11 }}>
+                              <span style={{ width: 8, height: 8, borderRadius: 2, background: color, flexShrink: 0 }} />
+                              <span style={{ color: "#555247", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{reason}</span>
+                              <span style={{ fontWeight: 700, color: "#37352F", fontVariantNumeric: "tabular-nums" }}>{n}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Evolución mensual */}
+                <div style={{ padding: 12, background: "#FAFAF9", borderRadius: 10, border: "1px solid #E8E7E3" }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>
+                    Garantías últimos 6 meses
+                  </div>
+                  <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 80, paddingBottom: 4 }}>
+                    {months.map((m, i) => (
+                      <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, height: "100%" }}>
+                        <div style={{ flex: 1, width: "100%", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+                          <div style={{
+                            width: "100%", background: "#CB912F",
+                            height: m.count > 0 ? `${(m.count / maxMonth) * 100}%` : 2,
+                            minHeight: m.count > 0 ? 4 : 2,
+                            borderRadius: "3px 3px 0 0",
+                            opacity: m.count > 0 ? 1 : 0.3,
+                          }} title={`${m.count} cambios`} />
+                        </div>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: "#37352F", fontVariantNumeric: "tabular-nums" }}>{m.count}</div>
+                        <div style={{ fontSize: 9, color: "#8C8A82", textTransform: "capitalize" }}>{m.label.replace(".", "")}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </>

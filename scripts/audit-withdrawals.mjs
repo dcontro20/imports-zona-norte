@@ -11,6 +11,9 @@
 //   5. Withdrawals sin costRealUSD (datos viejos pre-migración)
 //   6. Total de stock perdido por mes (qty + USD)
 //   7. Reparto de consumo personal por socio
+//   8. Garantías legacy sin failedProductId (info, datos pre-rework warranty)
+//   9. failedProductId apuntando a producto inexistente (ERROR)
+//  10. Tasa de falla por modelo en últimos 90 días (>3% con count>=2 = WARN)
 
 import { readFileSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
@@ -174,6 +177,91 @@ function audit() {
     console.log(`  ${person.padEnd(8)} ${String(qty).padStart(4)} uds consumidas  · $${usd.toFixed(2)} USD`);
   });
   console.log();
+
+  // ============================================
+  // 8. Garantías legacy sin failedProductId
+  // ============================================
+  // Reconocer ambos strings (rework renombró "Garantía / Devolución" → "Cambio por garantía")
+  const isGarantia = (t) => t === "Cambio por garantía" || t === "Garantía / Devolución";
+  console.log("=== 8. GARANTÍAS LEGACY sin failedProductId (datos pre-rework) ===");
+  const garantias = activeW.filter(w => isGarantia(w.withdrawType));
+  const legacyGarantias = garantias.filter(w => !w.failedProductId);
+  if (legacyGarantias.length === 0 && garantias.length > 0) {
+    console.log(`✅ Las ${garantias.length} garantías tienen failedProductId\n`);
+  } else if (garantias.length === 0) {
+    console.log("ℹ️  No hay garantías registradas\n");
+  } else {
+    console.log(`ℹ️  ${legacyGarantias.length} de ${garantias.length} garantías sin failedProductId (legacy, OK por compat)\n`);
+  }
+
+  // ============================================
+  // 9. failedProductId apuntando a producto inexistente
+  // ============================================
+  console.log("=== 9. FAILED PRODUCT IDs rotos (producto fallido borrado) ===");
+  let brokenFailed = 0;
+  garantias.forEach(w => {
+    if (!w.failedProductId) return;
+    if (!productIds.has(w.failedProductId)) {
+      brokenFailed++;
+      report("ERROR", `Withdrawal ${w.id}: failedProductId "${w.failedProductId}" no existe`, `Cliente: ${w.linkedClientName || "?"} · Razón: ${w.failureReason || "?"}`);
+    }
+  });
+  if (brokenFailed === 0) console.log("✅ Todos los failedProductId apuntan a productos existentes\n");
+
+  // ============================================
+  // 10. Tasa de falla por modelo (últimos 90 días)
+  // ============================================
+  console.log("=== 10. TASA DE FALLA POR MODELO (últimos 90 días, >3% con count>=2) ===");
+  const ninetyAgo = Date.now() - 90 * 86400000;
+  const recentGarantias = garantias.filter(w => {
+    const t = new Date(w.createdAtMs || w.date).getTime();
+    return t >= ninetyAgo;
+  });
+  const recentSales = sales.filter(s => {
+    if (s.isDeleted) return false;
+    const t = new Date(s.createdAtMs || s.date).getTime();
+    return t >= ninetyAgo;
+  });
+
+  // Garantías por modelo (brand+model)
+  const garantiasByModel = {};
+  recentGarantias.forEach(w => {
+    const pid = w.failedProductId || w.productId;
+    const p = products.find(pp => pp.id === pid);
+    if (!p) return;
+    const key = `${p.brand} ${p.model}`;
+    if (!garantiasByModel[key]) garantiasByModel[key] = 0;
+    garantiasByModel[key] += 1;
+  });
+  // Ventas por modelo
+  const ventasByModel = {};
+  recentSales.forEach(s => {
+    (s.items || []).forEach(i => {
+      const p = products.find(pp => pp.id === i.productId);
+      if (!p) return;
+      const key = `${p.brand} ${p.model}`;
+      ventasByModel[key] = (ventasByModel[key] || 0) + (i.qty || 1);
+    });
+  });
+
+  const problemModels = [];
+  Object.keys(garantiasByModel).forEach(key => {
+    const g = garantiasByModel[key];
+    const v = ventasByModel[key] || 0;
+    if (g >= 2 && v > 0) {
+      const rate = g / v;
+      if (rate > 0.03) problemModels.push({ name: key, count: g, ventas: v, rate });
+    }
+  });
+
+  if (problemModels.length === 0) {
+    console.log("✅ Ningún modelo supera el umbral de 3% de garantías\n");
+  } else {
+    problemModels.sort((a, b) => b.rate - a.rate).forEach(m => {
+      report("WARN", `${m.name}: ${m.count} garantías sobre ${m.ventas} ventas (${(m.rate * 100).toFixed(1)}%)`);
+    });
+    console.log();
+  }
 
   // ============================================
   // CIERRE
