@@ -304,8 +304,49 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, e
       t: "warning", msg: `${debtors.length} cliente${debtors.length > 1 ? "s" : ""} con deuda`,
       detail: `Total: ${formatMoney(debtors.reduce((s, c) => s + Math.abs(c.balance), 0))}`,
     });
+
+    // === MERMAS ===
+    const wActive = (withdrawals || []).filter(w => !w.isDeleted);
+    const wCost = (w) => Number(w.costRealUSD || w.costEstimateUSD) || 0;
+
+    // 8.1 Consumo personal del mes vs promedio últimos 3 meses
+    const consumoUSDInMonth = (monthOffset) => {
+      const target = new Date(now.getFullYear(), now.getMonth() - monthOffset, 1);
+      return wActive
+        .filter(w => w.withdrawType === "Consumo propio")
+        .filter(w => {
+          const d = new Date(w.date);
+          return d.getMonth() === target.getMonth() && d.getFullYear() === target.getFullYear();
+        });
+    };
+    const currentConsumo = consumoUSDInMonth(0);
+    const currentTotal = currentConsumo.reduce((s, w) => s + wCost(w), 0);
+    const prev3 = [1, 2, 3].map(i => consumoUSDInMonth(i).reduce((s, w) => s + wCost(w), 0));
+    const avgPrev3 = prev3.reduce((s, x) => s + x, 0) / 3;
+    if (avgPrev3 > 0 && currentTotal > avgPrev3 * 1.5) {
+      const diegoUSD = currentConsumo.filter(w => w.person === "Diego").reduce((s, w) => s + wCost(w), 0);
+      const gusUSD = currentConsumo.filter(w => w.person === "Gustavo").reduce((s, w) => s + wCost(w), 0);
+      list.push({
+        t: "warning",
+        msg: "Consumo propio inusualmente alto este mes",
+        detail: `Diego ${formatMoney(diegoUSD, "USD")} · Gustavo ${formatMoney(gusUSD, "USD")} (prom. anterior ${formatMoney(avgPrev3, "USD")})`,
+      });
+    }
+
+    // 8.2 Reclamables a proveedor — info para próximo pedido
+    const reclamables = wActive.filter(w => w.reclamableProveedor);
+    if (reclamables.length > 0) {
+      const reclamablesUSD = reclamables.reduce((s, w) => s + wCost(w), 0);
+      const reclamablesQty = reclamables.reduce((s, w) => s + (w.qty || 0), 0);
+      list.push({
+        t: "info",
+        msg: `${formatMoney(reclamablesUSD, "USD")} en garantías reclamables al proveedor`,
+        detail: `${reclamablesQty} uds — recordá contemplarlo en el próximo pedido`,
+      });
+    }
+
     return list;
-  }, [outOfStock, lowStock, products, sales, clients]);
+  }, [outOfStock, lowStock, products, sales, clients, withdrawals]);
 
   const alertStyles = {
     danger: { bg: T.redBg, border: T.redBorder, dot: T.red },
