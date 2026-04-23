@@ -35,6 +35,8 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
   const [filterProductSearch, setFilterProductSearch] = useState("");
+  // Tab activo de la vista principal
+  const [activeTab, setActiveTab] = useState("all"); // all | consumo | garantia | regalo
   // ID estable pre-generado al abrir el form. Se regenera al cerrar el modal o
   // después de un submit exitoso. Si el componente re-renderea o el botón se
   // toca dos veces antes del debounce, se reutiliza el mismo ID y `save()` lo
@@ -327,6 +329,185 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
         <StatCard label="Pérdida total" value={formatMoney(totalCostUSD, "USD")} sub={exchangeRate ? formatMoney(totalCostUSD * exchangeRate) : ""} icon="📉" color="#E03E3E" />
       </div>
 
+      {/* ============================================ */}
+      {/* TABS por tipo (PARTE 3)                       */}
+      {/* ============================================ */}
+      <div style={{
+        display: "flex", gap: 4, marginBottom: 14,
+        borderBottom: "1px solid #E8E7E3", overflowX: "auto",
+        WebkitOverflowScrolling: "touch",
+      }}>
+        {[
+          { k: "all", label: "Todo", color: "#37352F", count: active.length },
+          { k: "consumo", label: "Consumos", color: "#e17055", count: active.filter(w => !w.withdrawType || w.withdrawType === "Consumo propio").length },
+          { k: "garantia", label: "Garantías", color: "#CB912F", count: active.filter(w => isGarantia(w.withdrawType)).length },
+          { k: "regalo", label: "Regalos", color: "#00cec9", count: active.filter(w => w.withdrawType === "Regalo / Canje").length },
+        ].map(t => {
+          const isActive = activeTab === t.k;
+          return (
+            <button key={t.k} onClick={() => setActiveTab(t.k)} style={{
+              padding: "10px 16px", background: "transparent", border: "none",
+              borderBottom: `2px solid ${isActive ? t.color : "transparent"}`,
+              color: isActive ? t.color : "#8C8A82",
+              fontSize: 14, fontWeight: isActive ? 700 : 500,
+              cursor: "pointer", fontFamily: "inherit",
+              display: "flex", alignItems: "center", gap: 6,
+              whiteSpace: "nowrap",
+              marginBottom: -1,
+            }}>
+              {t.label}
+              <span style={{
+                fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
+                background: isActive ? `${t.color}22` : "#F0EFEB",
+                color: isActive ? t.color : "#8C8A82",
+              }}>{t.count}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ============================================ */}
+      {/* KPIs específicos por tab                       */}
+      {/* ============================================ */}
+      {activeTab === "consumo" && (() => {
+        const consumo = active.filter(w => !w.withdrawType || w.withdrawType === "Consumo propio");
+        const diegoC = consumo.filter(w => w.person === "Diego");
+        const gustavoC = consumo.filter(w => w.person === "Gustavo");
+        const diegoQty = diegoC.reduce((s, w) => s + (w.qty || 0), 0);
+        const gustavoQty = gustavoC.reduce((s, w) => s + (w.qty || 0), 0);
+        const diegoUSD = diegoC.reduce((s, w) => s + (Number(w.costRealUSD || w.costEstimateUSD) || 0), 0);
+        const gustavoUSD = gustavoC.reduce((s, w) => s + (Number(w.costRealUSD || w.costEstimateUSD) || 0), 0);
+        const totalQty = diegoQty + gustavoQty;
+        const totalUSD = diegoUSD + gustavoUSD;
+        const maxQty = Math.max(diegoQty, gustavoQty, 1);
+        return (
+          <Card style={{ marginBottom: 12, background: "#FAFAF9" }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "auto 1fr", gap: 14 }}>
+              <div>
+                <div style={{ fontSize: 11, color: "#8C8A82", textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5, marginBottom: 4 }}>Consumos — total</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: "#e17055" }}>{totalQty} uds</div>
+                <div style={{ fontSize: 12, color: "#8C8A82" }}>{formatMoney(totalUSD, "USD")}{exchangeRate ? ` · ${formatMoney(totalUSD * exchangeRate)}` : ""}</div>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0 }}>
+                {[
+                  { name: "Diego", qty: diegoQty, usd: diegoUSD, color: "#5E6AD2", icon: "💜" },
+                  { name: "Gustavo", qty: gustavoQty, usd: gustavoUSD, color: "#00b894", icon: "💙" },
+                ].map(p => (
+                  <div key={p.name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 16 }}>{p.icon}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "#37352F", minWidth: 70 }}>{p.name}</span>
+                    <div style={{ flex: 1, height: 18, background: "#F0EFEB", borderRadius: 4, overflow: "hidden", minWidth: 60 }}>
+                      <div style={{ width: `${(p.qty / maxQty) * 100}%`, height: "100%", background: p.color, borderRadius: 4, transition: "width 0.3s" }} />
+                    </div>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: p.color, minWidth: 40, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{p.qty}</span>
+                    <span style={{ fontSize: 11, color: "#8C8A82", minWidth: 60, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{formatMoney(p.usd, "USD")}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Card>
+        );
+      })()}
+
+      {activeTab === "garantia" && (() => {
+        const gList = active.filter(w => isGarantia(w.withdrawType));
+        const totalCount = gList.length;
+        const totalUSD = gList.reduce((s, w) => s + (Number(w.costRealUSD || w.costEstimateUSD) || 0), 0);
+        // Modelo más cambiado (por failedProductId)
+        const byFailed = {};
+        gList.forEach(w => {
+          const fid = w.failedProductId || w.productId;
+          if (!fid) return;
+          const p = products.find(pr => pr.id === fid);
+          const key = p ? `${p.brand} ${p.model}` : fid;
+          byFailed[key] = (byFailed[key] || 0) + 1;
+        });
+        const topFailed = Object.entries(byFailed).sort((a, b) => b[1] - a[1])[0];
+        // Tasa de falla del mes (garantías del mes / ventas del mes)
+        const now = new Date();
+        const inMonth = (d) => { const dt = new Date(d); return dt.getMonth() === now.getMonth() && dt.getFullYear() === now.getFullYear(); };
+        const gMonth = gList.filter(w => inMonth(w.date));
+        const salesMonth = (sales || []).filter(s => !s.isDeleted && inMonth(s.date));
+        const unitsSoldMonth = salesMonth.reduce((s, sale) => s + (sale.items || []).reduce((a, i) => a + (Number(i.qty) || 0), 0), 0);
+        const failRate = unitsSoldMonth > 0 ? (gMonth.reduce((s, w) => s + (w.qty || 0), 0) / unitsSoldMonth) * 100 : 0;
+        const reclamables = gList.filter(w => w.reclamableProveedor);
+        const pctReclamables = totalCount > 0 ? (reclamables.length / totalCount) * 100 : 0;
+        return (
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 8, marginBottom: 12 }}>
+            <div style={{ background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10, padding: "10px 12px" }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5 }}>Total cambios</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: "#CB912F", marginTop: 2 }}>{totalCount}</div>
+              <div style={{ fontSize: 11, color: "#8C8A82", marginTop: 2 }}>{formatMoney(totalUSD, "USD")} perdidos</div>
+            </div>
+            <div style={{ background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10, padding: "10px 12px" }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5 }}>Modelo más cambiado</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: "#37352F", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {topFailed ? topFailed[0] : "—"}
+              </div>
+              <div style={{ fontSize: 11, color: "#8C8A82", marginTop: 2 }}>
+                {topFailed ? `${topFailed[1]} cambios` : "sin datos"}
+              </div>
+            </div>
+            <div style={{ background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10, padding: "10px 12px" }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5 }}>Tasa falla mes</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: failRate > 3 ? "#E03E3E" : "#37352F", marginTop: 2 }}>{failRate.toFixed(1)}%</div>
+              <div style={{ fontSize: 11, color: "#8C8A82", marginTop: 2 }}>{gMonth.length} / {unitsSoldMonth} vendidas</div>
+            </div>
+            <div style={{ background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10, padding: "10px 12px" }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5 }}>Reclamables prov.</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: "#6940A5", marginTop: 2 }}>{pctReclamables.toFixed(0)}%</div>
+              <div style={{ fontSize: 11, color: "#8C8A82", marginTop: 2 }}>{reclamables.length} cambios</div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {activeTab === "regalo" && (() => {
+        const regalos = active.filter(w => w.withdrawType === "Regalo / Canje");
+        const totalCount = regalos.length;
+        const totalUSD = regalos.reduce((s, w) => s + (Number(w.costRealUSD || w.costEstimateUSD) || 0), 0);
+        // Top 3 clientes con más regalos
+        const byClient = {};
+        regalos.forEach(w => {
+          if (!w.linkedClientId) return;
+          const key = w.linkedClientName || w.linkedClientId;
+          if (!byClient[key]) byClient[key] = { count: 0, usd: 0 };
+          byClient[key].count++;
+          byClient[key].usd += Number(w.costRealUSD || w.costEstimateUSD) || 0;
+        });
+        const top3 = Object.entries(byClient).sort((a, b) => b[1].count - a[1].count).slice(0, 3);
+        return (
+          <Card style={{ marginBottom: 12, background: "#FAFAF9" }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "auto 1fr", gap: 14 }}>
+              <div>
+                <div style={{ fontSize: 11, color: "#8C8A82", textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5, marginBottom: 4 }}>Regalos — total</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: "#00cec9" }}>{totalCount}</div>
+                <div style={{ fontSize: 12, color: "#8C8A82" }}>{formatMoney(totalUSD, "USD")}{exchangeRate ? ` · ${formatMoney(totalUSD * exchangeRate)}` : ""}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 11, color: "#8C8A82", fontWeight: 700, textTransform: "uppercase", marginBottom: 6 }}>
+                  Top 3 clientes con más regalos
+                </div>
+                {top3.length === 0 ? (
+                  <div style={{ fontSize: 12, color: "#8C8A82", fontStyle: "italic" }}>Sin regalos a clientes todavía</div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    {top3.map(([name, v], i) => (
+                      <div key={name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "#8C8A82", minWidth: 16 }}>{i + 1}.</span>
+                        <span style={{ fontSize: 13, color: "#37352F", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "#00cec9", fontVariantNumeric: "tabular-nums" }}>{v.count}</span>
+                        <span style={{ fontSize: 11, color: "#8C8A82", fontVariantNumeric: "tabular-nums", minWidth: 60, textAlign: "right" }}>{formatMoney(v.usd, "USD")}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </Card>
+        );
+      })()}
+
       {/* Filtros del listado */}
       <Card style={{ marginBottom: 12 }}>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -418,8 +599,18 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
       {/* Table */}
       <Card>
         {(() => {
-          // Aplicar filtros
-          const filtered = active.filter(w => {
+          // Filtro base del tab activo
+          const tabFilter = (w) => {
+            if (activeTab === "all") return true;
+            if (activeTab === "consumo") return !w.withdrawType || w.withdrawType === "Consumo propio";
+            if (activeTab === "garantia") return isGarantia(w.withdrawType);
+            if (activeTab === "regalo") return w.withdrawType === "Regalo / Canje";
+            return true;
+          };
+          const tabScope = active.filter(tabFilter);
+
+          // Aplicar filtros dentro del scope del tab
+          const filtered = tabScope.filter(w => {
             if (filterPerson && w.person !== filterPerson) return false;
             if (filterType && w.withdrawType !== filterType) return false;
             const wDate = (w.date || "").slice(0, 10);
@@ -427,73 +618,190 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
             if (filterDateTo && wDate > filterDateTo) return false;
             if (filterProductSearch) {
               const prod = products.find(p => p.id === w.productId);
+              const prodFailed = w.failedProductId ? products.find(p => p.id === w.failedProductId) : null;
               const pname = prod ? `${prod.brand} ${prod.model} ${prod.flavor}`.toLowerCase() : "";
-              if (!pname.includes(filterProductSearch.toLowerCase())) return false;
+              const fname = prodFailed ? `${prodFailed.brand} ${prodFailed.model} ${prodFailed.flavor}`.toLowerCase() : "";
+              if (!pname.includes(filterProductSearch.toLowerCase()) && !fname.includes(filterProductSearch.toLowerCase())) return false;
             }
             return true;
           });
 
+          const tabLabel = { all: "mermas", consumo: "consumos", garantia: "cambios por garantía", regalo: "regalos" }[activeTab];
+
           return (
             <>
               <div style={{ fontSize: 12, color: "#8C8A82", marginBottom: 8 }}>
-                {filtered.length === active.length ? `${filtered.length} mermas` : `${filtered.length} de ${active.length} mermas`}
+                {filtered.length === tabScope.length ? `${filtered.length} ${tabLabel}` : `${filtered.length} de ${tabScope.length} ${tabLabel}`}
               </div>
-              <Table
-                columns={[
-                  { key: "date", label: "Fecha", render: r => (
-                    <div style={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{formatDateTime(r.date)}</div>
-                  )},
-                  { key: "product", label: "Producto", render: r => {
-                    const p = products.find(pr => pr.id === r.productId);
-                    return p ? `${p.brand} ${p.model} - ${p.flavor}` : "?";
-                  }},
-                  { key: "qty", label: "Cant.", render: r => <Badge color="#E03E3E">{r.qty}</Badge> },
-                  { key: "type", label: "Tipo", render: r => (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 3, alignItems: "flex-start" }}>
-                      <Badge color={isGarantia(r.withdrawType) ? "#CB912F" : r.withdrawType === "Regalo / Canje" ? "#00cec9" : "#e17055"}>{isGarantia(r.withdrawType) ? "Cambio por garantía" : (r.withdrawType || "Consumo")}</Badge>
-                      {r.reclamableProveedor && (
-                        <span style={{
-                          fontSize: 9, padding: "1px 6px", borderRadius: 4,
-                          background: "#FDECC8", color: "#CB912F", fontWeight: 700, textTransform: "uppercase",
-                        }}>📦 Reclamable</span>
-                      )}
-                    </div>
-                  )},
-                  { key: "person", label: "Quién", render: r => <Badge color={r.person === "Diego" ? "#a855f7" : "#00b894"}>{r.person}</Badge> },
-                  { key: "cost", label: "Pérdida", render: r => {
-                    const cost = Number(r.costRealUSD || r.costEstimateUSD) || 0;
+              {(() => {
+                // ============================================
+                // Columnas dinámicas según tab activo
+                // ============================================
+                const reasonCatColor = {
+                  electrico: "#E03E3E", liquido: "#2383E2",
+                  fisico: "#CB912F", envio: "#6940A5", otro: "#8C8A82",
+                };
+
+                const colDate = { key: "date", label: "Fecha", render: r => (
+                  <div style={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{formatDateTime(r.date)}</div>
+                )};
+
+                // Columna Producto — adaptativa: 2 líneas si es garantía y entregado !== fallido
+                const colProduct = { key: "product", label: "Producto", render: r => {
+                  const entregado = products.find(p => p.id === r.productId);
+                  const entregadoName = entregado ? `${entregado.brand} ${entregado.model} - ${entregado.flavor}` : "Producto eliminado";
+
+                  if (isGarantia(r.withdrawType)) {
+                    const failed = r.failedProductId ? products.find(p => p.id === r.failedProductId) : entregado;
+                    const failedName = failed ? `${failed.brand} ${failed.model} - ${failed.flavor}` : (r.failedProductId || "?");
+                    const sameModel = !r.failedProductId || r.failedProductId === r.productId;
+                    const cat = FAILURE_REASON_CATEGORY[r.failureReason] || "otro";
+                    const cColor = reasonCatColor[cat];
                     return (
-                      <div>
-                        <div style={{ fontWeight: 600, color: "#E03E3E" }}>{formatMoney(cost, "USD")}</div>
-                        {exchangeRate && <div style={{ fontSize: 11, color: "#B1AFA7" }}>{formatMoney(cost * exchangeRate)}</div>}
+                      <div style={{ lineHeight: 1.4 }}>
+                        <div style={{ fontSize: 13, color: "#37352F" }}>
+                          <span style={{ fontWeight: 600 }}>Entregado:</span> {entregadoName}
+                        </div>
+                        {!sameModel && (
+                          <div style={{ fontSize: 12, color: "#8C8A82", marginTop: 2 }}>
+                            ← Falló: {failedName}
+                          </div>
+                        )}
+                        {r.failureReason && (
+                          <div style={{ fontSize: 11, color: cColor, fontWeight: 600, marginTop: 2 }}>
+                            ⚠️ {r.failureReason}
+                            {r.failureNotes && <span style={{ color: "#8C8A82", fontWeight: 400 }}> — {r.failureNotes}</span>}
+                          </div>
+                        )}
                       </div>
                     );
-                  }},
-                  { key: "notes", label: "Nota", render: r => (
-                    <div>
-                      {r.linkedSaleId && (
-                        <div style={{ fontSize: 11, color: "#CB912F", fontWeight: 600, marginBottom: 2 }}>
-                          🔄 Garantía: {r.linkedSaleClient || "?"} ({formatDate(r.linkedSaleDate)})
+                  }
+                  return <span>{entregadoName}</span>;
+                }};
+
+                // Columna Fallido — solo tab Garantías
+                const colFailed = { key: "failed", label: "Producto fallido", render: r => {
+                  const failed = r.failedProductId ? products.find(p => p.id === r.failedProductId) : null;
+                  const p = failed || products.find(pr => pr.id === r.productId);
+                  const cat = FAILURE_REASON_CATEGORY[r.failureReason] || "otro";
+                  const cColor = reasonCatColor[cat];
+                  return (
+                    <div style={{ lineHeight: 1.4 }}>
+                      <div style={{ fontSize: 13, color: "#37352F", fontWeight: 600 }}>
+                        {p ? `${p.brand} ${p.model} - ${p.flavor}` : "—"}
+                      </div>
+                      {r.failureReason && (
+                        <div style={{ fontSize: 11, color: cColor, fontWeight: 600, marginTop: 2 }}>
+                          ⚠️ {r.failureReason}
                         </div>
                       )}
-                      {r.linkedClientId && !r.linkedSaleId && (
-                        <div style={{ fontSize: 11, color: "#5E6AD2", fontWeight: 600, marginBottom: 2 }}>
-                          👤 {r.linkedClientName}
-                        </div>
-                      )}
-                      {r.notes || (r.linkedSaleId || r.linkedClientId ? "" : "—")}
                     </div>
-                  )},
-                  { key: "actions", label: "", render: r => (
-                    confirmDel === r.id
-                      ? <button onClick={() => deleteWithdrawal(r)} style={{ background: "#F7D7D6", border: "1px solid #E03E3E55", color: "#E03E3E", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Confirmar</button>
-                      : <button onClick={() => deleteWithdrawal(r)} style={{ background: "none", border: "none", color: "#E03E3E", cursor: "pointer", fontSize: 14 }}>🗑️</button>
-                  )},
-                ]}
-                data={filtered}
-                emptyMsg={active.length === 0 ? "No hay mermas registradas" : "Sin resultados con esos filtros"}
-                mobileColumns={["date", "product", "qty", "person", "actions"]}
-              />
+                  );
+                }};
+
+                // Columna Entregado — solo tab Garantías
+                const colEntregado = { key: "entregado", label: "Entregado", render: r => {
+                  const p = products.find(pr => pr.id === r.productId);
+                  const sameModel = !r.failedProductId || r.failedProductId === r.productId;
+                  return (
+                    <div>
+                      <div style={{ fontSize: 13, color: "#37352F" }}>
+                        {p ? `${p.brand} ${p.model} - ${p.flavor}` : "?"}
+                      </div>
+                      {!sameModel && (
+                        <div style={{ fontSize: 10, color: "#CB912F", fontWeight: 600, marginTop: 2 }}>
+                          modelo diferente
+                        </div>
+                      )}
+                    </div>
+                  );
+                }};
+
+                const colQty = { key: "qty", label: "Cant.", render: r => <Badge color="#E03E3E">{r.qty}</Badge> };
+
+                const colType = { key: "type", label: "Tipo", render: r => (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 3, alignItems: "flex-start" }}>
+                    <Badge color={isGarantia(r.withdrawType) ? "#CB912F" : r.withdrawType === "Regalo / Canje" ? "#00cec9" : "#e17055"}>{isGarantia(r.withdrawType) ? "Cambio por garantía" : (r.withdrawType || "Consumo")}</Badge>
+                    {r.reclamableProveedor && (
+                      <span style={{
+                        fontSize: 9, padding: "1px 6px", borderRadius: 4,
+                        background: "#FDECC8", color: "#CB912F", fontWeight: 700, textTransform: "uppercase",
+                      }}>📦 Reclamable</span>
+                    )}
+                  </div>
+                )};
+
+                const colReclamable = { key: "reclamable", label: "Reclam.", render: r => (
+                  r.reclamableProveedor
+                    ? <Badge color="#6940A5">📦 Sí</Badge>
+                    : <span style={{ fontSize: 11, color: "#B1AFA7" }}>—</span>
+                )};
+
+                const colPerson = { key: "person", label: "Quién", render: r => <Badge color={r.person === "Diego" ? "#a855f7" : "#00b894"}>{r.person}</Badge> };
+
+                const colCost = { key: "cost", label: "Pérdida", render: r => {
+                  const cost = Number(r.costRealUSD || r.costEstimateUSD) || 0;
+                  return (
+                    <div>
+                      <div style={{ fontWeight: 600, color: "#E03E3E" }}>{formatMoney(cost, "USD")}</div>
+                      {exchangeRate && <div style={{ fontSize: 11, color: "#B1AFA7" }}>{formatMoney(cost * exchangeRate)}</div>}
+                    </div>
+                  );
+                }};
+
+                const colClient = { key: "client", label: "Cliente", render: r => (
+                  r.linkedClientId
+                    ? <span style={{ fontSize: 12, fontWeight: 600, color: "#5E6AD2" }}>👤 {r.linkedClientName}</span>
+                    : r.linkedSaleClient
+                      ? <span style={{ fontSize: 12, color: "#8C8A82" }}>{r.linkedSaleClient}</span>
+                      : <span style={{ fontSize: 11, color: "#B1AFA7" }}>—</span>
+                )};
+
+                const colNotes = { key: "notes", label: "Nota", render: r => (
+                  <div>
+                    {r.linkedSaleId && !isGarantia(r.withdrawType) && (
+                      <div style={{ fontSize: 11, color: "#CB912F", fontWeight: 600, marginBottom: 2 }}>
+                        🔄 Ref venta: {r.linkedSaleClient || "?"} ({formatDate(r.linkedSaleDate)})
+                      </div>
+                    )}
+                    {r.linkedClientId && !r.linkedSaleId && !isGarantia(r.withdrawType) && (
+                      <div style={{ fontSize: 11, color: "#5E6AD2", fontWeight: 600, marginBottom: 2 }}>
+                        👤 {r.linkedClientName}
+                      </div>
+                    )}
+                    {r.notes || (r.linkedSaleId || r.linkedClientId ? "" : "—")}
+                  </div>
+                )};
+
+                const colActions = { key: "actions", label: "", render: r => (
+                  confirmDel === r.id
+                    ? <button onClick={() => deleteWithdrawal(r)} style={{ background: "#F7D7D6", border: "1px solid #E03E3E55", color: "#E03E3E", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Confirmar</button>
+                    : <button onClick={() => deleteWithdrawal(r)} style={{ background: "none", border: "none", color: "#E03E3E", cursor: "pointer", fontSize: 14 }}>🗑️</button>
+                )};
+
+                // Columnas por tab
+                let columns, mobileColumns;
+                if (activeTab === "garantia") {
+                  columns = [colDate, colFailed, colEntregado, colQty, colClient, colReclamable, colCost, colActions];
+                  mobileColumns = ["date", "failed", "entregado", "qty", "actions"];
+                } else if (activeTab === "consumo") {
+                  columns = [colDate, colProduct, colQty, colPerson, colCost, colNotes, colActions];
+                  mobileColumns = ["date", "product", "qty", "person", "actions"];
+                } else if (activeTab === "regalo") {
+                  columns = [colDate, colProduct, colQty, colClient, colPerson, colCost, colNotes, colActions];
+                  mobileColumns = ["date", "product", "qty", "client", "actions"];
+                } else {
+                  // "all"
+                  columns = [colDate, colProduct, colQty, colType, colPerson, colCost, colNotes, colActions];
+                  mobileColumns = ["date", "product", "qty", "person", "actions"];
+                }
+
+                const emptyMsg = tabScope.length === 0
+                  ? (activeTab === "all" ? "No hay mermas registradas" : `No hay ${tabLabel} registrados`)
+                  : "Sin resultados con esos filtros";
+
+                return <Table columns={columns} data={filtered} emptyMsg={emptyMsg} mobileColumns={mobileColumns} />;
+              })()}
             </>
           );
         })()}

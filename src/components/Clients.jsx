@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { uid, formatMoney, formatDate } from "../helpers.js";
 import { useResponsive } from "../App.jsx";
 import { Modal, Card, Btn } from "./UI.jsx";
-import { PAYMENT_METHODS, MP_ACCOUNTS } from "../constants.js";
+import { PAYMENT_METHODS, MP_ACCOUNTS, isGarantia } from "../constants.js";
 import { T, pickAvatarColor } from "../theme.js";
 
 // ---------- helpers ----------
@@ -170,14 +170,16 @@ export const Clients = ({ clients, setClients, sales, products, withdrawals = []
     return map;
   }, [clients, sales, productsById]);
 
-  // ---- gestos comerciales (regalos + garantías) por cliente ----
+  // ---- gestos comerciales (regalos + garantías) por cliente, desglosados ----
   const gesturesByClient = useMemo(() => {
     const map = {};
     (withdrawals || []).forEach(w => {
       if (w.isDeleted || !w.linkedClientId) return;
-      if (!map[w.linkedClientId]) map[w.linkedClientId] = { count: 0, totalUSD: 0 };
+      if (!map[w.linkedClientId]) map[w.linkedClientId] = { count: 0, regalos: 0, garantias: 0, totalUSD: 0 };
       map[w.linkedClientId].count++;
       map[w.linkedClientId].totalUSD += Number(w.costRealUSD || w.costEstimateUSD) || 0;
+      if (isGarantia(w.withdrawType)) map[w.linkedClientId].garantias++;
+      else if (w.withdrawType === "Regalo / Canje") map[w.linkedClientId].regalos++;
     });
     return map;
   }, [withdrawals]);
@@ -515,15 +517,21 @@ const ClientCard = ({ client: c, stats, productsById, gestures, onEdit, onHistor
                 border: `1px solid ${T.borderSoft}`, fontWeight: 500,
               }}>📍 {c.zona}</span>
             )}
-            {gestures && gestures.count > 0 && (
-              <span style={{
-                display: "inline-flex", alignItems: "center", gap: 4,
-                fontSize: 11, color: T.amber, background: T.amberBg, padding: "3px 8px", borderRadius: 999,
-                border: `1px solid ${T.amberBorder}`, fontWeight: 600,
-              }} title={`${gestures.count} gesto${gestures.count > 1 ? "s" : ""} comercial${gestures.count > 1 ? "es" : ""} (regalos / garantías)`}>
-                🎁 {gestures.count} gesto{gestures.count > 1 ? "s" : ""}
-              </span>
-            )}
+            {gestures && gestures.count > 0 && (() => {
+              const parts = [];
+              if (gestures.regalos > 0) parts.push(`${gestures.regalos} regalo${gestures.regalos > 1 ? "s" : ""}`);
+              if (gestures.garantias > 0) parts.push(`${gestures.garantias} garantía${gestures.garantias > 1 ? "s" : ""}`);
+              const breakdown = parts.join(" · ");
+              return (
+                <span style={{
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  fontSize: 11, color: T.amber, background: T.amberBg, padding: "3px 8px", borderRadius: 999,
+                  border: `1px solid ${T.amberBorder}`, fontWeight: 600,
+                }} title={`${breakdown} — total ${formatMoney(gestures.totalUSD, "USD")}`}>
+                  🎁 {gestures.count} gesto{gestures.count > 1 ? "s" : ""}
+                </span>
+              );
+            })()}
             {!c.zona && !c.phone && !c.instagram && !(gestures?.count) && (
               <span style={{ fontSize: 11, color: T.textFaint }}>Sin datos de contacto</span>
             )}
@@ -914,25 +922,56 @@ const HistoryModal = ({ client, stats, productsById, withdrawals = [], onClose }
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {clientGestures.map(w => {
-              const prod = productsById[w.productId];
-              const prodName = prod ? `${prod.brand} ${prod.model} - ${prod.flavor}` : "Producto eliminado";
+              const entregado = productsById[w.productId];
+              const entregadoName = entregado ? `${entregado.brand} ${entregado.model} - ${entregado.flavor}` : "Producto eliminado";
+              const failed = w.failedProductId ? productsById[w.failedProductId] : entregado;
+              const failedName = failed ? `${failed.brand} ${failed.model} - ${failed.flavor}` : entregadoName;
+              const sameModel = !w.failedProductId || w.failedProductId === w.productId;
               const cost = Number(w.costRealUSD || w.costEstimateUSD) || 0;
               const isRegalo = w.withdrawType === "Regalo / Canje";
+              const isGar = isGarantia(w.withdrawType);
+              const borderColor = isGar && w.reclamableProveedor ? T.red : T.amber;
               return (
                 <div key={w.id} style={{
                   background: T.amberBg, border: `1px solid ${T.amberBorder}`,
-                  borderLeft: `3px solid ${T.amber}`,
+                  borderLeft: `3px solid ${borderColor}`,
                   borderRadius: 8, padding: "10px 12px",
                   display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10,
                 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: T.amber, marginBottom: 2 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: borderColor, marginBottom: 2 }}>
                       {isRegalo ? "🎁 Regalo" : "🛡️ Garantía"} · {formatDate(w.date)}
+                      {w.reclamableProveedor && (
+                        <span style={{
+                          marginLeft: 6, fontSize: 9, padding: "1px 5px", borderRadius: 3,
+                          background: T.redBg, color: T.red, fontWeight: 700, textTransform: "uppercase",
+                        }}>📦 reclamable</span>
+                      )}
                     </div>
-                    <div style={{ fontSize: 13, color: T.text, fontWeight: 600, lineHeight: 1.4 }}>
-                      {w.qty}× {prodName}
-                    </div>
-                    {w.notes && (
+                    {isGar ? (
+                      <>
+                        <div style={{ fontSize: 13, color: T.text, fontWeight: 600, lineHeight: 1.4 }}>
+                          {w.qty}× {failedName} fallido{sameModel ? "" : ""}
+                          {w.failureReason && (
+                            <span style={{ color: T.textMuted, fontWeight: 400 }}> ({w.failureReason.toLowerCase()})</span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 12, color: T.textSub, marginTop: 2, lineHeight: 1.4 }}>
+                          Reemplazado por <strong>{sameModel ? "mismo modelo" : entregadoName}</strong> nuevo
+                          {w.createdBy && <span style={{ color: T.textMuted }}> — por {w.createdBy}</span>}
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ fontSize: 13, color: T.text, fontWeight: 600, lineHeight: 1.4 }}>
+                        {w.qty}× {entregadoName}
+                      </div>
+                    )}
+                    {w.failureNotes && (
+                      <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2, fontStyle: "italic" }}>
+                        "{w.failureNotes}"
+                      </div>
+                    )}
+                    {w.notes && !w.failureNotes && (
                       <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2, fontStyle: "italic" }}>
                         "{w.notes}"
                       </div>
@@ -942,7 +981,7 @@ const HistoryModal = ({ client, stats, productsById, withdrawals = [], onClose }
                     <div style={{ fontSize: 13, fontWeight: 700, color: T.amber, fontFamily: T.fontDisplay }}>
                       {formatMoney(cost, "USD")}
                     </div>
-                    {w.createdBy && <div style={{ fontSize: 10, color: T.textMuted }}>por {w.createdBy}</div>}
+                    {!isGar && w.createdBy && <div style={{ fontSize: 10, color: T.textMuted }}>por {w.createdBy}</div>}
                   </div>
                 </div>
               );
