@@ -110,7 +110,7 @@ const Pill = ({ active, onClick, children, color = T.primary }) => (
 // ============================================
 // CLIENTS — redesigned with Notion/Linear warmth
 // ============================================
-export const Clients = ({ clients, setClients, sales, products }) => {
+export const Clients = ({ clients, setClients, sales, products, withdrawals = [] }) => {
   const { isMobile } = useResponsive();
 
   // ---- UI state ----
@@ -169,6 +169,18 @@ export const Clients = ({ clients, setClients, sales, products }) => {
     });
     return map;
   }, [clients, sales, productsById]);
+
+  // ---- gestos comerciales (regalos + garantías) por cliente ----
+  const gesturesByClient = useMemo(() => {
+    const map = {};
+    (withdrawals || []).forEach(w => {
+      if (w.isDeleted || !w.linkedClientId) return;
+      if (!map[w.linkedClientId]) map[w.linkedClientId] = { count: 0, totalUSD: 0 };
+      map[w.linkedClientId].count++;
+      map[w.linkedClientId].totalUSD += Number(w.costRealUSD || w.costEstimateUSD) || 0;
+    });
+    return map;
+  }, [withdrawals]);
 
   // ---- global stats for metric cards ----
   const now = new Date();
@@ -411,6 +423,7 @@ export const Clients = ({ clients, setClients, sales, products }) => {
               client={c}
               stats={clientStats[c.id]}
               productsById={productsById}
+              gestures={gesturesByClient[c.id]}
               onEdit={() => openEdit(c)}
               onHistory={() => setHistoryClient(c.id)}
               onBalance={() => openBalanceAdjust(c)}
@@ -427,6 +440,7 @@ export const Clients = ({ clients, setClients, sales, products }) => {
           client={clients.find(c => c.id === historyClient)}
           stats={clientStats[historyClient]}
           productsById={productsById}
+          withdrawals={withdrawals}
           onClose={() => setHistoryClient(null)}
         />
       )}
@@ -461,7 +475,7 @@ export const Clients = ({ clients, setClients, sales, products }) => {
 // ============================================
 // ClientCard — una tarjeta por cliente
 // ============================================
-const ClientCard = ({ client: c, stats, productsById, onEdit, onHistory, onBalance, onDelete, confirmDelete }) => {
+const ClientCard = ({ client: c, stats, productsById, gestures, onEdit, onHistory, onBalance, onDelete, confirmDelete }) => {
   const [hover, setHover] = useState(false);
   const st = stats || {};
   const bal = c.balance || 0;
@@ -501,7 +515,16 @@ const ClientCard = ({ client: c, stats, productsById, onEdit, onHistory, onBalan
                 border: `1px solid ${T.borderSoft}`, fontWeight: 500,
               }}>📍 {c.zona}</span>
             )}
-            {!c.zona && !c.phone && !c.instagram && (
+            {gestures && gestures.count > 0 && (
+              <span style={{
+                display: "inline-flex", alignItems: "center", gap: 4,
+                fontSize: 11, color: T.amber, background: T.amberBg, padding: "3px 8px", borderRadius: 999,
+                border: `1px solid ${T.amberBorder}`, fontWeight: 600,
+              }} title={`${gestures.count} gesto${gestures.count > 1 ? "s" : ""} comercial${gestures.count > 1 ? "es" : ""} (regalos / garantías)`}>
+                🎁 {gestures.count} gesto{gestures.count > 1 ? "s" : ""}
+              </span>
+            )}
+            {!c.zona && !c.phone && !c.instagram && !(gestures?.count) && (
               <span style={{ fontSize: 11, color: T.textFaint }}>Sin datos de contacto</span>
             )}
           </div>
@@ -802,9 +825,15 @@ const fieldStyle = (error) => ({
 // ============================================
 // HistoryModal — full client purchase history
 // ============================================
-const HistoryModal = ({ client, stats, productsById, onClose }) => {
+const HistoryModal = ({ client, stats, productsById, withdrawals = [], onClose }) => {
   const { isMobile } = useResponsive();
   if (!client || !stats) return null;
+
+  // Withdrawals (regalos / garantías) vinculados a este cliente
+  const clientGestures = withdrawals
+    .filter(w => !w.isDeleted && w.linkedClientId === client.id)
+    .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  const totalGesturesUSD = clientGestures.reduce((s, w) => s + (Number(w.costRealUSD || w.costEstimateUSD) || 0), 0);
 
   // Build last 6 months sparkline data
   const now = new Date();
@@ -867,6 +896,54 @@ const HistoryModal = ({ client, stats, productsById, onClose }) => {
                   background: bg, color: fg, fontSize: 13, fontWeight: 600,
                 }}>
                   <span>{["🥇", "🥈", "🥉"][i]}</span> {fav.name} · ×{fav.qty}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Regalos y garantías (gestos comerciales) */}
+      {clientGestures.length > 0 && (
+        <div style={{ marginBottom: 18 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+            <span>🎁 Regalos y garantías ({clientGestures.length})</span>
+            <span style={{ color: T.amber, fontWeight: 700, fontFamily: T.fontDisplay }}>
+              {formatMoney(totalGesturesUSD, "USD")} en gestos
+            </span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {clientGestures.map(w => {
+              const prod = productsById[w.productId];
+              const prodName = prod ? `${prod.brand} ${prod.model} - ${prod.flavor}` : "Producto eliminado";
+              const cost = Number(w.costRealUSD || w.costEstimateUSD) || 0;
+              const isRegalo = w.withdrawType === "Regalo / Canje";
+              return (
+                <div key={w.id} style={{
+                  background: T.amberBg, border: `1px solid ${T.amberBorder}`,
+                  borderLeft: `3px solid ${T.amber}`,
+                  borderRadius: 8, padding: "10px 12px",
+                  display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10,
+                }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: T.amber, marginBottom: 2 }}>
+                      {isRegalo ? "🎁 Regalo" : "🛡️ Garantía"} · {formatDate(w.date)}
+                    </div>
+                    <div style={{ fontSize: 13, color: T.text, fontWeight: 600, lineHeight: 1.4 }}>
+                      {w.qty}× {prodName}
+                    </div>
+                    {w.notes && (
+                      <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2, fontStyle: "italic" }}>
+                        "{w.notes}"
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: T.amber, fontFamily: T.fontDisplay }}>
+                      {formatMoney(cost, "USD")}
+                    </div>
+                    {w.createdBy && <div style={{ fontSize: 10, color: T.textMuted }}>por {w.createdBy}</div>}
+                  </div>
                 </div>
               );
             })}

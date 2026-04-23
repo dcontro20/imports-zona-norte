@@ -5,7 +5,12 @@ import { Modal, Card, Btn, Input, Select, Table, Badge, StatCard } from "./UI.js
 import { WITHDRAW_PERSONS, WITHDRAW_TYPES, BRAND_COLORS } from "../constants.js";
 
 // -- MERMAS: Consumo propio, Garantías, Canjes --
-export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts, sales, logStock, exchangeRate, currentUser, logAudit }) => {
+// Ventana de detección de duplicados (5 min)
+const DUP_WINDOW_MS = 5 * 60 * 1000;
+// Debounce visual del botón Registrar (3s)
+const SUBMIT_DEBOUNCE_MS = 3000;
+
+export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts, sales, clients = [], logStock, exchangeRate, currentUser, logAudit }) => {
   const { isMobile } = useResponsive();
   const [modal, setModal] = useState(false);
   const [validationError, setValidationError] = useState("");
@@ -13,10 +18,18 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
   const [confirmDel, setConfirmDel] = useState(null);
   const [saleSearch, setSaleSearch] = useState("");
   const [showSaleDropdown, setShowSaleDropdown] = useState(false);
+  const [confirmingDup, setConfirmingDup] = useState(null); // { mov, minutes }
+  const [submitting, setSubmitting] = useState(false);
+  // ID estable pre-generado al abrir el form. Se regenera al cerrar el modal o
+  // después de un submit exitoso. Si el componente re-renderea o el botón se
+  // toca dos veces antes del debounce, se reutiliza el mismo ID y `save()` lo
+  // detecta como duplicado y aborta.
+  const [draftId, setDraftId] = useState(() => uid());
   const [form, setForm] = useState({
     brand: "", model: "", productId: "", qty: 1,
     person: currentUser?.name || "", withdrawType: "Consumo propio",
     linkedSaleId: "", linkedSaleClient: "", linkedSaleDate: "",
+    linkedClientId: "", linkedClientName: "",
     notes: "", date: new Date().toISOString().slice(0, 10),
   });
 
@@ -70,47 +83,118 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
     transition: "all .15s", whiteSpace: "nowrap",
   });
 
-  // ---- SAVE ----
-  const save = () => {
+  // ---- VALIDATE: devuelve string error o null ----
+  const validate = () => {
+    if (!form.productId) return "Seleccioná un producto";
+    const prod = products.find(p => p.id === form.productId);
+    if (!prod) return "El producto seleccionado no existe";
+    if (!form.person) return "Indicá quién (Diego o Gustavo)";
+    if (!form.withdrawType) return "Indicá el tipo de merma";
+    const qty = Number(form.qty);
+    if (!qty || qty <= 0) return "La cantidad debe ser mayor a 0";
+    if (qty > (prod.stock || 0)) {
+      return `Stock insuficiente: ${prod.brand} ${prod.model} - ${prod.flavor}. Disponible: ${prod.stock}`;
+    }
+    // Si tipo Garantía y se vinculó una venta, validar que la venta exista y esté activa
+    if (form.withdrawType === "Garantía / Devolución" && form.linkedSaleId) {
+      const linkedSale = (sales || []).find(s => s.id === form.linkedSaleId && !s.isDeleted);
+      if (!linkedSale) return "La venta vinculada no existe o fue eliminada";
+    }
+    // Si vinculó cliente, validar que exista
+    if (form.linkedClientId) {
+      const linkedClient = (clients || []).find(c => c.id === form.linkedClientId);
+      if (!linkedClient) return "El cliente vinculado no existe";
+    }
+    if (form.date) {
+      const today = new Date().toISOString().slice(0, 10);
+      if (form.date > today) return "No se permiten fechas futuras";
+    }
+    return null;
+  };
+
+  // ---- DUP DETECTION: misma producto + qty + persona + tipo en últimos 5min ----
+  const findRecentDuplicate = () => {
+    const qty = Number(form.qty);
+    const now = Date.now();
+    return (withdrawals || []).find(w => {
+      if (w.isDeleted) return false;
+      if (w.productId !== form.productId) return false;
+      if (Number(w.qty) !== qty) return false;
+      if (w.person !== form.person) return false;
+      if (w.withdrawType !== form.withdrawType) return false;
+      const wTime = new Date(w.createdAtMs || w.date).getTime();
+      return now - wTime <= DUP_WINDOW_MS;
+    });
+  };
+
+  // ---- SUBMIT: orquesta validación → dup check → save ----
+  const attemptSubmit = () => {
+    const err = validate();
+    if (err) { setValidationError(err); setConfirmingDup(null); return; }
     setValidationError("");
-    if (!form.productId) { setValidationError("Seleccioná un producto."); return; }
-    if (!form.person) { setValidationError("Seleccioná quién consumió."); return; }
+
+    // Duplicado en últimos 5min, salvo que el user ya haya confirmado
+    if (!confirmingDup) {
+      const dup = findRecentDuplicate();
+      if (dup) {
+        const minutes = Math.max(1, Math.round((Date.now() - new Date(dup.createdAtMs || dup.date).getTime()) / 60000));
+        setConfirmingDup({ mov: dup, minutes });
+        return;
+      }
+    }
+
+    setSubmitting(true);
+    persistWithdrawal();
+    // Re-arm: nuevo draftId para próximo registro, debounce visual
+    setTimeout(() => {
+      setDraftId(uid());
+      setSubmitting(false);
+      setConfirmingDup(null);
+    }, SUBMIT_DEBOUNCE_MS);
+  };
+
+  // ---- PERSIST: guarda en state (segunda barrera anti-duplicado vía draftId) ----
+  const persistWithdrawal = () => {
     const prod = products.find(p => p.id === form.productId);
     if (!prod) return;
     const qty = Number(form.qty) || 1;
-    if (qty > (prod.stock || 0)) {
-      setValidationError(`Stock insuficiente: ${prod.brand} ${prod.model} - ${prod.flavor}. Disponible: ${prod.stock}`);
+
+    // Segunda barrera: si ya existe un withdrawal con este draftId, abortar
+    if ((withdrawals || []).some(w => w.id === draftId)) {
+      console.warn(`[Withdrawals] draftId ${draftId} ya existe, ignorando doble submit`);
       return;
     }
 
-    // ---- Cálculo de costo REAL (no precio de venta) ----
-    // Usa costUSDT (lo que efectivamente se pagó al proveedor) si está cargado.
-    // Si no, fallback a priceUSD * 0.55 (estimación basada en margen típico).
-    // Bug histórico: antes usaba priceUSD entero → inflaba la pérdida.
+    // Cálculo de costo REAL (igual que antes, ya con fallback a priceUSD * 0.55)
     const priceUSD = Number(prod.priceUSD) || 0;
     const costUSDTunit = Number(prod.costUSDT) || 0;
     const costPerUnitUSD = costUSDTunit > 0 ? costUSDTunit : priceUSD * 0.55;
     const costRealUSD = costPerUnitUSD * qty;
     const lucroCesanteUSD = Math.max(0, (priceUSD - costPerUnitUSD) * qty);
     const costRealARS = Math.round(costRealUSD * (exchangeRate || 0));
-    const newId = uid();
+    const nowMs = Date.now();
     const dateISO = form.date ? `${form.date}T${new Date().toTimeString().slice(0, 8)}` : new Date().toISOString();
 
     const withdrawal = {
-      id: newId, productId: form.productId, qty, person: form.person,
+      id: draftId, productId: form.productId, qty, person: form.person,
       withdrawType: form.withdrawType, notes: form.notes || "",
-      // Campos nuevos (fuente de verdad):
+      // Costos
       costRealUSD,
       lucroCesanteUSD,
-      // Compat: costEstimateUSD/ARS ahora reflejan el costo REAL, no el precio de venta.
       costEstimateUSD: costRealUSD, costEstimateARS: costRealARS,
-      date: dateISO, createdBy: currentUser?.name || "",
+      // Timestamp
+      date: dateISO,
+      createdAtMs: nowMs,
+      createdAt: new Date(nowMs).toISOString(),
+      createdBy: currentUser?.name || "",
+      // Vínculos opcionales
       ...(form.linkedSaleId ? { linkedSaleId: form.linkedSaleId, linkedSaleClient: form.linkedSaleClient, linkedSaleDate: form.linkedSaleDate } : {}),
+      ...(form.linkedClientId ? { linkedClientId: form.linkedClientId, linkedClientName: form.linkedClientName } : {}),
     };
 
     setWithdrawals(prev => [withdrawal, ...prev]);
 
-    // Deduct stock
+    // Descontar stock
     setProducts(prev => prev.map(p =>
       p.id === form.productId ? { ...p, stock: Math.max(0, (p.stock || 0) - qty) } : p
     ));
@@ -119,13 +203,14 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
     logStock({
       productId: form.productId, type: "consumo", qty: -qty,
       reason: `${form.withdrawType} — ${form.person}${form.notes ? `: ${form.notes}` : ""}`,
-      refId: newId, date: dateISO,
+      refId: draftId, date: dateISO,
     });
 
     if (logAudit) {
-      const linkedInfo = form.linkedSaleId ? ` · Garantía de venta a ${form.linkedSaleClient}` : "";
-      logAudit("create", "withdrawal", newId,
-        `Merma: ${qty}x ${prod.brand} ${prod.model} - ${prod.flavor} · ${form.withdrawType} · ${form.person} · ${formatMoney(costTotalUSD, "USD")}${linkedInfo}`
+      const linkedInfo = form.linkedSaleId ? ` · Garantía de venta a ${form.linkedSaleClient}` :
+                        form.linkedClientId ? ` · Vinculado a ${form.linkedClientName}` : "";
+      logAudit("create", "withdrawal", draftId,
+        `Merma: ${qty}x ${prod.brand} ${prod.model} - ${prod.flavor} · ${form.withdrawType} · ${form.person} · ${formatMoney(costRealUSD, "USD")}${linkedInfo}`
       );
     }
 
@@ -134,12 +219,16 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
       brand: "", model: "", productId: "", qty: 1,
       person: currentUser?.name || "", withdrawType: "Consumo propio",
       linkedSaleId: "", linkedSaleClient: "", linkedSaleDate: "",
+      linkedClientId: "", linkedClientName: "",
       notes: "", date: new Date().toISOString().slice(0, 10),
     });
     setSaleSearch("");
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 2000);
   };
+
+  // Backwards-compat alias para código que usaba `save` directo
+  const save = attemptSubmit;
 
   // ---- DELETE (soft) ----
   const deleteWithdrawal = (w) => {
@@ -348,7 +437,14 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                       }).join(", ");
                       return (
                         <button key={s.id} onClick={() => {
-                          setForm(f => ({ ...f, linkedSaleId: s.id, linkedSaleClient: s.clientName || "Sin cliente", linkedSaleDate: s.date }));
+                          setForm(f => ({
+                            ...f,
+                            linkedSaleId: s.id,
+                            linkedSaleClient: s.clientName || "Sin cliente",
+                            linkedSaleDate: s.date,
+                            // Auto-vincular cliente si la venta tiene clientId
+                            ...(s.clientId ? { linkedClientId: s.clientId, linkedClientName: s.clientName || "" } : {}),
+                          }));
                           setShowSaleDropdown(false);
                           setSaleSearch("");
                         }} style={{
@@ -454,6 +550,31 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
           </div>
         )}
 
+        {/* Client picker — visible para Regalo/Canje (encouraged) y Garantía (si no hay venta vinculada) */}
+        {(form.withdrawType === "Regalo / Canje" ||
+          (form.withdrawType === "Garantía / Devolución" && !form.linkedSaleId)) && (
+          <ClientPicker
+            clients={clients}
+            sales={sales}
+            value={form.linkedClientId}
+            valueName={form.linkedClientName}
+            onChange={(id, name) => setForm(f => ({ ...f, linkedClientId: id, linkedClientName: name }))}
+            label={form.withdrawType === "Regalo / Canje" ? "Cliente que recibió el regalo (recomendado)" : "Cliente (opcional)"}
+            isMobile={isMobile}
+          />
+        )}
+
+        {/* Auto-link info para Garantía con venta vinculada */}
+        {form.withdrawType === "Garantía / Devolución" && form.linkedSaleId && form.linkedClientId && (
+          <div style={{
+            padding: "8px 12px", borderRadius: 8, marginBottom: 14,
+            background: "#EEF0FC", border: "1px solid #5E6AD233",
+            fontSize: 12, color: "#5E6AD2",
+          }}>
+            ✓ Vinculado a <strong>{form.linkedClientName}</strong> automáticamente desde la venta seleccionada
+          </div>
+        )}
+
         {/* Notes + date */}
         <Input label="Nota (opcional)" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="ej: para probar sabor nuevo, defectuoso, regalo a cliente..." />
 
@@ -544,14 +665,160 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
           );
         })()}
 
+        {/* Duplicate warning */}
+        {confirmingDup && (() => {
+          const dupProd = products.find(p => p.id === confirmingDup.mov.productId);
+          const dupName = dupProd ? `${dupProd.brand} ${dupProd.model} - ${dupProd.flavor}` : "Producto desconocido";
+          return (
+            <div style={{
+              padding: "12px 14px", borderRadius: 10, marginBottom: 10,
+              background: "#FDECC8", border: "1px solid #F2D59A",
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#CB912F", marginBottom: 4 }}>
+                ⚠️ ¿Estás seguro? Cargaste algo parecido hace {confirmingDup.minutes} min
+              </div>
+              <div style={{ fontSize: 12, color: "#555247", marginBottom: 8, lineHeight: 1.4 }}>
+                <strong>{confirmingDup.mov.qty}× {dupName}</strong><br />
+                {confirmingDup.mov.withdrawType} · {confirmingDup.mov.person} · por {confirmingDup.mov.createdBy || "?"}
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <Btn variant="secondary" onClick={() => setConfirmingDup(null)} style={{ fontSize: 12, padding: "6px 12px" }}>
+                  Cancelar y revisar
+                </Btn>
+                <button onClick={attemptSubmit} style={{
+                  padding: "6px 12px", borderRadius: 8, border: "none",
+                  background: "#CB912F", color: "#fff", fontSize: 12, fontWeight: 700,
+                  cursor: "pointer", fontFamily: "inherit",
+                }}>Sí, registrarlo igual</button>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Actions */}
         <div style={{ display: "flex", gap: 10 }}>
           <Btn variant="secondary" onClick={() => setModal(false)} style={{ flex: 1 }}>Cancelar</Btn>
-          <Btn variant="danger" onClick={save} style={{ flex: 2 }} disabled={!form.productId || !form.person}>
-            Registrar Merma
+          <Btn variant="danger" onClick={attemptSubmit} style={{ flex: 2 }}
+            disabled={submitting || !form.productId || !form.person || !form.withdrawType || !(Number(form.qty) > 0)}>
+            {submitting ? "Registrando..." : "Registrar Merma"}
           </Btn>
         </div>
       </Modal>
+    </div>
+  );
+};
+
+// ============================================
+// ClientPicker — para vincular un cliente a una merma
+// ============================================
+const ClientPicker = ({ clients = [], sales = [], value, valueName, onChange, label, isMobile }) => {
+  const [search, setSearch] = useState("");
+
+  // Clientes recientes: los que tienen ventas más recientes (top 5)
+  const recentClients = useMemo(() => {
+    const lastDate = {};
+    sales.forEach(s => {
+      if (s.isDeleted || !s.clientId) return;
+      const d = s.date || "";
+      if (!lastDate[s.clientId] || d > lastDate[s.clientId]) lastDate[s.clientId] = d;
+    });
+    return clients
+      .filter(c => lastDate[c.id])
+      .sort((a, b) => (lastDate[b.id] || "").localeCompare(lastDate[a.id] || ""))
+      .slice(0, 5);
+  }, [clients, sales]);
+
+  const filtered = useMemo(() => {
+    if (!search) return [];
+    const q = search.toLowerCase();
+    return clients
+      .filter(c => c.name?.toLowerCase().includes(q) || (c.phone || "").toLowerCase().includes(q))
+      .slice(0, 8);
+  }, [clients, search]);
+
+  const selected = value ? clients.find(c => c.id === value) : null;
+
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <label style={{
+        display: "block", fontSize: 11, fontWeight: 700, color: "#8C8A82",
+        textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6,
+      }}>{label}</label>
+
+      {/* Estado actual */}
+      {selected ? (
+        <div style={{
+          display: "flex", alignItems: "center", gap: 10,
+          padding: "10px 14px", borderRadius: 10,
+          background: "#EEF0FC", border: "1px solid #5E6AD244",
+        }}>
+          <span style={{ fontSize: 18 }}>👤</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#5E6AD2" }}>{valueName || selected.name}</div>
+            {selected.phone && <div style={{ fontSize: 11, color: "#8C8A82" }}>{selected.phone}</div>}
+          </div>
+          <button onClick={() => onChange("", "")} style={{
+            background: "none", border: "none", color: "#8C8A82", cursor: "pointer",
+            fontSize: 14, padding: "4px 8px",
+          }} title="Quitar vínculo">✕</button>
+        </div>
+      ) : (
+        <>
+          {/* Chips de clientes recientes */}
+          {recentClients.length > 0 && !search && (
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
+              {recentClients.map(c => (
+                <button key={c.id} onClick={() => onChange(c.id, c.name)} style={{
+                  padding: "6px 12px", borderRadius: 999, border: "1px solid #E8E7E3",
+                  background: "#FFFFFF", color: "#37352F", fontSize: 12, fontWeight: 600,
+                  cursor: "pointer", fontFamily: "inherit", minHeight: 36,
+                }}>👤 {c.name}</button>
+              ))}
+              <button onClick={() => onChange("", "Sin cliente específico")} style={{
+                padding: "6px 12px", borderRadius: 999, border: "1px dashed #E8E7E3",
+                background: "transparent", color: "#8C8A82", fontSize: 12, fontWeight: 600,
+                cursor: "pointer", fontFamily: "inherit", minHeight: 36,
+              }}>Sin cliente</button>
+            </div>
+          )}
+
+          {/* Buscador */}
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Buscar por nombre o teléfono..."
+            style={{
+              width: "100%", padding: "10px 14px",
+              background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10,
+              color: "#37352F", fontSize: isMobile ? 16 : 14, outline: "none",
+              boxSizing: "border-box", fontFamily: "inherit",
+            }} />
+
+          {/* Resultados de búsqueda */}
+          {filtered.length > 0 && (
+            <div style={{
+              marginTop: 6, border: "1px solid #E8E7E3", borderRadius: 10,
+              background: "#FFFFFF", overflow: "hidden",
+            }}>
+              {filtered.map((c, i) => (
+                <button key={c.id} onClick={() => { onChange(c.id, c.name); setSearch(""); }}
+                  style={{
+                    display: "block", width: "100%", padding: "10px 14px",
+                    background: "none", border: "none",
+                    borderBottom: i < filtered.length - 1 ? "1px solid #F0EFEB" : "none",
+                    cursor: "pointer", textAlign: "left", fontFamily: "inherit",
+                  }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#37352F" }}>{c.name}</div>
+                  {c.phone && <div style={{ fontSize: 11, color: "#8C8A82" }}>{c.phone}</div>}
+                </button>
+              ))}
+            </div>
+          )}
+          {search.length >= 2 && filtered.length === 0 && (
+            <div style={{ marginTop: 6, fontSize: 12, color: "#8C8A82", padding: "6px 10px" }}>
+              Sin resultados para "{search}"
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 };
