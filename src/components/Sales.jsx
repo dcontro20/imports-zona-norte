@@ -437,26 +437,11 @@ export const Sales = ({
       }));
     }
 
-    // ---- Register change (vuelto) as cash movement ----
-    if (changeAmt > 0 && changeMethod && changeMethod !== "credit") {
-      const fromAccount = resolveAccount(changeMethod, changeMpAccount);
-      if (fromAccount) {
-        const movId = uid();
-        const movement = {
-          id: movId,
-          type: "withdrawal",
-          from: fromAccount,
-          to: "",
-          amount: changeAmt,
-          amountUSDT: 0,
-          description: `Vuelto venta a ${form.clientName || "cliente"} (ref: ${saleId.slice(-6)})`,
-          date: form.date || new Date().toISOString().slice(0, 10),
-          saleRef: saleId,
-          createdBy: currentUser?.name || "",
-        };
-        setCashMovements(prev => [movement, ...prev]);
-      }
-    }
+    // NOTA: NO crear cashMovement automático por el vuelto.
+    // El vuelto está declarado en sale.changeAmount + sale.changeMethod y es
+    // procesado tanto por el ledger (visualización) como por calcBalance (saldo real)
+    // en CashBox.jsx. Crear un cashMovement adicional acá causaba doble contabilización
+    // (ver caso Maggie Gos del 21/04/2026).
 
     // Remember last channel
     if (form.channel) { try { localStorage.setItem("vapestock_lastChannel", form.channel); } catch {} }

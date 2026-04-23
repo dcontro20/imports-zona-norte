@@ -82,6 +82,17 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
           if (matchFn(legacyPay)) bal += Number(sale.total) || 0;
         }
       });
+
+      // Vueltos: si la venta tiene changeAmount > 0 con changeMethod (no credit),
+      // descontar de la cuenta correspondiente. Antes esto se hacía con un
+      // cashMovement automático en Sales.jsx pero generaba doble contabilización.
+      // Ahora la venta es la fuente única de verdad para el vuelto.
+      activeSales.forEach(sale => {
+        if (sale.changeAmount > 0 && sale.changeMethod && sale.changeMethod !== "credit") {
+          const changeAccountId = payMethodToAccountId(sale.changeMethod, sale.changeMpAccount);
+          if (changeAccountId === accountId) bal -= Number(sale.changeAmount) || 0;
+        }
+      });
     }
 
     if (accountId === "lemonUSDT") {
@@ -339,7 +350,16 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
     const req = TYPE_BY_KEY[t]?.requires || [];
     for (const r of req) if (!form[r]) return false;
 
-    const newId = uid();
+    // Usa el id pre-generado del form (estable desde antes de submit) o genera uno nuevo.
+    // Si ya existe un movimiento con este id (doble submit antes del debounce, race
+    // de Firestore al refrescar), aborta sin crear duplicado.
+    const newId = form.id || uid();
+    const existing = (cashMovements || []).find(m => m.id === newId);
+    if (existing) {
+      console.warn(`[saveMovement] id ${newId} ya existe, ignorando doble submit`);
+      return false;
+    }
+
     const movement = {
       id: newId,
       type: t,
@@ -347,8 +367,10 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
       to: form.to || "",
       amount: Number(form.amount) || 0,
       amountUSDT: Number(form.amountUSDT) || 0,
-      description: form.description || "",
+      description: (form.description || "").trim(),
       date: form.date || dayKey(new Date()),
+      createdAtMs: form.createdAtMs || Date.now(),
+      createdAt: new Date(form.createdAtMs || Date.now()).toISOString(),
       createdBy: currentUser?.name || "",
     };
     setCashMovements(prev => [movement, ...prev]);
@@ -414,6 +436,41 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
       const v = balances[a.id];
       if (v < 0) list.push({ t: "danger", msg: `${a.label} en negativo`, detail: formatMoney(v, a.currency) });
     });
+
+    // Auto-detección de duplicados: pares de cashMovements activos con mismo
+    // (amount, from, to, description) en una ventana de 5 min
+    const activeMovs = (cashMovements || []).filter(m => !m.isDeleted && m.type !== "daily_close" && m.type !== "conciliation_adjust");
+    const dupPairs = [];
+    for (let i = 0; i < activeMovs.length; i++) {
+      for (let j = i + 1; j < activeMovs.length; j++) {
+        const a = activeMovs[i], b = activeMovs[j];
+        if (a.amount !== b.amount) continue;
+        if (a.from !== b.from || a.to !== b.to) continue;
+        if ((a.description || "").trim() !== (b.description || "").trim()) continue;
+        const ta = new Date(a.createdAtMs || a.createdAt || a.date).getTime();
+        const tb = new Date(b.createdAtMs || b.createdAt || b.date).getTime();
+        if (Math.abs(ta - tb) <= 5 * 60 * 1000) dupPairs.push([a, b]);
+      }
+    }
+    if (dupPairs.length > 0) {
+      list.push({
+        t: "danger",
+        msg: `${dupPairs.length} posible${dupPairs.length > 1 ? "s" : ""} duplicado${dupPairs.length > 1 ? "s" : ""} en historial`,
+        detail: dupPairs.slice(0, 2).map(([a]) => `${a.description} · ${formatMoney(a.amount)}`).join(" · "),
+      });
+    }
+
+    // Detección de movimientos huérfanos: cashMovements con saleRef de venta inexistente o eliminada
+    const activeSaleIds = new Set((sales || []).filter(s => !s.isDeleted).map(s => s.id));
+    const orphans = activeMovs.filter(m => m.saleRef && !activeSaleIds.has(m.saleRef));
+    if (orphans.length > 0) {
+      list.push({
+        t: "warning",
+        msg: `${orphans.length} movimiento${orphans.length > 1 ? "s" : ""} sin venta asociada`,
+        detail: "Posibles ventas eliminadas con sus vueltos huérfanos",
+      });
+    }
+
     // unusual large movement (>500k ARS or >200 USDT/USD) in last 7 days
     const bigThreshold = { ARS: 500000, USD: 500, USDT: 500 };
     const bigRecent = ledger.filter(e => daysAgo(e.date, 7) && e.amount > (bigThreshold[e.currency] || 500000));
@@ -431,7 +488,7 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
       list.push({ t: "warning", msg: lastConciliation ? `Sin conciliar hace ${daysSinceConciliation} días` : "Caja nunca se concilió", detail: "Conciliá para detectar diferencias" });
     }
     return list;
-  }, [balances, ledger, cashMovements]);
+  }, [balances, ledger, cashMovements, sales]);
 
   // ============================================
   // RENDER
@@ -545,6 +602,7 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
         isMobile={isMobile}
         onDelete={deleteMovement}
         confirmDel={confirmDel}
+        currentExchangeRate={exchangeRate}
       />
 
       {/* ========== DAILY CLOSES ========== */}
@@ -563,6 +621,7 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
             exchangeRate={exchangeRate}
             currentUser={currentUser}
             balances={balances}
+            recentMovements={(cashMovements || []).filter(m => !m.isDeleted && m.type !== "daily_close").slice(0, 30)}
             onSave={(form) => { if (saveMovement(form)) { setShowMovementModal(false); setEditMovementType(null); } }}
             onCancel={() => { setShowMovementModal(false); setEditMovementType(null); }}
           />
@@ -972,27 +1031,112 @@ const FlowStat = ({ label, value, color, span, emphasize }) => (
 // ============================================
 // MOVEMENT FORM
 // ============================================
-const MovementForm = ({ presetType, exchangeRate, balances, onSave, onCancel }) => {
+// Umbral configurable de "egreso grande" (ARS) que pide confirmación extra
+const LARGE_EXPENSE_THRESHOLD_ARS = 200000;
+// Ventana de detección de duplicados (ms)
+const DUP_WINDOW_MS = 5 * 60 * 1000; // 5 minutos
+// Debounce del botón Registrar después de tocar (ms)
+const SUBMIT_DEBOUNCE_MS = 3000;
+
+const MovementForm = ({ presetType, exchangeRate, balances, recentMovements = [], onSave, onCancel }) => {
   const { isMobile } = useResponsive();
   const [type, setType] = useState(presetType || "transfer");
   const [form, setForm] = useState({
     from: "", to: "", amount: "", amountUSDT: "", description: "", date: dayKey(new Date()),
   });
   const [showMore, setShowMore] = useState(false);
+  const [validationError, setValidationError] = useState("");
+  const [confirmingLarge, setConfirmingLarge] = useState(false);
+  const [confirmingDup, setConfirmingDup] = useState(null); // { mov, minutes }
+  const [submitting, setSubmitting] = useState(false);
+  // ID estable generado UNA vez por intento → previene doble escritura si el componente
+  // re-renderiza o el botón se toca dos veces rapidísimo antes del debounce
+  const [draftId, setDraftId] = useState(() => uid());
 
   const typeInfo = TYPE_BY_KEY[type];
   const rate = form.amount && form.amountUSDT ? Math.round(Number(form.amount) / Number(form.amountUSDT)) : 0;
 
-  const canSave = (() => {
-    if (!Number(form.amount) || Number(form.amount) <= 0) return false;
-    for (const r of typeInfo.requires) if (!form[r]) return false;
-    return true;
-  })();
+  // ---- validación robusta ----
+  const validate = () => {
+    const amt = Number(form.amount);
+    if (!amt || amt <= 0) return "El monto debe ser mayor a 0";
+    if (amt < 0) return "El monto no puede ser negativo";
+    for (const r of typeInfo.requires) {
+      if (!form[r]) return `Falta el campo: ${r === "from" ? "cuenta origen" : r === "to" ? "cuenta destino" : r === "amountUSDT" ? "USDT" : r}`;
+    }
+    if (type === "transfer" && form.from === form.to) return "La cuenta origen y destino tienen que ser distintas";
+    if (!form.description || form.description.trim().length < 3) return "La descripción tiene que tener al menos 3 caracteres";
+    const today = dayKey(new Date());
+    if (form.date && form.date > today) return "No se permiten fechas futuras";
+    if ((type === "crypto_buy" || type === "crypto_sell") && (!form.amountUSDT || Number(form.amountUSDT) <= 0)) {
+      return "Indicá el monto en USDT";
+    }
+    return null;
+  };
+
+  const canSave = !validate() && !submitting;
+
+  // ---- detección de duplicado en últimos 5 min ----
+  const findRecentDuplicate = () => {
+    const amt = Number(form.amount);
+    const desc = (form.description || "").trim().toLowerCase();
+    const now = Date.now();
+    return recentMovements.find(m => {
+      if (m.isDeleted) return false;
+      const mTime = new Date(m.createdAtMs || m.date).getTime();
+      if (now - mTime > DUP_WINDOW_MS) return false;
+      const sameAmount = Math.abs((Number(m.amount) || 0) - amt) < 0.01;
+      const sameAccount = m.from === form.from && m.to === form.to;
+      const sameDesc = (m.description || "").trim().toLowerCase() === desc;
+      return sameAmount && sameAccount && sameDesc;
+    });
+  };
 
   // When type = crypto_buy, pre-fill suggested amountUSDT from exchange rate
   const suggestUSDT = () => {
     if (!form.amount) return;
     setForm(f => ({ ...f, amountUSDT: (Number(f.amount) / exchangeRate).toFixed(2) }));
+  };
+
+  // ---- handler unificado de submit con todas las protecciones ----
+  const attemptSubmit = () => {
+    const err = validate();
+    if (err) { setValidationError(err); return; }
+    setValidationError("");
+
+    // 1. Duplicado en últimos 5min (a menos que el user ya haya confirmado)
+    if (!confirmingDup) {
+      const dup = findRecentDuplicate();
+      if (dup) {
+        const minutes = Math.max(1, Math.round((Date.now() - new Date(dup.createdAtMs || dup.date).getTime()) / 60000));
+        setConfirmingDup({ mov: dup, minutes });
+        return;
+      }
+    }
+
+    // 2. Egreso grande (a menos que ya haya confirmado)
+    const isLargeExpense = (type === "expense" || type === "transfer" || type === "crypto_buy") && Number(form.amount) >= LARGE_EXPENSE_THRESHOLD_ARS;
+    if (isLargeExpense && !confirmingLarge) {
+      setConfirmingLarge(true);
+      return;
+    }
+
+    // 3. Submit con ID pre-generado y timestamp ms
+    setSubmitting(true);
+    onSave({
+      ...form,
+      type,
+      id: draftId,
+      createdAtMs: Date.now(),
+    });
+
+    // Re-arm: nuevo draftId para próximo registro, debounce visual
+    setTimeout(() => {
+      setDraftId(uid());
+      setSubmitting(false);
+      setConfirmingLarge(false);
+      setConfirmingDup(null);
+    }, SUBMIT_DEBOUNCE_MS);
   };
 
   return (
@@ -1092,16 +1236,76 @@ const MovementForm = ({ presetType, exchangeRate, balances, onSave, onCancel }) 
         </div>
       )}
 
+      {/* Validation error */}
+      {validationError && (
+        <div style={{
+          padding: "10px 12px", borderRadius: 10,
+          background: T.redBg, border: `1px solid ${T.redBorder}`,
+          fontSize: 13, color: T.red, fontWeight: 600,
+        }}>⚠️ {validationError}</div>
+      )}
+
+      {/* Duplicate warning */}
+      {confirmingDup && (
+        <div style={{
+          padding: "12px 14px", borderRadius: 10,
+          background: T.amberBg, border: `1px solid ${T.amberBorder}`,
+        }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: T.amber, marginBottom: 4 }}>
+            ⚠️ ¿Estás seguro? Movimiento parecido hace {confirmingDup.minutes} min
+          </div>
+          <div style={{ fontSize: 12, color: T.textSub, marginBottom: 8, lineHeight: 1.4 }}>
+            <strong>{confirmingDup.mov.description}</strong><br />
+            ${Number(confirmingDup.mov.amount).toLocaleString("es-AR")} · {confirmingDup.mov.from || confirmingDup.mov.to} · por {confirmingDup.mov.createdBy || "?"}
+          </div>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button onClick={() => setConfirmingDup(null)} style={{ ...ghostBtn(), fontSize: 12, padding: "6px 12px" }}>
+              Cancelar y revisar
+            </button>
+            <button onClick={attemptSubmit} style={{
+              padding: "6px 12px", borderRadius: 8, border: "none",
+              background: T.amber, color: "#fff", fontSize: 12, fontWeight: 700,
+              cursor: "pointer", fontFamily: "inherit",
+            }}>Sí, registrarlo igual</button>
+          </div>
+        </div>
+      )}
+
+      {/* Large expense confirm */}
+      {confirmingLarge && !confirmingDup && (
+        <div style={{
+          padding: "12px 14px", borderRadius: 10,
+          background: T.redBg, border: `1px solid ${T.redBorder}`,
+        }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: T.red, marginBottom: 4 }}>
+            ⚠️ Movimiento grande
+          </div>
+          <div style={{ fontSize: 12, color: T.textSub, marginBottom: 8 }}>
+            ${Number(form.amount).toLocaleString("es-AR")} es un monto importante. ¿Estás seguro?
+          </div>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button onClick={() => setConfirmingLarge(false)} style={{ ...ghostBtn(), fontSize: 12, padding: "6px 12px" }}>
+              Revisar
+            </button>
+            <button onClick={attemptSubmit} style={{
+              padding: "6px 12px", borderRadius: 8, border: "none",
+              background: T.red, color: "#fff", fontSize: 12, fontWeight: 700,
+              cursor: "pointer", fontFamily: "inherit",
+            }}>Confirmar</button>
+          </div>
+        </div>
+      )}
+
       {/* Actions */}
       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 4 }}>
         <button onClick={onCancel} style={ghostBtn()}>Cancelar</button>
-        <button onClick={() => onSave({ ...form, type })} disabled={!canSave} style={{
+        <button onClick={attemptSubmit} disabled={!canSave} style={{
           ...primaryBtn(),
           background: canSave ? T.primary : T.borderSoft,
           color: canSave ? "#fff" : T.textFaint,
           cursor: canSave ? "pointer" : "not-allowed",
           boxShadow: canSave ? T.shadowSm : "none",
-        }}>Registrar</button>
+        }}>{submitting ? "Registrando..." : "Registrar"}</button>
       </div>
     </div>
   );
@@ -1151,7 +1355,7 @@ const fieldStyle = (err) => ({
 // ============================================
 // HISTORY LIST
 // ============================================
-const HistoryList = ({ ledger, isMobile, onDelete, confirmDel }) => {
+const HistoryList = ({ ledger, isMobile, onDelete, confirmDel, currentExchangeRate = 1 }) => {
   const [accountFilter, setAccountFilter] = useState([]);
   const [typeFilter, setTypeFilter] = useState(""); // "", "income", "expense"
   const [kindFilter, setKindFilter] = useState(""); // "", sale, expense, purchase, movement
@@ -1312,25 +1516,51 @@ const HistoryList = ({ ledger, isMobile, onDelete, confirmDel }) => {
         </div>
       ) : (
         <>
-          {filtered.slice(0, limit).map((e, idx) => {
-            const prevDate = idx > 0 ? (filtered[idx - 1].date || "").slice(0, 10) : null;
-            const thisDate = (e.date || "").slice(0, 10);
-            const showDate = thisDate !== prevDate;
-            return (
-              <div key={`${e.refId}-${e.type}-${e.accountId}-${idx}`}>
-                {showDate && (
-                  <div style={{
-                    padding: "12px 0 6px", fontSize: 11, fontWeight: 700, color: T.primary,
-                    textTransform: "uppercase", letterSpacing: 0.6,
-                    borderBottom: `1px solid ${T.borderSoft}`, marginBottom: 4, marginTop: idx > 0 ? 12 : 0,
-                  }}>
-                    {formatDate(e.date)}
-                  </div>
-                )}
-                <HistoryEntry entry={e} onDelete={onDelete} confirmDel={confirmDel} isMobile={isMobile} />
-              </div>
-            );
-          })}
+          {(() => {
+            // Pre-cómputo: para cada día visible, totales de ingresos/egresos en ARS equiv
+            // (usa exchangeRate de hoy como aproximación; los items USD/USDT se convierten)
+            const visible = filtered.slice(0, limit);
+            const dayTotals = {}; // { "YYYY-MM-DD": { in, out, count } }
+            visible.forEach(e => {
+              const k = (e.date || "").slice(0, 10);
+              if (!dayTotals[k]) dayTotals[k] = { in: 0, out: 0, count: 0 };
+              const ARS = e.currency === "USD" || e.currency === "USDT"
+                ? e.amount * (currentExchangeRate || 1)
+                : e.amount;
+              if (e.type === "income") dayTotals[k].in += ARS;
+              else dayTotals[k].out += ARS;
+              dayTotals[k].count++;
+            });
+
+            return visible.map((e, idx) => {
+              const prevDate = idx > 0 ? (visible[idx - 1].date || "").slice(0, 10) : null;
+              const thisDate = (e.date || "").slice(0, 10);
+              const showDate = thisDate !== prevDate;
+              const tot = dayTotals[thisDate];
+              return (
+                <div key={`${e.refId}-${e.type}-${e.accountId}-${idx}`}>
+                  {showDate && (
+                    <div style={{
+                      padding: "14px 0 8px",
+                      borderBottom: `1px solid ${T.borderSoft}`, marginBottom: 4, marginTop: idx > 0 ? 14 : 0,
+                      display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 8,
+                    }}>
+                      <div style={{
+                        fontSize: 12, fontWeight: 700, color: T.primary,
+                        textTransform: "uppercase", letterSpacing: 0.6,
+                      }}>{formatDate(e.date)}</div>
+                      <div style={{ display: "flex", gap: 12, alignItems: "baseline", fontSize: 11, fontFamily: T.fontDisplay }}>
+                        {tot.in > 0 && <span style={{ color: T.green, fontWeight: 700 }}>+{formatMoney(Math.round(tot.in))}</span>}
+                        {tot.out > 0 && <span style={{ color: T.red, fontWeight: 700 }}>−{formatMoney(Math.round(tot.out))}</span>}
+                        <span style={{ color: T.textMuted }}>· {tot.count} mov{tot.count > 1 ? "s" : ""}</span>
+                      </div>
+                    </div>
+                  )}
+                  <HistoryEntry entry={e} onDelete={onDelete} confirmDel={confirmDel} isMobile={isMobile} />
+                </div>
+              );
+            });
+          })()}
           {filtered.length > limit && (
             <button onClick={() => setLimit(l => l + 50)} style={{
               width: "100%", padding: "12px", marginTop: 10,
