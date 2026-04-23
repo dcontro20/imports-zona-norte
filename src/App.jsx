@@ -49,6 +49,7 @@ const AuditLog = lazy(() => import("./components/AuditLog.jsx").then(m => ({ def
 const ExchangeMonitor = lazy(() => import("./components/ExchangeMonitor.jsx").then(m => ({ default: m.ExchangeMonitor })));
 const Trash = lazy(() => import("./components/Trash.jsx").then(m => ({ default: m.Trash })));
 const QuickSale = lazy(() => import("./components/QuickSale.jsx").then(m => ({ default: m.QuickSale })));
+const QuickWithdrawal = lazy(() => import("./components/QuickWithdrawal.jsx").then(m => ({ default: m.QuickWithdrawal })));
 
 const LoadingSpinner = () => (
   <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "40px 16px" }}>
@@ -135,6 +136,8 @@ export default function App() {
   const [globalSearch, setGlobalSearch] = useState("");
   const [showGlobalResults, setShowGlobalResults] = useState(false);
   const [quickSaleOpen, setQuickSaleOpen] = useState(false);
+  const [quickMermaOpen, setQuickMermaOpen] = useState(false);
+  const [fabMenuOpen, setFabMenuOpen] = useState(false);
 
   // Body scroll lock cuando sidebar mobile está abierto
   useEffect(() => {
@@ -500,21 +503,80 @@ export default function App() {
           }} />
         )}
 
-        {/* Quick Sale FAB (mobile only) */}
-        {isMobile && !quickSaleOpen && (
-          <button onClick={() => setQuickSaleOpen(true)} aria-label="Venta rápida" style={{
-            position: "fixed",
-            bottom: "max(20px, env(safe-area-inset-bottom))",
-            right: 20,
-            width: 60, height: 60,
-            borderRadius: "50%",
-            background: "linear-gradient(135deg, #5E6AD2 0%, #6366f1 100%)",
-            border: "none", color: "#fff", fontSize: 26, cursor: "pointer",
-            zIndex: 90,
-            boxShadow: "0 8px 24px rgba(94,106,210,0.45), 0 2px 8px rgba(15,15,15,0.12)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>🛒</button>
+        {/* Mobile FAB con menú expandible: venta rápida + consumo propio */}
+        {isMobile && !quickSaleOpen && !quickMermaOpen && (
+          <>
+            {/* Backdrop click-out cuando el menú está abierto */}
+            {fabMenuOpen && (
+              <div onClick={() => setFabMenuOpen(false)} style={{
+                position: "fixed", inset: 0, background: "rgba(15,15,15,0.18)", zIndex: 89,
+              }} />
+            )}
+
+            {/* FAB secundario: Consumo propio (solo cuando menú abierto) */}
+            {fabMenuOpen && (
+              <button onClick={() => { setFabMenuOpen(false); setQuickMermaOpen(true); }}
+                aria-label="Anotar consumo propio"
+                style={{
+                  position: "fixed",
+                  bottom: "calc(max(20px, env(safe-area-inset-bottom)) + 76px)",
+                  right: 24,
+                  display: "flex", alignItems: "center", gap: 10,
+                  padding: "10px 16px 10px 14px",
+                  borderRadius: 999,
+                  background: "linear-gradient(135deg, #e17055 0%, #d35400 100%)",
+                  border: "none", color: "#fff",
+                  fontSize: 14, fontWeight: 700, cursor: "pointer",
+                  zIndex: 91,
+                  boxShadow: "0 6px 18px rgba(225,112,85,0.45), 0 2px 6px rgba(15,15,15,0.12)",
+                  fontFamily: "inherit",
+                  animation: "fabPop 0.18s ease-out",
+                }}>
+                <span style={{ fontSize: 20 }}>📉</span> Anoté un consumo
+              </button>
+            )}
+
+            {/* FAB principal: toggle menú */}
+            <button onClick={() => {
+              if (fabMenuOpen) { setFabMenuOpen(false); setQuickSaleOpen(true); }
+              else setFabMenuOpen(true);
+            }}
+              aria-label={fabMenuOpen ? "Venta rápida" : "Acciones rápidas"}
+              style={{
+                position: "fixed",
+                bottom: "max(20px, env(safe-area-inset-bottom))",
+                right: 20,
+                width: 60, height: 60,
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, #5E6AD2 0%, #6366f1 100%)",
+                border: "none", color: "#fff",
+                fontSize: 26, cursor: "pointer",
+                zIndex: 92,
+                boxShadow: "0 8px 24px rgba(94,106,210,0.45), 0 2px 8px rgba(15,15,15,0.12)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                transform: fabMenuOpen ? "rotate(45deg)" : "rotate(0)",
+                transition: "transform 0.18s ease-out",
+              }}>{fabMenuOpen ? "+" : "🛒"}</button>
+
+            {/* Hint text al lado del FAB principal cuando menú abierto */}
+            {fabMenuOpen && (
+              <div style={{
+                position: "fixed",
+                bottom: "max(20px, env(safe-area-inset-bottom))",
+                right: 92,
+                height: 60,
+                display: "flex", alignItems: "center",
+                fontSize: 13, fontWeight: 600, color: "#fff",
+                background: "linear-gradient(135deg, #5E6AD2 0%, #6366f1 100%)",
+                padding: "0 14px", borderRadius: 999,
+                zIndex: 91,
+                boxShadow: "0 6px 18px rgba(94,106,210,0.45), 0 2px 6px rgba(15,15,15,0.12)",
+                pointerEvents: "none",
+              }}>🛒 Venta rápida</div>
+            )}
+          </>
         )}
+        <style>{`@keyframes fabPop { from { opacity: 0; transform: translateY(10px) scale(0.92); } to { opacity: 1; transform: none; } }`}</style>
 
         {/* Quick Sale Modal */}
         <Suspense fallback={null}>
@@ -531,6 +593,22 @@ export default function App() {
             logAudit={logAudit}
             cashMovements={cashMovements}
             setCashMovements={setCashMovements}
+          />
+        </Suspense>
+
+        {/* Quick Withdrawal Modal */}
+        <Suspense fallback={null}>
+          <QuickWithdrawal
+            open={quickMermaOpen}
+            onClose={() => setQuickMermaOpen(false)}
+            withdrawals={withdrawals}
+            setWithdrawals={setWithdrawals}
+            products={products}
+            setProducts={setProducts}
+            exchangeRate={exchangeRate}
+            currentUser={currentUser}
+            logStock={logStock}
+            logAudit={logAudit}
           />
         </Suspense>
       </div>

@@ -10,6 +10,15 @@ const DUP_WINDOW_MS = 5 * 60 * 1000;
 // Debounce visual del botón Registrar (3s)
 const SUBMIT_DEBOUNCE_MS = 3000;
 
+// Helper: muestra fecha + hora corta. Si el ISO no tiene hora, solo fecha.
+function formatDateTime(iso) {
+  if (!iso) return "—";
+  const s = String(iso);
+  const datePart = formatDate(s);
+  const timeMatch = s.match(/T(\d{2}:\d{2})/);
+  return timeMatch ? `${datePart} ${timeMatch[1]}` : datePart;
+}
+
 export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts, sales, clients = [], logStock, exchangeRate, currentUser, logAudit }) => {
   const { isMobile } = useResponsive();
   const [modal, setModal] = useState(false);
@@ -20,6 +29,12 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
   const [showSaleDropdown, setShowSaleDropdown] = useState(false);
   const [confirmingDup, setConfirmingDup] = useState(null); // { mov, minutes }
   const [submitting, setSubmitting] = useState(false);
+  // Filtros del listado
+  const [filterPerson, setFilterPerson] = useState(""); // "", "Diego", "Gustavo"
+  const [filterType, setFilterType] = useState("");     // "", tipo
+  const [filterDateFrom, setFilterDateFrom] = useState("");
+  const [filterDateTo, setFilterDateTo] = useState("");
+  const [filterProductSearch, setFilterProductSearch] = useState("");
   // ID estable pre-generado al abrir el form. Se regenera al cerrar el modal o
   // después de un submit exitoso. Si el componente re-renderea o el botón se
   // toca dos veces antes del debounce, se reutiliza el mismo ID y `save()` lo
@@ -30,6 +45,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
     person: currentUser?.name || "", withdrawType: "Consumo propio",
     linkedSaleId: "", linkedSaleClient: "", linkedSaleDate: "",
     linkedClientId: "", linkedClientName: "",
+    reclamableProveedor: false,
     notes: "", date: new Date().toISOString().slice(0, 10),
   });
 
@@ -190,6 +206,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
       // Vínculos opcionales
       ...(form.linkedSaleId ? { linkedSaleId: form.linkedSaleId, linkedSaleClient: form.linkedSaleClient, linkedSaleDate: form.linkedSaleDate } : {}),
       ...(form.linkedClientId ? { linkedClientId: form.linkedClientId, linkedClientName: form.linkedClientName } : {}),
+      ...(form.reclamableProveedor && form.withdrawType === "Garantía / Devolución" ? { reclamableProveedor: true } : {}),
     };
 
     setWithdrawals(prev => [withdrawal, ...prev]);
@@ -220,6 +237,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
       person: currentUser?.name || "", withdrawType: "Consumo propio",
       linkedSaleId: "", linkedSaleClient: "", linkedSaleDate: "",
       linkedClientId: "", linkedClientName: "",
+      reclamableProveedor: false,
       notes: "", date: new Date().toISOString().slice(0, 10),
     });
     setSaleSearch("");
@@ -290,44 +308,176 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
         <StatCard label="Pérdida total" value={formatMoney(totalCostUSD, "USD")} sub={exchangeRate ? formatMoney(totalCostUSD * exchangeRate) : ""} icon="📉" color="#E03E3E" />
       </div>
 
+      {/* Filtros del listado */}
+      <Card style={{ marginBottom: 12 }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          {/* Persona */}
+          <div style={{ display: "inline-flex", background: "#FAFAF9", borderRadius: 8, padding: 3, border: "1px solid #E8E7E3" }}>
+            {["", "Diego", "Gustavo"].map(p => (
+              <button key={p || "all"} onClick={() => setFilterPerson(p)} style={{
+                padding: "5px 10px", fontSize: 12, fontWeight: 600, border: "none", borderRadius: 6,
+                background: filterPerson === p ? "#FFFFFF" : "transparent",
+                color: filterPerson === p ? "#37352F" : "#8C8A82",
+                boxShadow: filterPerson === p ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
+                cursor: "pointer", fontFamily: "inherit",
+              }}>{p || "Todos"}</button>
+            ))}
+          </div>
+
+          {/* Tipo */}
+          <select value={filterType} onChange={e => setFilterType(e.target.value)} style={{
+            padding: "6px 10px", fontSize: 12, borderRadius: 7,
+            border: `1px solid ${filterType ? "#5E6AD2" : "#E8E7E3"}`,
+            background: filterType ? "#EEF0FC" : "#FFFFFF",
+            color: filterType ? "#5E6AD2" : "#555247",
+            fontFamily: "inherit", cursor: "pointer", outline: "none",
+          }}>
+            <option value="">Todos los tipos</option>
+            {WITHDRAW_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+
+          {/* Presets de fecha */}
+          <div style={{ display: "inline-flex", background: "#FAFAF9", borderRadius: 8, padding: 3, border: "1px solid #E8E7E3" }}>
+            {[
+              { k: "all", l: "Todo" },
+              { k: "today", l: "Hoy" },
+              { k: "week", l: "7 días" },
+              { k: "month", l: "Mes" },
+            ].map(p => {
+              const today = new Date().toISOString().slice(0, 10);
+              const presetActive = (() => {
+                if (p.k === "all") return !filterDateFrom && !filterDateTo;
+                if (p.k === "today") return filterDateFrom === today && filterDateTo === today;
+                if (p.k === "week") {
+                  const d = new Date(); d.setDate(d.getDate() - 6);
+                  return filterDateFrom === d.toISOString().slice(0, 10) && filterDateTo === today;
+                }
+                if (p.k === "month") {
+                  const d = new Date(); d.setDate(1);
+                  return filterDateFrom === d.toISOString().slice(0, 10) && filterDateTo === today;
+                }
+                return false;
+              })();
+              return (
+                <button key={p.k} onClick={() => {
+                  if (p.k === "all") { setFilterDateFrom(""); setFilterDateTo(""); }
+                  else if (p.k === "today") { setFilterDateFrom(today); setFilterDateTo(today); }
+                  else if (p.k === "week") { const d = new Date(); d.setDate(d.getDate() - 6); setFilterDateFrom(d.toISOString().slice(0, 10)); setFilterDateTo(today); }
+                  else if (p.k === "month") { const d = new Date(); d.setDate(1); setFilterDateFrom(d.toISOString().slice(0, 10)); setFilterDateTo(today); }
+                }} style={{
+                  padding: "5px 10px", fontSize: 12, fontWeight: 600, border: "none", borderRadius: 6,
+                  background: presetActive ? "#FFFFFF" : "transparent",
+                  color: presetActive ? "#37352F" : "#8C8A82",
+                  boxShadow: presetActive ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
+                  cursor: "pointer", fontFamily: "inherit",
+                }}>{p.l}</button>
+              );
+            })}
+          </div>
+
+          {/* Search producto */}
+          <input value={filterProductSearch} onChange={e => setFilterProductSearch(e.target.value)}
+            placeholder="Buscar producto..."
+            style={{
+              padding: "7px 10px", fontSize: 12, borderRadius: 7, flex: "1 1 140px", minWidth: 140,
+              border: `1px solid ${filterProductSearch ? "#5E6AD2" : "#E8E7E3"}`,
+              background: "#FAFAF9", color: "#37352F",
+              fontFamily: "inherit", outline: "none", boxSizing: "border-box",
+            }} />
+
+          {/* Limpiar */}
+          {(filterPerson || filterType || filterDateFrom || filterDateTo || filterProductSearch) && (
+            <button onClick={() => { setFilterPerson(""); setFilterType(""); setFilterDateFrom(""); setFilterDateTo(""); setFilterProductSearch(""); }}
+              style={{
+                background: "none", border: "none", color: "#8C8A82", fontSize: 12, fontWeight: 500,
+                cursor: "pointer", fontFamily: "inherit", padding: "5px 8px",
+              }}>✕ Limpiar</button>
+          )}
+        </div>
+      </Card>
+
       {/* Table */}
       <Card>
-        <Table
-          columns={[
-            { key: "date", label: "Fecha", render: r => formatDate(r.date) },
-            { key: "product", label: "Producto", render: r => {
-              const p = products.find(pr => pr.id === r.productId);
-              return p ? `${p.brand} ${p.model} - ${p.flavor}` : "?";
-            }},
-            { key: "qty", label: "Cant.", render: r => <Badge color="#E03E3E">{r.qty}</Badge> },
-            { key: "type", label: "Tipo", render: r => <Badge color={r.withdrawType === "Garantía / Devolución" ? "#fdcb6e" : r.withdrawType === "Regalo / Canje" ? "#00cec9" : "#e17055"}>{r.withdrawType || "Consumo"}</Badge> },
-            { key: "person", label: "Quién", render: r => <Badge color={r.person === "Diego" ? "#a855f7" : "#00b894"}>{r.person}</Badge> },
-            { key: "cost", label: "Pérdida", render: r => (
-              <div>
-                <div style={{ fontWeight: 600, color: "#E03E3E" }}>{formatMoney(r.costEstimateUSD || 0, "USD")}</div>
-                {exchangeRate && <div style={{ fontSize: 11, color: "#B1AFA7" }}>{formatMoney((r.costEstimateUSD || 0) * exchangeRate)}</div>}
+        {(() => {
+          // Aplicar filtros
+          const filtered = active.filter(w => {
+            if (filterPerson && w.person !== filterPerson) return false;
+            if (filterType && w.withdrawType !== filterType) return false;
+            const wDate = (w.date || "").slice(0, 10);
+            if (filterDateFrom && wDate < filterDateFrom) return false;
+            if (filterDateTo && wDate > filterDateTo) return false;
+            if (filterProductSearch) {
+              const prod = products.find(p => p.id === w.productId);
+              const pname = prod ? `${prod.brand} ${prod.model} ${prod.flavor}`.toLowerCase() : "";
+              if (!pname.includes(filterProductSearch.toLowerCase())) return false;
+            }
+            return true;
+          });
+
+          return (
+            <>
+              <div style={{ fontSize: 12, color: "#8C8A82", marginBottom: 8 }}>
+                {filtered.length === active.length ? `${filtered.length} mermas` : `${filtered.length} de ${active.length} mermas`}
               </div>
-            )},
-            { key: "notes", label: "Nota", render: r => (
-              <div>
-                {r.linkedSaleId && (
-                  <div style={{ fontSize: 11, color: "#CB912F", fontWeight: 600, marginBottom: 2 }}>
-                    🔄 Garantía: {r.linkedSaleClient || "?"} ({formatDate(r.linkedSaleDate)})
-                  </div>
-                )}
-                {r.notes || (r.linkedSaleId ? "" : "—")}
-              </div>
-            )},
-            { key: "actions", label: "", render: r => (
-              confirmDel === r.id
-                ? <button onClick={() => deleteWithdrawal(r)} style={{ background: "#F7D7D6", border: "1px solid #E03E3E55", color: "#E03E3E", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Confirmar</button>
-                : <button onClick={() => deleteWithdrawal(r)} style={{ background: "none", border: "none", color: "#E03E3E", cursor: "pointer", fontSize: 14 }}>🗑️</button>
-            )},
-          ]}
-          data={active}
-          emptyMsg="No hay mermas registradas"
-          mobileColumns={["date", "product", "qty", "person", "actions"]}
-        />
+              <Table
+                columns={[
+                  { key: "date", label: "Fecha", render: r => (
+                    <div style={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{formatDateTime(r.date)}</div>
+                  )},
+                  { key: "product", label: "Producto", render: r => {
+                    const p = products.find(pr => pr.id === r.productId);
+                    return p ? `${p.brand} ${p.model} - ${p.flavor}` : "?";
+                  }},
+                  { key: "qty", label: "Cant.", render: r => <Badge color="#E03E3E">{r.qty}</Badge> },
+                  { key: "type", label: "Tipo", render: r => (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 3, alignItems: "flex-start" }}>
+                      <Badge color={r.withdrawType === "Garantía / Devolución" ? "#CB912F" : r.withdrawType === "Regalo / Canje" ? "#00cec9" : "#e17055"}>{r.withdrawType || "Consumo"}</Badge>
+                      {r.reclamableProveedor && (
+                        <span style={{
+                          fontSize: 9, padding: "1px 6px", borderRadius: 4,
+                          background: "#FDECC8", color: "#CB912F", fontWeight: 700, textTransform: "uppercase",
+                        }}>📦 Reclamable</span>
+                      )}
+                    </div>
+                  )},
+                  { key: "person", label: "Quién", render: r => <Badge color={r.person === "Diego" ? "#a855f7" : "#00b894"}>{r.person}</Badge> },
+                  { key: "cost", label: "Pérdida", render: r => {
+                    const cost = Number(r.costRealUSD || r.costEstimateUSD) || 0;
+                    return (
+                      <div>
+                        <div style={{ fontWeight: 600, color: "#E03E3E" }}>{formatMoney(cost, "USD")}</div>
+                        {exchangeRate && <div style={{ fontSize: 11, color: "#B1AFA7" }}>{formatMoney(cost * exchangeRate)}</div>}
+                      </div>
+                    );
+                  }},
+                  { key: "notes", label: "Nota", render: r => (
+                    <div>
+                      {r.linkedSaleId && (
+                        <div style={{ fontSize: 11, color: "#CB912F", fontWeight: 600, marginBottom: 2 }}>
+                          🔄 Garantía: {r.linkedSaleClient || "?"} ({formatDate(r.linkedSaleDate)})
+                        </div>
+                      )}
+                      {r.linkedClientId && !r.linkedSaleId && (
+                        <div style={{ fontSize: 11, color: "#5E6AD2", fontWeight: 600, marginBottom: 2 }}>
+                          👤 {r.linkedClientName}
+                        </div>
+                      )}
+                      {r.notes || (r.linkedSaleId || r.linkedClientId ? "" : "—")}
+                    </div>
+                  )},
+                  { key: "actions", label: "", render: r => (
+                    confirmDel === r.id
+                      ? <button onClick={() => deleteWithdrawal(r)} style={{ background: "#F7D7D6", border: "1px solid #E03E3E55", color: "#E03E3E", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Confirmar</button>
+                      : <button onClick={() => deleteWithdrawal(r)} style={{ background: "none", border: "none", color: "#E03E3E", cursor: "pointer", fontSize: 14 }}>🗑️</button>
+                  )},
+                ]}
+                data={filtered}
+                emptyMsg={active.length === 0 ? "No hay mermas registradas" : "Sin resultados con esos filtros"}
+                mobileColumns={["date", "product", "qty", "person", "actions"]}
+              />
+            </>
+          );
+        })()}
       </Card>
 
       {/* ============================================ */}
@@ -510,13 +660,37 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
         {form.brand && form.model && flavorsForModel.length > 0 && (
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 11, color: "#B1AFA7", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>SABOR ({flavorsForModel.length})</div>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", maxHeight: 180, overflowY: "auto" }}>
-              {flavorsForModel.map(p => (
-                <button key={p.id} onClick={() => setForm(f => ({ ...f, productId: p.id }))}
-                  style={{ ...chipStyle(form.productId === p.id), fontSize: 12, padding: "5px 10px" }}>
-                  {p.flavor} <span style={{ opacity: 0.7, fontSize: 11, marginLeft: 2 }}>({p.stock})</span>
-                </button>
-              ))}
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", maxHeight: 200, overflowY: "auto" }}>
+              {flavorsForModel.map(p => {
+                const stock = Number(p.stock) || 0;
+                const noStock = stock === 0;
+                const lowStock = stock > 0 && stock <= 1;
+                const selected = form.productId === p.id;
+                const stockColor = noStock ? "#B1AFA7" : lowStock ? "#CB912F" : "#0F7B6C";
+                const stockBg = noStock ? "#F0EFEB" : lowStock ? "#FDECC8" : "#DDEDEA";
+                return (
+                  <button key={p.id}
+                    disabled={noStock}
+                    onClick={() => !noStock && setForm(f => ({ ...f, productId: p.id }))}
+                    style={{
+                      ...chipStyle(selected),
+                      fontSize: 12, padding: "6px 4px 6px 10px",
+                      opacity: noStock ? 0.45 : 1,
+                      cursor: noStock ? "not-allowed" : "pointer",
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                    }}
+                    title={noStock ? "Sin stock" : lowStock ? "Stock bajo" : ""}>
+                    <span>{p.flavor}</span>
+                    <span style={{
+                      fontSize: 10, fontWeight: 700,
+                      padding: "1px 6px", borderRadius: 999,
+                      background: selected ? "#FFFFFF" : stockBg,
+                      color: stockColor,
+                      lineHeight: 1.4,
+                    }}>{stock} {stock === 1 ? "ud" : "uds"}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -573,6 +747,31 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
           }}>
             ✓ Vinculado a <strong>{form.linkedClientName}</strong> automáticamente desde la venta seleccionada
           </div>
+        )}
+
+        {/* Toggle "Imputable a proveedor" — solo Garantía */}
+        {form.withdrawType === "Garantía / Devolución" && (
+          <label style={{
+            display: "flex", alignItems: "center", gap: 10,
+            padding: "10px 12px", borderRadius: 10, marginBottom: 14, cursor: "pointer",
+            background: form.reclamableProveedor ? "#FDECC8" : "#FAFAF9",
+            border: `1px solid ${form.reclamableProveedor ? "#F2D59A" : "#E8E7E3"}`,
+          }}>
+            <input
+              type="checkbox"
+              checked={!!form.reclamableProveedor}
+              onChange={e => setForm(f => ({ ...f, reclamableProveedor: e.target.checked }))}
+              style={{ width: 18, height: 18, cursor: "pointer", accentColor: "#CB912F" }}
+            />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: form.reclamableProveedor ? "#CB912F" : "#37352F" }}>
+                Reclamable al proveedor
+              </div>
+              <div style={{ fontSize: 11, color: "#8C8A82", lineHeight: 1.4 }}>
+                Si el producto vino defectuoso y querés contemplarlo en el próximo pedido al proveedor
+              </div>
+            </div>
+          </label>
         )}
 
         {/* Notes + date */}

@@ -2,8 +2,17 @@ import { useState, useMemo } from "react";
 import { formatMoney, formatDate } from "../helpers.js";
 import { calcTotalRevenue } from "../calcs.js";
 import { Card, Badge, Table } from "./UI.jsx";
-import { BRAND_COLORS } from "../constants.js";
+import { BRAND_COLORS, WITHDRAW_TYPES } from "../constants.js";
 import { useResponsive } from "../App.jsx";
+
+// Helper: costo de un withdrawal (prefiere costRealUSD nuevo, fallback a costEstimateUSD viejo)
+const wCost = (w) => Number(w.costRealUSD || w.costEstimateUSD) || 0;
+// Color por tipo
+const TYPE_COLOR = {
+  "Consumo propio": "#e17055",
+  "Garantía / Devolución": "#CB912F",
+  "Regalo / Canje": "#00cec9",
+};
 
 // -- REPORTS --
 const BarChart = ({ data, colorKey, valueKey, labelKey, maxBars = 10, suffix = "" }) => {
@@ -413,6 +422,206 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, exc
                 </div>
               </div>
             </div>
+          );
+        })()}
+      </Card>
+
+      {/* ============================================ */}
+      {/* MERMAS — sección dedicada (PARTE 6)         */}
+      {/* ============================================ */}
+      <Card style={{ marginBottom: 14 }}>
+        <h4 style={{ color: "#e17055", margin: "0 0 14px", fontSize: 14, textTransform: "uppercase", letterSpacing: 0.6 }}>
+          📉 Mermas
+        </h4>
+        {(() => {
+          const allW = (withdrawals || []).filter(w => !w.isDeleted);
+          const now = new Date();
+          const monthW = allW.filter(w => {
+            const d = new Date(w.date); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+          });
+
+          // 6.1 — KPIs del mes
+          const totalQty = monthW.reduce((s, w) => s + (w.qty || 0), 0);
+          const totalUSD = monthW.reduce((s, w) => s + wCost(w), 0);
+          const totalARS = totalUSD * (exchangeRate || 0);
+          const diegoQty = monthW.filter(w => w.person === "Diego").reduce((s, w) => s + (w.qty || 0), 0);
+          const diegoUSD = monthW.filter(w => w.person === "Diego").reduce((s, w) => s + wCost(w), 0);
+          const gusQty = monthW.filter(w => w.person === "Gustavo").reduce((s, w) => s + (w.qty || 0), 0);
+          const gusUSD = monthW.filter(w => w.person === "Gustavo").reduce((s, w) => s + wCost(w), 0);
+
+          // Por tipo (donut)
+          const byType = WITHDRAW_TYPES.map(t => ({
+            label: t,
+            qty: monthW.filter(w => w.withdrawType === t).reduce((s, w) => s + (w.qty || 0), 0),
+            usd: monthW.filter(w => w.withdrawType === t).reduce((s, w) => s + wCost(w), 0),
+            color: TYPE_COLOR[t] || "#8C8A82",
+          })).filter(x => x.qty > 0);
+          const totalForDonut = byType.reduce((s, x) => s + x.qty, 0) || 1;
+
+          // 6.2 — Top 5 productos más merma'do (qty)
+          const byProd = {};
+          allW.forEach(w => {
+            const p = products.find(pr => pr.id === w.productId);
+            const key = p ? `${p.brand} ${p.model} - ${p.flavor}` : `(${w.productId})`;
+            if (!byProd[key]) byProd[key] = { qty: 0, usd: 0 };
+            byProd[key].qty += (w.qty || 0);
+            byProd[key].usd += wCost(w);
+          });
+          const top5 = Object.entries(byProd).sort((a, b) => b[1].qty - a[1].qty).slice(0, 5);
+          const topMaxQty = Math.max(1, ...top5.map(([, v]) => v.qty));
+
+          // 6.3 — Tendencia 6 meses (qty stacked por tipo)
+          const last6 = [];
+          for (let i = 5; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const monthIdx = d.getMonth();
+            const yearIdx = d.getFullYear();
+            const wMes = allW.filter(w => { const wd = new Date(w.date); return wd.getMonth() === monthIdx && wd.getFullYear() === yearIdx; });
+            const stack = WITHDRAW_TYPES.map(t => ({
+              type: t,
+              qty: wMes.filter(w => w.withdrawType === t).reduce((s, w) => s + (w.qty || 0), 0),
+              color: TYPE_COLOR[t] || "#8C8A82",
+            }));
+            last6.push({
+              label: d.toLocaleDateString("es-AR", { month: "short" }),
+              total: wMes.reduce((s, w) => s + (w.qty || 0), 0),
+              stack,
+            });
+          }
+          const maxBar = Math.max(1, ...last6.map(m => m.total));
+
+          // 6.4 — Alerta si mes actual > 50% sobre el promedio de los 3 anteriores
+          const last3 = last6.slice(-4, -1); // 3 anteriores al actual
+          const avgPrev = last3.length > 0 ? last3.reduce((s, m) => s + m.total, 0) / last3.length : 0;
+          const currMonth = last6[last6.length - 1]?.total || 0;
+          const isHigh = avgPrev > 0 && currMonth > avgPrev * 1.5;
+
+          // Reclamables al proveedor (acumulado, todos los meses)
+          const reclamables = allW.filter(w => w.reclamableProveedor);
+          const reclamablesUSD = reclamables.reduce((s, w) => s + wCost(w), 0);
+          const reclamablesQty = reclamables.reduce((s, w) => s + (w.qty || 0), 0);
+
+          return (
+            <>
+              {/* Alerta consumo alto */}
+              {isHigh && (
+                <div style={{
+                  padding: "10px 14px", borderRadius: 10, marginBottom: 14,
+                  background: "#FBE4E4", border: "1px solid #F1B8B6",
+                  fontSize: 13, color: "#E03E3E", fontWeight: 600,
+                }}>
+                  ⚠️ Mes actual ({currMonth} uds) está {Math.round((currMonth / avgPrev - 1) * 100)}% por encima del promedio de los últimos 3 meses ({avgPrev.toFixed(1)} uds prom). Revisá si es estacional o hay algo raro.
+                </div>
+              )}
+
+              {/* KPIs del mes */}
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 8, marginBottom: 14 }}>
+                <div style={{ background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10, padding: "10px 12px" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5 }}>Mes — total</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: "#37352F", marginTop: 2 }}>{totalQty} uds</div>
+                  <div style={{ fontSize: 11, color: "#8C8A82", marginTop: 2 }}>{formatMoney(totalUSD, "USD")} · {formatMoney(Math.round(totalARS))}</div>
+                </div>
+                <div style={{ background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10, padding: "10px 12px" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5 }}>Diego</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: "#a855f7", marginTop: 2 }}>{diegoQty} uds</div>
+                  <div style={{ fontSize: 11, color: "#8C8A82", marginTop: 2 }}>{formatMoney(diegoUSD, "USD")}</div>
+                </div>
+                <div style={{ background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10, padding: "10px 12px" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5 }}>Gustavo</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: "#00b894", marginTop: 2 }}>{gusQty} uds</div>
+                  <div style={{ fontSize: 11, color: "#8C8A82", marginTop: 2 }}>{formatMoney(gusUSD, "USD")}</div>
+                </div>
+                <div style={{ background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10, padding: "10px 12px" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5 }}>Reclamable proveedor</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: "#CB912F", marginTop: 2 }}>{reclamablesQty} uds</div>
+                  <div style={{ fontSize: 11, color: "#8C8A82", marginTop: 2 }}>{formatMoney(reclamablesUSD, "USD")} pedido próximo</div>
+                </div>
+              </div>
+
+              {/* Donut por tipo + leyenda */}
+              {byType.length > 0 && (
+                <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: 16, alignItems: "center", marginBottom: 16, padding: 12, background: "#FAFAF9", borderRadius: 10, border: "1px solid #E8E7E3" }}>
+                  {/* SVG donut */}
+                  <svg width={120} height={120} viewBox="0 0 120 120" style={{ flexShrink: 0 }}>
+                    {(() => {
+                      const cx = 60, cy = 60, r = 45;
+                      const circ = 2 * Math.PI * r;
+                      let acc = 0;
+                      return byType.map((seg, i) => {
+                        const pct = seg.qty / totalForDonut;
+                        const dash = pct * circ;
+                        const offset = -acc * circ;
+                        acc += pct;
+                        return (
+                          <circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={seg.color} strokeWidth={18}
+                            strokeDasharray={`${dash} ${circ - dash}`} strokeDashoffset={offset}
+                            transform={`rotate(-90 ${cx} ${cy})`} />
+                        );
+                      });
+                    })()}
+                    <text x={60} y={58} textAnchor="middle" fontSize={20} fontWeight="800" fill="#37352F">{totalForDonut}</text>
+                    <text x={60} y={74} textAnchor="middle" fontSize={10} fill="#8C8A82">uds totales</text>
+                  </svg>
+                  {/* Leyenda */}
+                  <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+                    {byType.map(seg => (
+                      <div key={seg.label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ width: 12, height: 12, borderRadius: 3, background: seg.color, flexShrink: 0 }} />
+                        <span style={{ fontSize: 12, color: "#37352F", flex: 1, minWidth: 0 }}>{seg.label}</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "#37352F", fontVariantNumeric: "tabular-nums" }}>{seg.qty} uds</span>
+                        <span style={{ fontSize: 11, color: "#8C8A82", fontVariantNumeric: "tabular-nums", minWidth: 60, textAlign: "right" }}>{formatMoney(seg.usd, "USD")}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Top 5 productos */}
+              {top5.length > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>
+                    Top 5 productos más merma'dos (histórico)
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {top5.map(([name, v], i) => (
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 12, color: "#555247", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
+                        <div style={{ width: isMobile ? 120 : 200, height: 18, background: "#F0EFEB", borderRadius: 4, overflow: "hidden" }}>
+                          <div style={{ width: `${(v.qty / topMaxQty) * 100}%`, height: "100%", background: "linear-gradient(90deg, #e17055aa, #e17055)", borderRadius: 4 }} />
+                        </div>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "#E03E3E", minWidth: 40, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{v.qty}</span>
+                        <span style={{ fontSize: 11, color: "#8C8A82", minWidth: 70, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{formatMoney(v.usd, "USD")}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Tendencia 6 meses */}
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>
+                  Tendencia últimos 6 meses (uds, stacked por tipo)
+                </div>
+                <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 120, padding: "6px 0", borderBottom: "1px solid #E8E7E3" }}>
+                  {last6.map((m, i) => (
+                    <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, height: "100%" }}>
+                      <div style={{ flex: 1, width: "100%", display: "flex", flexDirection: "column-reverse", justifyContent: "flex-start" }}>
+                        {m.stack.map((seg, j) => seg.qty > 0 && (
+                          <div key={j} style={{
+                            background: seg.color,
+                            height: `${(seg.qty / maxBar) * 100}%`,
+                            borderRadius: j === m.stack.findIndex(s => s.qty > 0) ? "4px 4px 0 0" : 0,
+                            transition: "height 0.3s",
+                          }} title={`${seg.type}: ${seg.qty} uds`} />
+                        ))}
+                      </div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: "#37352F", fontVariantNumeric: "tabular-nums" }}>{m.total}</div>
+                      <div style={{ fontSize: 10, color: "#8C8A82", textTransform: "capitalize" }}>{m.label.replace(".", "")}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
           );
         })()}
       </Card>
