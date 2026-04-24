@@ -33,7 +33,8 @@ export function AuditLog({ auditLog = [], products = [] }) {
       if (filterEntity && entry.entityType !== filterEntity) return false;
       if (filterUser && entry.user !== filterUser) return false;
       if (filterDateFrom && entry.timestamp < filterDateFrom) return false;
-      if (filterDateTo && entry.timestamp < filterDateTo + "T23:59:59") return false;
+      // Bug fix: antes usaba `<` invertido — excluía entradas válidas del rango
+      if (filterDateTo && entry.timestamp > filterDateTo + "T23:59:59") return false;
       if (search) {
         const q = search.toLowerCase();
         return (entry.description || "").toLowerCase().includes(q) ||

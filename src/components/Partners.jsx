@@ -30,6 +30,21 @@ export const Partners = ({ partnerWithdrawals, setPartnerWithdrawals, sales, pur
     setConfirmDel(null);
   };
 
+  // Liquidar (settle): precarga el modal con el saldo pendiente del socio.
+  // Un click y confirmás — crea el retiro, cerrando el saldo a 0.
+  const settle = (person, balance) => {
+    if (balance <= 0) return;
+    setForm({
+      person,
+      amount: Math.round(balance * 100) / 100,
+      currency: "ARS",
+      source: person === "Diego" ? "MP Diego" : "MP Gustavo",
+      description: `Liquidación de saldo pendiente`,
+      date: new Date().toISOString().slice(0, 10),
+    });
+    setModal(true);
+  };
+
   // Calculate business profit and partner balances using shared logic
   const {
     revenue, costs, expensesTotal, mermasComunes, netProfitComun, halfProfit,
@@ -95,6 +110,14 @@ export const Partners = ({ partnerWithdrawals, setPartnerWithdrawals, sales, pur
             <div style={{ borderTop: "1px solid #F0EFEB", marginTop: 4, paddingTop: 4 }}>
               <Row label="Saldo pendiente" value={formatMoney(diegoBalance)} color={diegoBalance >= 0 ? "#00b894" : "#E03E3E"} bold />
             </div>
+            {diegoBalance > 0 && (
+              <button onClick={() => settle("Diego", diegoBalance)} style={{
+                marginTop: 10, width: "100%", padding: "8px 12px", minHeight: 36,
+                background: "#DDEDEA", border: "1px solid #0F7B6C55", borderRadius: 8,
+                color: "#0F7B6C", fontSize: 12, fontWeight: 700, cursor: "pointer",
+                fontFamily: "inherit",
+              }}>💰 Liquidar {formatMoney(diegoBalance)}</button>
+            )}
           </div>
 
           <div style={{ width: isMobile ? "100%" : 1, height: isMobile ? 1 : "auto", background: "#E8E7E3" }} />
@@ -115,6 +138,14 @@ export const Partners = ({ partnerWithdrawals, setPartnerWithdrawals, sales, pur
             <div style={{ borderTop: "1px solid #F0EFEB", marginTop: 4, paddingTop: 4 }}>
               <Row label="Saldo pendiente" value={formatMoney(gustavoBalance)} color={gustavoBalance >= 0 ? "#00b894" : "#E03E3E"} bold />
             </div>
+            {gustavoBalance > 0 && (
+              <button onClick={() => settle("Gustavo", gustavoBalance)} style={{
+                marginTop: 10, width: "100%", padding: "8px 12px", minHeight: 36,
+                background: "#DDEDEA", border: "1px solid #0F7B6C55", borderRadius: 8,
+                color: "#0F7B6C", fontSize: 12, fontWeight: 700, cursor: "pointer",
+                fontFamily: "inherit",
+              }}>💰 Liquidar {formatMoney(gustavoBalance)}</button>
+            )}
           </div>
         </div>
 

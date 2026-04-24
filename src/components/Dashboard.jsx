@@ -420,7 +420,15 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, e
 
   // ---- mermas & descuentos ----
   const mermasQty = monthWithdrawals.reduce((s, w) => s + (w.qty || 0), 0);
-  const mermasUSD = monthWithdrawals.reduce((s, w) => s + (w.costEstimateUSD || 0), 0);
+  // Usar costRealUSD (datos nuevos) con fallback a costEstimateUSD (datos legacy).
+  // Antes solo leía costEstimateUSD y mostraba $0 para mermas nuevas correctamente
+  // cargadas tras el rework de Mermas.
+  const mermasUSD = monthWithdrawals.reduce((s, w) => s + Number(w.costRealUSD || w.costEstimateUSD || 0), 0);
+  // Desglose: consumo personal (propio) vs común (garantías + canjes + regalos)
+  const mermasConsumoPersonalUSD = monthWithdrawals
+    .filter(w => w.withdrawType === "Consumo propio")
+    .reduce((s, w) => s + Number(w.costRealUSD || w.costEstimateUSD || 0), 0);
+  const mermasComunesUSD = mermasUSD - mermasConsumoPersonalUSD;
   const discountsARS = monthSales.reduce((s, sale) => s + (sale.discountAmount || 0), 0);
 
   return (
@@ -511,7 +519,16 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, e
         gap: isMobile ? 10 : 14, marginBottom: 20,
       }}>
         <MiniKpi label="Gastos del mes" value={formatMoney(monthExpensesARS)} sub={`${monthExpenses.length} registros`} accent={T.red} />
-        <MiniKpi label="Mermas" value={`${mermasQty} uds`} sub={formatMoney(mermasUSD, "USD")} accent={T.amber} />
+        <MiniKpi
+          label="Mermas"
+          value={`${mermasQty} uds`}
+          sub={
+            mermasConsumoPersonalUSD > 0 && mermasComunesUSD > 0
+              ? `${formatMoney(mermasUSD, "USD")} · Propio ${formatMoney(mermasConsumoPersonalUSD, "USD")} · Común ${formatMoney(mermasComunesUSD, "USD")}`
+              : formatMoney(mermasUSD, "USD")
+          }
+          accent={T.amber}
+        />
         <MiniKpi label="Descuentos" value={formatMoney(discountsARS)} sub={`${monthSales.filter(s => (s.discountAmount || 0) > 0).length} ventas`} accent={T.purple} />
         <MiniKpi label="Clientes activos" value={new Set(monthSales.map(s => s.clientId).filter(Boolean)).size} sub={`de ${clients.length}`} accent={T.blue} />
       </div>
