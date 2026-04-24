@@ -835,6 +835,7 @@ const fieldStyle = (error) => ({
 // ============================================
 const HistoryModal = ({ client, stats, productsById, withdrawals = [], onClose }) => {
   const { isMobile } = useResponsive();
+  const [activeTab, setActiveTab] = useState("resumen");
   if (!client || !stats) return null;
 
   // Withdrawals (regalos / garantías) vinculados a este cliente
@@ -842,6 +843,7 @@ const HistoryModal = ({ client, stats, productsById, withdrawals = [], onClose }
     .filter(w => !w.isDeleted && w.linkedClientId === client.id)
     .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
   const totalGesturesUSD = clientGestures.reduce((s, w) => s + (Number(w.costRealUSD || w.costEstimateUSD) || 0), 0);
+  const hasBalanceHistory = (client.balanceHistory || []).length > 0;
 
   // Build last 6 months sparkline data
   const now = new Date();
@@ -878,8 +880,28 @@ const HistoryModal = ({ client, stats, productsById, withdrawals = [], onClose }
         <SummaryStat label="Frecuencia" value={stats.avgDays ? `${stats.avgDays}d` : "—"} sub={stats.avgDays ? "entre compras" : ""} />
       </div>
 
+      {/* Tabs — segmentan secciones pesadas para no scrollear 15+ veces en mobile */}
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16, borderBottom: `1px solid ${T.borderSoft}`, paddingBottom: 10 }}>
+        {[
+          { key: "resumen", label: "📊 Resumen" },
+          { key: "compras", label: `🛒 Compras (${sortedSales.length})` },
+          ...(clientGestures.length > 0 ? [{ key: "regalos", label: `🎁 Regalos (${clientGestures.length})` }] : []),
+          ...(hasBalanceHistory ? [{ key: "saldo", label: "💳 Saldo" }] : []),
+        ].map(tab => (
+          <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
+            padding: "7px 14px", minHeight: 36,
+            border: `1px solid ${activeTab === tab.key ? T.primary : T.borderSoft}`,
+            borderRadius: 20, fontSize: 12,
+            fontWeight: activeTab === tab.key ? 700 : 500,
+            background: activeTab === tab.key ? "#EEF0FC" : T.surface2,
+            color: activeTab === tab.key ? T.primary : T.textMuted,
+            cursor: "pointer", fontFamily: "inherit",
+          }}>{tab.label}</button>
+        ))}
+      </div>
+
       {/* Monthly sparkline */}
-      {peak > 0 && (
+      {activeTab === "resumen" && peak > 0 && (
         <div style={{ background: T.surface2, borderRadius: 12, padding: 14, marginBottom: 18, border: `1px solid ${T.borderSoft}` }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>
             Evolución últimos 6 meses
@@ -889,7 +911,7 @@ const HistoryModal = ({ client, stats, productsById, withdrawals = [], onClose }
       )}
 
       {/* Favorite products */}
-      {stats.favProducts.length > 0 && (
+      {activeTab === "resumen" && stats.favProducts.length > 0 && (
         <div style={{ marginBottom: 18 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>
             Productos favoritos
@@ -912,7 +934,7 @@ const HistoryModal = ({ client, stats, productsById, withdrawals = [], onClose }
       )}
 
       {/* Regalos y garantías (gestos comerciales) */}
-      {clientGestures.length > 0 && (
+      {activeTab === "regalos" && clientGestures.length > 0 && (
         <div style={{ marginBottom: 18 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10, display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
             <span>🎁 Regalos y garantías ({clientGestures.length})</span>
@@ -991,6 +1013,7 @@ const HistoryModal = ({ client, stats, productsById, withdrawals = [], onClose }
       )}
 
       {/* Sales list */}
+      {activeTab === "compras" && (
       <div>
         <div style={{ fontSize: 11, fontWeight: 600, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>
           Compras ({sortedSales.length})
@@ -1030,9 +1053,10 @@ const HistoryModal = ({ client, stats, productsById, withdrawals = [], onClose }
           </div>
         )}
       </div>
+      )}
 
       {/* Balance history */}
-      {(client.balanceHistory || []).length > 0 && (
+      {activeTab === "saldo" && (client.balanceHistory || []).length > 0 && (
         <div style={{ marginTop: 18 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>
             Movimientos de saldo
