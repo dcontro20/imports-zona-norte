@@ -946,6 +946,106 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
         })()}
       </Card>
 
+      {/* ===== PROYECCIÓN DE INVENTARIO ===== */}
+      <Card style={{ marginBottom: 14 }}>
+        <h4 style={{ color: "#5E6AD2", margin: "0 0 14px", fontSize: 14, textTransform: "uppercase" }}>
+          📈 Proyección de inventario
+        </h4>
+        {(() => {
+          // Ventas de últimos 30 días por producto (unidades).
+          const thirtyAgo = new Date();
+          thirtyAgo.setDate(thirtyAgo.getDate() - 30);
+          const soldByProduct = {};
+          sales.filter(s => !s.isDeleted && new Date(s.date) >= thirtyAgo).forEach(s => {
+            (s.items || []).forEach(i => {
+              soldByProduct[i.productId] = (soldByProduct[i.productId] || 0) + (Number(i.qty) || 1);
+            });
+          });
+
+          const activeProds = (products || []).filter(p => !p.isDeleted && (p.stock || 0) > 0);
+          const rows = activeProds.map(p => {
+            const sold30 = soldByProduct[p.id] || 0;
+            const velocity = sold30 / 30; // uds/día
+            const daysLeft = velocity > 0 ? Math.floor((p.stock || 0) / velocity) : Infinity;
+            const depletion = velocity > 0 ? new Date(Date.now() + daysLeft * 86400000) : null;
+            return {
+              ...p, sold30, velocity, daysLeft, depletion,
+              velocityLabel: velocity >= 1 ? `${velocity.toFixed(1)}/día` : velocity > 0 ? `${(velocity * 7).toFixed(1)}/sem` : "sin ventas",
+            };
+          }).sort((a, b) => {
+            // Primero los que se agotan antes; "sin ventas" al final
+            if (a.daysLeft === Infinity && b.daysLeft === Infinity) return 0;
+            if (a.daysLeft === Infinity) return 1;
+            if (b.daysLeft === Infinity) return -1;
+            return a.daysLeft - b.daysLeft;
+          });
+
+          const soonOut = rows.filter(r => r.daysLeft !== Infinity && r.daysLeft <= 7).length;
+          const stale = rows.filter(r => r.daysLeft === Infinity).length;
+
+          if (rows.length === 0) {
+            return <p style={{ color: "#555", fontSize: 13 }}>No hay productos con stock.</p>;
+          }
+
+          return (
+            <>
+              <p style={{ color: "#8C8A82", fontSize: 12, margin: "0 0 14px" }}>
+                Velocidad = unidades vendidas en últimos 30 días ÷ 30. Ordenado por días restantes ascendente.
+                {soonOut > 0 && <span style={{ color: "#E03E3E", fontWeight: 700 }}> · {soonOut} se agota{soonOut > 1 ? "n" : ""} en ≤7 días</span>}
+                {stale > 0 && <span style={{ color: "#8C8A82" }}> · {stale} sin ventas 30d</span>}
+              </p>
+              <div style={{ overflow: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                  <thead>
+                    <tr style={{ textAlign: "left", color: "#8C8A82", borderBottom: "1px solid #E8E7E3" }}>
+                      <th style={{ padding: "8px 10px", fontWeight: 600 }}>Producto</th>
+                      <th style={{ padding: "8px 10px", fontWeight: 600, textAlign: "right" }}>Stock</th>
+                      <th style={{ padding: "8px 10px", fontWeight: 600, textAlign: "right" }}>Vendidos 30d</th>
+                      <th style={{ padding: "8px 10px", fontWeight: 600, textAlign: "right" }}>Velocidad</th>
+                      <th style={{ padding: "8px 10px", fontWeight: 600, textAlign: "right" }}>Días restantes</th>
+                      <th style={{ padding: "8px 10px", fontWeight: 600 }}>Se agota</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.slice(0, 25).map(r => {
+                      const color = r.daysLeft === Infinity ? "#8C8A82"
+                        : r.daysLeft <= 7 ? "#E03E3E"
+                        : r.daysLeft <= 14 ? "#CB912F"
+                        : r.daysLeft <= 30 ? "#5E6AD2"
+                        : "#0F7B6C";
+                      return (
+                        <tr key={r.id} style={{ borderBottom: "1px solid #F0EFEB" }}>
+                          <td style={{ padding: "8px 10px", color: "#37352F", fontWeight: 600 }}>
+                            {r.brand} {r.model}
+                            <span style={{ color: "#8C8A82", fontWeight: 400 }}> · {r.flavor}</span>
+                          </td>
+                          <td style={{ padding: "8px 10px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#37352F", fontWeight: 700 }}>{r.stock}</td>
+                          <td style={{ padding: "8px 10px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#8C8A82" }}>{r.sold30}</td>
+                          <td style={{ padding: "8px 10px", textAlign: "right", color: "#8C8A82", fontSize: 11 }}>{r.velocityLabel}</td>
+                          <td style={{ padding: "8px 10px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                            <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: 11, fontWeight: 700, background: `${color}18`, color }}>
+                              {r.daysLeft === Infinity ? "—" : `${r.daysLeft}d`}
+                            </span>
+                          </td>
+                          <td style={{ padding: "8px 10px", color: "#8C8A82", fontSize: 11 }}>
+                            {r.depletion ? formatDate(r.depletion) : "—"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                {rows.length > 25 && (
+                  <p style={{ fontSize: 11, color: "#B1AFA7", margin: "10px 0 0", textAlign: "center" }}>
+                    Mostrando 25 de {rows.length} productos con stock
+                  </p>
+                )}
+              </div>
+            </>
+          );
+        })()}
+      </Card>
+
       {/* ===== ABC DE CLIENTES ===== */}
       {/* Ranking por revenue acumulado (YTD). Segmenta:
           - Tier A: top 20% de clientes por revenue (Pareto: suelen aportar 80% del ingreso)
