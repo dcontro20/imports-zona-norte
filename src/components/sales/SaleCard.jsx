@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, memo } from "react";
 import { formatDate, formatMoney } from "../../helpers.js";
 import { T, pickAvatarColor } from "../../theme.js";
 
 // SaleCard — una fila visual por venta en la lista de Sales.jsx.
-// Extraído de Sales.jsx para reducir tamaño del archivo padre.
+// Extraído de Sales.jsx. Envuelto en memo al final del archivo para evitar
+// re-renders cuando cambian props no relacionados del parent.
 
 const SaleCard = ({ sale: r, products, clients = [], exchangeRate, isMobile, onEdit, onRepeat, onDelete, confirmDelete }) => {
   // Email receipt via mailto — abre el cliente de email del usuario con todos los campos pre-cargados
@@ -210,4 +211,4 @@ const GhostBtn = ({ children, onClick, color, title }) => {
   );
 };
 
-export default SaleCard;
+export default memo(SaleCard);

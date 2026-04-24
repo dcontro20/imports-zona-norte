@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, memo } from "react";
 import { uid, formatMoney, formatDate, monthKey } from "../helpers.js";
 import { useResponsive } from "../App.jsx";
 import { Modal, Card, Btn } from "./UI.jsx";
@@ -59,6 +59,8 @@ export const Clients = ({ clients, setClients, sales, products, withdrawals = []
 
   const [historyClient, setHistoryClient] = useState(null);
   const [confirmDel, setConfirmDel] = useState(null);
+  // Paginación simple: 50 clientes visibles, botón "Mostrar más" suma 50.
+  const [visibleCount, setVisibleCount] = useState(50);
 
   const [balanceModal, setBalanceModal] = useState(false);
   const [balanceForm, setBalanceForm] = useState({ clientId: "", clientName: "", currentBalance: 0, type: "payment", amount: "", method: "", mpAccount: "", notes: "" });
@@ -353,7 +355,7 @@ export const Clients = ({ clients, setClients, sales, products, withdrawals = []
           gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(340px, 1fr))",
           gap: isMobile ? 12 : 16,
         }}>
-          {filtered.map(c => (
+          {filtered.slice(0, visibleCount).map(c => (
             <ClientCard
               key={c.id}
               client={c}
@@ -367,6 +369,17 @@ export const Clients = ({ clients, setClients, sales, products, withdrawals = []
               confirmDelete={confirmDel === c.id}
             />
           ))}
+          {filtered.length > visibleCount && (
+            <button onClick={() => setVisibleCount(v => v + 50)} style={{
+              gridColumn: "1 / -1",
+              marginTop: 10, padding: "12px 18px", minHeight: 44,
+              background: T.card, border: `1px solid ${T.border}`, borderRadius: 10,
+              color: T.primary, fontSize: 13, fontWeight: 700, cursor: "pointer",
+              fontFamily: "inherit",
+            }}>
+              Mostrar más ({filtered.length - visibleCount} restantes)
+            </button>
+          )}
         </div>
       )}
 
@@ -411,7 +424,11 @@ export const Clients = ({ clients, setClients, sales, products, withdrawals = []
 // ============================================
 // ClientCard — una tarjeta por cliente
 // ============================================
-const ClientCard = ({ client: c, stats, productsById, gestures, onEdit, onHistory, onBalance, onDelete, confirmDelete }) => {
+// memo: ClientCard solo re-renderea si cambian sus props. Como los props
+// incluyen callbacks inline del parent (onEdit, onHistory, etc), idealmente
+// el parent las envuelve en useCallback. Aún sin eso, memo evita renders
+// cuando cambian campos no relacionados del state del parent (ej: modal abierto).
+const ClientCard = memo(({ client: c, stats, productsById, gestures, onEdit, onHistory, onBalance, onDelete, confirmDelete }) => {
   const [hover, setHover] = useState(false);
   const st = stats || {};
   const bal = c.balance || 0;
@@ -564,7 +581,7 @@ const ClientCard = ({ client: c, stats, productsById, gestures, onEdit, onHistor
       </div>
     </div>
   );
-};
+});
 
 const ActionBtn = ({ children, onClick, href, color = T.textSub, ghost = false }) => {
   const [hover, setHover] = useState(false);

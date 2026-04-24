@@ -70,6 +70,9 @@ export const Sales = ({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [validationError, setValidationError] = useState("");
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
+  // Paginación simple: arranca con 50 ventas visibles, botón "Mostrar más" suma 50.
+  // Evita renderear cientos de SaleCards al abrir Sales; el usuario los pide si los necesita.
+  const [visibleCount, setVisibleCount] = useState(50);
   const [flavorSearch, setFlavorSearch] = useState("");
   const [editingRate, setEditingRate] = useState(null); // exchange rate locked from the sale being edited
 
@@ -1262,7 +1265,7 @@ export const Sales = ({
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {filtered.map(r => (
+          {filtered.slice(0, visibleCount).map(r => (
             <SaleCard
               key={r.id}
               sale={r}
@@ -1276,6 +1279,16 @@ export const Sales = ({
               confirmDelete={confirmDeleteSale === r.id}
             />
           ))}
+          {filtered.length > visibleCount && (
+            <button onClick={() => setVisibleCount(c => c + 50)} style={{
+              marginTop: 10, padding: "12px 18px", minHeight: 44,
+              background: T.card, border: `1px solid ${T.border}`, borderRadius: 10,
+              color: T.primary, fontSize: 13, fontWeight: 700, cursor: "pointer",
+              fontFamily: "inherit",
+            }}>
+              Mostrar más ({filtered.length - visibleCount} restantes)
+            </button>
+          )}
         </div>
       )}
 
