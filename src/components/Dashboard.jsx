@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { formatMoney, formatDate, safeRate } from "../helpers.js";
 import { calcTotalRevenue, calcTotalRevenueUSD } from "../calcs.js";
 import { BRAND_COLORS, isGarantia } from "../constants.js";
@@ -118,6 +118,9 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, e
   const { isMobile } = useResponsive();
   const [period, setPeriod] = useState("month"); // today | week | month
   const [showAllAlerts, setShowAllAlerts] = useState(false);
+  const [reorderModal, setReorderModal] = useState(false);
+  const [reorderQty, setReorderQty] = useState({}); // productId -> qty sugerida/editada
+  const [copyToast, setCopyToast] = useState("");
 
   const now = new Date();
   const todayStr = now.toDateString();
@@ -624,9 +627,34 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, e
 
         {/* Low stock */}
         <PCard>
-          <SectionLabel icon="⚠️" color={lowStock.length > 0 ? T.red : T.textMuted}>
-            Stock bajo {lowStock.length > 0 && `(${lowStock.length})`}
-          </SectionLabel>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 4 }}>
+            <SectionLabel icon="⚠️" color={lowStock.length > 0 || outOfStock.length > 0 ? T.red : T.textMuted}>
+              Stock bajo {(lowStock.length + outOfStock.length) > 0 && `(${lowStock.length + outOfStock.length})`}
+            </SectionLabel>
+            {(lowStock.length + outOfStock.length) > 0 && (
+              <button onClick={() => {
+                // Precargar qty sugerida: 2x peak ventas semanales últimos 30d, mínimo 5
+                const thirtyAgo = new Date(now.getTime() - 30 * msPerDay).toISOString();
+                const recentItems = {};
+                sales.filter(s => !s.isDeleted && s.date >= thirtyAgo).forEach(s =>
+                  (s.items || []).forEach(i => { recentItems[i.productId] = (recentItems[i.productId] || 0) + (i.qty || 1); })
+                );
+                const defaults = {};
+                [...outOfStock, ...lowStock].forEach(p => {
+                  const monthlyQty = recentItems[p.id] || 0;
+                  const suggested = Math.max(5, Math.ceil((monthlyQty / 30) * 14)); // 2 semanas de stock
+                  defaults[p.id] = suggested;
+                });
+                setReorderQty(defaults);
+                setReorderModal(true);
+              }} style={{
+                padding: "5px 10px", minHeight: 32,
+                border: `1px solid ${T.greenBorder}`, borderRadius: 6,
+                background: T.greenBg, color: T.green, fontSize: 11, fontWeight: 700,
+                cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
+              }}>📲 Avisar proveedor</button>
+            )}
+          </div>
           {lowStock.length === 0 ? (
             <div style={{ textAlign: "center", padding: "16px 0" }}>
               <div style={{
@@ -722,6 +750,154 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, e
           </div>
         )}
       </PCard>
+
+      {/* Modal: avisar proveedor */}
+      {reorderModal && (
+        <ReorderModal
+          products={[...outOfStock, ...lowStock]}
+          qtyMap={reorderQty}
+          setQtyMap={setReorderQty}
+          onClose={() => setReorderModal(false)}
+          onCopied={(msg) => {
+            setCopyToast(msg);
+            setTimeout(() => setCopyToast(""), 2000);
+          }}
+        />
+      )}
+
+      {/* Toast de confirmación */}
+      {copyToast && (
+        <div style={{
+          position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
+          background: T.text, color: T.bg, padding: "12px 20px", borderRadius: 10,
+          fontSize: 13, fontWeight: 600, zIndex: 1001,
+          boxShadow: "0 6px 20px rgba(0,0,0,0.2)",
+        }}>{copyToast}</div>
+      )}
+    </div>
+  );
+};
+
+// ============================================
+// ReorderModal — compone el mensaje para el proveedor
+// ============================================
+const ReorderModal = ({ products, qtyMap, setQtyMap, onClose, onCopied }) => {
+  const { isMobile } = useResponsive();
+
+  // Agrupar por marca para el mensaje
+  const byBrand = useMemo(() => {
+    const m = {};
+    products.forEach(p => {
+      if (!m[p.brand]) m[p.brand] = [];
+      const qty = Number(qtyMap[p.id] || 0);
+      if (qty > 0) m[p.brand].push({ ...p, qty });
+    });
+    return m;
+  }, [products, qtyMap]);
+
+  const totalUnits = Object.values(byBrand).flat().reduce((s, p) => s + p.qty, 0);
+
+  const message = useMemo(() => {
+    const lines = ["¡Hola! Necesito reponer estos vapes:", ""];
+    Object.entries(byBrand).sort((a, b) => a[0].localeCompare(b[0])).forEach(([brand, items]) => {
+      if (items.length === 0) return;
+      lines.push(brand.toUpperCase());
+      items.forEach(p => {
+        lines.push(`- ${p.qty}× ${p.model}${p.flavor ? ` - ${p.flavor}` : ""}`);
+      });
+      lines.push("");
+    });
+    lines.push(`Total: ${totalUnits} unidades. Gracias!`);
+    return lines.join("\n");
+  }, [byBrand, totalUnits]);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(message);
+      onCopied("✓ Mensaje copiado al portapapeles");
+    } catch {
+      onCopied("No se pudo copiar. Copialo manualmente.");
+    }
+  };
+
+  const handleWhatsApp = () => {
+    const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank", "noopener");
+  };
+
+  return (
+    <div onClick={onClose} style={{
+      position: "fixed", inset: 0, background: "rgba(15,15,15,0.45)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      zIndex: 1000, padding: 16, paddingTop: "env(safe-area-inset-top, 16px)",
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background: T.bg, borderRadius: 16, padding: isMobile ? 20 : 28,
+        maxWidth: 560, width: "100%", maxHeight: "92vh", overflowY: "auto",
+        boxShadow: "0 20px 60px rgba(15,15,15,0.25)",
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: T.text }}>📲 Avisar al proveedor</h3>
+          <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: T.textMuted, lineHeight: 1 }}>×</button>
+        </div>
+
+        <p style={{ fontSize: 13, color: T.textMuted, margin: "0 0 14px" }}>
+          Ajustá las cantidades si hace falta. La sugerencia es 2 semanas de stock basadas en ventas recientes.
+        </p>
+
+        <div style={{ marginBottom: 16, maxHeight: 280, overflowY: "auto", border: `1px solid ${T.borderSoft}`, borderRadius: 10 }}>
+          {products.map(p => (
+            <div key={p.id} style={{
+              display: "flex", alignItems: "center", gap: 10, padding: "10px 12px",
+              borderBottom: `1px solid ${T.borderSoft}`,
+            }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, color: T.text, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {p.brand} {p.model}
+                </div>
+                <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>
+                  {p.flavor} · stock actual: {p.stock || 0}
+                </div>
+              </div>
+              <input
+                type="number" min="0" value={qtyMap[p.id] || 0}
+                onChange={e => setQtyMap({ ...qtyMap, [p.id]: Math.max(0, Number(e.target.value) || 0) })}
+                style={{
+                  width: 64, padding: "8px 10px", minHeight: 40,
+                  border: `1px solid ${T.borderSoft}`, borderRadius: 8,
+                  fontSize: 14, fontWeight: 700, textAlign: "center",
+                  background: T.surface2, color: T.text, outline: "none", fontFamily: "inherit",
+                }} />
+            </div>
+          ))}
+        </div>
+
+        {/* Preview del mensaje */}
+        <div style={{
+          background: "#EEF8EE", border: "1px solid #c8e6c9", borderRadius: 10,
+          padding: "12px 14px", marginBottom: 14,
+          fontSize: 12, color: "#2E7D32", fontFamily: "ui-monospace, monospace",
+          whiteSpace: "pre-wrap", maxHeight: 200, overflowY: "auto",
+        }}>{message}</div>
+
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
+          <button onClick={onClose} style={{
+            padding: "10px 16px", minHeight: 42, border: `1px solid ${T.borderSoft}`,
+            borderRadius: 8, background: T.surface2, color: T.text,
+            fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+          }}>Cancelar</button>
+          <button onClick={handleCopy} style={{
+            padding: "10px 16px", minHeight: 42, border: "none",
+            borderRadius: 8, background: T.primary, color: "#FFFFFF",
+            fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+          }}>📋 Copiar mensaje</button>
+          <button onClick={handleWhatsApp} style={{
+            padding: "10px 16px", minHeight: 42, border: "none",
+            borderRadius: 8, background: "#25D366", color: "#FFFFFF",
+            fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+          }}>📲 Abrir WhatsApp</button>
+        </div>
+      </div>
     </div>
   );
 };
