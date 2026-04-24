@@ -258,13 +258,15 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, e
         amount: e.amountARS || e.amountUSD, sign: "−", color: T.red, icon: "💸", by: e.createdBy,
       });
     });
+    const rate = safeRate(exchangeRate);
     (withdrawals || []).filter(w => !w.isDeleted).slice(-10).forEach(w => {
       const prod = productsById[w.productId];
+      const costUSD = Number(w.costRealUSD || w.costEstimateUSD || 0);
       items.push({
         type: "withdrawal", date: w.date, id: w.id,
         title: `${w.withdrawType || "Merma"} · ${w.person || ""}`,
         detail: prod ? `${w.qty}× ${prod.brand} ${prod.model}` : `${w.qty} uds`,
-        amount: w.costEstimateUSD * exchangeRate, sign: "−", color: T.amber, icon: "📉", by: w.createdBy,
+        amount: costUSD * rate, sign: "−", color: T.amber, icon: "📉", by: w.createdBy,
       });
     });
     return items.sort((a, b) => (b.date || "").localeCompare(a.date || "")).slice(0, 10);
