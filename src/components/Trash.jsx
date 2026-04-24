@@ -17,6 +17,7 @@ export function Trash({
   expenses = [], setExpenses,
   cashMovements = [], setCashMovements,
   partnerWithdrawals = [], setPartnerWithdrawals,
+  clients = [], setClients,
   logAudit, currentUser
 }) {
   const [activeTab, setActiveTab] = useState("all");
@@ -64,12 +65,53 @@ export function Trash({
     return c;
   }, [trashItems]);
 
+  // Restore con reversión simétrica de efectos colaterales.
+  // Cada tipo revierte lo que su delete había aplicado:
+  //  - sales.delete: +stock, +balance cliente (deuda/crédito/vuelto-crédito) → restore resta stock y re-aplica deuda/crédito
+  //  - purchases.delete (verificado): -stock → restore +stock
+  //  - products/expenses/cashMovements/partnerWithdrawals: solo toggle isDeleted (sin side-effects persistidos)
   const restore = (item) => {
     if (confirmRestore !== item.id) {
       setConfirmRestore(item.id);
       setTimeout(() => setConfirmRestore(null), 3000);
       return;
     }
+
+    // 1) Revertir efectos colaterales específicos del tipo
+    if (item._type === "sales") {
+      // Re-decrementar stock (simetría con deleteSale que lo había devuelto)
+      (item.items || []).forEach(it => {
+        setProducts(prev => prev.map(p =>
+          p.id === it.productId && !p.isDeleted
+            ? { ...p, stock: Math.max(0, (p.stock || 0) - (it.qty || 1)) }
+            : p
+        ));
+      });
+      // Re-aplicar efectos en balance del cliente (inverso de lo que deleteSale había revertido)
+      if (item.clientId && setClients) {
+        setClients(prev => prev.map(c => {
+          if (c.id !== item.clientId) return c;
+          let bal = c.balance || 0;
+          if (item.debtAmount > 0) bal -= item.debtAmount; // re-aplicar deuda
+          if (item.creditUsed > 0) bal -= item.creditUsed; // re-consumir crédito
+          if (item.changeAmount > 0 && item.changeMethod === "credit") bal += item.changeAmount; // re-dar vuelto como crédito
+          return { ...c, balance: Math.round(bal * 100) / 100 };
+        }));
+      }
+    }
+
+    if (item._type === "purchases" && item.status === "verificado") {
+      // Re-sumar stock (simetría con deletePurchase que lo había restado)
+      (item.items || []).forEach(it => {
+        setProducts(prev => prev.map(p =>
+          p.id === it.productId && !p.isDeleted
+            ? { ...p, stock: (p.stock || 0) + (Number(it.qty) || 0) }
+            : p
+        ));
+      });
+    }
+
+    // 2) Toggle isDeleted off en la entidad restaurada
     const setter = item._type === "products" ? setProducts :
                    item._type === "sales" ? setSales :
                    item._type === "purchases" ? setPurchases :
@@ -81,6 +123,7 @@ export function Trash({
       const { isDeleted, deletedAt, deletedBy, ...rest } = x;
       return rest;
     })() : x));
+
     if (logAudit) {
       const entityLabel = ENTITY_LABELS[item._type]?.label || item._type;
       logAudit("restore", item._type.replace(/s$/, ""), item.id, `Restauró ${entityLabel}: ${item._label}`);

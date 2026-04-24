@@ -312,7 +312,7 @@ export default function App() {
       case "reports": return <Reports products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} exchangeRate={exchangeRate} />;
       case "exchange": return <ExchangeMonitor exchangeRate={exchangeRate} />;
       case "audit": return <AuditLog auditLog={auditLog} products={products} />;
-      case "trash": return <Trash products={products} setProducts={setProducts} sales={sales} setSales={setSales} purchases={purchases} setPurchases={setPurchases} expenses={expenses} setExpenses={setExpenses} cashMovements={cashMovements} setCashMovements={setCashMovements} partnerWithdrawals={partnerWithdrawals} setPartnerWithdrawals={setPartnerWithdrawals} logAudit={logAudit} currentUser={currentUser} />;
+      case "trash": return <Trash products={products} setProducts={setProducts} sales={sales} setSales={setSales} purchases={purchases} setPurchases={setPurchases} expenses={expenses} setExpenses={setExpenses} cashMovements={cashMovements} setCashMovements={setCashMovements} partnerWithdrawals={partnerWithdrawals} setPartnerWithdrawals={setPartnerWithdrawals} clients={clients} setClients={setClients} logAudit={logAudit} currentUser={currentUser} />;
       default: return null;
     }
   };
