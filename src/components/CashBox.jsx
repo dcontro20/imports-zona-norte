@@ -89,7 +89,9 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
       activeSales.forEach(sale => {
         if (sale.changeAmount > 0 && sale.changeMethod && sale.changeMethod !== "credit") {
           const changeAccountId = payMethodToAccountId(sale.changeMethod, sale.changeMpAccount);
-          if (changeAccountId === accountId) bal -= Number(sale.changeAmount) || 0;
+          // Guard: si payMethodToAccountId devolvió "" (método desconocido),
+          // no descontar de ninguna cuenta. Previene que "" matchee fallback.
+          if (changeAccountId && changeAccountId === accountId) bal -= Number(sale.changeAmount) || 0;
         }
       });
     }

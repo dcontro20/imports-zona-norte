@@ -233,6 +233,12 @@ export function validateWithdrawalForm(form, products = [], sales = [], clients 
   if (isGarantia(form.withdrawType) && form.linkedSaleId) {
     const linkedSale = (sales || []).find(s => s.id === form.linkedSaleId && !s.isDeleted);
     if (!linkedSale) return "La venta vinculada no existe o fue eliminada";
+    // B6: si se eligió un failedProductId, verificar que la venta linkeada lo contenga.
+    // Previene garantías sobre productos que el cliente nunca compró en esa venta.
+    if (form.failedProductId) {
+      const hasProduct = (linkedSale.items || []).some(it => it.productId === form.failedProductId);
+      if (!hasProduct) return "El producto fallido no aparece en la venta linkeada";
+    }
   }
   if (isGarantia(form.withdrawType)) {
     if (!form.failedProductId) return "Indicá qué producto falló (el que trajo el cliente)";

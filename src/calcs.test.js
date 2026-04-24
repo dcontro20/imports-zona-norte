@@ -447,6 +447,26 @@ describe("validateWithdrawalForm", () => {
     expect(r).toMatch(/venta vinculada/i);
   });
 
+  it("rejects if failedProductId is not in the linkedSale", () => {
+    const sales = [{ id: "s1", items: [{ productId: "p2" }] }];
+    const r = validateWithdrawalForm({
+      ...validForm, withdrawType: "Cambio por garantía",
+      failedProductId: "p1", failureReason: "No enciende",
+      linkedSaleId: "s1",
+    }, products, sales);
+    expect(r).toMatch(/no aparece en la venta/i);
+  });
+
+  it("accepts if failedProductId matches a linkedSale item", () => {
+    const sales = [{ id: "s1", items: [{ productId: "p1" }, { productId: "p2" }] }];
+    const r = validateWithdrawalForm({
+      ...validForm, withdrawType: "Cambio por garantía",
+      failedProductId: "p1", failureReason: "No enciende",
+      linkedSaleId: "s1",
+    }, products, sales);
+    expect(r).toBeNull();
+  });
+
   it("rejects if linkedSale was soft-deleted", () => {
     const sales = [{ id: "s1", isDeleted: true }];
     const r = validateWithdrawalForm({
