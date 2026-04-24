@@ -155,7 +155,7 @@ export default function App() {
   const {
     products, setProducts, sales, setSales, purchases, setPurchases,
     clients, setClients, expenses, setExpenses, withdrawals, setWithdrawals,
-    cashMovements, setCashMovements, stockLog, setStockLog, priceLog,
+    cashMovements, setCashMovements, stockLog, setStockLog, priceLog, setPriceLog,
     monthlyClosures, setMonthlyClosures, partnerWithdrawals, setPartnerWithdrawals,
     exchangeRate, setExchangeRate, auditLog,
     syncStatus, logStock, logPrice,
@@ -317,7 +317,17 @@ export default function App() {
       case "pricelog": return <PriceLog priceLog={priceLog} products={activeProducts} setProducts={setProducts} logPrice={logPrice} exchangeRate={exchangeRate} />;
       case "partners": return <Partners partnerWithdrawals={partnerWithdrawals} setPartnerWithdrawals={setPartnerWithdrawals} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} />;
       case "closures": return <MonthlyClosures monthlyClosures={monthlyClosures} setMonthlyClosures={setMonthlyClosures} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} products={activeProducts} exchangeRate={exchangeRate} logAudit={logAudit} />;
-      case "export": return <ExportData products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} cashMovements={activeCashMovements} stockLog={stockLog} exchangeRate={exchangeRate} />;
+      case "export": return <ExportData
+        products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses}
+        withdrawals={activeWithdrawals} cashMovements={activeCashMovements} stockLog={stockLog}
+        priceLog={priceLog} clients={clients} partnerWithdrawals={partnerWithdrawals}
+        monthlyClosures={monthlyClosures} exchangeRate={exchangeRate}
+        setProducts={setProducts} setSales={setSales} setPurchases={setPurchases} setExpenses={setExpenses}
+        setWithdrawals={setWithdrawals} setCashMovements={setCashMovements} setClients={setClients}
+        setPartnerWithdrawals={setPartnerWithdrawals} setMonthlyClosures={setMonthlyClosures}
+        setStockLog={setStockLog} setPriceLog={setPriceLog}
+        logAudit={logAudit} currentUser={currentUser}
+      />;
       case "reports": return <Reports products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} clients={clients} exchangeRate={exchangeRate} />;
       case "exchange": return <ExchangeMonitor exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} />;
       case "audit": return <AuditLog auditLog={auditLog} products={products} />;

@@ -7,13 +7,67 @@ import { useResponsive } from "../App.jsx";
 const DRIVE_BACKUP_FOLDER_URL = "https://drive.google.com/drive/folders/1d57fOksNJePjSM1oC4c994z_UdAUnnuv";
 
 // -- EXPORT DATA & BACKUP --
-export const ExportData = ({ products, sales, purchases, expenses, withdrawals, cashMovements, stockLog, priceLog, clients, partnerWithdrawals, monthlyClosures, exchangeRate }) => {
+export const ExportData = ({
+  products, sales, purchases, expenses, withdrawals, cashMovements, stockLog, priceLog,
+  clients, partnerWithdrawals, monthlyClosures, exchangeRate,
+  setProducts, setSales, setPurchases, setExpenses, setWithdrawals, setCashMovements,
+  setClients, setPartnerWithdrawals, setMonthlyClosures, setStockLog, setPriceLog,
+  logAudit, currentUser,
+}) => {
   const { isMobile } = useResponsive();
   const [exporting, setExporting] = useState(false);
   const [lastBackup, setLastBackup] = useState(() => {
     try { return localStorage.getItem("vapestock_lastBackup") || null; } catch { return null; }
   });
   const [driveOpened, setDriveOpened] = useState(false);
+  const [restorePreview, setRestorePreview] = useState(null); // { data, filename }
+  const [restoreError, setRestoreError] = useState("");
+  const [restoreToast, setRestoreToast] = useState("");
+
+  // Abre file picker y carga el JSON. Muestra preview antes de confirmar.
+  const handleRestoreFile = (file) => {
+    setRestoreError("");
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        // Validación mínima: debe tener al menos products o sales como array
+        if (!data || typeof data !== "object") throw new Error("Archivo inválido");
+        if (!Array.isArray(data.products) && !Array.isArray(data.sales)) {
+          throw new Error("El archivo no parece ser un backup de IZN (no tiene products ni sales)");
+        }
+        setRestorePreview({ data, filename: file.name });
+      } catch (err) {
+        setRestoreError(err.message || "No se pudo leer el archivo");
+      }
+    };
+    reader.onerror = () => setRestoreError("Error leyendo el archivo");
+    reader.readAsText(file);
+  };
+
+  const applyRestore = () => {
+    if (!restorePreview) return;
+    const d = restorePreview.data;
+    // Setters llamados en orden: primero setear todo, después Firestore sync lo sube
+    if (Array.isArray(d.products)) setProducts(d.products);
+    if (Array.isArray(d.sales)) setSales(d.sales);
+    if (Array.isArray(d.purchases)) setPurchases(d.purchases);
+    if (Array.isArray(d.expenses)) setExpenses(d.expenses);
+    if (Array.isArray(d.withdrawals)) setWithdrawals(d.withdrawals);
+    if (Array.isArray(d.cashMovements)) setCashMovements(d.cashMovements);
+    if (Array.isArray(d.clients) && setClients) setClients(d.clients);
+    if (Array.isArray(d.partnerWithdrawals) && setPartnerWithdrawals) setPartnerWithdrawals(d.partnerWithdrawals);
+    if (Array.isArray(d.monthlyClosures) && setMonthlyClosures) setMonthlyClosures(d.monthlyClosures);
+    if (Array.isArray(d.stockLog) && setStockLog) setStockLog(d.stockLog);
+    if (Array.isArray(d.priceLog) && setPriceLog) setPriceLog(d.priceLog);
+    if (logAudit) {
+      logAudit("restore", "backup", "full", `Restore completo desde ${restorePreview.filename}`);
+    }
+    setRestoreToast(`✓ Restore aplicado. ${Object.keys(d._meta?.counts || {}).length || 0} colecciones actualizadas.`);
+    setRestorePreview(null);
+    setTimeout(() => setRestoreToast(""), 4000);
+  };
 
   // Descarga el JSON y después abre la carpeta de Drive para arrastrar el archivo
   const backupToDrive = () => {
@@ -318,6 +372,84 @@ export const ExportData = ({ products, sales, purchases, expenses, withdrawals, 
           </div>
         </Card>
       </div>
+
+      {/* ===== RESTORE ===== */}
+      <Card style={{ marginTop: 20, border: "1px solid #F1B8B6", background: "#FFFDFD" }}>
+        <h4 style={{ color: "#E03E3E", margin: "0 0 6px", fontSize: 14, textTransform: "uppercase" }}>⚠️ Restore desde backup</h4>
+        <p style={{ color: "#8C8A82", fontSize: 12, margin: "0 0 14px" }}>
+          Leé un archivo JSON de backup (el que descargás con "Hacer backup" o el cron automático).
+          Va a <strong>reemplazar</strong> todos los datos actuales — hacé un backup antes si dudás.
+        </p>
+
+        <label htmlFor="restore-file" style={{
+          display: "inline-block", padding: "10px 16px", minHeight: 42,
+          border: "1px solid #E03E3E", borderRadius: 8,
+          background: "#FBE4E4", color: "#E03E3E", fontSize: 13, fontWeight: 700,
+          cursor: "pointer", fontFamily: "inherit",
+        }}>
+          📁 Elegir archivo JSON
+        </label>
+        <input id="restore-file" type="file" accept=".json,application/json"
+          onChange={e => handleRestoreFile(e.target.files?.[0])}
+          style={{ display: "none" }} />
+
+        {restoreError && (
+          <div style={{ marginTop: 10, padding: "10px 14px", background: "#FBE4E4", border: "1px solid #F1B8B6", borderRadius: 8, color: "#E03E3E", fontSize: 12 }}>
+            {restoreError}
+          </div>
+        )}
+
+        {restorePreview && (
+          <div style={{ marginTop: 14, padding: "14px 16px", background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#37352F", marginBottom: 6 }}>
+              📋 Preview de <code style={{ background: "#EEF0FC", padding: "2px 6px", borderRadius: 4, fontSize: 12 }}>{restorePreview.filename}</code>
+            </div>
+            {restorePreview.data._meta?.exportDate && (
+              <div style={{ fontSize: 11, color: "#8C8A82", marginBottom: 10 }}>
+                Exportado: {new Date(restorePreview.data._meta.exportDate).toLocaleString("es-AR")}
+                {restorePreview.data._meta.exchangeRate && ` · Blue al exportar: $${restorePreview.data._meta.exchangeRate}`}
+              </div>
+            )}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 6, fontSize: 12, marginBottom: 14 }}>
+              {[
+                ["Productos", restorePreview.data.products?.length],
+                ["Ventas", restorePreview.data.sales?.length],
+                ["Compras", restorePreview.data.purchases?.length],
+                ["Clientes", restorePreview.data.clients?.length],
+                ["Gastos", restorePreview.data.expenses?.length],
+                ["Mermas", restorePreview.data.withdrawals?.length],
+                ["Mov. Caja", restorePreview.data.cashMovements?.length],
+                ["Cierres", restorePreview.data.monthlyClosures?.length],
+                ["Retiros", restorePreview.data.partnerWithdrawals?.length],
+              ].map(([label, count]) => (
+                <div key={label} style={{ background: "#FFFFFF", border: "1px solid #E8E7E3", borderRadius: 6, padding: "6px 10px" }}>
+                  <div style={{ color: "#8C8A82", fontSize: 10, textTransform: "uppercase" }}>{label}</div>
+                  <div style={{ color: "#37352F", fontWeight: 700 }}>{count ?? 0}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <button onClick={() => setRestorePreview(null)} style={{
+                padding: "10px 16px", minHeight: 42, border: "1px solid #E8E7E3", borderRadius: 8,
+                background: "#FAFAF9", color: "#37352F", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+              }}>Cancelar</button>
+              <button onClick={applyRestore} style={{
+                padding: "10px 16px", minHeight: 42, border: "none", borderRadius: 8,
+                background: "#E03E3E", color: "#FFFFFF", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+              }}>⚠️ Confirmar y reemplazar todo</button>
+            </div>
+          </div>
+        )}
+      </Card>
+
+      {restoreToast && (
+        <div style={{
+          position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
+          background: "#0F7B6C", color: "#FFFFFF", padding: "12px 20px", borderRadius: 10,
+          fontSize: 13, fontWeight: 600, zIndex: 1001,
+          boxShadow: "0 6px 20px rgba(0,0,0,0.2)",
+        }}>{restoreToast}</div>
+      )}
     </div>
   );
 };
