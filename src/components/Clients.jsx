@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { uid, formatMoney, formatDate } from "../helpers.js";
+import { uid, formatMoney, formatDate, monthKey } from "../helpers.js";
 import { useResponsive } from "../App.jsx";
 import { Modal, Card, Btn } from "./UI.jsx";
 import { PAYMENT_METHODS, MP_ACCOUNTS, isGarantia } from "../constants.js";
@@ -26,7 +26,6 @@ const waNumber = (phone) => {
   if (d.startsWith("54")) return d.startsWith("549") ? d : `549${d.slice(2)}`;
   return `549${d}`;
 };
-const monthKey = (d) => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}`; };
 const monthLabel = (k) => {
   const [y, m] = k.split("-");
   return new Date(+y, +m - 1, 1).toLocaleDateString("es-AR", { month: "short" });

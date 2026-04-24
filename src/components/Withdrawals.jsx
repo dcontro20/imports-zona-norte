@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
-import { uid, formatMoney, formatDate } from "../helpers.js";
+import { uid, formatMoney, formatDate, formatDateTime } from "../helpers.js";
 import { useResponsive } from "../App.jsx";
 import { Modal, Card, Btn, Input, Select, Table, Badge, StatCard } from "./UI.jsx";
 import { WITHDRAW_PERSONS, WITHDRAW_TYPES, BRAND_COLORS, FAILURE_REASONS, FAILURE_REASON_CATEGORY, isGarantia } from "../constants.js";
@@ -11,14 +11,6 @@ const DUP_WINDOW_MS = 5 * 60 * 1000;
 const SUBMIT_DEBOUNCE_MS = 3000;
 
 // Helper: muestra fecha + hora corta. Si el ISO no tiene hora, solo fecha.
-function formatDateTime(iso) {
-  if (!iso) return "—";
-  const s = String(iso);
-  const datePart = formatDate(s);
-  const timeMatch = s.match(/T(\d{2}:\d{2})/);
-  return timeMatch ? `${datePart} ${timeMatch[1]}` : datePart;
-}
-
 export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts, sales, clients = [], logStock, exchangeRate, currentUser, logAudit }) => {
   const { isMobile } = useResponsive();
   const [modal, setModal] = useState(false);

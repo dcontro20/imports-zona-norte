@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { uid, formatMoney, formatDate, safeRate } from "../helpers.js";
+import { uid, formatMoney, formatDate, safeRate, dayKey } from "../helpers.js";
 import { useResponsive } from "../App.jsx";
 import { Modal } from "./UI.jsx";
 import { T } from "../theme.js";
@@ -42,7 +42,6 @@ const normalizeType = (t) => ({ deposit: "income", withdrawal: "expense" })[t] |
 
 // ---- date helpers ----
 const msPerDay = 86400000;
-const dayKey = (d) => new Date(d).toISOString().slice(0, 10);
 const daysAgo = (d, days) => new Date(d) >= new Date(Date.now() - days * msPerDay);
 
 // ============================================
