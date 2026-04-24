@@ -277,6 +277,13 @@ export const Sales = ({
         setValidationError("El cliente pagó de más. Elegí cómo darle el vuelto.");
         setStep(2); return;
       }
+      // Guard: si el vuelto se deja como crédito del cliente, debe haber cliente.
+      // Sin clientId ni cliente nuevo, el crédito queda registrado en la venta
+      // pero sin destino → plata "fantasma" (el cliente nunca podrá usarlo).
+      if (changeMethod === "credit" && !form.clientId && !(form.isNewClient && form.clientName)) {
+        setValidationError("El vuelto como crédito necesita un cliente. Seleccioná uno o creá uno nuevo.");
+        setStep(2); return;
+      }
     } else if (difference < 0) {
       if (!form.debtConfirmed) {
         setValidationError("Confirmá qué hacer con la diferencia que falta cobrar.");
