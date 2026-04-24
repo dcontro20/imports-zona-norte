@@ -3,6 +3,7 @@ import { formatMoney, formatDate, safeRate } from "../helpers.js";
 import { calcTotalRevenue, calcTotalRevenueUSD } from "../calcs.js";
 import { BRAND_COLORS, isGarantia } from "../constants.js";
 import { useResponsive } from "../App.jsx";
+import { useAppContext } from "../AppContext.js";
 import { T, pickAvatarColor } from "../theme.js";
 
 // ---------- helpers ----------
@@ -114,7 +115,8 @@ const SectionLabel = ({ children, icon, color = T.textMuted, right }) => (
 // ============================================
 // DASHBOARD — Light Notion/Linear aesthetic
 // ============================================
-export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, exchangeRate, clients = [], cashMovements }) => {
+export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, clients = [], cashMovements }) => {
+  const { exchangeRate } = useAppContext();
   const { isMobile } = useResponsive();
   const [period, setPeriod] = useState("month"); // today | week | month
   const [showAllAlerts, setShowAllAlerts] = useState(false);

@@ -3,11 +3,13 @@ import { uid, formatMoney } from "../helpers.js";
 import { Modal, Card, Btn, Input, Select, Table, Badge, SearchBar } from "./UI.jsx";
 import { BRANDS, BRAND_COLORS } from "../constants.js";
 import { useResponsive } from "../App.jsx";
+import { useAppContext } from "../AppContext.js";
 
 // -- PRODUCTS / STOCK --
 
 
-export const Products = ({ products, setProducts, exchangeRate, logStock, logPrice, currentUser, logAudit }) => {
+export const Products = ({ products, setProducts }) => {
+  const { exchangeRate, logStock, logPrice, currentUser, logAudit } = useAppContext();
   const { isMobile } = useResponsive();
   const [search, setSearch] = useState("");
   const [modal, setModal] = useState(false);

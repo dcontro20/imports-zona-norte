@@ -4,6 +4,7 @@ import { calcTotalRevenue } from "../calcs.js";
 import { Card, Badge, Table } from "./UI.jsx";
 import { BRAND_COLORS, WITHDRAW_TYPES, FAILURE_REASONS, FAILURE_REASON_CATEGORY, isGarantia } from "../constants.js";
 import { useResponsive } from "../App.jsx";
+import { useAppContext } from "../AppContext.js";
 
 // Helper: costo de un withdrawal (prefiere costRealUSD nuevo, fallback a costEstimateUSD viejo)
 const wCost = (w) => Number(w.costRealUSD || w.costEstimateUSD) || 0;
@@ -81,7 +82,8 @@ const DonutChart = ({ data, size = 160 }) => {
   );
 };
 
-export const Reports = ({ products, sales, purchases, expenses, withdrawals, clients = [], exchangeRate }) => {
+export const Reports = ({ products, sales, purchases, expenses, withdrawals, clients = [] }) => {
+  const { exchangeRate } = useAppContext();
   const { isMobile } = useResponsive();
   // Note: App.jsx already passes active* (filtered) data for most read-only components,
   // but we add safety filters here for any that might slip through
