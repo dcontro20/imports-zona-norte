@@ -305,9 +305,22 @@ A partir del 14/04/2026, GitHub está sincronizado y es la fuente de verdad del 
 
 ---
 
-## Estado del proyecto al 22/04/2026
+## Estado del proyecto al 24/04/2026
 
-### Sesiones recientes clave (docs/SESSION_2026-04-22.md para narrativa completa)
+### 🏁 Big push 23-24 abril (docs/SESSION_2026-04-23_to_24_big_push.md)
+
+**42 items cerrados en 33 commits** cubriendo la auditoría CTO completa (bugs, data, UX, features incompletos, deuda técnica, features nuevos). Highlights:
+
+- **Seguridad**: `firestore.rules` cerradas deployadas + roles (owner Diego, manager Gustavo) + Firebase Auth email/password
+- **Tests**: 37 → **75** pasando (`reverseSaleBalanceDelta`, `validateWithdrawalForm`, `calcAccountBalance` extraídos como puros)
+- **Modular**: `components/sales/`, `components/cash/`, `components/clients/`, `constants/` — CashBox −45% (1801→996), Sales −13%, Clients −27%
+- **PWA + offline**: `manifest.webmanifest`, service worker, Firestore `persistentLocalCache` con `persistentMultipleTabManager`
+- **Features comerciales nuevos**: Cierre mensual 1-click (CSV+WhatsApp), ABC clientes, rentabilidad por marca, proyección de inventario, tracking lotes Paraguay, expiryDate, alertas stock→WhatsApp
+- **Bugs críticos cerrados**: `safeRate` guard contra `exchangeRate=0`, Trash restore simétrico, vuelto como crédito validado, null-safety Dashboard COGS
+
+**Ver** `docs/SESSION_2026-04-23_to_24_big_push.md` para journal completo con el POR QUÉ de cada decisión.
+
+### Sesiones previas (docs/SESSION_2026-04-22.md para narrativa completa)
 
 **Rediseños full estilo Notion/Linear** (21-22/04/2026):
 - `Clients.jsx` — cards con avatar pastel, contact chips clickeables (tel/WA/IG), campo zona con sugerencias, historial modal con sparkline 6 meses

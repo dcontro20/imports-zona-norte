@@ -80,11 +80,28 @@ async function main() {
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  try {
-    await signInWithEmailAndPassword(auth, "dcontro20@gmail.com", "Poncharelo20!");
-    log("✅ Autenticado en Firebase");
-  } catch (err) {
-    console.error("❌ Error de autenticación:", err.message);
+  // Retry con backoff: errores de red (auth/network-request-failed) son
+  // comunes si la Mac acaba de despertar y la WiFi todavía no se conectó.
+  // 3 intentos con espera de 10s, 30s, 60s.
+  const RETRY_DELAYS = [10000, 30000, 60000];
+  let lastErr = null;
+  for (let attempt = 0; attempt < RETRY_DELAYS.length + 1; attempt++) {
+    try {
+      await signInWithEmailAndPassword(auth, "dcontro20@gmail.com", "Poncharelo20!");
+      log(`✅ Autenticado en Firebase${attempt > 0 ? ` (intento ${attempt + 1})` : ""}`);
+      lastErr = null;
+      break;
+    } catch (err) {
+      lastErr = err;
+      const isNetworkErr = /network|fetch|offline|ENOTFOUND|ECONNREFUSED|timeout/i.test(err.message || err.code || "");
+      if (!isNetworkErr || attempt === RETRY_DELAYS.length) break;
+      const wait = RETRY_DELAYS[attempt];
+      console.error(`⏳ Red no disponible (${err.code || err.message}). Reintentando en ${wait / 1000}s...`);
+      await new Promise(r => setTimeout(r, wait));
+    }
+  }
+  if (lastErr) {
+    console.error("❌ Error de autenticación:", lastErr.message);
     process.exit(1);
   }
 
