@@ -17,6 +17,7 @@ export const Products = ({ products, setProducts, exchangeRate, logStock, logPri
   const [collapsed, setCollapsed] = useState({});
   const [quickEdit, setQuickEdit] = useState(false);
   const [quickStocks, setQuickStocks] = useState({});
+  const [toast, setToast] = useState("");
   const [form, setForm] = useState({ brand: "", model: "", flavor: "", puffs: "", priceUSD: "", priceARS: "", stock: 0 });
 
   // Quick edit handlers
@@ -43,7 +44,11 @@ export const Products = ({ products, setProducts, exchangeRate, logStock, logPri
     if (logs.length > 0) logStock(logs);
     setQuickEdit(false);
     setQuickStocks({});
-    alert(`Stock actualizado: ${changes} producto${changes !== 1 ? "s" : ""} modificado${changes !== 1 ? "s" : ""}`);
+    const msg = changes === 0
+      ? "Sin cambios"
+      : `✓ ${changes} producto${changes !== 1 ? "s" : ""} actualizado${changes !== 1 ? "s" : ""}`;
+    setToast(msg);
+    setTimeout(() => setToast(""), 2200);
   };
 
   const cancelQuickEdit = () => { setQuickEdit(false); setQuickStocks({}); };
@@ -107,6 +112,15 @@ export const Products = ({ products, setProducts, exchangeRate, logStock, logPri
 
   return (
     <div>
+      {/* Toast de confirmación */}
+      {toast && (
+        <div style={{
+          position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
+          background: "#37352F", color: "#FFFFFF", padding: "12px 20px", borderRadius: 10,
+          fontSize: 13, fontWeight: 600, zIndex: 1001,
+          boxShadow: "0 6px 20px rgba(0,0,0,0.2)",
+        }}>{toast}</div>
+      )}
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
         <div>

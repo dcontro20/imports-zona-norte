@@ -36,7 +36,7 @@ export const MonthlyClosures = ({ monthlyClosures, setMonthlyClosures, sales, pu
     const totalEnvio = monthPurchases.reduce((s, p) => s + (p.envioCostARS || 0), 0);
     const totalExpensesARS = monthExpenses.reduce((s, e) => s + (e.amountARS || 0), 0);
     const totalConsumo = monthWithdrawals.reduce((s, w) => s + w.qty, 0);
-    const totalConsumoUSD = monthWithdrawals.reduce((s, w) => s + (w.costEstimateUSD || 0), 0);
+    const totalConsumoUSD = monthWithdrawals.reduce((s, w) => s + Number(w.costRealUSD || w.costEstimateUSD || 0), 0);
     const stockTotal = products.reduce((s, p) => s + (p.stock || 0), 0);  const stockValue = products.reduce((s, p) => s + (p.stock || 0) * (p.priceUSD || 0), 0);
 
     return {

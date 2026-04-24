@@ -370,7 +370,7 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
           }, 0);
           const totalCosts = purchases.reduce((s, p) => s + (p.totalCostARS || 0), 0);
           const totalExpenses = expenses.reduce((s, e) => s + (e.amountARS || 0), 0);
-          const consumoValue = (withdrawals || []).reduce((s, w) => s + (w.costEstimateUSD || 0), 0) * exchangeRate;
+          const consumoValue = (withdrawals || []).filter(w => !w.isDeleted).reduce((s, w) => s + Number(w.costRealUSD || w.costEstimateUSD || 0), 0) * exchangeRate;
           
           return (
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 12 : 20 }}>

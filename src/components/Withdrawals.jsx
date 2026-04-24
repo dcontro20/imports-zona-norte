@@ -290,7 +290,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
   const active = withdrawals.filter(w => !w.isDeleted);
   const totalMine = active.filter(w => w.person === "Diego").reduce((s, w) => s + w.qty, 0);
   const totalBro = active.filter(w => w.person === "Gustavo").reduce((s, w) => s + w.qty, 0);
-  const totalCostUSD = active.reduce((s, w) => s + (w.costEstimateUSD || 0), 0);
+  const totalCostUSD = active.reduce((s, w) => s + Number(w.costRealUSD || w.costEstimateUSD || 0), 0);
   const totalConsumo = active.filter(w => !w.withdrawType || w.withdrawType === "Consumo propio").reduce((s, w) => s + w.qty, 0);
   const totalGarantia = active.filter(w => isGarantia(w.withdrawType)).reduce((s, w) => s + w.qty, 0);
   const totalRegalo = active.filter(w => w.withdrawType === "Regalo / Canje").reduce((s, w) => s + w.qty, 0);

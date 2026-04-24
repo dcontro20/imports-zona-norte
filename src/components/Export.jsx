@@ -120,7 +120,7 @@ export const ExportData = ({ products, sales, purchases, expenses, withdrawals, 
     const headers = ["Fecha", "Producto", "Cantidad", "Quién", "Valor est. USD", "Nota"];
     const rows = withdrawals.map(w => {
       const p = getProduct(w.productId);
-      return [formatDate(w.date), p ? `${p.brand} ${p.model} - ${p.flavor}` : "?", w.qty, w.person, w.costEstimateUSD || 0, w.notes || ""];
+      return [formatDate(w.date), p ? `${p.brand} ${p.model} - ${p.flavor}` : "?", w.qty, w.person, Number(w.costRealUSD || w.costEstimateUSD || 0), w.notes || ""];
     });
     download("consumo_propio.csv", toCSV(headers, rows));
   };
