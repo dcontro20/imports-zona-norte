@@ -18,7 +18,7 @@ export const Products = ({ products, setProducts, exchangeRate, logStock, logPri
   const [quickEdit, setQuickEdit] = useState(false);
   const [quickStocks, setQuickStocks] = useState({});
   const [toast, setToast] = useState("");
-  const [form, setForm] = useState({ brand: "", model: "", flavor: "", puffs: "", priceUSD: "", priceARS: "", stock: 0 });
+  const [form, setForm] = useState({ brand: "", model: "", flavor: "", puffs: "", priceUSD: "", priceARS: "", stock: 0, expiryDate: "" });
 
   // Quick edit handlers
   const startQuickEdit = () => {
@@ -83,7 +83,7 @@ export const Products = ({ products, setProducts, exchangeRate, logStock, logPri
   const totalInStock = filtered.reduce((s, p) => s + (p.stock || 0), 0);
   const totalWithStock = filtered.filter(p => p.stock > 0).length;
 
-  const openNew = () => { setForm({ brand: "", model: "", flavor: "", puffs: "", priceUSD: "", priceARS: "", stock: 0 }); setEditing(null); setModal(true); };
+  const openNew = () => { setForm({ brand: "", model: "", flavor: "", puffs: "", priceUSD: "", priceARS: "", stock: 0, expiryDate: "" }); setEditing(null); setModal(true); };
   const openEdit = (p) => { setForm(p); setEditing(p.id); setModal(true); };
 
   const save = () => {
@@ -294,6 +294,7 @@ export const Products = ({ products, setProducts, exchangeRate, logStock, logPri
           </div>
         </div>
         <Input label="Stock" type="number" value={form.stock} onChange={e => setForm(f => ({ ...f, stock: Number(e.target.value) }))} />
+        <Input label="Fecha de vencimiento (opcional)" type="date" value={form.expiryDate || ""} onChange={e => setForm(f => ({ ...f, expiryDate: e.target.value }))} />
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 16 }}>
           <Btn variant="secondary" onClick={() => setModal(false)}>Cancelar</Btn>
           <Btn onClick={save}>{editing ? "Guardar" : "Crear"}</Btn>

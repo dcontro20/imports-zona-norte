@@ -412,8 +412,63 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, e
       });
     }
 
+    // 8.45 Productos próximos a vencer (expiryDate ≤ 30 días) o ya vencidos
+    const thirtyDaysAhead = now.getTime() + 30 * msPerDay;
+    const expiringSoon = products.filter(p => {
+      if (!p.expiryDate || !p.stock || p.stock <= 0) return false;
+      const t = new Date(p.expiryDate).getTime();
+      return !Number.isNaN(t) && t <= thirtyDaysAhead;
+    });
+    const expired = expiringSoon.filter(p => new Date(p.expiryDate).getTime() < now.getTime());
+    const soonNotExpired = expiringSoon.filter(p => new Date(p.expiryDate).getTime() >= now.getTime());
+    if (expired.length > 0) {
+      list.push({
+        t: "danger",
+        msg: `${expired.length} producto${expired.length > 1 ? "s" : ""} vencido${expired.length > 1 ? "s" : ""} con stock`,
+        detail: expired.slice(0, 3).map(p => `${p.brand} ${p.model}: ${p.stock} uds · venció ${formatDate(p.expiryDate)}`).join(" · "),
+      });
+    }
+    if (soonNotExpired.length > 0) {
+      list.push({
+        t: "warning",
+        msg: `${soonNotExpired.length} producto${soonNotExpired.length > 1 ? "s" : ""} vence${soonNotExpired.length === 1 ? "" : "n"} en ≤30 días`,
+        detail: soonNotExpired.slice(0, 3).map(p => `${p.brand} ${p.model}: ${formatDate(p.expiryDate)}`).join(" · "),
+      });
+    }
+
+    // 8.5 Lotes Paraguay sin rotar (verificados hace >14 días con productos todavía en stock alto)
+    // Indicador: compra verificada hace >14 días cuyos items todavía tienen stock >= 70% del lote
+    const fourteenAgo = now.getTime() - 14 * msPerDay;
+    const stagnantLotes = (purchases || [])
+      .filter(p => !p.isDeleted && p.status === "verificado" && new Date(p.date).getTime() < fourteenAgo)
+      .map(p => {
+        const items = p.items || [];
+        const totalLoteQty = items.reduce((s, i) => s + (Number(i.qty) || 0), 0);
+        if (totalLoteQty === 0) return null;
+        const currentStock = items.reduce((s, i) => {
+          const prod = productsById[i.productId];
+          return s + (prod?.stock || 0);
+        }, 0);
+        const pct = totalLoteQty > 0 ? currentStock / totalLoteQty : 0;
+        return { p, totalLoteQty, currentStock, pct };
+      })
+      .filter(x => x && x.pct >= 0.7)
+      .sort((a, b) => new Date(a.p.date) - new Date(b.p.date));
+    if (stagnantLotes.length > 0) {
+      const top = stagnantLotes.slice(0, 2);
+      list.push({
+        t: "info",
+        msg: `${stagnantLotes.length} lote${stagnantLotes.length > 1 ? "s" : ""} sin rotar (≥70% stock, >14 días)`,
+        detail: top.map(x => {
+          const label = x.p.loteNumber ? `${x.p.loteNumber} (${x.p.supplier || "?"})` : (x.p.supplier || "Lote sin nombre");
+          const days = Math.floor((now.getTime() - new Date(x.p.date).getTime()) / msPerDay);
+          return `${label}: ${x.currentStock}/${x.totalLoteQty} · ${days}d`;
+        }).join(" · "),
+      });
+    }
+
     return list;
-  }, [outOfStock, lowStock, products, productsById, sales, clients, withdrawals]);
+  }, [outOfStock, lowStock, products, productsById, sales, clients, withdrawals, purchases]);
 
   const alertStyles = {
     danger: { bg: T.redBg, border: T.redBorder, dot: T.red },

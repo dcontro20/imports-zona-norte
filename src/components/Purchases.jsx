@@ -13,7 +13,7 @@ const PURCHASE_STATUSES = [
 ];
 
 const emptyPurchaseForm = () => ({
-  supplier: "", groups: [],
+  supplier: "", loteNumber: "", groups: [],
   supplierCommPercent: "", supplierCommUSDT: "",
   paseroPercent: "", paseroCostARS: "", envioCostARS: "",
   notes: "", date: new Date().toISOString().slice(0, 10), status: "pedido"
@@ -101,7 +101,7 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
       });
       groups = Object.values(gmap);
     }
-    setForm({ supplier: p.supplier || "", groups, paseroPercent: p.paseroPercent || "", paseroCostARS: p.paseroCostARS || "", envioCostARS: p.envioCostARS || "", notes: p.notes || "", date: p.date ? p.date.slice(0, 10) : new Date().toISOString().slice(0, 10), status: p.status || "pedido" });
+    setForm({ supplier: p.supplier || "", loteNumber: p.loteNumber || "", groups, paseroPercent: p.paseroPercent || "", paseroCostARS: p.paseroCostARS || "", envioCostARS: p.envioCostARS || "", notes: p.notes || "", date: p.date ? p.date.slice(0, 10) : new Date().toISOString().slice(0, 10), status: p.status || "pedido" });
     setEditing(p.id); setModal(true);
   };
 
@@ -209,6 +209,7 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
                       <div style={{ fontSize: 14, fontWeight: 700, color: "#37352F", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {r.supplier || "Sin proveedor"}
+                        {r.loteNumber && <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 500, color: "#8C8A82" }}>· {r.loteNumber}</span>}
                       </div>
                       {getStatusBadge(r.status)}
                     </div>
@@ -242,7 +243,12 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
         ) : (
         <Table columns={[
           { key: "date", label: "Fecha", render: r => formatDate(r.date) },
-          { key: "supplier", label: "Proveedor" },
+          { key: "supplier", label: "Proveedor", render: r => (
+            <div>
+              <div>{r.supplier || "—"}</div>
+              {r.loteNumber && <div style={{ fontSize: 10, color: "#8C8A82" }}>{r.loteNumber}</div>}
+            </div>
+          )},
           { key: "items", label: "Uds", render: r => <Badge color="#5E6AD2">{r.totalItems || (r.items||[]).reduce((s,i) => s + (Number(i.qty)||0), 0)}</Badge> },
           { key: "status", label: "Estado", render: r => getStatusBadge(r.status) },
           { key: "totalUSDT", label: "Vapes", render: r => formatMoney(r.totalUSDT, "USDT") },
@@ -279,6 +285,11 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
           </div>
           <div style={{ flex: 1 }}>
             <Input label="Proveedor" placeholder="Nombre..." value={form.supplier} onChange={e => setForm(f => ({ ...f, supplier: e.target.value }))} />
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 10, flexDirection: isMobile ? "column" : "row" }}>
+          <div style={{ flex: 1 }}>
+            <Input label="N° de lote (opcional)" placeholder="ej: LOTE-042 / Paraguay-abr26" value={form.loteNumber} onChange={e => setForm(f => ({ ...f, loteNumber: e.target.value }))} />
           </div>
         </div>
 
