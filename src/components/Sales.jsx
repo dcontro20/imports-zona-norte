@@ -3,6 +3,7 @@ import { uid, formatMoney, formatDate } from "../helpers.js";
 import { useResponsive } from "../App.jsx";
 import { Modal, Card, Btn, Input, Select, Table, Badge, SearchBar, StatCard } from "./UI.jsx";
 import { CHANNELS, PAYMENT_METHODS, MP_ACCOUNTS, DISCOUNT_REASONS, BRAND_COLORS } from "../constants.js";
+import { reverseSaleBalanceDelta } from "../calcs.js";
 import { T, pickAvatarColor } from "../theme.js";
 
 // ============================================
@@ -372,15 +373,14 @@ export const Sales = ({
     }
 
     // ---- Helper: reverse a sale's balance impact on a client ----
+    // Usa reverseSaleBalanceDelta de calcs.js (función pura testeada)
     const reverseSaleBalance = (sale, clientId) => {
       if (!sale || !clientId) return;
+      const delta = reverseSaleBalanceDelta(sale);
+      if (delta === 0) return;
       setClients(prev => prev.map(c => {
         if (c.id !== clientId) return c;
-        let bal = c.balance || 0;
-        if (sale.debtAmount > 0 && sale.debtDirection === "clientOwes") bal += sale.debtAmount;
-        if (sale.creditUsed > 0) bal += sale.creditUsed;
-        if (sale.changeAmount > 0 && sale.changeMethod === "credit") bal -= sale.changeAmount;
-        return { ...c, balance: Math.round(bal * 100) / 100 };
+        return { ...c, balance: Math.round(((c.balance || 0) + delta) * 100) / 100 };
       }));
     };
 

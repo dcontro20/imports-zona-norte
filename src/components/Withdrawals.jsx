@@ -3,6 +3,7 @@ import { uid, formatMoney, formatDate, formatDateTime } from "../helpers.js";
 import { useResponsive } from "../App.jsx";
 import { Modal, Card, Btn, Input, Select, Table, Badge, StatCard } from "./UI.jsx";
 import { WITHDRAW_PERSONS, WITHDRAW_TYPES, BRAND_COLORS, FAILURE_REASONS, FAILURE_REASON_CATEGORY, isGarantia } from "../constants.js";
+import { validateWithdrawalForm } from "../calcs.js";
 
 // -- MERMAS: Consumo propio, Garantías, Canjes --
 // Ventana de detección de duplicados (5 min)
@@ -97,43 +98,8 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
   });
 
   // ---- VALIDATE: devuelve string error o null ----
-  const validate = () => {
-    if (!form.productId) return "Seleccioná un producto";
-    const prod = products.find(p => p.id === form.productId);
-    if (!prod) return "El producto seleccionado no existe";
-    if (!form.person) return "Indicá quién (Diego o Gustavo)";
-    if (!form.withdrawType) return "Indicá el tipo de merma";
-    const qty = Number(form.qty);
-    if (!qty || qty <= 0) return "La cantidad debe ser mayor a 0";
-    if (qty > (prod.stock || 0)) {
-      return `Stock insuficiente: ${prod.brand} ${prod.model} - ${prod.flavor}. Disponible: ${prod.stock}`;
-    }
-    // Si tipo Garantía y se vinculó una venta, validar que la venta exista y esté activa
-    if (isGarantia(form.withdrawType) && form.linkedSaleId) {
-      const linkedSale = (sales || []).find(s => s.id === form.linkedSaleId && !s.isDeleted);
-      if (!linkedSale) return "La venta vinculada no existe o fue eliminada";
-    }
-    // Validaciones específicas de Cambio por garantía
-    if (isGarantia(form.withdrawType)) {
-      if (!form.failedProductId) return "Indicá qué producto falló (el que trajo el cliente)";
-      const failedProd = products.find(p => p.id === form.failedProductId);
-      if (!failedProd) return "El producto fallido indicado no existe";
-      if (!form.failureReason) return "Indicá la razón del fallo";
-      if (form.failureReason === "Otro" && (form.failureNotes || "").trim().length < 5) {
-        return "Describí brevemente qué pasó (mín. 5 caracteres)";
-      }
-    }
-    // Si vinculó cliente, validar que exista
-    if (form.linkedClientId) {
-      const linkedClient = (clients || []).find(c => c.id === form.linkedClientId);
-      if (!linkedClient) return "El cliente vinculado no existe";
-    }
-    if (form.date) {
-      const today = new Date().toISOString().slice(0, 10);
-      if (form.date > today) return "No se permiten fechas futuras";
-    }
-    return null;
-  };
+  // validate() delega a validateWithdrawalForm() de calcs.js (función pura testeada).
+  const validate = () => validateWithdrawalForm(form, products, sales, clients);
 
   // ---- DUP DETECTION: misma producto + qty + persona + tipo en últimos 5min ----
   const findRecentDuplicate = () => {

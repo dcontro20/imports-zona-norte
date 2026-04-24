@@ -8,6 +8,8 @@ import {
   calcNetProfit,
   calcPartnerBalances,
   formatMoney,
+  reverseSaleBalanceDelta,
+  validateWithdrawalForm,
 } from "./calcs.js";
 
 const RATE = 1400; // ARS per USD
@@ -305,5 +307,174 @@ describe("formatMoney", () => {
   it("handles null/undefined", () => {
     expect(formatMoney(null)).toMatch(/^\$0/);
     expect(formatMoney(undefined)).toMatch(/^\$0/);
+  });
+});
+
+describe("reverseSaleBalanceDelta", () => {
+  it("returns 0 for null/undefined sale", () => {
+    expect(reverseSaleBalanceDelta(null)).toBe(0);
+    expect(reverseSaleBalanceDelta(undefined)).toBe(0);
+  });
+
+  it("returns 0 for sale without balance impact", () => {
+    expect(reverseSaleBalanceDelta({ total: 1000 })).toBe(0);
+  });
+
+  it("adds debtAmount back when client owed money", () => {
+    const sale = { debtAmount: 500, debtDirection: "clientOwes" };
+    expect(reverseSaleBalanceDelta(sale)).toBe(500);
+  });
+
+  it("ignores debtAmount if direction is not clientOwes", () => {
+    const sale = { debtAmount: 500, debtDirection: "weOwe" };
+    expect(reverseSaleBalanceDelta(sale)).toBe(0);
+  });
+
+  it("adds creditUsed back (client had credit consumed)", () => {
+    const sale = { creditUsed: 200 };
+    expect(reverseSaleBalanceDelta(sale)).toBe(200);
+  });
+
+  it("subtracts changeAmount if change was given as credit", () => {
+    const sale = { changeAmount: 100, changeMethod: "credit" };
+    expect(reverseSaleBalanceDelta(sale)).toBe(-100);
+  });
+
+  it("ignores changeAmount if method is not credit", () => {
+    const sale = { changeAmount: 100, changeMethod: "MP Diego" };
+    expect(reverseSaleBalanceDelta(sale)).toBe(0);
+  });
+
+  it("combines all three effects correctly", () => {
+    // Cliente debía 500, usó 200 de crédito, y recibió 100 como crédito
+    // Revertir: +500 (deuda) +200 (crédito usado) -100 (crédito dado) = 600
+    const sale = {
+      debtAmount: 500, debtDirection: "clientOwes",
+      creditUsed: 200,
+      changeAmount: 100, changeMethod: "credit",
+    };
+    expect(reverseSaleBalanceDelta(sale)).toBe(600);
+  });
+});
+
+describe("validateWithdrawalForm", () => {
+  const products = [
+    { id: "p1", brand: "Elfbar", model: "TE", flavor: "Apple", stock: 10 },
+    { id: "p2", brand: "Elfbar", model: "TE", flavor: "Mint", stock: 0 },
+  ];
+  const validForm = {
+    productId: "p1", qty: 2, person: "Diego", withdrawType: "Consumo propio",
+  };
+
+  it("rejects empty form", () => {
+    expect(validateWithdrawalForm(null)).toBeTruthy();
+    expect(validateWithdrawalForm({})).toMatch(/producto/i);
+  });
+
+  it("rejects unknown productId", () => {
+    const r = validateWithdrawalForm({ ...validForm, productId: "xxx" }, products);
+    expect(r).toMatch(/no existe/i);
+  });
+
+  it("rejects missing person", () => {
+    const r = validateWithdrawalForm({ ...validForm, person: "" }, products);
+    expect(r).toMatch(/quién/i);
+  });
+
+  it("rejects missing withdrawType", () => {
+    const r = validateWithdrawalForm({ ...validForm, withdrawType: "" }, products);
+    expect(r).toMatch(/tipo/i);
+  });
+
+  it("rejects qty = 0 or negative", () => {
+    expect(validateWithdrawalForm({ ...validForm, qty: 0 }, products)).toMatch(/cantidad/i);
+    expect(validateWithdrawalForm({ ...validForm, qty: -1 }, products)).toMatch(/cantidad/i);
+  });
+
+  it("rejects qty exceeding stock", () => {
+    const r = validateWithdrawalForm({ ...validForm, qty: 50 }, products);
+    expect(r).toMatch(/Stock insuficiente/);
+  });
+
+  it("accepts valid Consumo propio", () => {
+    expect(validateWithdrawalForm(validForm, products)).toBeNull();
+  });
+
+  it("requires failedProductId for garantías", () => {
+    const r = validateWithdrawalForm({
+      ...validForm, withdrawType: "Cambio por garantía",
+    }, products);
+    expect(r).toMatch(/falló/i);
+  });
+
+  it("requires failureReason for garantías", () => {
+    const r = validateWithdrawalForm({
+      ...validForm, withdrawType: "Cambio por garantía", failedProductId: "p1",
+    }, products);
+    expect(r).toMatch(/razón/i);
+  });
+
+  it("requires notes when failureReason is Otro", () => {
+    const r = validateWithdrawalForm({
+      ...validForm, withdrawType: "Cambio por garantía", failedProductId: "p1",
+      failureReason: "Otro", failureNotes: "x",
+    }, products);
+    expect(r).toMatch(/Describí/i);
+  });
+
+  it("accepts full valid garantía", () => {
+    const r = validateWithdrawalForm({
+      ...validForm, withdrawType: "Cambio por garantía",
+      failedProductId: "p1", failureReason: "No enciende",
+    }, products);
+    expect(r).toBeNull();
+  });
+
+  it("also accepts legacy string 'Garantía / Devolución'", () => {
+    const r = validateWithdrawalForm({
+      ...validForm, withdrawType: "Garantía / Devolución",
+      failedProductId: "p1", failureReason: "No enciende",
+    }, products);
+    expect(r).toBeNull();
+  });
+
+  it("rejects missing linkedSale when referenced in garantía", () => {
+    const r = validateWithdrawalForm({
+      ...validForm, withdrawType: "Cambio por garantía",
+      failedProductId: "p1", failureReason: "No enciende",
+      linkedSaleId: "nonexistent",
+    }, products, []);
+    expect(r).toMatch(/venta vinculada/i);
+  });
+
+  it("rejects if linkedSale was soft-deleted", () => {
+    const sales = [{ id: "s1", isDeleted: true }];
+    const r = validateWithdrawalForm({
+      ...validForm, withdrawType: "Cambio por garantía",
+      failedProductId: "p1", failureReason: "No enciende",
+      linkedSaleId: "s1",
+    }, products, sales);
+    expect(r).toMatch(/venta vinculada/i);
+  });
+
+  it("rejects missing linkedClient", () => {
+    const r = validateWithdrawalForm({
+      ...validForm, linkedClientId: "xxx",
+    }, products, [], []);
+    expect(r).toMatch(/cliente vinculado/i);
+  });
+
+  it("rejects future dates", () => {
+    const r = validateWithdrawalForm({
+      ...validForm, date: "2026-05-01",
+    }, products, [], [], "2026-04-24");
+    expect(r).toMatch(/futuras/i);
+  });
+
+  it("accepts today's date", () => {
+    const r = validateWithdrawalForm({
+      ...validForm, date: "2026-04-24",
+    }, products, [], [], "2026-04-24");
+    expect(r).toBeNull();
   });
 });

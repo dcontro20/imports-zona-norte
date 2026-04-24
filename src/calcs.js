@@ -1,7 +1,7 @@
 // Pure calculation functions extracted for testability
 // Used by Partners, CashBox, Reports, Dashboard
 
-import { CURRENCIES } from "./constants.js";
+import { CURRENCIES, isGarantia } from "./constants.js";
 import { safeRate } from "./helpers.js";
 
 /**
@@ -179,4 +179,77 @@ export function calcPartnerBalances(sales, purchases, expenses, withdrawals, par
  */
 export function formatMoney(n, cur = "ARS") {
   return `${CURRENCIES[cur] || "$"}${Number(n || 0).toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+}
+
+/**
+ * Delta para revertir el impacto de una venta sobre el balance del cliente.
+ *
+ * Una venta puede afectar el balance del cliente de 3 formas:
+ *   - debtAmount (clientOwes): el cliente quedó debiendo → se restó del balance
+ *   - creditUsed: el cliente usó crédito previo → se restó del balance
+ *   - changeAmount (changeMethod=credit): se le dio crédito como vuelto → se sumó al balance
+ *
+ * Para REVERTIR (delete/edit), devuelvo el delta que debería SUMARSE al balance actual
+ * para volver al estado pre-venta.
+ *
+ * Uso:
+ *   newBalance = currentBalance + reverseSaleBalanceDelta(originalSale)
+ *
+ * Importante: esta función es pura. No muta state. El caller es quien aplica el delta.
+ */
+export function reverseSaleBalanceDelta(sale) {
+  if (!sale) return 0;
+  let delta = 0;
+  if (sale.debtAmount > 0 && sale.debtDirection === "clientOwes") delta += sale.debtAmount;
+  if (sale.creditUsed > 0) delta += sale.creditUsed;
+  if (sale.changeAmount > 0 && sale.changeMethod === "credit") delta -= sale.changeAmount;
+  return delta;
+}
+
+/**
+ * Valida los datos de un withdrawal (merma) antes de persistir.
+ * Devuelve null si es válido, o un string con el mensaje de error.
+ *
+ * Cubre las mismas reglas que Withdrawals.jsx:validate() pero pura
+ * (recibe todos los inputs explícitamente). El caller pasa:
+ *   - form: objeto con productId, qty, person, withdrawType, failedProductId, etc.
+ *   - products: array de productos activos (para validar existencia y stock)
+ *   - sales: array de ventas (para validar linkedSaleId en garantías)
+ *   - clients: array de clientes (para validar linkedClientId)
+ *   - today: opcional, string YYYY-MM-DD (default: hoy). Testing lo pasa fijo.
+ */
+export function validateWithdrawalForm(form, products = [], sales = [], clients = [], today = null) {
+  if (!form) return "Formulario vacío";
+  if (!form.productId) return "Seleccioná un producto";
+  const prod = products.find(p => p.id === form.productId);
+  if (!prod) return "El producto seleccionado no existe";
+  if (!form.person) return "Indicá quién (Diego o Gustavo)";
+  if (!form.withdrawType) return "Indicá el tipo de merma";
+  const qty = Number(form.qty);
+  if (!qty || qty <= 0) return "La cantidad debe ser mayor a 0";
+  if (qty > (prod.stock || 0)) {
+    return `Stock insuficiente: ${prod.brand} ${prod.model} - ${prod.flavor}. Disponible: ${prod.stock}`;
+  }
+  if (isGarantia(form.withdrawType) && form.linkedSaleId) {
+    const linkedSale = (sales || []).find(s => s.id === form.linkedSaleId && !s.isDeleted);
+    if (!linkedSale) return "La venta vinculada no existe o fue eliminada";
+  }
+  if (isGarantia(form.withdrawType)) {
+    if (!form.failedProductId) return "Indicá qué producto falló (el que trajo el cliente)";
+    const failedProd = products.find(p => p.id === form.failedProductId);
+    if (!failedProd) return "El producto fallido indicado no existe";
+    if (!form.failureReason) return "Indicá la razón del fallo";
+    if (form.failureReason === "Otro" && (form.failureNotes || "").trim().length < 5) {
+      return "Describí brevemente qué pasó (mín. 5 caracteres)";
+    }
+  }
+  if (form.linkedClientId) {
+    const linkedClient = (clients || []).find(c => c.id === form.linkedClientId);
+    if (!linkedClient) return "El cliente vinculado no existe";
+  }
+  if (form.date) {
+    const ref = today || new Date().toISOString().slice(0, 10);
+    if (form.date > ref) return "No se permiten fechas futuras";
+  }
+  return null;
 }
