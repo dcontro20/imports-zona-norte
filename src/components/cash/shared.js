@@ -36,3 +36,25 @@ export const TYPE_BY_KEY = Object.fromEntries(MOVEMENT_TYPES.map(t => [t.key, t]
 
 // Legacy backward-compat (deposit/withdrawal → income/expense)
 export const normalizeType = (t) => ({ deposit: "income", withdrawal: "expense" })[t] || t;
+
+// Traduce un método de pago (Sales.jsx) al accountId de caja correspondiente.
+// Devuelve "" si el método es desconocido — el caller debe guard contra eso.
+export function payMethodToAccountId(method, mpAccount) {
+  if (method === "Mercado Pago") return mpAccount === "MP Gustavo" ? "mpGustavo" : "mpDiego";
+  if (method === "Lemon") return "lemonPesos";
+  if (method === "USDT") return "lemonUSDT";
+  if (method === "USD Cash") return "usdCash";
+  if (method === "Pesos Cash") return "pesosCash";
+  return "";
+}
+
+// Matchers: qué payment method corresponde a qué cuenta.
+// Usado por calcAccountBalance para sumar la porción de cada venta a la cuenta.
+export const ACCOUNT_METHOD_MAP = {
+  mpDiego: (p) => p.method === "Mercado Pago" && p.mpAccount === "MP Diego",
+  mpGustavo: (p) => p.method === "Mercado Pago" && p.mpAccount === "MP Gustavo",
+  lemonPesos: (p) => p.method === "Lemon",
+  lemonUSDT: (p) => p.method === "USDT",
+  usdCash: (p) => p.method === "USD Cash",
+  pesosCash: (p) => p.method === "Pesos Cash",
+};

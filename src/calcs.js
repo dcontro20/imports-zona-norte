@@ -218,6 +218,95 @@ export function reverseSaleBalanceDelta(sale) {
  *   - clients: array de clientes (para validar linkedClientId)
  *   - today: opcional, string YYYY-MM-DD (default: hoy). Testing lo pasa fijo.
  */
+/**
+ * Calcula el saldo de una cuenta de caja a partir de las ventas, compras y
+ * movimientos de caja. Pura, testeable, extraída de CashBox.jsx:calcBalance.
+ *
+ * Inputs:
+ *   accountId: string — id de la cuenta (mpDiego, lemonPesos, etc.)
+ *   ctx: {
+ *     sales, purchases, cashMovements: arrays raw (puede incluir isDeleted, se filtran)
+ *     initialBalances: { [accountId]: number }
+ *     accountMethodMap: { [accountId]: (payment) => boolean }
+ *     payMethodToAccountId: (method, mpAccount) => accountId
+ *     normalizeType: (t) => string  (deposit→income, withdrawal→expense)
+ *   }
+ *
+ * Devuelve el balance numérico (puede ser negativo).
+ *
+ * El tipo de cada movimiento se tiene en cuenta: transfer, income, expense,
+ * crypto_buy (pesos→USDT), crypto_sell (USDT→pesos), conciliation_adjust.
+ */
+export function calcAccountBalance(accountId, ctx) {
+  const {
+    sales = [], purchases = [], cashMovements = [],
+    initialBalances = {}, accountMethodMap = {},
+    payMethodToAccountId: toAcc = () => "",
+    normalizeType: normType = (t) => t,
+  } = ctx || {};
+
+  let bal = initialBalances[accountId] || 0;
+  const activeSales = sales.filter(s => !s.isDeleted);
+  const activePurchases = purchases.filter(p => !p.isDeleted);
+
+  const matchFn = accountMethodMap[accountId];
+  if (matchFn) {
+    activeSales.forEach(sale => {
+      if (sale.payments && sale.payments.length > 0) {
+        sale.payments.filter(matchFn).forEach(p => { bal += Number(p.amount) || 0; });
+      } else {
+        const legacyPay = { method: sale.paymentMethod, mpAccount: sale.mpAccount, amount: sale.total };
+        if (matchFn(legacyPay)) bal += Number(sale.total) || 0;
+      }
+    });
+
+    // Vueltos: si changeMethod no es credit, descontar
+    activeSales.forEach(sale => {
+      if (sale.changeAmount > 0 && sale.changeMethod && sale.changeMethod !== "credit") {
+        const changeAccountId = toAcc(sale.changeMethod, sale.changeMpAccount);
+        if (changeAccountId && changeAccountId === accountId) bal -= Number(sale.changeAmount) || 0;
+      }
+    });
+  }
+
+  if (accountId === "lemonUSDT") {
+    bal -= activePurchases
+      .filter(p => p.status === "verificado" || !p.status)
+      .reduce((s, p) => s + (p.totalUSDT || 0), 0);
+  }
+
+  const activeMovs = cashMovements.filter(m => !m.isDeleted && m.type !== "daily_close" && m.type !== "conciliation_adjust");
+  activeMovs.forEach(m => {
+    const t = normType(m.type);
+    if (m.from === accountId) bal -= Number(m.amount) || 0;
+    if (m.to === accountId) {
+      if ((t === "crypto_buy" && accountId === "lemonUSDT") || (t === "crypto_sell" && accountId !== "lemonUSDT" && m.amountUSDT)) {
+        bal += Number(m.amount) || 0;
+      } else if (t === "crypto_buy" && accountId === "lemonUSDT") {
+        bal += Number(m.amountUSDT) || 0;
+      } else {
+        bal += Number(m.amount) || 0;
+      }
+    }
+  });
+  // Fix: crypto_buy increases USDT on 'to' side with amountUSDT (not amount)
+  cashMovements.filter(m => !m.isDeleted && normType(m.type) === "crypto_buy" && m.to === "lemonUSDT" && accountId === "lemonUSDT").forEach(m => {
+    bal -= Number(m.amount) || 0;
+    bal += Number(m.amountUSDT) || 0;
+  });
+  // Fix: crypto_sell decreases USDT on 'from' side
+  cashMovements.filter(m => !m.isDeleted && normType(m.type) === "crypto_sell" && m.from === "lemonUSDT" && accountId === "lemonUSDT").forEach(m => {
+    bal += Number(m.amount) || 0;
+    bal -= Number(m.amountUSDT) || 0;
+  });
+
+  // Conciliation adjustments
+  cashMovements.filter(m => !m.isDeleted && m.type === "conciliation_adjust" && m.account === accountId).forEach(m => {
+    bal += Number(m.delta) || 0;
+  });
+  return bal;
+}
+
 export function validateWithdrawalForm(form, products = [], sales = [], clients = [], today = null) {
   if (!form) return "Formulario vacío";
   if (!form.productId) return "Seleccioná un producto";

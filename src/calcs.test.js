@@ -10,7 +10,11 @@ import {
   formatMoney,
   reverseSaleBalanceDelta,
   validateWithdrawalForm,
+  calcAccountBalance,
 } from "./calcs.js";
+import {
+  ACCOUNT_METHOD_MAP, payMethodToAccountId, normalizeType,
+} from "./components/cash/shared.js";
 
 const RATE = 1400; // ARS per USD
 
@@ -496,5 +500,89 @@ describe("validateWithdrawalForm", () => {
       ...validForm, date: "2026-04-24",
     }, products, [], [], "2026-04-24");
     expect(r).toBeNull();
+  });
+});
+
+describe("calcAccountBalance", () => {
+  const ctx = {
+    initialBalances: { mpDiego: 1000, lemonPesos: 0, lemonUSDT: 50, usdCash: 0, pesosCash: 0, mpGustavo: 0 },
+    accountMethodMap: ACCOUNT_METHOD_MAP,
+    payMethodToAccountId,
+    normalizeType,
+  };
+
+  it("starts with initial balance when no movements", () => {
+    expect(calcAccountBalance("mpDiego", { ...ctx, sales: [], purchases: [], cashMovements: [] })).toBe(1000);
+  });
+
+  it("adds sale payment to the matching MP account", () => {
+    const sales = [{ id: "s1", paymentMethod: "Mercado Pago", mpAccount: "MP Diego", total: 500 }];
+    expect(calcAccountBalance("mpDiego", { ...ctx, sales, purchases: [], cashMovements: [] })).toBe(1500);
+    // MP Gustavo no se afecta
+    expect(calcAccountBalance("mpGustavo", { ...ctx, sales, purchases: [], cashMovements: [] })).toBe(0);
+  });
+
+  it("skips soft-deleted sales", () => {
+    const sales = [
+      { id: "s1", paymentMethod: "Mercado Pago", mpAccount: "MP Diego", total: 500 },
+      { id: "s2", paymentMethod: "Mercado Pago", mpAccount: "MP Diego", total: 300, isDeleted: true },
+    ];
+    expect(calcAccountBalance("mpDiego", { ...ctx, sales, purchases: [], cashMovements: [] })).toBe(1500);
+  });
+
+  it("handles multi-payment sales", () => {
+    const sales = [{
+      id: "s1",
+      payments: [
+        { method: "Mercado Pago", mpAccount: "MP Diego", amount: 200 },
+        { method: "Lemon", amount: 300 },
+      ],
+    }];
+    expect(calcAccountBalance("mpDiego", { ...ctx, sales, purchases: [], cashMovements: [] })).toBe(1200);
+    expect(calcAccountBalance("lemonPesos", { ...ctx, sales, purchases: [], cashMovements: [] })).toBe(300);
+  });
+
+  it("subtracts change when method is not credit", () => {
+    const sales = [{ id: "s1", paymentMethod: "Pesos Cash", total: 1000, changeAmount: 100, changeMethod: "Pesos Cash" }];
+    // +1000 por la venta, -100 por el vuelto = +900
+    expect(calcAccountBalance("pesosCash", { ...ctx, sales, purchases: [], cashMovements: [] })).toBe(900);
+  });
+
+  it("does NOT subtract change when method is credit", () => {
+    const sales = [{ id: "s1", paymentMethod: "Pesos Cash", total: 1000, changeAmount: 100, changeMethod: "credit" }];
+    // +1000, sin descuento (el crédito queda como saldo del cliente, no afecta caja)
+    expect(calcAccountBalance("pesosCash", { ...ctx, sales, purchases: [], cashMovements: [] })).toBe(1000);
+  });
+
+  it("subtracts verified purchases USDT from lemonUSDT", () => {
+    const purchases = [
+      { id: "p1", status: "verificado", totalUSDT: 10 },
+      { id: "p2", status: "pedido", totalUSDT: 20 }, // no afecta (no verificado)
+    ];
+    // inicial 50 - 10 = 40
+    expect(calcAccountBalance("lemonUSDT", { ...ctx, sales: [], purchases, cashMovements: [] })).toBe(40);
+  });
+
+  it("transfer movement: -from, +to", () => {
+    const cashMovements = [{ id: "m1", type: "transfer", from: "mpDiego", to: "lemonPesos", amount: 200 }];
+    expect(calcAccountBalance("mpDiego", { ...ctx, sales: [], purchases: [], cashMovements })).toBe(800);
+    expect(calcAccountBalance("lemonPesos", { ...ctx, sales: [], purchases: [], cashMovements })).toBe(200);
+  });
+
+  it("crypto_buy: pesos → USDT conversion", () => {
+    const cashMovements = [{ id: "m1", type: "crypto_buy", from: "lemonPesos", to: "lemonUSDT", amount: 140000, amountUSDT: 100 }];
+    const base = { ...ctx, initialBalances: { ...ctx.initialBalances, lemonPesos: 200000 } };
+    expect(calcAccountBalance("lemonPesos", { ...base, sales: [], purchases: [], cashMovements })).toBe(60000);
+    expect(calcAccountBalance("lemonUSDT", { ...base, sales: [], purchases: [], cashMovements })).toBe(150); // 50 + 100 USDT
+  });
+
+  it("conciliation_adjust: applies delta to named account", () => {
+    const cashMovements = [{ id: "m1", type: "conciliation_adjust", account: "mpDiego", delta: -50 }];
+    expect(calcAccountBalance("mpDiego", { ...ctx, sales: [], purchases: [], cashMovements })).toBe(950);
+  });
+
+  it("ignores daily_close entries (snapshot-only, no ledger impact)", () => {
+    const cashMovements = [{ id: "m1", type: "daily_close", from: "mpDiego", amount: 999 }];
+    expect(calcAccountBalance("mpDiego", { ...ctx, sales: [], purchases: [], cashMovements })).toBe(1000);
   });
 });

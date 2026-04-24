@@ -6,8 +6,10 @@ import { T } from "../theme.js";
 import {
   INITIAL_BALANCES, ACCOUNTS, ACCOUNT_BY_ID,
   MOVEMENT_TYPES, TYPE_BY_KEY, normalizeType,
+  payMethodToAccountId, ACCOUNT_METHOD_MAP,
 } from "./cash/shared.js";
 import MovementForm from "./cash/MovementForm.jsx";
+import { calcAccountBalance } from "../calcs.js";
 
 // ============================================
 // CASHBOX — el corazón financiero del negocio
@@ -31,81 +33,16 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
 
-  // ---- balance calculation (same as before — robust) ----
-  const calcBalance = (accountId) => {
-    let bal = INITIAL_BALANCES[accountId] || 0;
-    const activeSales = (sales || []).filter(s => !s.isDeleted);
-    const activePurchases = (purchases || []).filter(p => !p.isDeleted);
-
-    const ACCOUNT_METHOD_MAP = {
-      mpDiego: (p) => p.method === "Mercado Pago" && p.mpAccount === "MP Diego",
-      mpGustavo: (p) => p.method === "Mercado Pago" && p.mpAccount === "MP Gustavo",
-      lemonPesos: (p) => p.method === "Lemon",
-      lemonUSDT: (p) => p.method === "USDT",
-      usdCash: (p) => p.method === "USD Cash",
-      pesosCash: (p) => p.method === "Pesos Cash",
-    };
-    const matchFn = ACCOUNT_METHOD_MAP[accountId];
-    if (matchFn) {
-      activeSales.forEach(sale => {
-        if (sale.payments && sale.payments.length > 0) {
-          sale.payments.filter(matchFn).forEach(p => { bal += Number(p.amount) || 0; });
-        } else {
-          const legacyPay = { method: sale.paymentMethod, mpAccount: sale.mpAccount, amount: sale.total };
-          if (matchFn(legacyPay)) bal += Number(sale.total) || 0;
-        }
-      });
-
-      // Vueltos: si la venta tiene changeAmount > 0 con changeMethod (no credit),
-      // descontar de la cuenta correspondiente. Antes esto se hacía con un
-      // cashMovement automático en Sales.jsx pero generaba doble contabilización.
-      // Ahora la venta es la fuente única de verdad para el vuelto.
-      activeSales.forEach(sale => {
-        if (sale.changeAmount > 0 && sale.changeMethod && sale.changeMethod !== "credit") {
-          const changeAccountId = payMethodToAccountId(sale.changeMethod, sale.changeMpAccount);
-          // Guard: si payMethodToAccountId devolvió "" (método desconocido),
-          // no descontar de ninguna cuenta. Previene que "" matchee fallback.
-          if (changeAccountId && changeAccountId === accountId) bal -= Number(sale.changeAmount) || 0;
-        }
-      });
-    }
-
-    if (accountId === "lemonUSDT") {
-      bal -= activePurchases.filter(p => p.status === "verificado" || !p.status).reduce((s, p) => s + (p.totalUSDT || 0), 0);
-    }
-
-    (cashMovements || []).filter(m => !m.isDeleted && m.type !== "daily_close" && m.type !== "conciliation_adjust").forEach(m => {
-      const t = normalizeType(m.type);
-      if (m.from === accountId) bal -= Number(m.amount) || 0;
-      if (m.to === accountId) {
-        if ((t === "crypto_buy" && accountId === "lemonUSDT") || (t === "crypto_sell" && accountId !== "lemonUSDT" && m.amountUSDT)) {
-          bal += Number(m.amount) || 0; // for crypto_sell the destination gets pesos = amount
-        } else if (t === "crypto_buy" && accountId === "lemonUSDT") {
-          bal += Number(m.amountUSDT) || 0;
-        } else {
-          bal += Number(m.amount) || 0;
-        }
-      }
-    });
-    // Fix: crypto_buy increases USDT on 'to' side
-    (cashMovements || []).filter(m => !m.isDeleted && normalizeType(m.type) === "crypto_buy" && m.to === "lemonUSDT" && accountId === "lemonUSDT").forEach(m => {
-      // already added m.amount above, need to subtract and add amountUSDT instead
-      bal -= Number(m.amount) || 0;
-      bal += Number(m.amountUSDT) || 0;
-    });
-    // Fix: crypto_sell decreases USDT on 'from' side
-    (cashMovements || []).filter(m => !m.isDeleted && normalizeType(m.type) === "crypto_sell" && m.from === "lemonUSDT" && accountId === "lemonUSDT").forEach(m => {
-      // 'from' already subtracted m.amount; for USDT we should subtract m.amountUSDT instead
-      bal += Number(m.amount) || 0;
-      bal -= Number(m.amountUSDT) || 0;
-    });
-
-    // Conciliation adjustments
-    (cashMovements || []).filter(m => !m.isDeleted && m.type === "conciliation_adjust" && m.account === accountId).forEach(m => {
-      bal += Number(m.delta) || 0;
-    });
-    return bal;
-  };
+  // ---- balance calculation: delega a calcAccountBalance (pura, testeable) ----
+  const calcBalance = (accountId) => calcAccountBalance(accountId, {
+    sales: sales || [],
+    purchases: purchases || [],
+    cashMovements: cashMovements || [],
+    initialBalances: INITIAL_BALANCES,
+    accountMethodMap: ACCOUNT_METHOD_MAP,
+    payMethodToAccountId,
+    normalizeType,
+  });
 
   const balances = useMemo(() => {
     const b = {};
@@ -645,15 +582,6 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
 // ============================================
 // HELPERS
 // ============================================
-function payMethodToAccountId(method, mpAccount) {
-  if (method === "Mercado Pago") return mpAccount === "MP Gustavo" ? "mpGustavo" : "mpDiego";
-  if (method === "Lemon") return "lemonPesos";
-  if (method === "USDT") return "lemonUSDT";
-  if (method === "USD Cash") return "usdCash";
-  if (method === "Pesos Cash") return "pesosCash";
-  return "";
-}
-
 // ============================================
 // UI PRIMITIVES
 // ============================================
