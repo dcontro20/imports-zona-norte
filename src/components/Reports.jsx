@@ -81,7 +81,7 @@ const DonutChart = ({ data, size = 160 }) => {
   );
 };
 
-export const Reports = ({ products, sales, purchases, expenses, withdrawals, exchangeRate }) => {
+export const Reports = ({ products, sales, purchases, expenses, withdrawals, clients = [], exchangeRate }) => {
   const { isMobile } = useResponsive();
   // Note: App.jsx already passes active* (filtered) data for most read-only components,
   // but we add safety filters here for any that might slip through
@@ -836,6 +836,136 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, exc
                     ))}
                   </div>
                 </div>
+              </div>
+            </>
+          );
+        })()}
+      </Card>
+
+      {/* ===== ABC DE CLIENTES ===== */}
+      {/* Ranking por revenue acumulado (YTD). Segmenta:
+          - Tier A: top 20% de clientes por revenue (Pareto: suelen aportar 80% del ingreso)
+          - Tier B: siguientes 30%
+          - Tier C: resto */}
+      <Card style={{ marginBottom: 14 }}>
+        <h4 style={{ color: "#a855f7", margin: "0 0 14px", fontSize: 14, textTransform: "uppercase" }}>
+          👥 ABC de clientes
+        </h4>
+        {(() => {
+          // Acumular revenue por clientId (normalizando monedas a ARS con el rate de la venta)
+          const byClient = {};
+          (sales || []).filter(s => !s.isDeleted && s.clientId).forEach(s => {
+            const rate = s.exchangeRate || exchangeRate || 0;
+            const ars = (s.currency === "USD" || s.currency === "USDT") ? (Number(s.total) || 0) * rate : (Number(s.total) || 0);
+            if (!byClient[s.clientId]) byClient[s.clientId] = { revenue: 0, count: 0, lastDate: "" };
+            byClient[s.clientId].revenue += ars;
+            byClient[s.clientId].count += 1;
+            if (s.date > byClient[s.clientId].lastDate) byClient[s.clientId].lastDate = s.date;
+          });
+
+          const clientsEnriched = Object.entries(byClient)
+            .map(([cid, v]) => {
+              const c = clients.find(cl => cl.id === cid);
+              return { id: cid, name: c?.name || "Cliente eliminado", zone: c?.zone || "", ...v };
+            })
+            .sort((a, b) => b.revenue - a.revenue);
+
+          const totalRevenue = clientsEnriched.reduce((s, c) => s + c.revenue, 0);
+          if (totalRevenue === 0 || clientsEnriched.length === 0) {
+            return <p style={{ color: "#555", fontSize: 13 }}>Cargá ventas con cliente asignado para ver el ranking ABC.</p>;
+          }
+
+          // Asignar tier por acumulado: A = primeros que suman hasta 80% del revenue, B = hasta 95%, C = resto
+          let acc = 0;
+          const ranked = clientsEnriched.map(c => {
+            acc += c.revenue;
+            const pct = (acc / totalRevenue) * 100;
+            const tier = pct <= 80 ? "A" : pct <= 95 ? "B" : "C";
+            return { ...c, pct, pctOfTotal: (c.revenue / totalRevenue) * 100, tier };
+          });
+
+          const tierStats = { A: { count: 0, revenue: 0 }, B: { count: 0, revenue: 0 }, C: { count: 0, revenue: 0 } };
+          ranked.forEach(c => {
+            tierStats[c.tier].count += 1;
+            tierStats[c.tier].revenue += c.revenue;
+          });
+
+          const tierColors = {
+            A: { bg: "#DDEDEA", border: "#0F7B6C", text: "#0F7B6C" },
+            B: { bg: "#FDECC8", border: "#CB912F", text: "#CB912F" },
+            C: { bg: "#EEF0FC", border: "#5E6AD2", text: "#5E6AD2" },
+          };
+
+          return (
+            <>
+              <p style={{ color: "#8C8A82", fontSize: 12, margin: "0 0 14px" }}>
+                Segmentación Pareto: <strong>A</strong> = top que aporta 80% del revenue · <strong>B</strong> = siguiente 15% · <strong>C</strong> = el 5% restante.
+              </p>
+
+              {/* Stats por tier */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 16 }}>
+                {["A", "B", "C"].map(t => {
+                  const col = tierColors[t];
+                  const stats = tierStats[t];
+                  return (
+                    <div key={t} style={{
+                      padding: "12px 14px", borderRadius: 10,
+                      background: col.bg, border: `1px solid ${col.border}55`,
+                    }}>
+                      <div style={{ fontSize: 11, color: col.text, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Tier {t}</div>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: "#37352F", marginTop: 2 }}>{stats.count}</div>
+                      <div style={{ fontSize: 11, color: "#8C8A82", marginTop: 2 }}>
+                        {formatMoney(stats.revenue)} ({totalRevenue > 0 ? Math.round(stats.revenue / totalRevenue * 100) : 0}%)
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Tabla top 20 */}
+              <div style={{ overflow: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                  <thead>
+                    <tr style={{ textAlign: "left", color: "#8C8A82", borderBottom: "1px solid #E8E7E3" }}>
+                      <th style={{ padding: "8px 10px", fontWeight: 600 }}>#</th>
+                      <th style={{ padding: "8px 10px", fontWeight: 600 }}>Cliente</th>
+                      <th style={{ padding: "8px 10px", fontWeight: 600 }}>Tier</th>
+                      <th style={{ padding: "8px 10px", fontWeight: 600, textAlign: "right" }}>Revenue</th>
+                      <th style={{ padding: "8px 10px", fontWeight: 600, textAlign: "right" }}>% total</th>
+                      <th style={{ padding: "8px 10px", fontWeight: 600, textAlign: "right" }}>Ventas</th>
+                      <th style={{ padding: "8px 10px", fontWeight: 600 }}>Última</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ranked.slice(0, 20).map((c, i) => {
+                      const col = tierColors[c.tier];
+                      return (
+                        <tr key={c.id} style={{ borderBottom: "1px solid #F0EFEB" }}>
+                          <td style={{ padding: "8px 10px", color: "#B1AFA7", fontVariantNumeric: "tabular-nums" }}>{i + 1}</td>
+                          <td style={{ padding: "8px 10px", color: "#37352F", fontWeight: 600 }}>
+                            {c.name}
+                            {c.zone && <span style={{ color: "#B1AFA7", fontWeight: 400, marginLeft: 6 }}>· {c.zone}</span>}
+                          </td>
+                          <td style={{ padding: "8px 10px" }}>
+                            <span style={{
+                              padding: "2px 8px", borderRadius: 999, fontSize: 10, fontWeight: 700,
+                              background: col.bg, color: col.text, border: `1px solid ${col.border}55`,
+                            }}>{c.tier}</span>
+                          </td>
+                          <td style={{ padding: "8px 10px", color: "#37352F", fontWeight: 700, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{formatMoney(c.revenue)}</td>
+                          <td style={{ padding: "8px 10px", color: "#8C8A82", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{c.pctOfTotal.toFixed(1)}%</td>
+                          <td style={{ padding: "8px 10px", color: "#8C8A82", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{c.count}</td>
+                          <td style={{ padding: "8px 10px", color: "#8C8A82" }}>{formatDate(c.lastDate)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                {ranked.length > 20 && (
+                  <p style={{ fontSize: 11, color: "#B1AFA7", margin: "10px 0 0", textAlign: "center" }}>
+                    Mostrando top 20 de {ranked.length} clientes con compras
+                  </p>
+                )}
               </div>
             </>
           );
