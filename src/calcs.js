@@ -2,6 +2,7 @@
 // Used by Partners, CashBox, Reports, Dashboard
 
 import { CURRENCIES } from "./constants.js";
+import { safeRate } from "./helpers.js";
 
 /**
  * Calculate total revenue from sales, normalizing all currencies to ARS.
@@ -11,7 +12,7 @@ export function calcTotalRevenue(sales, exchangeRate) {
   return sales.reduce((sum, sale) => {
     const cur = sale.currency || "ARS";
     const amount = sale.total || 0;
-    const rate = sale.exchangeRate || exchangeRate;
+    const rate = safeRate(sale.exchangeRate || exchangeRate);
     if (cur === "USD" || cur === "USDT") return sum + amount * rate;
     return sum + amount;
   }, 0);
@@ -24,7 +25,7 @@ export function calcTotalRevenueUSD(sales, exchangeRate) {
   return sales.reduce((sum, sale) => {
     const cur = sale.currency || "ARS";
     const amount = sale.total || 0;
-    const rate = sale.exchangeRate || exchangeRate;
+    const rate = safeRate(sale.exchangeRate || exchangeRate);
     if (cur === "ARS") return sum + (rate > 0 ? amount / rate : 0);
     return sum + amount;
   }, 0);
@@ -67,7 +68,7 @@ function withdrawalCostUSD(w) {
 export function calcConsumoValue(withdrawals, exchangeRate) {
   return withdrawals
     .filter(w => !w.isDeleted)
-    .reduce((sum, w) => sum + withdrawalCostUSD(w), 0) * exchangeRate;
+    .reduce((sum, w) => sum + withdrawalCostUSD(w), 0) * safeRate(exchangeRate);
 }
 
 /**
@@ -78,7 +79,7 @@ export function calcConsumoValue(withdrawals, exchangeRate) {
 export function calcMermasComunesARS(withdrawals, exchangeRate) {
   return withdrawals
     .filter(w => !w.isDeleted && w.withdrawType !== CONSUMO_PERSONAL_TYPE)
-    .reduce((sum, w) => sum + withdrawalCostUSD(w), 0) * exchangeRate;
+    .reduce((sum, w) => sum + withdrawalCostUSD(w), 0) * safeRate(exchangeRate);
 }
 
 /**
@@ -88,7 +89,7 @@ export function calcMermasComunesARS(withdrawals, exchangeRate) {
 export function calcConsumoPersonalARS(withdrawals, person, exchangeRate) {
   return withdrawals
     .filter(w => !w.isDeleted && w.withdrawType === CONSUMO_PERSONAL_TYPE && w.person === person)
-    .reduce((sum, w) => sum + withdrawalCostUSD(w), 0) * exchangeRate;
+    .reduce((sum, w) => sum + withdrawalCostUSD(w), 0) * safeRate(exchangeRate);
 }
 
 /**
@@ -134,11 +135,12 @@ export function calcPartnerBalances(sales, purchases, expenses, withdrawals, par
   const netProfit = netProfitComun - consumoDiego - consumoGustavo; // ganancia neta TOTAL
   const halfProfit = netProfitComun / 2;
 
+  const rateForWithdrawals = safeRate(exchangeRate);
   const calcWithdrawalTotal = (person) =>
     partnerWithdrawals
       .filter(w => !w.isDeleted && w.person === person)
       .reduce((sum, w) => {
-        if (w.currency === "USD" || w.currency === "USDT") return sum + w.amount * exchangeRate;
+        if (w.currency === "USD" || w.currency === "USDT") return sum + w.amount * rateForWithdrawals;
         return sum + w.amount;
       }, 0);
 

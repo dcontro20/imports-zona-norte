@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { uid, formatMoney, formatDate } from "../helpers.js";
+import { uid, formatMoney, formatDate, safeRate } from "../helpers.js";
 import { useResponsive } from "../App.jsx";
 import { Modal } from "./UI.jsx";
 import { T } from "../theme.js";
@@ -150,8 +150,9 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
     return { ars, usd, usdt };
   }, [balances]);
 
-  const patrimonyARS = totalsByCurrency.ars + (totalsByCurrency.usd * exchangeRate) + (totalsByCurrency.usdt * exchangeRate);
-  const patrimonyUSD = Math.round((patrimonyARS / exchangeRate) * 100) / 100;
+  const rateSafe = safeRate(exchangeRate);
+  const patrimonyARS = totalsByCurrency.ars + (totalsByCurrency.usd * rateSafe) + (totalsByCurrency.usdt * rateSafe);
+  const patrimonyUSD = rateSafe > 0 ? Math.round((patrimonyARS / rateSafe) * 100) / 100 : 0;
 
   // ---- unified ledger (same as before with crypto_sell) ----
   const ledger = useMemo(() => {
@@ -1095,7 +1096,9 @@ const MovementForm = ({ presetType, exchangeRate, balances, recentMovements = []
   // When type = crypto_buy, pre-fill suggested amountUSDT from exchange rate
   const suggestUSDT = () => {
     if (!form.amount) return;
-    setForm(f => ({ ...f, amountUSDT: (Number(f.amount) / exchangeRate).toFixed(2) }));
+    const r = safeRate(exchangeRate);
+    if (r <= 0) return;
+    setForm(f => ({ ...f, amountUSDT: (Number(f.amount) / r).toFixed(2) }));
   };
 
   // ---- handler unificado de submit con todas las protecciones ----

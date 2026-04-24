@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { formatMoney, formatDate } from "../helpers.js";
+import { formatMoney, formatDate, safeRate } from "../helpers.js";
 import { calcTotalRevenue, calcTotalRevenueUSD } from "../calcs.js";
 import { BRAND_COLORS, isGarantia } from "../constants.js";
 import { useResponsive } from "../App.jsx";
@@ -179,7 +179,9 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, e
     return is + cost * (item.qty || 1);
   }, 0), 0);
   const monthExpensesARS = monthExpenses.reduce((s, e) => s + (e.amountARS || 0), 0);
-  const netProfitUSD = monthRevenueUSD - monthCOGS - (monthExpensesARS / exchangeRate);
+  const rateSafe = safeRate(exchangeRate);
+  const monthExpensesUSD = rateSafe > 0 ? monthExpensesARS / rateSafe : 0;
+  const netProfitUSD = monthRevenueUSD - monthCOGS - monthExpensesUSD;
   const marginPct = monthRevenueUSD > 0 ? Math.round((netProfitUSD / monthRevenueUSD) * 100) : 0;
 
   // ---- stock ----

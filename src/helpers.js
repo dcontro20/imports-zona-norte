@@ -16,3 +16,12 @@ export const formatDate = (d) => {
   return date.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "2-digit" });
 };
 export const formatMoney = (n, cur = "ARS") => `${CURRENCIES[cur] || "$"}${Number(n || 0).toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+
+// Guarda contra exchangeRate = 0 / undefined / null / NaN.
+// Devuelve el rate numérico si es > 0, sino 0. Usado tanto en multiplicaciones
+// (× rate → devuelve 0 "no puedo convertir") como en divisiones protegidas
+// (usar siempre `safeRate(r) > 0 ? ars / r : 0` para evitar Infinity/NaN).
+export const safeRate = (r) => {
+  const n = Number(r);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+};
