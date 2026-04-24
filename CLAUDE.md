@@ -375,24 +375,41 @@ El sistema de persistencia de contexto tiene 3 capas:
 - **`~/.claude/projects/-Users-Diego-Desktop-imports-zona-norte/memory/`** (se carga siempre)
 - **`docs/SESSION_YYYY-MM-DD.md`** (journals narrativos, opt-in)
 
-**IMPORTANTE para cualquier Claude futuro**: al cerrar una sesión donde hubo ALGUNA de estas cosas:
+### Shortcut: `/persist-session`
+
+El protocolo completo vive en **`.claude/commands/persist-session.md`**.
+Diego (o cualquier Claude) puede tipear `/persist-session` para disparar
+los 4 pasos automáticamente: journal → CLAUDE.md → memorias → commit.
+
+**Comando auxiliar**: `/show-context` (ver `.claude/commands/show-context.md`)
+muestra un resumen del estado del repo en <1 min — útil al arrancar
+sesión nueva.
+
+### Cuándo disparar `/persist-session`
+
+Al cerrar una sesión donde hubo ALGUNA de estas cosas:
 - Rediseño completo de un componente / sección nueva
-- Decisión arquitectónica (nueva dependencia, cambio de stack, nuevo sistema tipo backup)
-- Cambio de preferencia explícito de Diego (ej: "de ahora en más hacé X")
+- Decisión arquitectónica (nueva dependencia, cambio de stack)
+- Cambio de preferencia explícito de Diego ("de ahora en más hacé X")
 - Fix de un bug importante con un patrón aplicable a futuro
 - Nuevo módulo / página / feature significativa
 
-→ **Actualizar antes de terminar la sesión**:
-1. Esta sección de CLAUDE.md si algo quedó desactualizado (tokens, preferencias, paths clave)
-2. Memorias relevantes en `~/.claude/.../memory/` (crear nuevas si el tema no existe, actualizar existentes)
-3. Crear `docs/SESSION_YYYY-MM-DD.md` si la sesión fue larga/importante (timeline de commits, decisiones clave, debug notable)
-4. Actualizar `~/.claude/.../memory/MEMORY.md` index con las memorias nuevas
+**Criterio rápido**: si dentro de 2 semanas un Claude nuevo que vea solo
+`git log` va a entender el *por qué* de los cambios → no hace falta
+journal. Si no va a entender → disparar `/persist-session`.
 
-**Cómo decidir si "fue importante"**: si dentro de 2 semanas un Claude nuevo que vea solo `git log` va a entender el *por qué* de los cambios → no hace falta journal. Si no va a entender → escribir journal.
+### Frases equivalentes
 
-**Shortcut manual**: Diego puede decir `"actualizá el contexto"` o `"persistí esta sesión"` y el Claude actual debe ejecutar los 4 pasos de arriba sin preguntar más.
+Diego también puede decir estas frases y se dispara lo mismo:
+- "persistí esta sesión"
+- "actualizá el contexto"
+- "guardá todo antes de cerrar"
 
-Este protocolo asegura que los rediseños, decisiones y preferencias queden persistidas sin depender de que Diego lo pida cada vez.
+### Por qué existe esto
+
+La ventana de conversación se comprime al llenarse el contexto y los
+detalles se pierden. Los commits persisten el QUÉ, pero no el POR QUÉ ni
+las decisiones descartadas. Este protocolo cierra ese gap.
 
 <!-- Trigger Vercel redeploy 2026-04-22 20:52 tras switch a SSH -->
 
