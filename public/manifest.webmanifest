@@ -1,0 +1,21 @@
+{
+  "name": "Imports Zona Norte",
+  "short_name": "IZN",
+  "description": "Gestión de Imports Zona Norte — ventas, stock, caja y reportes",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#FAFAF9",
+  "theme_color": "#5E6AD2",
+  "orientation": "portrait",
+  "categories": ["business", "productivity"],
+  "lang": "es-AR",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%235E6AD2'/%3E%3Ctext x='50%25' y='55%25' text-anchor='middle' dominant-baseline='middle' font-size='320' font-family='system-ui'%3E💨%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

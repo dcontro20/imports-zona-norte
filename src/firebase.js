@@ -1,5 +1,8 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection } from "firebase/firestore";
+import {
+  initializeFirestore, doc, setDoc, getDoc, onSnapshot, collection,
+  persistentLocalCache, persistentMultipleTabManager,
+} from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "firebase/auth";
 
 const firebaseConfig = {
@@ -12,7 +15,16 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+
+// Persistencia offline de Firestore via IndexedDB:
+//   - Lecturas: los docs cacheados se devuelven instantáneamente al abrir sin red
+//   - Escrituras: se encolan localmente y se sincronizan cuando vuelve la conexión
+//   - Multi-tab: persistentMultipleTabManager habilita compartir cache entre tabs
+// Si el navegador no soporta IndexedDB (caso raro), Firestore sigue funcionando
+// solo online, sin romper.
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+});
 export const auth = getAuth(app);
 
 // Auth helpers
