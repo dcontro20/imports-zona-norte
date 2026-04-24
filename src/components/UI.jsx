@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useResponsive } from "../App.jsx";
 
 // Mobile-first: altura mínima 44px en todo lo tocable (Apple HIG).
@@ -269,10 +269,22 @@ export const Badge = ({ children, color = "#5E6AD2" }) => (
   }}>{children}</span>
 );
 
-export const SearchBar = ({ value, onChange, placeholder = "Buscar..." }) => {
+export const SearchBar = ({ value, onChange, placeholder = "Buscar...", debounceMs = 200 }) => {
   const { isMobile } = useResponsive();
+  const [local, setLocal] = useState(value || "");
+
+  // Mantener el input local en sincronía si el padre pisa value externamente
+  useEffect(() => { setLocal(value || ""); }, [value]);
+
+  // Propagar con debounce para evitar filtrar en cada keystroke con listas grandes
+  useEffect(() => {
+    if (local === value) return;
+    const t = setTimeout(() => onChange(local), debounceMs);
+    return () => clearTimeout(t);
+  }, [local, debounceMs]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
-    <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} style={{
+    <input value={local} onChange={e => setLocal(e.target.value)} placeholder={placeholder} style={{
       padding: isMobile ? "12px 16px" : "10px 16px",
       minHeight: isMobile ? 44 : 40,
       background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10,

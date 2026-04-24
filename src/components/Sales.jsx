@@ -636,7 +636,7 @@ export const Sales = ({
                   {flavorsForModel.length >= 8 && (
                     <input value={flavorSearch} onChange={e => setFlavorSearch(e.target.value)}
                       placeholder="Filtrar sabor..."
-                      style={{ width: "100%", padding: "7px 10px", background: "#FFFFFF", border: "1px solid #E8E7E3", borderRadius: 8, fontSize: 13, outline: "none", marginBottom: 8, boxSizing: "border-box" }} />
+                      style={{ width: "100%", padding: isMobile ? "10px 12px" : "7px 10px", background: "#FFFFFF", border: "1px solid #E8E7E3", borderRadius: 8, fontSize: isMobile ? 16 : 13, outline: "none", marginBottom: 8, boxSizing: "border-box" }} />
                   )}
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap", maxHeight: 180, overflowY: "auto" }}>
                     {filteredFlavors.map(p => (

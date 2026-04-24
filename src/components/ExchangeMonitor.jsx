@@ -66,7 +66,7 @@ const SourceCard = ({ title, subtitle, buy, sell, spread, prev, color, updated }
   );
 };
 
-export const ExchangeMonitor = ({ exchangeRate }) => {
+export const ExchangeMonitor = ({ exchangeRate, setExchangeRate }) => {
   const [data, setData] = useState({ blue: null, oficial: null, mep: null, cripto: null });
   const [prev, setPrev] = useState({ blue: 0, oficial: 0, mep: 0, cripto: 0 });
   const [loading, setLoading] = useState(true);
@@ -248,10 +248,25 @@ export const ExchangeMonitor = ({ exchangeRate }) => {
         </div>
         <div style={{ background: "#FFFFFF", borderRadius: 14, padding: "16px 20px", border: "1px solid #E8E7E3", flex: "1 1 180px" }}>
           <div style={{ fontSize: 12, color: "#B1AFA7", fontWeight: 600, marginBottom: 6 }}>TU TIPO DE CAMBIO</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: "#5E6AD2" }}>
-            {formatARS(exchangeRate || 0)}
+          {setExchangeRate ? (
+            <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+              <span style={{ fontSize: 28, fontWeight: 800, color: "#5E6AD2" }}>$</span>
+              <input type="number" value={exchangeRate || 0}
+                onChange={e => setExchangeRate(Number(e.target.value) || 0)}
+                style={{
+                  width: "100%", maxWidth: 130, padding: "2px 4px",
+                  background: "transparent", border: "none", borderBottom: "2px solid #5E6AD2",
+                  color: "#5E6AD2", fontSize: 28, fontWeight: 800, fontFamily: "inherit", outline: "none",
+                }} />
+            </div>
+          ) : (
+            <div style={{ fontSize: 28, fontWeight: 800, color: "#5E6AD2" }}>
+              {formatARS(exchangeRate || 0)}
+            </div>
+          )}
+          <div style={{ fontSize: 11, color: "#B1AFA7", marginTop: 2 }}>
+            {setExchangeRate ? "Editable — override manual" : "Configurado en Caja"}
           </div>
-          <div style={{ fontSize: 11, color: "#B1AFA7", marginTop: 2 }}>{"Configurado en Caja"}</div>
         </div>
       </div>
 
