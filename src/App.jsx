@@ -90,6 +90,8 @@ class ErrorBoundary extends Component {
 // ============================================
 // MAIN APP
 // ============================================
+// Nav items con nivel de acceso por rol.
+//   ownerOnly: true → solo Diego lo ve; Gustavo ni siquiera ve el link
 const NAV_ITEMS = [
   { key: "dashboard", label: "Dashboard", icon: "📊" },
   { key: "products", label: "Stock", icon: "📦" },
@@ -102,13 +104,13 @@ const NAV_ITEMS = [
   { key: "whatsapp", label: "WhatsApp", icon: "📲" },
   { key: "stocklog", label: "Historial", icon: "📋" },
   { key: "pricelog", label: "Precios", icon: "💲" },
-  { key: "partners", label: "Socios", icon: "🤝" },
-  { key: "closures", label: "Cierres", icon: "📅" },
-  { key: "export", label: "Exportar", icon: "📥" },
+  { key: "partners", label: "Socios", icon: "🤝", ownerOnly: true },
+  { key: "closures", label: "Cierres", icon: "📅", ownerOnly: true },
+  { key: "export", label: "Exportar", icon: "📥", ownerOnly: true },
   { key: "reports", label: "Reportes", icon: "📈" },
   { key: "exchange", label: "Cotizaciones", icon: "💱" },
-  { key: "audit", label: "Auditoría", icon: "🔍" },
-  { key: "trash", label: "Papelera", icon: "🗑️" },
+  { key: "audit", label: "Auditoría", icon: "🔍", ownerOnly: true },
+  { key: "trash", label: "Papelera", icon: "🗑️", ownerOnly: true },
 ];
 
 export default function App() {
@@ -293,8 +295,15 @@ export default function App() {
     );
   }
 
+  // Guard: si un manager entra a una ruta ownerOnly (URL directa o estado stale), fallback a dashboard
+  const isOwnerUser = currentUser?.role === "owner";
+  const ownerOnlyPages = NAV_ITEMS.filter(n => n.ownerOnly).map(n => n.key);
+  const effectivePage = ownerOnlyPages.includes(page) && !isOwnerUser ? "dashboard" : page;
+
+  const visibleNavItems = NAV_ITEMS.filter(item => !item.ownerOnly || isOwnerUser);
+
   const renderPage = () => {
-    switch (page) {
+    switch (effectivePage) {
       case "dashboard": return <Dashboard products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} exchangeRate={exchangeRate} />;
       case "products": return <Products products={products} setProducts={setProducts} exchangeRate={exchangeRate} logStock={logStock} logPrice={logPrice} currentUser={currentUser} logAudit={logAudit} />;
       case "sales": return <Sales sales={sales} setSales={setSales} products={products} setProducts={setProducts} logStock={logStock} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} clients={clients} setClients={setClients} cashMovements={cashMovements} setCashMovements={setCashMovements} />;
@@ -457,7 +466,7 @@ export default function App() {
               paddingBottom: "env(safe-area-inset-bottom)",
             } : {})
           }}>
-            {NAV_ITEMS.map(item => (
+            {visibleNavItems.map(item => (
               <button key={item.key} onClick={() => { setPage(item.key); setMenuOpen(false); }} style={{
                 display: "flex", alignItems: "center", gap: 12, width: "100%",
                 padding: isMobile ? "13px 20px" : "10px 20px",

@@ -1,0 +1,58 @@
+rules_version = '2';
+
+// Reglas de Firestore para Imports Zona Norte
+// Deploy: firebase deploy --only firestore:rules
+//
+// Modelo de permisos:
+//   - Owner (Diego, dcontro20@gmail.com): acceso total
+//   - Manager (Gustavo, dcontro20@hotmail.com): lectura total + escritura en
+//     datos operativos. Bloqueado de finanzas de socios y cierres mensuales.
+//   - Anónimo: sin acceso (antes todo era public read/write — era un agujero)
+//
+// Storage pattern: todos los datos viven en /appData/{key} como doc único
+// con JSON.stringify del array. Los writes son full-doc replace, por eso
+// no podemos distinguir "editó un item" de "borró todos" a nivel de rules.
+// La granularidad que sí podemos hacer: bloquear keys enteras para manager.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isOwner() {
+      return isAuth() && request.auth.token.email == "dcontro20@gmail.com";
+    }
+
+    function isManager() {
+      return isAuth() && request.auth.token.email == "dcontro20@hotmail.com";
+    }
+
+    function isKnownUser() {
+      return isOwner() || isManager();
+    }
+
+    // Keys que solo owner puede modificar (finanzas privadas de socios).
+    // Cualquier otro usuario autenticado puede leerlas (para cálculos internos)
+    // pero no modificarlas.
+    function isOwnerOnlyKey(key) {
+      return key == "partnerWithdrawals"
+          || key == "monthlyClosures";
+    }
+
+    match /appData/{key} {
+      // Lectura: cualquier usuario conocido (Diego o Gustavo)
+      allow read: if isKnownUser();
+
+      // Escritura: owner puede todo; manager solo en keys operativas
+      allow write: if isOwner() ||
+                      (isManager() && !isOwnerOnlyKey(key));
+    }
+
+    // Fallback: cualquier otra colección — cerrada
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
