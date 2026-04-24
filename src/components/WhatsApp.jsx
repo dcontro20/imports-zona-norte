@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback } from "react";
 import { formatMoney } from "../helpers.js";
 import { Card, Btn, StatCard } from "./UI.jsx";
 import { BRAND_COLORS } from "../constants.js";
+import { useAppContext } from "../AppContext.js";
 
 // -- WHATSAPP MESSAGE GENERATOR --
 const FLAVOR_EMOJIS = {
@@ -27,7 +28,11 @@ const getFlavorEmojis = (flavor) => {
   return emojis.join("") || "💨";
 };
 
-export const WhatsAppMessage = ({ products, exchangeRate }) => {
+// POC de migración props-drilling → AppContext.
+// exchangeRate ahora se consume via useAppContext() en lugar de recibirse como prop.
+// App.jsx mantiene el prop por compat pero se puede ignorar acá.
+export const WhatsAppMessage = ({ products }) => {
+  const { exchangeRate } = useAppContext();
   const [copied, setCopied] = useState(false);
   const [mode, setMode] = useState("full"); // "full" | "short"
 
