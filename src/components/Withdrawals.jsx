@@ -22,6 +22,7 @@ function formatDateTime(iso) {
 export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts, sales, clients = [], logStock, exchangeRate, currentUser, logAudit }) => {
   const { isMobile } = useResponsive();
   const [modal, setModal] = useState(false);
+  const [editingId, setEditingId] = useState(null); // id del withdrawal en edición, null = modo creación
   const [validationError, setValidationError] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
   const [confirmDel, setConfirmDel] = useState(null);
@@ -183,11 +184,126 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
     }, SUBMIT_DEBOUNCE_MS);
   };
 
+  const resetForm = () => {
+    setForm({
+      brand: "", model: "", productId: "", qty: 1,
+      person: currentUser?.name || "", withdrawType: "Consumo propio",
+      linkedSaleId: "", linkedSaleClient: "", linkedSaleDate: "",
+      linkedClientId: "", linkedClientName: "",
+      failedProductId: "", failureReason: "", failureNotes: "",
+      reclamableProveedor: false,
+      notes: "", date: new Date().toISOString().slice(0, 10),
+    });
+    setSaleSearch("");
+    setDraftId(uid());
+  };
+
+  // Abre el modal en modo edición precargando el form desde un withdrawal existente.
+  // Stock adjustment lo hace persistWithdrawal() al guardar.
+  const startEdit = (w) => {
+    const prod = products.find(p => p.id === w.productId);
+    setEditingId(w.id);
+    setForm({
+      brand: prod?.brand || "",
+      model: prod?.model || "",
+      productId: w.productId || "",
+      qty: w.qty || 1,
+      person: w.person || "",
+      withdrawType: w.withdrawType || "Consumo propio",
+      linkedSaleId: w.linkedSaleId || "",
+      linkedSaleClient: w.linkedSaleClient || "",
+      linkedSaleDate: w.linkedSaleDate || "",
+      linkedClientId: w.linkedClientId || "",
+      linkedClientName: w.linkedClientName || "",
+      failedProductId: w.failedProductId || "",
+      failureReason: w.failureReason || "",
+      failureNotes: w.failureNotes || "",
+      reclamableProveedor: !!w.reclamableProveedor,
+      notes: w.notes || "",
+      date: (w.date || new Date().toISOString()).slice(0, 10),
+    });
+    setModal(true);
+  };
+
   // ---- PERSIST: guarda en state (segunda barrera anti-duplicado vía draftId) ----
   const persistWithdrawal = () => {
     const prod = products.find(p => p.id === form.productId);
     if (!prod) return;
     const qty = Number(form.qty) || 1;
+
+    // Edit mode: si editingId existe, actualizar el withdrawal existente preservando id
+    // y ajustando stock: devolver el del original, descontar el nuevo.
+    if (editingId) {
+      const original = (withdrawals || []).find(w => w.id === editingId);
+      if (!original) {
+        console.warn(`[Withdrawals] editingId ${editingId} no encontrado`);
+        return;
+      }
+      const priceUSD = Number(prod.priceUSD) || 0;
+      const costUSDTunit = Number(prod.costUSDT) || 0;
+      const costPerUnitUSD = costUSDTunit > 0 ? costUSDTunit : priceUSD * 0.55;
+      const costRealUSD = costPerUnitUSD * qty;
+      const lucroCesanteUSD = Math.max(0, (priceUSD - costPerUnitUSD) * qty);
+      const costRealARS = Math.round(costRealUSD * (exchangeRate || 0));
+      const dateISO = form.date ? `${form.date}T${new Date().toTimeString().slice(0, 8)}` : original.date;
+
+      // Ajuste de stock: restaurar el original, descontar el nuevo
+      const origQty = Number(original.qty) || 0;
+      const origProductId = original.productId;
+      if (origProductId === form.productId) {
+        // Mismo producto: solo ajustar el delta
+        const delta = qty - origQty;
+        if (delta !== 0) {
+          setProducts(prev => prev.map(p =>
+            p.id === form.productId ? { ...p, stock: Math.max(0, (p.stock || 0) - delta) } : p
+          ));
+        }
+      } else {
+        // Producto cambiado: restaurar al viejo, descontar al nuevo
+        setProducts(prev => prev.map(p => {
+          if (p.id === origProductId) return { ...p, stock: (p.stock || 0) + origQty };
+          if (p.id === form.productId) return { ...p, stock: Math.max(0, (p.stock || 0) - qty) };
+          return p;
+        }));
+      }
+
+      const updated = {
+        ...original,
+        productId: form.productId, qty, person: form.person,
+        withdrawType: form.withdrawType, notes: form.notes || "",
+        costRealUSD, lucroCesanteUSD,
+        costEstimateUSD: costRealUSD, costEstimateARS: costRealARS,
+        date: dateISO,
+        // Vínculos opcionales — se reemplazan según form actual (borrar si vacío)
+        linkedSaleId: form.linkedSaleId || undefined,
+        linkedSaleClient: form.linkedSaleClient || undefined,
+        linkedSaleDate: form.linkedSaleDate || undefined,
+        linkedClientId: form.linkedClientId || undefined,
+        linkedClientName: form.linkedClientName || undefined,
+        reclamableProveedor: (form.reclamableProveedor && isGarantia(form.withdrawType)) ? true : undefined,
+        // Campos garantía
+        failedProductId: isGarantia(form.withdrawType) ? (form.failedProductId || form.productId) : undefined,
+        failureReason: isGarantia(form.withdrawType) ? (form.failureReason || "") : undefined,
+        failureNotes: (isGarantia(form.withdrawType) && form.failureNotes) ? form.failureNotes.trim() : undefined,
+        editedAt: new Date().toISOString(),
+        editedBy: currentUser?.name || "",
+      };
+      // Limpiar undefined para no ensuciar el doc
+      Object.keys(updated).forEach(k => updated[k] === undefined && delete updated[k]);
+
+      setWithdrawals(prev => prev.map(w => w.id === editingId ? updated : w));
+      if (logAudit) {
+        logAudit("update", "withdrawal", editingId,
+          `Editó merma: ${qty}x ${prod.brand} ${prod.model} - ${prod.flavor} · ${form.withdrawType}`
+        );
+      }
+      setModal(false);
+      setEditingId(null);
+      resetForm();
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 2000);
+      return;
+    }
 
     // Segunda barrera: si ya existe un withdrawal con este draftId, abortar
     if ((withdrawals || []).some(w => w.id === draftId)) {
@@ -252,16 +368,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
     }
 
     setModal(false);
-    setForm({
-      brand: "", model: "", productId: "", qty: 1,
-      person: currentUser?.name || "", withdrawType: "Consumo propio",
-      linkedSaleId: "", linkedSaleClient: "", linkedSaleDate: "",
-      linkedClientId: "", linkedClientName: "",
-      failedProductId: "", failureReason: "", failureNotes: "",
-      reclamableProveedor: false,
-      notes: "", date: new Date().toISOString().slice(0, 10),
-    });
-    setSaleSearch("");
+    resetForm();
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 2000);
   };
@@ -774,9 +881,12 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                 )};
 
                 const colActions = { key: "actions", label: "", render: r => (
-                  confirmDel === r.id
-                    ? <button onClick={() => deleteWithdrawal(r)} style={{ background: "#F7D7D6", border: "1px solid #E03E3E55", color: "#E03E3E", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Confirmar</button>
-                    : <button onClick={() => deleteWithdrawal(r)} style={{ background: "none", border: "none", color: "#E03E3E", cursor: "pointer", fontSize: 14 }}>🗑️</button>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    <button onClick={() => startEdit(r)} title="Editar" style={{ background: "none", border: "none", color: "#5E6AD2", cursor: "pointer", fontSize: 14 }}>✏️</button>
+                    {confirmDel === r.id
+                      ? <button onClick={() => deleteWithdrawal(r)} style={{ background: "#F7D7D6", border: "1px solid #E03E3E55", color: "#E03E3E", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Confirmar</button>
+                      : <button onClick={() => deleteWithdrawal(r)} style={{ background: "none", border: "none", color: "#E03E3E", cursor: "pointer", fontSize: 14 }}>🗑️</button>}
+                  </div>
                 )};
 
                 // Columnas por tab
@@ -810,7 +920,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
       {/* ============================================ */}
       {/* MODAL — Cascading picker style */}
       {/* ============================================ */}
-      <Modal open={modal} onClose={() => setModal(false)} title="Registrar Merma">
+      <Modal open={modal} onClose={() => { setModal(false); setEditingId(null); resetForm(); }} title={editingId ? "Editar Merma" : "Registrar Merma"}>
 
         {/* Validation error */}
         {validationError && (

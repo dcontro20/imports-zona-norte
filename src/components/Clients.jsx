@@ -119,7 +119,7 @@ export const Clients = ({ clients, setClients, sales, products, withdrawals = []
   const [zoneFilter, setZoneFilter] = useState("");
   const [monthFilter, setMonthFilter] = useState(""); // "" | "YYYY-MM"
   const [modal, setModal] = useState(false);
-  const [form, setForm] = useState({ name: "", phone: "", instagram: "", zona: "", notes: "" });
+  const [form, setForm] = useState({ name: "", phone: "", email: "", instagram: "", zona: "", notes: "" });
   const [editing, setEditing] = useState(null);
   const [phoneError, setPhoneError] = useState("");
 
@@ -265,8 +265,8 @@ export const Clients = ({ clients, setClients, sales, products, withdrawals = []
   }, [sales]);
 
   // ---- actions ----
-  const openNew = () => { setForm({ name: "", phone: "", instagram: "", zona: "", notes: "" }); setEditing(null); setPhoneError(""); setModal(true); };
-  const openEdit = (c) => { setForm({ name: c.name || "", phone: c.phone || "", instagram: c.instagram || "", zona: c.zona || "", notes: c.notes || "" }); setEditing(c.id); setPhoneError(""); setModal(true); };
+  const openNew = () => { setForm({ name: "", phone: "", email: "", instagram: "", zona: "", notes: "" }); setEditing(null); setPhoneError(""); setModal(true); };
+  const openEdit = (c) => { setForm({ name: c.name || "", phone: c.phone || "", email: c.email || "", instagram: c.instagram || "", zona: c.zona || "", notes: c.notes || "" }); setEditing(c.id); setPhoneError(""); setModal(true); };
 
   const save = () => {
     if (!form.name.trim()) return;
@@ -761,6 +761,14 @@ const ClientForm = ({ form, setForm, phoneError, setPhoneError, knownZones, edit
             placeholder="@usuario"
             style={fieldStyle()} />
         </div>
+      </div>
+
+      <div>
+        <label style={labelStyle}>Email (para recibos)</label>
+        <input type="email" value={form.email}
+          onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+          placeholder="cliente@email.com"
+          style={fieldStyle()} />
       </div>
 
       <div>

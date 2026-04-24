@@ -225,11 +225,16 @@ export const Products = ({ products, setProducts, exchangeRate, logStock, logPri
                 borderTop: `1px solid ${brandColor}15`, overflow: "hidden"
               }}>
                 {group.items.map((p, i) => (
-                  <div key={p.id} style={{
+                  <div key={p.id}
+                    onClick={() => { if (!quickEdit) openEdit(p); }}
+                    style={{
                     display: "flex", alignItems: "center", justifyContent: "space-between",
                     padding: "10px 18px", borderBottom: i < group.items.length - 1 ? "1px solid #F0EFEB" : "none",
-                    opacity: p.stock === 0 ? 0.4 : 1, transition: "opacity 0.2s"
-                  }}>
+                    opacity: p.stock === 0 ? 0.4 : 1, transition: "opacity 0.2s, background 0.15s",
+                    cursor: quickEdit ? "default" : "pointer",
+                  }}
+                  onMouseEnter={e => { if (!quickEdit) e.currentTarget.style.background = "#F5F5F2"; }}
+                  onMouseLeave={e => { if (!quickEdit) e.currentTarget.style.background = "transparent"; }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
                       <span style={{
                         width: 8, height: 8, borderRadius: "50%",

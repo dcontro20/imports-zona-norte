@@ -1266,6 +1266,7 @@ export const Sales = ({
               key={r.id}
               sale={r}
               products={products}
+              clients={clients}
               exchangeRate={exchangeRate}
               isMobile={isMobile}
               onEdit={() => openEdit(r)}
@@ -1416,7 +1417,34 @@ const resolveSaleItemName = (item, products) => {
   return p ? `${p.brand} ${p.model} - ${p.flavor}` : "Producto eliminado";
 };
 
-const SaleCard = ({ sale: r, products, exchangeRate, isMobile, onEdit, onRepeat, onDelete, confirmDelete }) => {
+const SaleCard = ({ sale: r, products, clients = [], exchangeRate, isMobile, onEdit, onRepeat, onDelete, confirmDelete }) => {
+  // Email receipt via mailto — abre el cliente de email del usuario con todos los campos pre-cargados
+  const sendReceipt = () => {
+    const client = clients.find(c => c.id === r.clientId);
+    const email = client?.email || "";
+    const itemsList = (r.items || []).map(i => {
+      const p = products.find(pr => pr.id === i.productId);
+      const name = p ? `${p.brand} ${p.model} - ${p.flavor}` : "Producto";
+      return `• ${i.qty || 1}× ${name}`;
+    }).join("\n");
+    const subject = `Recibo IZN · ${formatDate(r.date)}`;
+    const body = [
+      `¡Hola ${client?.name || ""}!`,
+      ``,
+      `Gracias por tu compra. Detalle:`,
+      ``,
+      itemsList,
+      ``,
+      `Total: ${formatMoney(r.total || 0, r.currency || "ARS")}`,
+      r.paymentMethod ? `Pago: ${r.paymentMethod}` : "",
+      ``,
+      `— Imports Zona Norte`,
+    ].filter(Boolean).join("\n");
+    const url = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = url;
+  };
+
+  const clientHasEmail = !!(clients.find(c => c.id === r.clientId)?.email);
   const [hover, setHover] = useState(false);
   const payments = r.payments && r.payments.length > 0 ? r.payments : [{ method: r.paymentMethod, amount: r.total }];
   const itemCount = (r.items || []).reduce((s, i) => s + (i.qty || 1), 0);
@@ -1560,6 +1588,7 @@ const SaleCard = ({ sale: r, products, exchangeRate, isMobile, onEdit, onRepeat,
         </div>
 
         <div style={{ display: "flex", gap: 4 }}>
+          {clientHasEmail && <GhostBtn onClick={sendReceipt} color={T.green} title="Enviar recibo por email">📧</GhostBtn>}
           <GhostBtn onClick={onRepeat} color={T.amber} title="Repetir">🔄</GhostBtn>
           <GhostBtn onClick={onEdit} color={T.primary} title="Editar">✏️</GhostBtn>
           {confirmDelete
