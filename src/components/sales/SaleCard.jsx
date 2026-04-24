@@ -6,6 +6,16 @@ import { T, pickAvatarColor } from "../../theme.js";
 // Extraído de Sales.jsx. Envuelto en memo al final del archivo para evitar
 // re-renders cuando cambian props no relacionados del parent.
 
+// resolveSaleItemName — resuelve nombre de item de venta. Vive acá porque
+// SaleCard es su único consumer. Nota: toma products (array) como input,
+// a diferencia de resolveItemName en clients/helpers.js que toma productsById (objeto).
+const resolveSaleItemName = (item, products) => {
+  if (item.name) return item.name;
+  if (item.productName) return item.productName;
+  const p = item.productId ? products.find(pr => pr.id === item.productId) : null;
+  return p ? `${p.brand} ${p.model} - ${p.flavor}` : "Producto eliminado";
+};
+
 const SaleCard = ({ sale: r, products, clients = [], exchangeRate, isMobile, onEdit, onRepeat, onDelete, confirmDelete }) => {
   // Email receipt via mailto — abre el cliente de email del usuario con todos los campos pre-cargados
   const sendReceipt = () => {

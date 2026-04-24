@@ -3,7 +3,7 @@ import { uid, formatMoney, formatDate, safeRate, dayKey } from "../../helpers.js
 import { useResponsive } from "../../App.jsx";
 import { Modal, Card, Btn, Input } from "../UI.jsx";
 import { T } from "../../theme.js";
-import { ACCOUNTS, ACCOUNT_BY_ID, MOVEMENT_TYPES, TYPE_BY_KEY } from "./shared.js";
+import { ACCOUNTS, ACCOUNT_BY_ID, MOVEMENT_TYPES, TYPE_BY_KEY, ghostBtn, primaryBtn } from "./shared.js";
 
 // MovementForm — Formulario unificado para los 5 tipos de movimiento de caja.
 // Extraído de CashBox.jsx para reducir tamaño del archivo padre.

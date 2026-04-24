@@ -1421,13 +1421,3 @@ const selectStyle = (active) => ({
   fontSize: 13, fontFamily: "inherit", cursor: "pointer", outline: "none",
 });
 
-// ============================================
-// SaleCard — rich card per sale
-// ============================================
-const resolveSaleItemName = (item, products) => {
-  if (item.name) return item.name;
-  if (item.productName) return item.productName;
-  const p = item.productId ? products.find(pr => pr.id === item.productId) : null;
-  return p ? `${p.brand} ${p.model} - ${p.flavor}` : "Producto eliminado";
-};
-

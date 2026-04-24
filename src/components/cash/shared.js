@@ -37,6 +37,22 @@ export const TYPE_BY_KEY = Object.fromEntries(MOVEMENT_TYPES.map(t => [t.key, t]
 // Legacy backward-compat (deposit/withdrawal → income/expense)
 export const normalizeType = (t) => ({ deposit: "income", withdrawal: "expense" })[t] || t;
 
+// Estilos reutilizables para botones ghost/primary del módulo Caja.
+// Usados tanto en CashBox.jsx como en MovementForm.jsx. Antes vivían
+// solo en CashBox y al extraer MovementForm quedaron referenciados
+// sin importar — causaba ReferenceError al abrir el form.
+export const ghostBtn = () => ({
+  padding: "8px 14px", borderRadius: 10, border: `1px solid ${T.border}`,
+  background: T.card, color: T.textSub, fontSize: 13, fontWeight: 600,
+  cursor: "pointer", fontFamily: "inherit",
+});
+
+export const primaryBtn = () => ({
+  padding: "10px 20px", borderRadius: 10, border: "none",
+  background: T.primary, color: "#fff", fontSize: 14, fontWeight: 700,
+  cursor: "pointer", fontFamily: "inherit", boxShadow: T.shadowSm,
+});
+
 // Traduce un método de pago (Sales.jsx) al accountId de caja correspondiente.
 // Devuelve "" si el método es desconocido — el caller debe guard contra eso.
 export function payMethodToAccountId(method, mpAccount) {

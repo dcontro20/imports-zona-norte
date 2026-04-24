@@ -7,6 +7,7 @@ import {
   INITIAL_BALANCES, ACCOUNTS, ACCOUNT_BY_ID,
   MOVEMENT_TYPES, TYPE_BY_KEY, normalizeType,
   payMethodToAccountId, ACCOUNT_METHOD_MAP,
+  ghostBtn, primaryBtn,
 } from "./cash/shared.js";
 import MovementForm from "./cash/MovementForm.jsx";
 import { calcAccountBalance } from "../calcs.js";
@@ -592,16 +593,6 @@ const SectionTitle = ({ children, right }) => (
   </div>
 );
 
-const ghostBtn = () => ({
-  padding: "8px 14px", borderRadius: 10, border: `1px solid ${T.border}`,
-  background: T.card, color: T.textSub, fontSize: 13, fontWeight: 600,
-  cursor: "pointer", fontFamily: "inherit",
-});
-const primaryBtn = () => ({
-  padding: "10px 20px", borderRadius: 10, border: "none",
-  background: T.primary, color: "#fff", fontSize: 14, fontWeight: 700,
-  cursor: "pointer", fontFamily: "inherit", boxShadow: T.shadowSm,
-});
 
 const Sparkline = ({ data, color, width = 100, height = 28 }) => {
   if (!data || data.length < 2) return null;
