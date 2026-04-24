@@ -10,6 +10,16 @@
 //   Corré: node scripts/backup.mjs --upload
 //
 // Cron (macOS LaunchAgent): ver scripts/com.izn.backup.plist
+//
+// CI (GitHub Actions): ver .github/workflows/backup-diario.yml + docs/BACKUP_AUTOMATION.md
+//
+// Credenciales (orden de precedencia):
+//   1. env var FIREBASE_PASSWORD → password de Firebase Auth
+//   2. fallback hardcoded "Poncharelo20!" (solo para LaunchAgent local)
+//   1. env var GOOGLE_DRIVE_TOKEN → JSON string del OAuth token
+//   2. fallback .credentials/drive-oauth-token.json
+// En CI (GITHUB_ACTIONS=true) las env vars son OBLIGATORIAS y el script
+// crashea si faltan para evitar silent fallback.
 
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
@@ -22,7 +32,41 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = join(__dirname, "..");
 const UPLOAD = process.argv.includes("--upload");
 const QUIET = process.argv.includes("--quiet");
+const IS_CI = process.env.GITHUB_ACTIONS === "true";
 const log = (...args) => { if (!QUIET) console.log(...args); };
+
+// Resuelve credenciales con precedencia env > archivo local > hardcoded.
+// En CI exige env vars para evitar usar fallbacks inseguros silenciosamente.
+function resolveFirebasePassword() {
+  const envPass = process.env.FIREBASE_PASSWORD;
+  if (envPass) return envPass;
+  if (IS_CI) {
+    console.error("❌ CI detectado (GITHUB_ACTIONS=true) pero FIREBASE_PASSWORD no está seteada.");
+    console.error("   Configurala en: GitHub → Settings → Secrets and variables → Actions");
+    process.exit(1);
+  }
+  // Fallback legacy para LaunchAgent local. El password se considera de dominio
+  // personal de Diego (misma cuenta que usa en la app). Ver docs/BACKUP_AUTOMATION.md
+  // para mover esto a ~/.izn-secrets.env en el futuro si querés endurecer local.
+  return "Poncharelo20!";
+}
+
+function resolveDriveToken() {
+  const envToken = process.env.GOOGLE_DRIVE_TOKEN;
+  if (envToken) {
+    try { return JSON.parse(envToken); }
+    catch (e) { console.error("❌ GOOGLE_DRIVE_TOKEN no es JSON válido:", e.message); process.exit(1); }
+  }
+  if (IS_CI) {
+    console.error("❌ CI detectado pero GOOGLE_DRIVE_TOKEN no está seteada.");
+    console.error("   Configurala en: GitHub → Settings → Secrets and variables → Actions");
+    console.error("   Valor: contenido completo de .credentials/drive-oauth-token.json");
+    process.exit(1);
+  }
+  const tokenPath = join(PROJECT_ROOT, ".credentials", "drive-oauth-token.json");
+  if (!existsSync(tokenPath)) return null;
+  return JSON.parse(readFileSync(tokenPath, "utf8"));
+}
 
 // ---- helpers de nombres amigables ----
 const DIAS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
@@ -87,7 +131,7 @@ async function main() {
   let lastErr = null;
   for (let attempt = 0; attempt < RETRY_DELAYS.length + 1; attempt++) {
     try {
-      await signInWithEmailAndPassword(auth, "dcontro20@gmail.com", "Poncharelo20!");
+      await signInWithEmailAndPassword(auth, "dcontro20@gmail.com", resolveFirebasePassword());
       log(`✅ Autenticado en Firebase${attempt > 0 ? ` (intento ${attempt + 1})` : ""}`);
       lastErr = null;
       break;
@@ -158,12 +202,11 @@ async function main() {
 }
 
 async function uploadToDrive(content, driveName) {
-  const tokenPath = join(PROJECT_ROOT, ".credentials", "drive-oauth-token.json");
-  if (!existsSync(tokenPath)) {
-    console.error(`\n❌ Upload a Drive falló — falta token OAuth en:`);
-    console.error(`   ${tokenPath}`);
-    console.error(`\n   Corré una vez:  node scripts/auth-oauth.mjs`);
-    console.error(`   Después el backup automático funciona sin intervención.`);
+  const tokenData = resolveDriveToken();
+  if (!tokenData) {
+    console.error(`\n❌ Upload a Drive falló — no hay token disponible.`);
+    console.error(`   Local: corré una vez  node scripts/auth-oauth.mjs`);
+    console.error(`   CI: seteá GOOGLE_DRIVE_TOKEN como secret en GitHub.`);
     return;
   }
 
@@ -177,7 +220,6 @@ async function uploadToDrive(content, driveName) {
   }
 
   const { google } = googleapis;
-  const tokenData = JSON.parse(readFileSync(tokenPath, "utf8"));
   const oauth2 = new google.auth.OAuth2(tokenData.client_id, tokenData.client_secret);
   oauth2.setCredentials({
     refresh_token: tokenData.refresh_token,
@@ -185,11 +227,16 @@ async function uploadToDrive(content, driveName) {
     expiry_date: tokenData.expiry_date,
   });
 
-  // Persistir access_token refrescado cuando googleapis lo rote
-  oauth2.on("tokens", (newTokens) => {
-    const merged = { ...tokenData, ...newTokens };
-    try { writeFileSync(tokenPath, JSON.stringify(merged, null, 2)); } catch {}
-  });
+  // Persistir access_token refrescado cuando googleapis lo rote.
+  // En CI esto es no-op (no hay archivo local), igual la next run re-usa el
+  // refresh_token del secret (que no cambia). Solo útil en local.
+  const tokenPath = join(PROJECT_ROOT, ".credentials", "drive-oauth-token.json");
+  if (!IS_CI && existsSync(tokenPath)) {
+    oauth2.on("tokens", (newTokens) => {
+      const merged = { ...tokenData, ...newTokens };
+      try { writeFileSync(tokenPath, JSON.stringify(merged, null, 2)); } catch {}
+    });
+  }
 
   const drive = google.drive({ version: "v3", auth: oauth2 });
 

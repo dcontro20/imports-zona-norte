@@ -1,0 +1,55 @@
+name: Backup diario a Drive
+
+# Corre independiente de la Mac de Diego. Complementa el LaunchAgent local
+# (scripts/com.izn.backup.plist) que se salta cuando la Mac está apagada/dormida.
+# Si uno o ambos corren el mismo día, Drive tiene de sobra (archivos con
+# timestamps distintos, sin overwrite).
+#
+# Secretos necesarios (Settings → Secrets and variables → Actions):
+#   FIREBASE_PASSWORD    → password Firebase Auth de dcontro20@gmail.com
+#   GOOGLE_DRIVE_TOKEN   → JSON completo de .credentials/drive-oauth-token.json
+#
+# Ver docs/BACKUP_AUTOMATION.md para setup completo.
+
+on:
+  schedule:
+    # 3:03 AM ART = 6:03 UTC (ART = UTC-3, sin horario de verano)
+    - cron: '3 6 * * *'
+  # Permite disparar manualmente desde Actions tab para testear o forzar backup
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout del repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Correr backup
+        env:
+          FIREBASE_PASSWORD: ${{ secrets.FIREBASE_PASSWORD }}
+          GOOGLE_DRIVE_TOKEN: ${{ secrets.GOOGLE_DRIVE_TOKEN }}
+          GITHUB_ACTIONS: 'true'
+        run: node scripts/backup.mjs --upload --quiet
+
+      - name: Subir logs si falló
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-logs-${{ github.run_id }}
+          path: |
+            /tmp/izn-backup.log
+            /tmp/izn-backup.err
+          if-no-files-found: ignore
+          retention-days: 7
