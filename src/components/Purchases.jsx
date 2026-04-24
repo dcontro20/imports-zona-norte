@@ -190,6 +190,56 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
       </div>
 
       <Card>
+        {isMobile ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {purchases.filter(p => !p.isDeleted).length === 0 ? (
+              <p style={{ color: "#B1AFA7", fontSize: 13, textAlign: "center", padding: "24px 0", margin: 0 }}>No hay pedidos registrados</p>
+            ) : (
+              purchases.filter(p => !p.isDeleted).map(r => {
+                const next = getNextStatus(r.status);
+                const hasCosts = r.paseroCostARS && r.envioCostARS;
+                const totalUnits = r.totalItems || (r.items || []).reduce((s, i) => s + (Number(i.qty) || 0), 0);
+                const costLabel = hasCosts ? formatMoney(r.totalCostARS) : "Costos incompletos";
+                return (
+                  <div key={r.id} onClick={() => openEdit(r)} style={{
+                    background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 12,
+                    padding: 14, cursor: "pointer", display: "flex", flexDirection: "column", gap: 8,
+                  }}>
+                    {/* Row 1: supplier + status */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: "#37352F", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {r.supplier || "Sin proveedor"}
+                      </div>
+                      {getStatusBadge(r.status)}
+                    </div>
+                    {/* Row 2: fecha + unidades + costo */}
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12, color: "#8C8A82" }}>
+                      <span>{formatDate(r.date)}</span>
+                      <span><strong style={{ color: "#37352F" }}>{totalUnits}</strong> uds</span>
+                      <span style={{ color: hasCosts ? "#0F7B6C" : "#CB912F", fontWeight: 700 }}>{costLabel}</span>
+                    </div>
+                    {/* Row 3: USDT breakdown (compacto) */}
+                    <div style={{ fontSize: 11, color: "#B1AFA7", display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      <span>Vapes: {formatMoney(r.totalUSDT, "USDT")}</span>
+                      {r.supplierCommUSDT > 0 && <span>Com: {formatMoney(r.supplierCommUSDT, "USDT")}</span>}
+                      <span>Pasero: {r.paseroCostARS ? formatMoney(r.paseroCostARS) : "—"}</span>
+                      <span>Envío: {r.envioCostARS ? formatMoney(r.envioCostARS) : "—"}</span>
+                    </div>
+                    {/* Row 4: acciones */}
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
+                      {!hasCosts && <button onClick={e => { e.stopPropagation(); openCosts(r); }} style={{ flex: 1, minWidth: 100, minHeight: 36, background: "#FDECC8", border: "1px solid #CB912F55", color: "#CB912F", padding: "7px 10px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>$ Costos</button>}
+                      {next && <button onClick={e => { e.stopPropagation(); next.value === "verificado" ? setVerifyModal(r.id) : updateStatus(r.id, next.value); }} style={{ flex: 1, minWidth: 100, minHeight: 36, background: `${next.color}22`, border: `1px solid ${next.color}55`, color: next.color, padding: "7px 10px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>{next.value === "verificado" ? "Verificar" : "Avanzar"}</button>}
+                      {confirmDelete === r.id
+                        ? <button onClick={e => { e.stopPropagation(); deletePurchase(r); }} style={{ minHeight: 36, background: "#F7D7D6", border: "1px solid #E03E3E55", color: "#E03E3E", padding: "7px 12px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>Confirmar</button>
+                        : <button onClick={e => { e.stopPropagation(); deletePurchase(r); }} style={{ minHeight: 36, background: "none", border: "1px solid #F7D7D6", color: "#E03E3E", padding: "7px 12px", borderRadius: 8, cursor: "pointer", fontSize: 14, fontFamily: "inherit" }}>🗑️</button>
+                      }
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        ) : (
         <Table columns={[
           { key: "date", label: "Fecha", render: r => formatDate(r.date) },
           { key: "supplier", label: "Proveedor" },
@@ -218,6 +268,7 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
             </div>);
           }},
         ]} data={purchases.filter(p => !p.isDeleted)} emptyMsg="No hay pedidos registrados" />
+        )}
       </Card>
 
       {/* New/Edit Modal */}
