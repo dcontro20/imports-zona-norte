@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useResponsive } from "../App.jsx";
 
 // Mobile-first: altura mínima 44px en todo lo tocable (Apple HIG).
@@ -6,6 +6,33 @@ import { useResponsive } from "../App.jsx";
 
 export const Modal = ({ open, onClose, title, children }) => {
   const { isMobile } = useResponsive();
+  // Ref al contenedor scrolleable + state para indicador "hay más abajo".
+  // canScrollDown=true cuando hay contenido oculto que requiere scroll.
+  const contentRef = useRef(null);
+  const [canScrollDown, setCanScrollDown] = useState(false);
+
+  // Chequea la posición de scroll. Llamado en mount, resize, scroll y cuando
+  // cambian los children (contenido dinámico que cambia el alto).
+  const checkScroll = () => {
+    const el = contentRef.current;
+    if (!el) return;
+    const threshold = 8; // tolerancia para no parpadear al final
+    setCanScrollDown(el.scrollHeight - el.scrollTop - el.clientHeight > threshold);
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    // Run después del render para tener dimensiones reales
+    const id = requestAnimationFrame(checkScroll);
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(checkScroll) : null;
+    if (ro && contentRef.current) ro.observe(contentRef.current);
+    window.addEventListener("resize", checkScroll);
+    return () => {
+      cancelAnimationFrame(id);
+      window.removeEventListener("resize", checkScroll);
+      if (ro) ro.disconnect();
+    };
+  }, [open, children]);
 
   if (!open) return null;
   return (
@@ -25,8 +52,12 @@ export const Modal = ({ open, onClose, title, children }) => {
         border: isMobile ? "none" : "1px solid #E8E7E3",
         boxShadow: "0 24px 48px rgba(15,15,15,0.14)",
         boxSizing: "border-box",
+        position: "relative",
         ...(isMobile ? { paddingBottom: "max(24px, env(safe-area-inset-bottom))" } : {}),
-      }} onClick={e => e.stopPropagation()}>
+      }}
+      ref={contentRef}
+      onScroll={checkScroll}
+      onClick={e => e.stopPropagation()}>
         {/* Mobile drag handle */}
         {isMobile && (
           <div style={{
@@ -49,6 +80,22 @@ export const Modal = ({ open, onClose, title, children }) => {
           }}>✕</button>
         </div>
         {children}
+        {/* Scroll indicator: gradient + chevron cuando hay contenido abajo */}
+        {canScrollDown && (
+          <div style={{
+            position: "sticky", bottom: -16,
+            marginLeft: isMobile ? -16 : -24,
+            marginRight: isMobile ? -16 : -24,
+            marginBottom: isMobile ? -16 : -24,
+            marginTop: 8,
+            height: 32,
+            background: "linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.98))",
+            pointerEvents: "none",
+            display: "flex", alignItems: "flex-end", justifyContent: "center",
+            paddingBottom: 4,
+            fontSize: 16, color: "#8C8A82",
+          }}>▾</div>
+        )}
       </div>
     </div>
   );

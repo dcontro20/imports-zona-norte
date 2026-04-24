@@ -130,18 +130,44 @@ function audit() {
 
   // ============================================
   // 5. Clientes con balance incoherente
+  //
+  // Dos niveles de chequeo:
+  //   5a. Balance != 0 sin ventas asociadas → balance manual puro, revisar
+  //   5b. Balance actual no matchea el que se calcularía del histórico:
+  //       expected = Σ (creditUsed + debtAmount*(clientOwes?-1:0) + changeAsCredit) de sus ventas
+  //       + Σ (balanceHistory.type === "adjustment"/"payment"/"credit" montos explícitos)
+  //
+  // Tolerancia de $1 ARS para evitar falsos positivos por redondeo.
   // ============================================
   console.log("=== 5. CLIENTES con balance que no concilia ===");
   let balanceMismatches = 0;
+
+  // Calcula el balance esperado desde balanceHistory (la fuente canónica de cambios
+  // en balance del cliente: tanto ventas como ajustes manuales registran entries ahí)
+  const calcExpectedFromHistory = (client) => {
+    const history = client.balanceHistory || [];
+    if (history.length === 0) return null; // no hay historial → no podemos verificar
+    // La última entrada tiene balanceAfter, que debería matchear client.balance actual
+    const last = history[history.length - 1];
+    return typeof last.balanceAfter === "number" ? last.balanceAfter : null;
+  };
+
   clients.forEach(c => {
     if (c.isDeleted) return;
     const balance = Number(c.balance || 0);
     if (balance === 0) return;
-    // Heurística: sumar diffs de ventas (cliente nos debe → negativo; nos dio vuelto como crédito → positivo)
+    // 5a: balance no-cero sin ventas asociadas (probablemente carga manual)
     const clientSales = sales.filter(s => !s.isDeleted && s.clientId === c.id);
-    if (clientSales.length === 0 && balance !== 0) {
+    if (clientSales.length === 0) {
       balanceMismatches++;
-      report("INFO", `Cliente ${c.name}: balance $${balance} pero sin ventas asociadas`, `Balance manual sin histórico`);
+      report("INFO", `Cliente ${c.name}: balance $${balance} pero sin ventas asociadas`, `Balance manual sin ventas`);
+    }
+    // 5b: si tiene balanceHistory, el balance actual debería matchear el último balanceAfter
+    const expected = calcExpectedFromHistory(c);
+    if (expected !== null && Math.abs(expected - balance) > 1) {
+      balanceMismatches++;
+      report("WARN", `Cliente ${c.name}: balance actual $${balance} vs esperado $${expected} (último balanceAfter del histórico)`,
+        `Diferencia $${(balance - expected).toFixed(2)} — posible edición directa del balance saltando balanceHistory`);
     }
   });
   if (balanceMismatches === 0) console.log("✅ Balances de clientes coherentes con histórico\n");
