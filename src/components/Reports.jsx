@@ -329,6 +329,110 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
         })()}
       </Card>
 
+      {/* Rentabilidad por Marca — agregado de margen, volumen y revenue */}
+      <Card style={{ marginBottom: 14 }}>
+        <h4 style={{ color: "#00b894", margin: "0 0 14px", fontSize: 14, textTransform: "uppercase" }}>💰 Rentabilidad por Marca</h4>
+        {(() => {
+          // Acumular costo promedio USD por producto (de compras verificadas, prorrateando pasero+envío)
+          const prodCostUSD = {}; // productId -> avg cost USD per unit
+          purchases.filter(p => !p.isDeleted && (p.status === "verificado" || !p.status)).forEach(p => {
+            const totalItems = (p.items || []).reduce((s, i) => s + (Number(i.qty) || 0), 0);
+            const extraARSperUnit = totalItems > 0 ? ((p.paseroCostARS || 0) + (p.envioCostARS || 0)) / totalItems : 0;
+            const suppCommPerUnit = totalItems > 0 && p.supplierCommUSDT ? (p.supplierCommUSDT / totalItems) : 0;
+            (p.items || []).forEach(it => {
+              const rate = exchangeRate || 1;
+              const costUSD = (Number(it.unitCostUSDT) || 0) + suppCommPerUnit + (rate > 0 ? extraARSperUnit / rate : 0);
+              if (!prodCostUSD[it.productId]) prodCostUSD[it.productId] = { sum: 0, count: 0 };
+              prodCostUSD[it.productId].sum += costUSD * (Number(it.qty) || 0);
+              prodCostUSD[it.productId].count += Number(it.qty) || 0;
+            });
+          });
+
+          // Agregar por marca desde ventas
+          const byBrand = {};
+          sales.filter(s => !s.isDeleted).forEach(s => {
+            const rate = s.exchangeRate || exchangeRate || 0;
+            (s.items || []).forEach(it => {
+              const prod = products.find(p => p.id === it.productId);
+              if (!prod) return;
+              const qty = Number(it.qty) || 1;
+              const unitPrice = Number(it.customPrice) || prod.priceUSD || 0; // USD
+              const revenueUSD = unitPrice * qty;
+              const revenueARS = s.currency === "ARS" ? (unitPrice * qty * rate) : (unitPrice * qty * rate);
+              const avgCost = prodCostUSD[it.productId] && prodCostUSD[it.productId].count > 0
+                ? prodCostUSD[it.productId].sum / prodCostUSD[it.productId].count
+                : (prod.costUSDT || prod.priceUSD * 0.55);
+              const costUSD = avgCost * qty;
+
+              if (!byBrand[prod.brand]) byBrand[prod.brand] = { brand: prod.brand, units: 0, revenueUSD: 0, costUSD: 0, salesCount: 0 };
+              byBrand[prod.brand].units += qty;
+              byBrand[prod.brand].revenueUSD += revenueUSD;
+              byBrand[prod.brand].costUSD += costUSD;
+            });
+          });
+
+          const rows = Object.values(byBrand).map(b => {
+            const margin = b.revenueUSD - b.costUSD;
+            const pct = b.revenueUSD > 0 ? (margin / b.revenueUSD) * 100 : 0;
+            const avgTicket = b.units > 0 ? b.revenueUSD / b.units : 0;
+            return { ...b, margin, pct, avgTicket };
+          }).sort((a, b) => b.revenueUSD - a.revenueUSD);
+
+          if (rows.length === 0) {
+            return <p style={{ color: "#555", fontSize: 13 }}>Cargá ventas con productos activos para ver rentabilidad por marca.</p>;
+          }
+
+          const totalRevenueUSD = rows.reduce((s, r) => s + r.revenueUSD, 0);
+
+          return (
+            <>
+              <p style={{ color: "#8C8A82", fontSize: 12, margin: "0 0 14px" }}>
+                Margen = revenue − costo real (USDT pagado + comisión + pasero + envío prorrateados). Ordenado por revenue descendente.
+              </p>
+              <div style={{ overflow: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                  <thead>
+                    <tr style={{ textAlign: "left", color: "#8C8A82", borderBottom: "1px solid #E8E7E3" }}>
+                      <th style={{ padding: "8px 10px", fontWeight: 600 }}>Marca</th>
+                      <th style={{ padding: "8px 10px", fontWeight: 600, textAlign: "right" }}>Uds</th>
+                      <th style={{ padding: "8px 10px", fontWeight: 600, textAlign: "right" }}>Revenue</th>
+                      <th style={{ padding: "8px 10px", fontWeight: 600, textAlign: "right" }}>Costo</th>
+                      <th style={{ padding: "8px 10px", fontWeight: 600, textAlign: "right" }}>Margen</th>
+                      <th style={{ padding: "8px 10px", fontWeight: 600, textAlign: "right" }}>%</th>
+                      <th style={{ padding: "8px 10px", fontWeight: 600, textAlign: "right" }}>Ticket avg</th>
+                      <th style={{ padding: "8px 10px", fontWeight: 600, textAlign: "right" }}>% total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map(r => (
+                      <tr key={r.brand} style={{ borderBottom: "1px solid #F0EFEB" }}>
+                        <td style={{ padding: "8px 10px", color: "#37352F", fontWeight: 700 }}>{r.brand}</td>
+                        <td style={{ padding: "8px 10px", color: "#8C8A82", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{r.units}</td>
+                        <td style={{ padding: "8px 10px", color: "#37352F", fontWeight: 700, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{formatMoney(r.revenueUSD, "USD")}</td>
+                        <td style={{ padding: "8px 10px", color: "#8C8A82", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{formatMoney(r.costUSD, "USD")}</td>
+                        <td style={{ padding: "8px 10px", color: r.margin >= 0 ? "#0F7B6C" : "#E03E3E", fontWeight: 700, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{formatMoney(r.margin, "USD")}</td>
+                        <td style={{ padding: "8px 10px", textAlign: "right" }}>
+                          <span style={{
+                            padding: "2px 8px", borderRadius: 999, fontSize: 11, fontWeight: 700,
+                            background: r.pct >= 50 ? "#DDEDEA" : r.pct >= 30 ? "#FDECC8" : "#FBE4E4",
+                            color: r.pct >= 50 ? "#0F7B6C" : r.pct >= 30 ? "#CB912F" : "#E03E3E",
+                          }}>{r.pct.toFixed(0)}%</span>
+                        </td>
+                        <td style={{ padding: "8px 10px", color: "#8C8A82", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{formatMoney(r.avgTicket, "USD")}</td>
+                        <td style={{ padding: "8px 10px", color: "#8C8A82", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{totalRevenueUSD > 0 ? Math.round(r.revenueUSD / totalRevenueUSD * 100) : 0}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div style={{ marginTop: 10, color: "#555", fontSize: 11 }}>
+                * Costo estimado: usa costo promedio de compras verificadas del producto; si no hay, fallback costUSDT o 55% de priceUSD.
+              </div>
+            </>
+          );
+        })()}
+      </Card>
+
       {/* Monthly evolution */}
       {monthlySales.length > 0 && (
         <Card>
