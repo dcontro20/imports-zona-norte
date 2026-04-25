@@ -53,7 +53,7 @@ export const Clients = ({ clients, setClients, sales, products, withdrawals = []
   const [zoneFilter, setZoneFilter] = useState("");
   const [monthFilter, setMonthFilter] = useState(""); // "" | "YYYY-MM"
   const [modal, setModal] = useState(false);
-  const [form, setForm] = useState({ name: "", phone: "", email: "", instagram: "", zona: "", notes: "" });
+  const [form, setForm] = useState({ name: "", phone: "", email: "", instagram: "", zona: "", notes: "", dateOfBirth: "", isBlocked: false, blockReason: "" });
   const [editing, setEditing] = useState(null);
   const [phoneError, setPhoneError] = useState("");
 
@@ -103,6 +103,39 @@ export const Clients = ({ clients, setClients, sales, products, withdrawals = []
       }
       map[c.id] = { salesCount: cs.length, totalSpent, totalUnits, lastPurchase, firstPurchase, favProducts, byMonth, avgDays, sales: cs };
     });
+
+    // ---- LTV score + segmentación VIP/regular/dormido (computado tras pasada inicial) ----
+    // VIP: top 10% en revenue (percentil 90+)
+    // Regular: ≥1 venta en últimos 30d, no VIP
+    // Dormido: sin ventas hace ≥60d
+    // Nuevo: sin ninguna venta aún
+    const revenues = Object.values(map).map(m => m.totalSpent).filter(v => v > 0).sort((a, b) => a - b);
+    const p90 = revenues.length > 0 ? revenues[Math.floor(revenues.length * 0.9)] : Infinity;
+    const now = Date.now();
+    Object.entries(map).forEach(([cid, m]) => {
+      const daysSinceLast = m.lastPurchase ? Math.floor((now - new Date(m.lastPurchase.date)) / 86400000) : Infinity;
+      let segment = "nuevo";
+      if (m.totalSpent >= p90 && m.totalSpent > 0) segment = "vip";
+      else if (daysSinceLast <= 30) segment = "regular";
+      else if (daysSinceLast >= 60) segment = "dormido";
+      else if (m.salesCount > 0) segment = "regular";
+
+      // LTV score: monto + frecuencia + recencia (formula simple, capped)
+      // Cada componente aporta hasta ~333 puntos, total max ~1000
+      const moneyScore = Math.min(333, m.totalSpent / 1000);
+      const freqScore = Math.min(333, m.salesCount * 25);
+      const recencyScore = daysSinceLast === Infinity ? 0
+        : daysSinceLast < 14 ? 333
+        : daysSinceLast < 30 ? 250
+        : daysSinceLast < 60 ? 150
+        : daysSinceLast < 90 ? 75
+        : 0;
+      const ltv = Math.round(moneyScore + freqScore + recencyScore);
+      const tier = ltv >= 700 ? "oro" : ltv >= 400 ? "plata" : ltv >= 150 ? "bronce" : "nuevo";
+
+      map[cid] = { ...m, segment, daysSinceLast: daysSinceLast === Infinity ? null : daysSinceLast, ltv, tier };
+    });
+
     return map;
   }, [clients, sales, productsById]);
 
@@ -201,8 +234,12 @@ export const Clients = ({ clients, setClients, sales, products, withdrawals = []
   }, [sales]);
 
   // ---- actions ----
-  const openNew = () => { setForm({ name: "", phone: "", email: "", instagram: "", zona: "", notes: "" }); setEditing(null); setPhoneError(""); setModal(true); };
-  const openEdit = (c) => { setForm({ name: c.name || "", phone: c.phone || "", email: c.email || "", instagram: c.instagram || "", zona: c.zona || "", notes: c.notes || "" }); setEditing(c.id); setPhoneError(""); setModal(true); };
+  const openNew = () => { setForm({ name: "", phone: "", email: "", instagram: "", zona: "", notes: "", dateOfBirth: "", isBlocked: false, blockReason: "" }); setEditing(null); setPhoneError(""); setModal(true); };
+  const openEdit = (c) => { setForm({
+    name: c.name || "", phone: c.phone || "", email: c.email || "", instagram: c.instagram || "",
+    zona: c.zona || "", notes: c.notes || "",
+    dateOfBirth: c.dateOfBirth || "", isBlocked: !!c.isBlocked, blockReason: c.blockReason || "",
+  }); setEditing(c.id); setPhoneError(""); setModal(true); };
 
   const save = () => {
     if (!form.name.trim()) return;
@@ -468,6 +505,63 @@ const ClientCard = memo(({ client: c, stats, productsById, gestures, onEdit, onH
                 border: `1px solid ${T.borderSoft}`, fontWeight: 500,
               }}>📍 {c.zona}</span>
             )}
+            {c.isBlocked && (
+              <span title={c.blockReason || "Cliente bloqueado"} style={{
+                display: "inline-flex", alignItems: "center", gap: 4,
+                fontSize: 11, color: "#fff", background: T.red, padding: "3px 8px", borderRadius: 999,
+                fontWeight: 700,
+              }}>🚫 Bloqueado</span>
+            )}
+            {(() => {
+              const seg = stats?.segment;
+              if (!seg) return null;
+              const config = {
+                vip: { label: "⭐ VIP", color: T.amber, bg: T.amberBg, border: T.amberBorder },
+                regular: { label: "✓ Regular", color: T.green, bg: T.greenBg, border: T.greenBorder },
+                dormido: { label: "💤 Dormido", color: T.textMuted, bg: T.surface2, border: T.borderSoft },
+                nuevo: null,
+              };
+              const c2 = config[seg];
+              if (!c2) return null;
+              return (
+                <span style={{
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  fontSize: 11, color: c2.color, background: c2.bg,
+                  padding: "3px 8px", borderRadius: 999,
+                  border: `1px solid ${c2.border}`, fontWeight: 600,
+                }} title={`Segmento: ${seg}${stats.daysSinceLast != null ? ` · última compra hace ${stats.daysSinceLast}d` : ""}`}>
+                  {c2.label}
+                </span>
+              );
+            })()}
+            {stats?.tier && stats.tier !== "nuevo" && (
+              <span title={`LTV score: ${stats.ltv}`} style={{
+                display: "inline-flex", alignItems: "center", gap: 4,
+                fontSize: 11,
+                color: stats.tier === "oro" ? "#92400E" : stats.tier === "plata" ? "#374151" : "#7C2D12",
+                background: stats.tier === "oro" ? "#FEF3C7" : stats.tier === "plata" ? "#E5E7EB" : "#FED7AA",
+                padding: "3px 8px", borderRadius: 999, fontWeight: 700,
+              }}>
+                {stats.tier === "oro" ? "🥇 Oro" : stats.tier === "plata" ? "🥈 Plata" : "🥉 Bronce"}
+              </span>
+            )}
+            {(() => {
+              if (!c.dateOfBirth) return null;
+              const today = new Date();
+              const dob = new Date(c.dateOfBirth);
+              if (isNaN(dob.getTime())) return null;
+              if (today.getMonth() === dob.getMonth() && today.getDate() === dob.getDate()) {
+                return (
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", gap: 4,
+                    fontSize: 11, color: "#fff", background: "#EC4899",
+                    padding: "3px 8px", borderRadius: 999, fontWeight: 700,
+                    animation: "fadeIn 0.5s ease",
+                  }}>🎂 Cumple hoy!</span>
+                );
+              }
+              return null;
+            })()}
             {gestures && gestures.count > 0 && (() => {
               const parts = [];
               if (gestures.regalos > 0) parts.push(`${gestures.regalos} regalo${gestures.regalos > 1 ? "s" : ""}`);
@@ -755,6 +849,41 @@ const ClientForm = ({ form, setForm, phoneError, setPhoneError, knownZones, edit
           placeholder="Opcional — preferencias, recordatorios, etc."
           rows={3}
           style={{ ...fieldStyle(), resize: "vertical", minHeight: 64 }} />
+      </div>
+
+      <div>
+        <label style={labelStyle}>Fecha de cumpleaños (opcional)</label>
+        <input
+          type="date"
+          value={form.dateOfBirth || ""}
+          onChange={e => setForm(f => ({ ...f, dateOfBirth: e.target.value }))}
+          style={fieldStyle()}
+        />
+      </div>
+
+      <div style={{
+        padding: 12, background: form.isBlocked ? "#FEE9E7" : T.surface2,
+        border: `1px solid ${form.isBlocked ? "#EF444455" : T.borderSoft}`,
+        borderRadius: 10,
+      }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, color: T.text, fontWeight: 600 }}>
+          <input
+            type="checkbox"
+            checked={!!form.isBlocked}
+            onChange={e => setForm(f => ({ ...f, isBlocked: e.target.checked }))}
+            style={{ width: 16, height: 16, cursor: "pointer" }}
+          />
+          🚫 Bloquear cliente (lista negra)
+        </label>
+        {form.isBlocked && (
+          <input
+            type="text"
+            value={form.blockReason || ""}
+            onChange={e => setForm(f => ({ ...f, blockReason: e.target.value }))}
+            placeholder="Razón (ej: no pagó, dirección falsa, devolvió producto roto)"
+            style={{ ...fieldStyle(), marginTop: 8 }}
+          />
+        )}
       </div>
 
       <div style={{ display: "flex", gap: 8, marginTop: 6, justifyContent: "flex-end" }}>

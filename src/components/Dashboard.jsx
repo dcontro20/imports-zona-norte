@@ -370,6 +370,19 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, c
       detail: stale.slice(0, 3).map(p => `${p.brand} ${p.model}`).join(", "),
     });
 
+    // Cumpleaños de hoy
+    const todayMM = String(now.getMonth() + 1).padStart(2, "0");
+    const todayDD = String(now.getDate()).padStart(2, "0");
+    const birthdays = clients.filter(c => {
+      if (!c.dateOfBirth) return false;
+      const dob = c.dateOfBirth;
+      return dob.slice(5, 7) === todayMM && dob.slice(8, 10) === todayDD;
+    });
+    if (birthdays.length > 0) list.push({
+      t: "info", msg: `🎂 ${birthdays.length} cliente${birthdays.length > 1 ? "s" : ""} cumple${birthdays.length > 1 ? "n" : ""} hoy`,
+      detail: birthdays.slice(0, 3).map(c => c.name).join(", "),
+    });
+
     const debtors = clients.filter(c => (c.balance || 0) < 0);
     const totalDebt = debtors.reduce((s, c) => s + Math.abs(c.balance), 0);
     if (debtors.length > 0 && totalDebt > settings.debtTotalAlertARS) list.push({

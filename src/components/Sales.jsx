@@ -829,6 +829,10 @@ export const Sales = ({
             }}>
               {filteredClients.map(c => (
                 <button key={c.id} onClick={() => {
+                  if (c.isBlocked) {
+                    const proceed = confirm(`⚠️ Cliente bloqueado: ${c.name}\n\nRazón: ${c.blockReason || "(sin razón)"}\n\n¿Cargar venta de todos modos?`);
+                    if (!proceed) return;
+                  }
                   setForm(f => ({ ...f, clientId: c.id, clientName: c.name }));
                   setClientSearch(c.name);
                   setShowClientDropdown(false);
