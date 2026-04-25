@@ -196,6 +196,34 @@ const MovementForm = ({ presetType, exchangeRate, balances, recentMovements = []
           style={fieldStyle()} />
       </div>
 
+      <div>
+        <label style={lblStyle}>Etiquetas (opcional)</label>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {["personal", "negocio", "extraordinario", "reposición"].map(tag => {
+            const active = (form.tags || []).includes(tag);
+            return (
+              <button
+                type="button"
+                key={tag}
+                onClick={() => setForm(f => ({
+                  ...f,
+                  tags: active
+                    ? (f.tags || []).filter(t => t !== tag)
+                    : [...(f.tags || []), tag],
+                }))}
+                style={{
+                  padding: "5px 10px", borderRadius: 14,
+                  border: `1px solid ${active ? T.primary : T.borderSoft}`,
+                  background: active ? `${T.primary}15` : "transparent",
+                  color: active ? T.primary : T.textMuted,
+                  fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                }}
+              >#{tag}</button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Advanced */}
       <button type="button" onClick={() => setShowMore(v => !v)} style={{
         background: "none", border: "none", color: T.primary, fontSize: 12, fontWeight: 600,

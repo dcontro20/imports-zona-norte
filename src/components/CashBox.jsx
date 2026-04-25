@@ -259,6 +259,62 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
   }, [ledger]);
 
   // ---- save movement ----
+  // Forecast 30 días: proyecta saldos basándose en gastos recurrentes y velocidad de ventas últimos 30d
+  const forecast30d = useMemo(() => {
+    const now = new Date();
+    const last30Start = new Date(now.getTime() - 30 * 86400000);
+    const recentExpenses = (expenses || []).filter(e => !e.isDeleted && new Date(e.date) >= last30Start);
+    const recentSales = (sales || []).filter(s => !s.isDeleted && new Date(s.date) >= last30Start);
+    const dailyExpenseARS = recentExpenses.reduce((s, e) => s + (Number(e.amountARS) || 0), 0) / 30;
+    const dailySalesARS = recentSales.reduce((s, sale) => {
+      const totalARS = sale.currency === "USD" ? (sale.total || 0) * exchangeRate : (sale.total || 0);
+      return s + totalARS;
+    }, 0) / 30;
+    const dailyNetARS = dailySalesARS - dailyExpenseARS;
+    const totalARSNow = ACCOUNTS.filter(a => a.currency === "ARS").reduce((s, a) => s + (balances[a.id] || 0), 0);
+    const totalARS30 = totalARSNow + dailyNetARS * 30;
+    return {
+      dailyExpenseARS, dailySalesARS, dailyNetARS,
+      totalARSNow, totalARS30,
+      goingNegative: totalARS30 < 0,
+      negativeIn: dailyNetARS < 0 && totalARSNow > 0 ? Math.floor(totalARSNow / Math.abs(dailyNetARS)) : null,
+    };
+  }, [expenses, sales, exchangeRate, balances]);
+
+  // Export CSV de movimientos del mes actual
+  const exportMovementsCsv = () => {
+    const now = new Date();
+    const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+    const monthEnd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()).padStart(2, "0")}`;
+    const movs = (cashMovements || [])
+      .filter(m => !m.isDeleted && m.date >= monthStart && m.date <= monthEnd)
+      .sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+    const header = "fecha,tipo,desde,hacia,monto,moneda,amountUSDT,descripcion,tags,creadoPor";
+    const rows = movs.map(m => {
+      const fromAcc = ACCOUNT_BY_ID[m.from];
+      const toAcc = ACCOUNT_BY_ID[m.to];
+      const cur = fromAcc?.currency || toAcc?.currency || "ARS";
+      const escape = (s) => `"${String(s || "").replace(/"/g, '""')}"`;
+      return [
+        m.date, TYPE_BY_KEY[m.type]?.label || m.type,
+        fromAcc?.label || "", toAcc?.label || "",
+        m.amount, cur, m.amountUSDT || "",
+        escape(m.description), escape((m.tags || []).join(";")),
+        escape(m.createdBy),
+      ].join(",");
+    });
+    const csv = [header, ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `IZN_Caja_${monthStart.slice(0, 7)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const saveMovement = (form) => {
     if (!form.amount || Number(form.amount) <= 0) return false;
     const t = form.type;
@@ -287,7 +343,27 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
       createdAtMs: form.createdAtMs || Date.now(),
       createdAt: new Date(form.createdAtMs || Date.now()).toISOString(),
       createdBy: currentUser?.name || "",
+      tags: form.tags || [],
     };
+    // Alerta saldo negativo: simular el balance post-movimiento de la cuenta from
+    if (form.from && (t === "expense" || t === "transfer" || t === "crypto_buy")) {
+      const fromAcc = ACCOUNT_BY_ID[form.from];
+      const currentBal = balances[form.from] || 0;
+      const debit = t === "crypto_buy" ? Number(form.amount) : Number(form.amount);
+      if (currentBal - debit < 0) {
+        const proceed = confirm(
+          `⚠️ Saldo negativo en ${fromAcc?.label}\n\n` +
+          `Saldo actual: ${formatMoney(currentBal, fromAcc?.currency)}\n` +
+          `Movimiento: -${formatMoney(debit, fromAcc?.currency)}\n` +
+          `Saldo final: ${formatMoney(currentBal - debit, fromAcc?.currency)}\n\n` +
+          `¿Estás seguro? Causas posibles:\n` +
+          `· Olvidaste cargar un ingreso reciente\n` +
+          `· Hay un movimiento duplicado\n` +
+          `· La cuenta efectivamente quedó en rojo`
+        );
+        if (!proceed) return false;
+      }
+    }
     setCashMovements(prev => [movement, ...prev]);
     if (logAudit) logAudit("create", "cashMovement", newId, `${TYPE_BY_KEY[t].label}: ${formatMoney(form.amount)} ${form.from ? ACCOUNT_BY_ID[form.from]?.short : ""} → ${form.to ? ACCOUNT_BY_ID[form.to]?.short : ""}`);
     return true;
@@ -432,6 +508,7 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button onClick={exportMovementsCsv} style={ghostBtn()}>📥 Export CSV</button>
           <button onClick={() => setShowConciliation(true)} style={ghostBtn()}>⚖️ Conciliar</button>
           {!todayAlreadyClosed ? (
             <button onClick={() => setShowDailyClose(true)} style={ghostBtn()}>📋 Cerrar caja</button>
@@ -478,6 +555,49 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
         exchangeRate={exchangeRate}
         isMobile={isMobile}
       />
+
+      {/* ========== FORECAST 30 DAYS ========== */}
+      <div style={{
+        background: forecast30d.goingNegative ? "#FEE9E7" : "#FAFAF9",
+        border: `1px solid ${forecast30d.goingNegative ? "#EF444455" : "#E8E7E3"}`,
+        borderRadius: 12, padding: 16, marginBottom: 18,
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#37352F", textTransform: "uppercase", letterSpacing: 0.5 }}>
+            🔮 Forecast 30 días
+          </h3>
+          {forecast30d.goingNegative && forecast30d.negativeIn !== null && (
+            <span style={{
+              padding: "3px 9px", borderRadius: 999, background: "#EF4444", color: "#fff",
+              fontSize: 11, fontWeight: 700,
+            }}>⚠️ Saldo negativo en {forecast30d.negativeIn}d</span>
+          )}
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 10 }}>
+          <div>
+            <div style={{ fontSize: 10, color: "#8C8A82", textTransform: "uppercase", fontWeight: 700 }}>ARS hoy</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: "#37352F" }}>{formatMoney(forecast30d.totalARSNow)}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 10, color: "#8C8A82", textTransform: "uppercase", fontWeight: 700 }}>ARS estim. en 30d</div>
+            <div style={{
+              fontSize: 16, fontWeight: 800,
+              color: forecast30d.totalARS30 < 0 ? "#E03E3E" : forecast30d.totalARS30 < forecast30d.totalARSNow ? "#CB912F" : "#0F7B6C",
+            }}>{formatMoney(forecast30d.totalARS30)}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 10, color: "#0F7B6C", textTransform: "uppercase", fontWeight: 700 }}>Ingresos/día prom.</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#0F7B6C" }}>{formatMoney(forecast30d.dailySalesARS)}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 10, color: "#E03E3E", textTransform: "uppercase", fontWeight: 700 }}>Gastos/día prom.</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#E03E3E" }}>{formatMoney(forecast30d.dailyExpenseARS)}</div>
+          </div>
+        </div>
+        <div style={{ marginTop: 8, fontSize: 11, color: "#8C8A82", lineHeight: 1.4 }}>
+          Estimación lineal basada en flujo último mes. No incluye eventos puntuales (compras grandes, etc).
+        </div>
+      </div>
 
       {/* ========== 6 ACCOUNT CARDS ========== */}
       <SectionTitle>Cuentas</SectionTitle>
