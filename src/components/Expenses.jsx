@@ -25,17 +25,25 @@ export const Expenses = ({ expenses, setExpenses, currentUser, exchangeRate, log
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [filter, setFilter] = useState("all"); // "all" | category name
+  const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [minAmount, setMinAmount] = useState("");
+  const [customCategories, setCustomCategories] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("vapestock_customExpenseCats") || "[]"); } catch { return []; }
+  });
+  const [showTrendChart, setShowTrendChart] = useState(false);
   const [form, setForm] = useState({
     category: "", description: "", amountARS: "", amountUSD: "",
     currency: "ARS", date: new Date().toISOString().slice(0, 10),
-    relatedTo: "", recurring: false
+    relatedTo: "", recurring: false, receiptUrl: ""
   });
 
   const openNew = () => {
     setForm({
       category: "", description: "", amountARS: "", amountUSD: "",
       currency: "ARS", date: new Date().toISOString().slice(0, 10),
-      relatedTo: "", recurring: false
+      relatedTo: "", recurring: false, receiptUrl: ""
     });
     setEditing(null);
     setModal(true);
@@ -116,7 +124,103 @@ export const Expenses = ({ expenses, setExpenses, currentUser, exchangeRate, log
   }, [monthExpenses, exchangeRate]);
 
   // Filtered data
-  const filteredExpenses = filter === "all" ? activeExpenses : activeExpenses.filter(e => e.category === filter);
+  const filteredExpenses = activeExpenses.filter(e => {
+    if (filter !== "all" && e.category !== filter) return false;
+    if (search && !`${e.description || ""} ${e.category || ""} ${e.relatedTo || ""}`.toLowerCase().includes(search.toLowerCase())) return false;
+    if (dateFrom && e.date < dateFrom) return false;
+    if (dateTo && e.date > dateTo) return false;
+    if (minAmount && Number(e.amountARS || 0) < Number(minAmount)) return false;
+    return true;
+  });
+
+  // Combinar categorías default + custom para el Select
+  const allCategories = useMemo(() => [
+    ...EXPENSE_CATEGORIES.map(c => typeof c === "string" ? c : c.value || c.label),
+    ...customCategories,
+  ], [customCategories]);
+
+  // Stats por categoría últimos 6 meses (para tendencia)
+  const monthlyTrend = useMemo(() => {
+    const now = new Date();
+    const months = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({
+        key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
+        label: d.toLocaleDateString("es-AR", { month: "short" }),
+        year: d.getFullYear(), month: d.getMonth(),
+      });
+    }
+    const byCatAndMonth = {};
+    activeExpenses.forEach(e => {
+      const d = new Date(e.date);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      if (!months.find(m => m.key === key)) return;
+      const cat = e.category || "Otros";
+      if (!byCatAndMonth[cat]) byCatAndMonth[cat] = {};
+      byCatAndMonth[cat][key] = (byCatAndMonth[cat][key] || 0) + Number(e.amountARS || 0);
+    });
+    return Object.entries(byCatAndMonth)
+      .map(([cat, byMonth]) => {
+        const values = months.map(m => byMonth[m.key] || 0);
+        const last = values[values.length - 1];
+        const prev = values[values.length - 2] || 0;
+        const trend = prev > 0 ? ((last - prev) / prev) * 100 : 0;
+        return { cat, values, total: values.reduce((a, b) => a + b, 0), trend, last };
+      })
+      .sort((a, b) => b.total - a.total);
+  }, [activeExpenses]);
+
+  const persistCustomCats = (next) => {
+    setCustomCategories(next);
+    try { localStorage.setItem("vapestock_customExpenseCats", JSON.stringify(next)); } catch {}
+  };
+
+  const addCustomCategory = () => {
+    const name = prompt("Nombre de la nueva categoría:");
+    if (!name || !name.trim()) return;
+    const trimmed = name.trim();
+    if (allCategories.some(c => c.toLowerCase() === trimmed.toLowerCase())) {
+      alert("Esa categoría ya existe");
+      return;
+    }
+    persistCustomCats([...customCategories, trimmed]);
+  };
+
+  const removeCustomCategory = (cat) => {
+    if (!confirm(`¿Eliminar categoría "${cat}"? Los gastos existentes mantienen el nombre pero no podrás seleccionarla.`)) return;
+    persistCustomCats(customCategories.filter(c => c !== cat));
+  };
+
+  // Generar gastos del mes para los recurrentes (un click)
+  const generateRecurringForMonth = () => {
+    const now = new Date();
+    const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    // Templates: usar los gastos con recurring=true del mes anterior como plantilla
+    const recurringTemplates = activeExpenses.filter(e => e.recurring);
+    if (recurringTemplates.length === 0) {
+      alert("No hay gastos marcados como 'Recurrente'. Marcá un gasto como recurrente al crearlo.");
+      return;
+    }
+    // Evitar duplicados: si ya existe un gasto recurring de la misma categoría+description en este mes, skip
+    const existingThisMonth = activeExpenses.filter(e => e.date?.slice(0, 7) === monthKey);
+    const toCreate = recurringTemplates.filter(t => !existingThisMonth.some(e =>
+      e.category === t.category && e.description === t.description && e.recurring
+    ));
+    if (toCreate.length === 0) {
+      alert("Ya están generados todos los gastos recurrentes de este mes.");
+      return;
+    }
+    if (!confirm(`Generar ${toCreate.length} gastos recurrentes para ${monthKey}?\n\n${toCreate.map(t => `· ${t.category} — ${t.description} (${formatMoney(t.amountARS)})`).join("\n")}`)) return;
+    const today = new Date().toISOString().slice(0, 10);
+    setExpenses(prev => [
+      ...toCreate.map(t => ({
+        ...t, id: uid(), date: today, createdAt: new Date().toISOString(), createdBy: currentUser?.name || "?",
+      })),
+      ...prev,
+    ]);
+    if (logAudit) logAudit("create", "expense", "bulk", `Generación recurrentes: ${toCreate.length} gastos`);
+  };
 
   // Unique categories used
   const usedCategories = [...new Set(activeExpenses.map(e => e.category).filter(Boolean))];
@@ -128,8 +232,92 @@ export const Expenses = ({ expenses, setExpenses, currentUser, exchangeRate, log
           <h2 style={{ color: "#37352F", margin: 0, fontSize: 22, fontWeight: 800 }}>Gastos Operativos</h2>
           <p style={{ color: "#8C8A82", margin: "4px 0 0", fontSize: 13 }}>Control de egresos del negocio</p>
         </div>
-        <Btn onClick={openNew}>+ Registrar Gasto</Btn>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Btn variant="secondary" onClick={generateRecurringForMonth} style={{ padding: "10px 14px" }}>🔁 Generar recurrentes</Btn>
+          <Btn variant="secondary" onClick={() => setShowTrendChart(s => !s)} style={{ padding: "10px 14px" }}>📈 Tendencia 6m</Btn>
+          <Btn onClick={openNew}>+ Registrar Gasto</Btn>
+        </div>
       </div>
+
+      {/* Búsqueda + filtros avanzados */}
+      <div style={{
+        display: "flex", gap: 8, alignItems: "center", marginBottom: 14, flexWrap: "wrap",
+        padding: 10, background: "#FAFAF9", borderRadius: 10, border: "1px solid #E8E7E3",
+      }}>
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="🔍 Buscar descripción..."
+          style={{
+            flex: "1 1 200px", padding: "7px 12px", borderRadius: 8,
+            border: "1px solid #E8E7E3", fontSize: 13, outline: "none",
+            background: "#fff", fontFamily: "inherit",
+          }}
+        />
+        <input
+          type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+          title="Desde"
+          style={{ padding: "7px 10px", borderRadius: 8, border: "1px solid #E8E7E3", fontSize: 12, outline: "none", background: "#fff", fontFamily: "inherit" }}
+        />
+        <input
+          type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+          title="Hasta"
+          style={{ padding: "7px 10px", borderRadius: 8, border: "1px solid #E8E7E3", fontSize: 12, outline: "none", background: "#fff", fontFamily: "inherit" }}
+        />
+        <input
+          type="number" value={minAmount} onChange={e => setMinAmount(e.target.value)}
+          placeholder="Min ARS"
+          style={{ width: 100, padding: "7px 10px", borderRadius: 8, border: "1px solid #E8E7E3", fontSize: 12, outline: "none", background: "#fff", fontFamily: "inherit" }}
+        />
+        {(search || dateFrom || dateTo || minAmount) && (
+          <button onClick={() => { setSearch(""); setDateFrom(""); setDateTo(""); setMinAmount(""); }} style={{
+            padding: "7px 12px", borderRadius: 8, border: "none",
+            background: "transparent", color: "#8C8A82", fontSize: 12, fontWeight: 600,
+            cursor: "pointer", fontFamily: "inherit",
+          }}>✕ Limpiar</button>
+        )}
+      </div>
+
+      {showTrendChart && monthlyTrend.length > 0 && (
+        <Card style={{ marginBottom: 16 }}>
+          <h3 style={{ margin: "0 0 14px", fontSize: 14, fontWeight: 700, color: "#37352F" }}>
+            📈 Tendencia últimos 6 meses por categoría
+          </h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {monthlyTrend.slice(0, 8).map(row => {
+              const maxVal = Math.max(1, ...row.values);
+              const trendUp = row.trend > 5;
+              const trendDown = row.trend < -5;
+              return (
+                <div key={row.cat} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 130, fontSize: 12, color: "#37352F", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {row.cat}
+                  </div>
+                  <div style={{ flex: 1, display: "flex", alignItems: "flex-end", gap: 3, height: 36 }}>
+                    {row.values.map((v, i) => (
+                      <div key={i} title={`${v.toLocaleString()}`} style={{
+                        flex: 1,
+                        height: `${(v / maxVal) * 100}%`,
+                        minHeight: v > 0 ? 2 : 1,
+                        background: i === row.values.length - 1 ? "#5E6AD2" : "#5E6AD250",
+                        borderRadius: "3px 3px 0 0",
+                      }} />
+                    ))}
+                  </div>
+                  <div style={{ width: 90, textAlign: "right", fontSize: 11, fontWeight: 700 }}>
+                    <div style={{ color: "#37352F" }}>{formatMoney(row.last)}</div>
+                    {(trendUp || trendDown) && (
+                      <div style={{ color: trendUp ? "#E03E3E" : "#0F7B6C", fontSize: 10 }}>
+                        {trendUp ? "▲" : "▼"} {Math.abs(row.trend).toFixed(0)}%
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
 
       {/* Stats row */}
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit, minmax(180px, 1fr))", gap: isMobile ? 8 : 14, marginBottom: 20 }}>
@@ -236,7 +424,33 @@ export const Expenses = ({ expenses, setExpenses, currentUser, exchangeRate, log
       <Modal open={modal} onClose={() => { setModal(false); setEditing(null); }} title={editing ? "Editar Gasto" : "Registrar Gasto"}>
         <Input label="Fecha" type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
 
-        <Select label="Categoría" options={EXPENSE_CATEGORIES.map(c => typeof c === "string" ? { value: c, label: c } : c)} value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} />
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-end", marginBottom: 10 }}>
+          <div style={{ flex: 1 }}>
+            <Select label="Categoría" options={allCategories.map(c => ({ value: c, label: c }))} value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} />
+          </div>
+          <button type="button" onClick={addCustomCategory} style={{
+            padding: "8px 10px", borderRadius: 8, minHeight: 38,
+            border: "1px solid #5E6AD2", background: "#5E6AD215", color: "#5E6AD2",
+            fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+          }}>+ Nueva</button>
+        </div>
+        {customCategories.length > 0 && (
+          <div style={{ marginTop: -4, marginBottom: 10, fontSize: 11, color: "#8C8A82" }}>
+            Custom: {customCategories.map(c => (
+              <span key={c} style={{
+                display: "inline-flex", alignItems: "center", gap: 3,
+                padding: "2px 6px", margin: "0 4px 4px 0", borderRadius: 999,
+                background: "#F0EFEB", color: "#37352F", fontWeight: 500,
+              }}>
+                {c}
+                <button onClick={() => removeCustomCategory(c)} style={{
+                  background: "none", border: "none", color: "#8C8A82",
+                  cursor: "pointer", fontSize: 12, padding: 0, lineHeight: 1,
+                }}>×</button>
+              </span>
+            ))}
+          </div>
+        )}
 
         <Input label="Descripción" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Detalle del gasto..." />
 
@@ -256,6 +470,28 @@ export const Expenses = ({ expenses, setExpenses, currentUser, exchangeRate, log
         )}
 
         <Input label="Referencia (opcional)" value={form.relatedTo} onChange={e => setForm(f => ({ ...f, relatedTo: e.target.value }))} placeholder="ej: Pedido #5, envío a cliente X..." />
+
+        <Input
+          label="🧾 URL comprobante (opcional)"
+          value={form.receiptUrl || ""}
+          onChange={e => setForm(f => ({ ...f, receiptUrl: e.target.value }))}
+          placeholder="https://..."
+        />
+
+        <label style={{
+          display: "flex", alignItems: "center", gap: 8, padding: 10, marginTop: 4,
+          background: form.recurring ? "#5E6AD215" : "#FAFAF9",
+          border: `1px solid ${form.recurring ? "#5E6AD244" : "#E8E7E3"}`,
+          borderRadius: 8, cursor: "pointer", fontSize: 13, color: "#37352F",
+        }}>
+          <input
+            type="checkbox"
+            checked={!!form.recurring}
+            onChange={e => setForm(f => ({ ...f, recurring: e.target.checked }))}
+            style={{ width: 16, height: 16, cursor: "pointer" }}
+          />
+          🔁 Se repite mensualmente (alquiler, servicios, etc.)
+        </label>
 
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 16 }}>
           <Btn variant="secondary" onClick={() => { setModal(false); setEditing(null); }}>Cancelar</Btn>
