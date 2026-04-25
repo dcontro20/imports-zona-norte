@@ -163,7 +163,101 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
 
   return (
     <div>
-      <h2 style={{ color: "#37352F", margin: "0 0 20px", fontSize: 22 }}>Reportes</h2>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+        <h2 style={{ color: "#37352F", margin: 0, fontSize: 22 }}>Reportes</h2>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={() => window.print()} style={{
+            padding: "8px 14px", borderRadius: 8, border: "1px solid #E8E7E3",
+            background: "transparent", color: "#37352F", fontSize: 12, fontWeight: 600,
+            cursor: "pointer", fontFamily: "inherit",
+          }} title="Imprimir o exportar a PDF">📄 Exportar PDF</button>
+        </div>
+      </div>
+
+      {/* Top Performers Podium */}
+      {(() => {
+        const topProductMap = {};
+        const topClientMap = {};
+        const topChannelMap = {};
+        sales.filter(s => !s.isDeleted).forEach(s => {
+          (s.items || []).forEach(it => {
+            const key = it.productId;
+            if (!topProductMap[key]) topProductMap[key] = { qty: 0, revenue: 0, ...products.find(p => p.id === key) };
+            topProductMap[key].qty += (it.qty || 1);
+            topProductMap[key].revenue += (it.price || 0) * (it.qty || 1);
+          });
+          if (s.clientName) {
+            if (!topClientMap[s.clientName]) topClientMap[s.clientName] = { count: 0, revenue: 0, name: s.clientName };
+            topClientMap[s.clientName].count += 1;
+            topClientMap[s.clientName].revenue += s.total || 0;
+          }
+          if (s.channel) {
+            if (!topChannelMap[s.channel]) topChannelMap[s.channel] = { count: 0, revenue: 0, name: s.channel };
+            topChannelMap[s.channel].count += 1;
+            topChannelMap[s.channel].revenue += s.total || 0;
+          }
+        });
+        const topProducts = Object.values(topProductMap).filter(p => p.brand).sort((a, b) => b.qty - a.qty).slice(0, 3);
+        const topClients = Object.values(topClientMap).sort((a, b) => b.revenue - a.revenue).slice(0, 3);
+        const topChannels = Object.values(topChannelMap).sort((a, b) => b.revenue - a.revenue).slice(0, 3);
+        const medals = ["🥇", "🥈", "🥉"];
+        const medalColors = ["#F59E0B", "#9CA3AF", "#CD7F32"];
+        const Section = ({ title, items, getLabel, getValue }) => (
+          <div style={{ flex: 1, minWidth: 220 }}>
+            <h4 style={{ color: "#8C8A82", margin: "0 0 8px", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>
+              {title}
+            </h4>
+            {items.length === 0 ? (
+              <p style={{ color: "#B1AFA7", fontSize: 12, margin: 0 }}>Sin datos</p>
+            ) : (
+              items.map((it, i) => (
+                <div key={i} style={{
+                  display: "flex", alignItems: "center", gap: 8, padding: "6px 0",
+                  borderBottom: i < items.length - 1 ? "1px solid #F0EFEB" : "none",
+                }}>
+                  <span style={{ fontSize: 18 }}>{medals[i]}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, color: "#37352F", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {getLabel(it)}
+                    </div>
+                  </div>
+                  <span style={{
+                    fontSize: 12, fontWeight: 700, color: medalColors[i],
+                    fontFamily: "'Rubik', sans-serif", whiteSpace: "nowrap",
+                  }}>{getValue(it)}</span>
+                </div>
+              ))
+            )}
+          </div>
+        );
+        return (
+          <Card style={{ marginBottom: 20 }}>
+            <h3 style={{ margin: "0 0 14px", fontSize: 14, fontWeight: 700, color: "#37352F" }}>
+              🏆 Top Performers (histórico)
+            </h3>
+            <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+              <Section
+                title="Productos más vendidos"
+                items={topProducts}
+                getLabel={p => `${p.brand} ${p.model}${p.flavor ? ` · ${p.flavor}` : ""}`}
+                getValue={p => `${p.qty} uds`}
+              />
+              <Section
+                title="Clientes top revenue"
+                items={topClients}
+                getLabel={c => c.name}
+                getValue={c => formatMoney(c.revenue)}
+              />
+              <Section
+                title="Canales top revenue"
+                items={topChannels}
+                getLabel={c => c.name}
+                getValue={c => formatMoney(c.revenue)}
+              />
+            </div>
+          </Card>
+        );
+      })()}
 
       {/* Financial summary */}
       <Card style={{ marginBottom: 14 }}>
@@ -296,7 +390,9 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
             const salePriceARS = Math.round(d.priceUSD * exchangeRate);
             const marginARS = salePriceARS - totalCostARS;
             const marginPct = salePriceARS > 0 ? Math.round(marginARS / salePriceARS * 100) : 0;
-            return { ...d, avgCostUSDT: Math.round(avgCostUSDT * 100) / 100, totalCostARS, salePriceARS, marginARS, marginPct };
+            // ROI = ganancia / costo. Mide retorno sobre la inversión, no margen sobre revenue.
+            const roiPct = totalCostARS > 0 ? Math.round((marginARS / totalCostARS) * 100) : 0;
+            return { ...d, avgCostUSDT: Math.round(avgCostUSDT * 100) / 100, totalCostARS, salePriceARS, marginARS, marginPct, roiPct };
           }).sort((a, b) => b.marginPct - a.marginPct);
 
           if (margins.length === 0) return <p style={{ color: "#555", fontSize: 13 }}>Registrá compras verificadas para ver márgenes reales.</p>;
@@ -306,7 +402,7 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr>
-                    {["Marca", "Modelo", "Costo prom. USDT", "Costo total/ud ARS", "Precio venta ARS", "Margen/ud", "Margen %"].map(h => (
+                    {["Marca", "Modelo", "Costo prom. USDT", "Costo total/ud ARS", "Precio venta ARS", "Margen/ud", "Margen %", "ROI %"].map(h => (
                       <th key={h} style={{ textAlign: "left", padding: "8px 10px", fontSize: 11, color: "#8C8A82", textTransform: "uppercase", borderBottom: "1px solid #E8E7E3", fontWeight: 700 }}>{h}</th>
                     ))}
                   </tr>
@@ -321,6 +417,7 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
                       <td style={{ padding: "8px 10px", fontSize: 13, color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{formatMoney(m.salePriceARS)}</td>
                       <td style={{ padding: "8px 10px", fontSize: 13, borderBottom: "1px solid #F0EFEB", fontWeight: 700, color: m.marginARS >= 0 ? "#00b894" : "#E03E3E" }}>{formatMoney(m.marginARS)}</td>
                       <td style={{ padding: "8px 10px", borderBottom: "1px solid #F0EFEB" }}><Badge color={m.marginPct >= 50 ? "#00b894" : m.marginPct >= 30 ? "#fdcb6e" : "#E03E3E"}>{m.marginPct}%</Badge></td>
+                      <td style={{ padding: "8px 10px", borderBottom: "1px solid #F0EFEB" }}><Badge color={m.roiPct >= 100 ? "#00b894" : m.roiPct >= 50 ? "#fdcb6e" : "#E03E3E"}>{m.roiPct}%</Badge></td>
                     </tr>
                   ))}
                 </tbody>
