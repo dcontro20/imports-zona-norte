@@ -16,7 +16,7 @@ const resolveSaleItemName = (item, products) => {
   return p ? `${p.brand} ${p.model} - ${p.flavor}` : "Producto eliminado";
 };
 
-const SaleCard = ({ sale: r, products, clients = [], exchangeRate, isMobile, onEdit, onRepeat, onDelete, confirmDelete }) => {
+const SaleCard = ({ sale: r, products, clients = [], exchangeRate, isMobile, onEdit, onRepeat, onDelete, confirmDelete, selectionMode, selected, onToggleSelect }) => {
   // Email receipt via mailto — abre el cliente de email del usuario con todos los campos pre-cargados
   const sendReceipt = () => {
     const client = clients.find(c => c.id === r.clientId);
@@ -43,6 +43,35 @@ const SaleCard = ({ sale: r, products, clients = [], exchangeRate, isMobile, onE
     window.location.href = url;
   };
 
+  // Recibo via WhatsApp — abre wa.me con el número del cliente y mensaje pre-cargado.
+  // Si el cliente no tiene teléfono, abre WhatsApp Web sin destinatario.
+  const sendReceiptWhatsApp = () => {
+    const client = clients.find(c => c.id === r.clientId);
+    const phoneRaw = (client?.phone || "").replace(/\D/g, "");
+    const phone = phoneRaw ? (phoneRaw.startsWith("54") ? phoneRaw : `54${phoneRaw}`) : "";
+    const itemsList = (r.items || []).map(i => {
+      const p = products.find(pr => pr.id === i.productId);
+      const name = p ? `${p.brand} ${p.model} - ${p.flavor}` : "Producto";
+      return `• ${i.qty || 1}× ${name}`;
+    }).join("\n");
+    const lines = [
+      `*Recibo IZN* · ${formatDate(r.date)}`,
+      client?.name ? `Para: ${client.name}` : "",
+      ``,
+      itemsList,
+      ``,
+      `*Total: ${formatMoney(r.total || 0, r.currency || "ARS")}*`,
+      r.paymentMethod ? `Pago: ${r.paymentMethod}` : "",
+      (r.debtAmount || 0) > 0 ? `Saldo pendiente: ${formatMoney(r.debtAmount)}` : "",
+      ``,
+      `_Imports Zona Norte_`,
+    ].filter(Boolean).join("\n");
+    const url = phone
+      ? `https://wa.me/${phone}?text=${encodeURIComponent(lines)}`
+      : `https://wa.me/?text=${encodeURIComponent(lines)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   const clientHasEmail = !!(clients.find(c => c.id === r.clientId)?.email);
   const [hover, setHover] = useState(false);
   const payments = r.payments && r.payments.length > 0 ? r.payments : [{ method: r.paymentMethod, amount: r.total }];
@@ -55,15 +84,37 @@ const SaleCard = ({ sale: r, products, clients = [], exchangeRate, isMobile, onE
     <div
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      onClick={selectionMode ? () => onToggleSelect?.(r.id) : undefined}
       style={{
-        background: T.card, borderRadius: T.radiusLg,
-        border: `1px solid ${hover ? T.border : T.borderSoft}`,
+        position: "relative",
+        background: selected ? `${T.primary}10` : T.card,
+        borderRadius: T.radiusLg,
+        border: `1px solid ${selected ? T.primary : (hover ? T.border : T.borderSoft)}`,
         padding: isMobile ? 14 : 18,
         boxShadow: hover ? T.shadow : T.shadowXs,
         transition: "all .18s ease",
         animation: "fadeIn 0.22s ease",
+        cursor: selectionMode ? "pointer" : "default",
       }}
     >
+      {selectionMode && (
+        <div
+          onClick={e => { e.stopPropagation(); onToggleSelect?.(r.id); }}
+          aria-label={selected ? "Deseleccionar venta" : "Seleccionar venta"}
+          role="checkbox"
+          aria-checked={!!selected}
+          style={{
+            position: "absolute", top: 10, right: 10,
+            width: 22, height: 22, borderRadius: 6,
+            border: `2px solid ${selected ? T.primary : T.border}`,
+            background: selected ? T.primary : "transparent",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer", zIndex: 2,
+          }}
+        >
+          {selected && <span style={{ color: "#fff", fontSize: 13, lineHeight: 1, fontWeight: 800 }}>✓</span>}
+        </div>
+      )}
       {/* Top row: client + date + total */}
       <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
         <div style={{
@@ -187,7 +238,8 @@ const SaleCard = ({ sale: r, products, clients = [], exchangeRate, isMobile, onE
         </div>
 
         <div style={{ display: "flex", gap: 4 }}>
-          {clientHasEmail && <GhostBtn onClick={sendReceipt} color={T.green} title="Enviar recibo por email">📧</GhostBtn>}
+          <GhostBtn onClick={sendReceiptWhatsApp} color={T.green} title="Enviar recibo por WhatsApp">📲</GhostBtn>
+          {clientHasEmail && <GhostBtn onClick={sendReceipt} color={T.primary} title="Enviar recibo por email">📧</GhostBtn>}
           <GhostBtn onClick={onRepeat} color={T.amber} title="Repetir">🔄</GhostBtn>
           <GhostBtn onClick={onEdit} color={T.primary} title="Editar">✏️</GhostBtn>
           {confirmDelete

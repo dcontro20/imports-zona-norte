@@ -63,6 +63,11 @@ export const Sales = ({
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+  const [filterPresets, setFilterPresets] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("vapestock_filterPresets") || "[]"); } catch { return []; }
+  });
+  const [selectedSaleIds, setSelectedSaleIds] = useState([]); // multi-select para bulk actions
+  const [viewMode, setViewMode] = useState("cards"); // "cards" | "timeline"
   const [form, setForm] = useState(emptyForm());
   const [step, setStep] = useState(1); // 1=products, 2=client+payment, 3=review
   const [clientSearch, setClientSearch] = useState("");
@@ -194,12 +199,24 @@ export const Sales = ({
       const prod = products.find(p => p.id === i.productId);
       return { brand: prod?.brand || "", model: prod?.model || "", productId: i.productId || "", qty: i.qty || 1 };
     });
+    // Repetir copia datos editables (pagos, descuentos, extras, notas)
+    // como nueva venta — fecha de hoy, sin deuda, sin vuelto.
+    const payments = (sale.payments || []).length > 0
+      ? sale.payments.map(p => ({ ...p }))
+      : [{ method: sale.paymentMethod || "", mpAccount: sale.mpAccount || "", amount: "" }];
     setForm({
       ...emptyForm(),
       items: items.length > 0 ? items : [{ brand: "", model: "", productId: "", qty: 1 }],
-      clientId: sale.clientId || "", clientName: sale.clientName || "",
+      clientId: sale.clientId || "",
+      clientName: sale.clientName || "",
       channel: sale.channel || getLastChannel(),
       currency: sale.currency || "ARS",
+      payments,
+      discountType: sale.discountType || "none",
+      discountValue: sale.discountValue ? String(sale.discountValue) : "",
+      discountReason: sale.discountReason || "",
+      extras: sale.extras || [],
+      notes: sale.notes || "",
     });
     if (sale.clientName) setClientSearch(sale.clientName);
     setEditing(null);
@@ -509,6 +526,47 @@ export const Sales = ({
 
   const hasActiveFilters = filterChannel || filterPayment || filterDateFrom || filterDateTo;
   const clearFilters = () => { setFilterChannel(""); setFilterPayment(""); setFilterDateFrom(""); setFilterDateTo(""); };
+
+  // ---- Filter presets (localStorage) ----
+  const persistPresets = (next) => {
+    setFilterPresets(next);
+    try { localStorage.setItem("vapestock_filterPresets", JSON.stringify(next)); } catch {}
+  };
+  const saveCurrentPreset = () => {
+    const name = prompt("Nombre del filtro guardado (ej: 'WhatsApp con deuda'):");
+    if (!name || !name.trim()) return;
+    const next = [...filterPresets, {
+      id: Date.now().toString(36),
+      name: name.trim(),
+      filterChannel, filterPayment, filterDateFrom, filterDateTo,
+      search,
+    }];
+    persistPresets(next);
+  };
+  const applyPreset = (p) => {
+    setFilterChannel(p.filterChannel || "");
+    setFilterPayment(p.filterPayment || "");
+    setFilterDateFrom(p.filterDateFrom || "");
+    setFilterDateTo(p.filterDateTo || "");
+    setSearch(p.search || "");
+  };
+  const deletePreset = (id) => {
+    if (!confirm("¿Eliminar este filtro guardado?")) return;
+    persistPresets(filterPresets.filter(p => p.id !== id));
+  };
+
+  // ---- Multi-select helpers ----
+  const toggleSelectSale = (id) => {
+    setSelectedSaleIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+  const clearSelection = () => setSelectedSaleIds([]);
+  const bulkDelete = () => {
+    if (selectedSaleIds.length === 0) return;
+    if (!confirm(`¿Eliminar ${selectedSaleIds.length} ventas seleccionadas? Se moverán a Papelera.`)) return;
+    setSales(prev => prev.map(s => selectedSaleIds.includes(s.id) ? { ...s, isDeleted: true, deletedAt: new Date().toISOString() } : s));
+    if (logAudit) selectedSaleIds.forEach(id => logAudit("delete", "sale", id, `Borrado masivo (${selectedSaleIds.length} ventas)`));
+    clearSelection();
+  };
   const filteredRevenue = filtered.reduce((s, sale) => s + (sale.total || 0), 0);
 
   const totalDiscountsMonth = useMemo(() => {
@@ -1156,11 +1214,43 @@ export const Sales = ({
             {filtered.length > 0 && ` · ${formatMoney(filteredRevenue)}`}
           </p>
         </div>
-        <button onClick={openNew} style={{
-          padding: "10px 20px", borderRadius: 10, border: "none",
-          background: T.primary, color: "#fff", fontSize: 14, fontWeight: 600,
-          cursor: "pointer", fontFamily: "inherit", boxShadow: T.shadowSm,
-        }}>+ Nueva venta</button>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <div style={{ display: "inline-flex", borderRadius: 8, border: `1px solid ${T.border}`, overflow: "hidden" }}>
+            <button onClick={() => setViewMode("cards")} style={{
+              padding: "7px 12px", border: "none",
+              background: viewMode === "cards" ? T.primary : "transparent",
+              color: viewMode === "cards" ? "#fff" : T.textSub,
+              fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+            }} title="Vista cards">▦</button>
+            <button onClick={() => setViewMode("timeline")} style={{
+              padding: "7px 12px", border: "none",
+              background: viewMode === "timeline" ? T.primary : "transparent",
+              color: viewMode === "timeline" ? "#fff" : T.textSub,
+              fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+            }} title="Vista cronológica">☰</button>
+          </div>
+          <button
+            onClick={() => {
+              if (selectedSaleIds.length > 0) clearSelection();
+              else if (filtered.length > 0) toggleSelectSale(filtered[0].id);
+            }}
+            style={{
+              padding: "8px 12px", borderRadius: 8,
+              border: `1px solid ${selectedSaleIds.length > 0 ? T.primary : T.border}`,
+              background: selectedSaleIds.length > 0 ? `${T.primary}15` : "transparent",
+              color: selectedSaleIds.length > 0 ? T.primary : T.textSub,
+              fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+            }}
+            title="Modo selección múltiple"
+          >
+            {selectedSaleIds.length > 0 ? `✕ ${selectedSaleIds.length} sel.` : "☐ Seleccionar"}
+          </button>
+          <button onClick={openNew} style={{
+            padding: "10px 20px", borderRadius: 10, border: "none",
+            background: T.primary, color: "#fff", fontSize: 14, fontWeight: 600,
+            cursor: "pointer", fontFamily: "inherit", boxShadow: T.shadowSm,
+          }}>+ Nueva venta</button>
+        </div>
       </div>
 
       {/* ===== MONTH STATS ===== */}
@@ -1237,6 +1327,39 @@ export const Sales = ({
               cursor: "pointer", fontFamily: "inherit",
             }}>✕ Limpiar</button>
           )}
+          {hasActiveFilters && (
+            <button onClick={saveCurrentPreset} style={{
+              padding: "7px 12px", borderRadius: 999,
+              border: `1px solid ${T.greenBorder}`, background: T.greenBg, color: T.green,
+              fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+            }}>★ Guardar filtro</button>
+          )}
+        </div>
+        {filterPresets.length > 0 && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+            <span style={{ fontSize: 11, color: T.textMuted, fontWeight: 600, alignSelf: "center", marginRight: 4 }}>
+              Guardados:
+            </span>
+            {filterPresets.map(p => (
+              <span key={p.id} style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "5px 8px 5px 10px", borderRadius: 999,
+                background: T.surface2, border: `1px solid ${T.borderSoft}`,
+                fontSize: 12, color: T.textSub, fontWeight: 500,
+              }}>
+                <button onClick={() => applyPreset(p)} style={{
+                  background: "transparent", border: "none", color: T.text,
+                  cursor: "pointer", fontSize: 12, padding: 0, fontFamily: "inherit", fontWeight: 600,
+                }}>{p.name}</button>
+                <button onClick={() => deletePreset(p.id)} aria-label="Eliminar filtro" style={{
+                  background: "transparent", border: "none", color: T.textMuted,
+                  cursor: "pointer", fontSize: 14, padding: "0 2px", lineHeight: 1,
+                }}>×</button>
+              </span>
+            ))}
+          </div>
+        )}
+        <div style={{ display: "none" }}>{/* anchor to keep next chunk valid */}
         </div>
       </div>
 
@@ -1265,20 +1388,54 @@ export const Sales = ({
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {filtered.slice(0, visibleCount).map(r => (
-            <SaleCard
-              key={r.id}
-              sale={r}
-              products={products}
-              clients={clients}
-              exchangeRate={exchangeRate}
-              isMobile={isMobile}
-              onEdit={() => openEdit(r)}
-              onRepeat={() => repeatSale(r)}
-              onDelete={() => deleteSale(r)}
-              confirmDelete={confirmDeleteSale === r.id}
-            />
-          ))}
+          {selectedSaleIds.length > 0 && (
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
+              padding: "10px 14px", background: `${T.primary}10`,
+              border: `1px solid ${T.primary}40`, borderRadius: 10, flexWrap: "wrap",
+            }}>
+              <span style={{ color: T.primary, fontSize: 13, fontWeight: 600 }}>
+                {selectedSaleIds.length} venta{selectedSaleIds.length !== 1 ? "s" : ""} seleccionada{selectedSaleIds.length !== 1 ? "s" : ""}
+              </span>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={() => setSelectedSaleIds(filtered.map(s => s.id))} style={{
+                  padding: "6px 12px", borderRadius: 8, border: `1px solid ${T.border}`,
+                  background: "transparent", color: T.textSub, fontSize: 12, fontWeight: 600,
+                  cursor: "pointer", fontFamily: "inherit",
+                }}>Seleccionar todas ({filtered.length})</button>
+                <button onClick={bulkDelete} style={{
+                  padding: "6px 12px", borderRadius: 8, border: "none",
+                  background: T.red, color: "#fff", fontSize: 12, fontWeight: 700,
+                  cursor: "pointer", fontFamily: "inherit",
+                }}>🗑️ Eliminar</button>
+                <button onClick={clearSelection} style={{
+                  padding: "6px 12px", borderRadius: 8, border: `1px solid ${T.border}`,
+                  background: "transparent", color: T.textSub, fontSize: 12, fontWeight: 600,
+                  cursor: "pointer", fontFamily: "inherit",
+                }}>Cancelar</button>
+              </div>
+            </div>
+          )}
+          {viewMode === "timeline"
+            ? <TimelineView sales={filtered.slice(0, visibleCount)} clients={clients} products={products} onEdit={openEdit} />
+            : filtered.slice(0, visibleCount).map(r => (
+              <SaleCard
+                key={r.id}
+                sale={r}
+                products={products}
+                clients={clients}
+                exchangeRate={exchangeRate}
+                isMobile={isMobile}
+                onEdit={() => openEdit(r)}
+                onRepeat={() => repeatSale(r)}
+                onDelete={() => deleteSale(r)}
+                confirmDelete={confirmDeleteSale === r.id}
+                selectionMode={selectedSaleIds.length > 0}
+                selected={selectedSaleIds.includes(r.id)}
+                onToggleSelect={toggleSelectSale}
+              />
+            ))
+          }
           {filtered.length > visibleCount && (
             <button onClick={() => setVisibleCount(c => c + 50)} style={{
               marginTop: 10, padding: "12px 18px", minHeight: 44,
@@ -1414,6 +1571,111 @@ const SalesPill = ({ active, onClick, children, color = T.primary }) => (
     transition: "all .15s", fontFamily: "inherit", whiteSpace: "nowrap",
   }}>{children}</button>
 );
+
+// TimelineView — vista cronológica agrupada por día con totales.
+// Pensada para revisar la jornada de ventas de un vistazo.
+const TimelineView = ({ sales, clients, products, onEdit }) => {
+  const grouped = useMemo(() => {
+    const map = {};
+    sales.forEach(s => {
+      const day = (s.date || "").slice(0, 10);
+      if (!map[day]) map[day] = [];
+      map[day].push(s);
+    });
+    return Object.entries(map).sort((a, b) => b[0].localeCompare(a[0]));
+  }, [sales]);
+
+  if (sales.length === 0) {
+    return (
+      <div style={{ padding: 32, textAlign: "center", color: T.textMuted, fontSize: 13 }}>
+        Sin ventas para mostrar en este rango.
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      {grouped.map(([day, daySales]) => {
+        const dayTotal = daySales.reduce((s, sale) => s + (sale.total || 0), 0);
+        const dayUnits = daySales.reduce((s, sale) => s + (sale.items || []).reduce((a, i) => a + (i.qty || 1), 0), 0);
+        return (
+          <div key={day} style={{
+            border: `1px solid ${T.borderSoft}`, borderRadius: T.radiusLg, overflow: "hidden",
+            background: T.card,
+          }}>
+            <div style={{
+              display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10,
+              padding: "10px 14px", background: T.surface2, borderBottom: `1px solid ${T.borderSoft}`,
+            }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>
+                  {new Date(day + "T12:00:00").toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" })}
+                </div>
+                <div style={{ fontSize: 11, color: T.textMuted }}>
+                  {daySales.length} venta{daySales.length !== 1 ? "s" : ""} · {dayUnits} uds
+                </div>
+              </div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: T.text, fontFamily: T.fontDisplay }}>
+                {formatMoney(dayTotal)}
+              </div>
+            </div>
+            <div>
+              {daySales.map((s, i) => {
+                const itemSummary = (s.items || []).map(it => {
+                  const p = products.find(pr => pr.id === it.productId);
+                  return `${it.qty || 1}× ${p ? `${p.brand} ${p.model}` : "?"}`;
+                }).join(", ");
+                const hasDebt = (s.debtAmount || 0) > 0;
+                return (
+                  <div
+                    key={s.id}
+                    onClick={() => onEdit(s)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      padding: "10px 14px",
+                      borderBottom: i < daySales.length - 1 ? `1px solid ${T.borderSoft}` : "none",
+                      cursor: "pointer",
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = T.surface2; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
+                  >
+                    <div style={{
+                      width: 6, height: 6, borderRadius: "50%",
+                      background: s.channel === "WhatsApp" ? "#25D366" : s.channel === "Instagram" ? "#E1306C" : s.channel === "Delivery" ? T.amber : T.primary,
+                      flexShrink: 0,
+                    }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontSize: 13, color: T.text, fontWeight: 600,
+                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                      }}>
+                        {s.clientName || "Cliente s/n"} {hasDebt && <span style={{ color: T.red, fontWeight: 700 }}>· DEBE</span>}
+                      </div>
+                      <div style={{
+                        fontSize: 11, color: T.textMuted,
+                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                      }}>
+                        {itemSummary}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: T.text, fontFamily: T.fontDisplay }}>
+                        {formatMoney(s.total || 0, s.currency || "ARS")}
+                      </div>
+                      <div style={{ fontSize: 10, color: T.textMuted }}>
+                        {s.channel || "?"}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
 const selectStyle = (active) => ({
   padding: "7px 12px", borderRadius: 999, border: `1px solid ${active ? T.primary : T.border}`,
