@@ -724,4 +724,10 @@ const ConciliationForm = ({ balances, onSave, onCancel }) => {
 };
 
 
+// Exports adicionales: HistoryList y ConciliationForm también vivían en
+// CashBox originalmente pero quedaron en este archivo tras el refactor.
+// CashBox los usa directamente, así que se exportan nombrados.
+// AccountPicker + HistoryEntry quedan privados (solo usados aquí).
+export { HistoryList, ConciliationForm };
+
 export default MovementForm;

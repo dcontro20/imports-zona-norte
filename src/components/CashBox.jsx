@@ -10,7 +10,7 @@ import {
   ghostBtn, primaryBtn,
   LARGE_EXPENSE_THRESHOLD_ARS, DUP_WINDOW_MS, SUBMIT_DEBOUNCE_MS,
 } from "./cash/shared.js";
-import MovementForm from "./cash/MovementForm.jsx";
+import MovementForm, { HistoryList, ConciliationForm } from "./cash/MovementForm.jsx";
 import { calcAccountBalance } from "../calcs.js";
 
 // ============================================
