@@ -9,17 +9,20 @@ export const Partners = ({ partnerWithdrawals, setPartnerWithdrawals, sales, pur
   const { isMobile } = useResponsive();
   const [modal, setModal] = useState(false);
   const [confirmDel, setConfirmDel] = useState(null);
-  const [form, setForm] = useState({ person: "Diego", amount: "", currency: "ARS", source: "", description: "", date: new Date().toISOString().slice(0, 10) });
+  const [form, setForm] = useState({ person: "Diego", amount: "", currency: "ARS", source: "", description: "", date: new Date().toISOString().slice(0, 10), tipoMovimiento: "retiro" });
+  const [showHistory, setShowHistory] = useState(false);
 
   const SOURCES = ["MP Diego", "MP Gustavo", "Lemon (Pesos)", "Lemon (USDT)", "USD Cash", "Pesos Cash"];
 
   const save = () => {
     if (!form.amount || !form.person) return;
     const newId = uid();
-    setPartnerWithdrawals(prev => [{ ...form, id: newId, amount: Number(form.amount), createdBy: currentUser?.name || "" }, ...prev]);
+    // Si es aporte, el monto se guarda negativo para que reste correctamente del balance
+    const sign = form.tipoMovimiento === "aporte" ? -1 : 1;
+    setPartnerWithdrawals(prev => [{ ...form, id: newId, amount: Number(form.amount) * sign, createdBy: currentUser?.name || "" }, ...prev]);
     if (logAudit) logAudit("create", "partnerWithdrawal", newId, `Creó retiro socio: ${form.person} · $${form.amount}`);
     setModal(false);
-    setForm({ person: "Diego", amount: "", currency: "ARS", source: "", description: "", date: new Date().toISOString().slice(0, 10) });
+    setForm({ person: "Diego", amount: "", currency: "ARS", source: "", description: "", date: new Date().toISOString().slice(0, 10), tipoMovimiento: "retiro" });
   };
 
   const deleteW = (id) => {
@@ -52,6 +55,43 @@ export const Partners = ({ partnerWithdrawals, setPartnerWithdrawals, sales, pur
     diegoTotal, gustavoTotal, totalWithdrawn,
     netProfit, profitRemaining, diegoBalance, gustavoBalance,
   } = calcPartnerBalances(sales, purchases, expenses, withdrawals || [], partnerWithdrawals || [], exchangeRate);
+
+  // Calculadora "qué retiramos este mes": sugiere monto seguro de retiro por socio
+  // Regla: 70% del halfProfit como retiro seguro, dejando 30% como capital de trabajo.
+  // Si el socio ya retiró más que su share, sugiere 0.
+  const safeWithdrawDiego = Math.max(0, Math.floor((halfProfit * 0.7) - diegoTotal));
+  const safeWithdrawGustavo = Math.max(0, Math.floor((halfProfit * 0.7) - gustavoTotal));
+
+  // Reporte de equidad: saldo a favor o en contra entre socios
+  const equityDiff = diegoBalance - gustavoBalance;
+  const moreWithdrawn = equityDiff < 0 ? "Diego" : equityDiff > 0 ? "Gustavo" : null;
+
+  // Export CSV de retiros del año actual por socio
+  const exportYearCsv = (partner) => {
+    const year = new Date().getFullYear();
+    const rows = (partnerWithdrawals || [])
+      .filter(w => !w.isDeleted && w.person === partner && new Date(w.date).getFullYear() === year)
+      .sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+    const header = "fecha,tipo,monto,moneda,source,descripcion";
+    const escape = s => `"${String(s || "").replace(/"/g, '""')}"`;
+    const csv = [header, ...rows.map(r => [
+      r.date,
+      r.amount < 0 ? "aporte" : (r.tipoMovimiento || "retiro"),
+      Math.abs(r.amount),
+      r.currency || "ARS",
+      escape(r.source),
+      escape(r.description),
+    ].join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `IZN_${partner}_retiros_${year}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   // Helper para fila de breakdown del pozo común
   const Row = ({ label, value, color = "#37352F", bold }) => (
@@ -161,6 +201,46 @@ export const Partners = ({ partnerWithdrawals, setPartnerWithdrawals, sales, pur
         </div>
       </Card>
 
+      {/* Calculadora retiro sugerido + Reporte de equidad */}
+      <Card style={{
+        marginBottom: 14,
+        background: "linear-gradient(135deg, #EAECF9 0%, #FFFFFF 100%)",
+        border: "1px solid #D4D7F2",
+      }}>
+        <h3 style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 700, color: "#37352F" }}>
+          💡 Calculadora de retiro sugerido (deja 30% como capital de trabajo)
+        </h3>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+          <div style={{ padding: 12, background: "#fff", borderRadius: 10, border: "1px solid #E8E7E3" }}>
+            <div style={{ fontSize: 11, color: "#5E6AD2", fontWeight: 700, textTransform: "uppercase" }}>Diego puede retirar</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: safeWithdrawDiego > 0 ? "#0F7B6C" : "#8C8A82", fontFamily: "'Rubik', sans-serif" }}>
+              {formatMoney(safeWithdrawDiego)}
+            </div>
+            <div style={{ fontSize: 10, color: "#8C8A82", marginTop: 2 }}>
+              Ya retirado: {formatMoney(diegoTotal)} · Share: {formatMoney(halfProfit)}
+            </div>
+          </div>
+          <div style={{ padding: 12, background: "#fff", borderRadius: 10, border: "1px solid #E8E7E3" }}>
+            <div style={{ fontSize: 11, color: "#0F7B6C", fontWeight: 700, textTransform: "uppercase" }}>Gustavo puede retirar</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: safeWithdrawGustavo > 0 ? "#0F7B6C" : "#8C8A82", fontFamily: "'Rubik', sans-serif" }}>
+              {formatMoney(safeWithdrawGustavo)}
+            </div>
+            <div style={{ fontSize: 10, color: "#8C8A82", marginTop: 2 }}>
+              Ya retirado: {formatMoney(gustavoTotal)} · Share: {formatMoney(halfProfit)}
+            </div>
+          </div>
+        </div>
+        {moreWithdrawn && Math.abs(equityDiff) > 1000 && (
+          <div style={{
+            padding: 10, background: "#FFF7E0", border: "1px solid #F2D59A",
+            borderRadius: 8, fontSize: 12, color: "#A65800",
+          }}>
+            ⚖️ <strong>Desequilibrio detectado</strong>: <strong>{moreWithdrawn}</strong> retiró {formatMoney(Math.abs(equityDiff))} más que su socio.
+            Para emparejar, el otro socio puede retirar {formatMoney(Math.abs(equityDiff))} extra.
+          </div>
+        )}
+      </Card>
+
       {/* Resumen totales (compact) */}
       <Card style={{ marginBottom: 14, background: "#FFFFFF", border: "1px solid #E8E7E3" }}>
         <div style={{ display: "flex", justifyContent: "space-around", flexWrap: "wrap", gap: 14, textAlign: "center" }}>
@@ -182,10 +262,28 @@ export const Partners = ({ partnerWithdrawals, setPartnerWithdrawals, sales, pur
 
       {/* Withdrawal history */}
       <Card>
-        <h4 style={{ color: "#fdcb6e", margin: "0 0 14px", fontSize: 14, textTransform: "uppercase" }}>Historial de retiros</h4>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
+          <h4 style={{ color: "#fdcb6e", margin: 0, fontSize: 14, textTransform: "uppercase" }}>Historial de retiros / aportes</h4>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button onClick={() => exportYearCsv("Diego")} style={{
+              padding: "6px 10px", borderRadius: 6, border: "1px solid #5E6AD2",
+              background: "#5E6AD215", color: "#5E6AD2", fontSize: 11, fontWeight: 600,
+              cursor: "pointer", fontFamily: "inherit",
+            }}>📥 Diego CSV</button>
+            <button onClick={() => exportYearCsv("Gustavo")} style={{
+              padding: "6px 10px", borderRadius: 6, border: "1px solid #0F7B6C",
+              background: "#E8F5E9", color: "#0F7B6C", fontSize: 11, fontWeight: 600,
+              cursor: "pointer", fontFamily: "inherit",
+            }}>📥 Gustavo CSV</button>
+          </div>
+        </div>
         <Table columns={[
           { key: "date", label: "Fecha", render: r => formatDate(r.date) },
           { key: "person", label: "Socio", render: r => <Badge color={r.person === "Diego" ? "#a855f7" : "#00b894"}>{r.person}</Badge> },
+          { key: "tipo", label: "Tipo", render: r => {
+            const isAporte = r.amount < 0 || r.tipoMovimiento === "aporte";
+            return <Badge color={isAporte ? "#0F7B6C" : "#E03E3E"}>{isAporte ? "💰 Aporte" : "💸 Retiro"}</Badge>;
+          }},
           { key: "amount", label: "Monto", render: r => <span style={{ color: "#fdcb6e", fontWeight: 700 }}>{formatMoney(r.amount, r.currency)}</span> },
           { key: "source", label: "Desde", render: r => r.source || "—" },
           { key: "description", label: "Detalle", render: r => r.description || "—" },
@@ -198,7 +296,26 @@ export const Partners = ({ partnerWithdrawals, setPartnerWithdrawals, sales, pur
       </Card>
 
       {/* New withdrawal modal */}
-      <Modal open={modal} onClose={() => setModal(false)} title="💸 Registrar Retiro de Socio">
+      <Modal open={modal} onClose={() => setModal(false)} title={form.tipoMovimiento === "aporte" ? "💰 Registrar Aporte de Capital" : "💸 Registrar Retiro de Socio"}>
+        <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+          {[
+            { value: "retiro", label: "💸 Retiro", color: "#E03E3E" },
+            { value: "aporte", label: "💰 Aporte", color: "#0F7B6C" },
+          ].map(opt => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setForm(f => ({ ...f, tipoMovimiento: opt.value }))}
+              style={{
+                flex: 1, padding: "10px 14px", borderRadius: 8,
+                border: `1px solid ${form.tipoMovimiento === opt.value ? opt.color : "#E8E7E3"}`,
+                background: form.tipoMovimiento === opt.value ? `${opt.color}15` : "transparent",
+                color: form.tipoMovimiento === opt.value ? opt.color : "#37352F",
+                fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+              }}
+            >{opt.label}</button>
+          ))}
+        </div>
         <Input label="Fecha" type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
         <Select label="Socio" options={["Diego", "Gustavo"]} value={form.person} onChange={e => setForm(f => ({ ...f, person: e.target.value }))} />
         <div style={{ display: "flex", gap: 12 }}>
