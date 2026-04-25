@@ -326,6 +326,43 @@ export const ExchangeMonitor = ({ exchangeRate, setExchangeRate }) => {
           <h3 style={{ fontSize: 15, fontWeight: 700, color: "#37352F", margin: "0 0 14px" }}>
             {"Historial de esta sesi\u00f3n"}
           </h3>
+          {history.length >= 2 && (() => {
+            const blueValues = history.map(h => h.blue).filter(v => v > 0);
+            const criptoValues = history.map(h => h.cripto).filter(v => v > 0);
+            const minBlue = Math.min(...blueValues);
+            const maxBlue = Math.max(...blueValues);
+            const minCripto = criptoValues.length ? Math.min(...criptoValues) : 0;
+            const maxCripto = criptoValues.length ? Math.max(...criptoValues) : 0;
+            const w = 600, hh = 100;
+            const dx = history.length > 1 ? w / (history.length - 1) : 0;
+            const norm = (v, min, max) => max === min ? hh / 2 : hh - ((v - min) / (max - min)) * hh * 0.85 - hh * 0.075;
+            const bluePath = blueValues.length >= 2
+              ? history.map((entry, i) => `${i === 0 ? "M" : "L"} ${i * dx} ${entry.blue > 0 ? norm(entry.blue, minBlue, maxBlue) : hh / 2}`).join(" ")
+              : "";
+            const criptoPath = criptoValues.length >= 2
+              ? history.map((entry, i) => `${i === 0 ? "M" : "L"} ${i * dx} ${entry.cripto > 0 ? norm(entry.cripto, minCripto, maxCripto) : hh / 2}`).join(" ")
+              : "";
+            return (
+              <div style={{
+                background: "#FAFAF9", borderRadius: 10, padding: 12, marginBottom: 10,
+                border: "1px solid #E8E7E3", overflowX: "auto",
+              }}>
+                <svg viewBox={`0 0 ${w} ${hh}`} preserveAspectRatio="none" style={{ width: "100%", height: 120, display: "block" }}>
+                  {bluePath && <path d={bluePath} stroke="#5E6AD2" strokeWidth="2" fill="none" />}
+                  {criptoPath && <path d={criptoPath} stroke="#CB912F" strokeWidth="2" fill="none" strokeDasharray="4,2" />}
+                  {history.map((entry, i) => (
+                    <g key={i}>
+                      {entry.blue > 0 && <circle cx={i * dx} cy={norm(entry.blue, minBlue, maxBlue)} r="3" fill="#5E6AD2" />}
+                    </g>
+                  ))}
+                </svg>
+                <div style={{ display: "flex", gap: 12, fontSize: 11, color: "#8C8A82", marginTop: 6 }}>
+                  <span><span style={{ display: "inline-block", width: 14, height: 2, background: "#5E6AD2", marginRight: 4, verticalAlign: "middle" }} />Blue ({formatARS(minBlue)} → {formatARS(maxBlue)})</span>
+                  {criptoValues.length > 0 && <span><span style={{ display: "inline-block", width: 14, height: 2, background: "#CB912F", marginRight: 4, verticalAlign: "middle" }} />USDT ({formatARS(minCripto)} → {formatARS(maxCripto)})</span>}
+                </div>
+              </div>
+            );
+          })()}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {history.map((h, i) => (
               <div key={i} style={{

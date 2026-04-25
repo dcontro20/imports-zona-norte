@@ -34,7 +34,11 @@ const getFlavorEmojis = (flavor) => {
 export const WhatsAppMessage = ({ products }) => {
   const { exchangeRate } = useAppContext();
   const [copied, setCopied] = useState(false);
-  const [mode, setMode] = useState("full"); // "full" | "short"
+  const [mode, setMode] = useState("full"); // "full" | "short" | "custom"
+  const [customTemplates, setCustomTemplates] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("vapestock_waTemplates") || "[]"); } catch { return []; }
+  });
+  const [activeTemplateId, setActiveTemplateId] = useState(null);
 
   // Calculate dynamic ARS prices
   const productsWithDynamicARS = useMemo(() => 
@@ -122,7 +126,36 @@ export const WhatsAppMessage = ({ products }) => {
     return msg;
   }, [productsWithDynamicARS]);
 
-  const message = mode === "full" ? fullMessage : shortMessage;
+  // Persiste templates custom en localStorage
+  const persistTemplates = (next) => {
+    setCustomTemplates(next);
+    try { localStorage.setItem("vapestock_waTemplates", JSON.stringify(next)); } catch {}
+  };
+  const saveCurrentAsTemplate = () => {
+    const name = prompt("Nombre del template (ej: 'Promo viernes'):");
+    if (!name || !name.trim()) return;
+    const baseMessage = mode === "short" ? shortMessage : fullMessage;
+    const next = [...customTemplates, { id: Date.now().toString(36), name: name.trim(), body: baseMessage }];
+    persistTemplates(next);
+    setActiveTemplateId(next[next.length - 1].id);
+    setMode("custom");
+  };
+  const deleteTemplate = (id) => {
+    if (!confirm("¿Eliminar este template?")) return;
+    persistTemplates(customTemplates.filter(t => t.id !== id));
+    if (activeTemplateId === id) {
+      setActiveTemplateId(null);
+      setMode("full");
+    }
+  };
+  const updateActiveTemplate = (newBody) => {
+    if (!activeTemplateId) return;
+    persistTemplates(customTemplates.map(t => t.id === activeTemplateId ? { ...t, body: newBody } : t));
+  };
+  const activeTemplate = customTemplates.find(t => t.id === activeTemplateId);
+  const message = mode === "full" ? fullMessage
+    : mode === "short" ? shortMessage
+    : (activeTemplate?.body || fullMessage);
 
   const inStockCount = productsWithDynamicARS.filter(p => p.stock > 0).length;
   const outStockCount = products.filter(p => p.stock === 0).length;
@@ -161,6 +194,11 @@ export const WhatsAppMessage = ({ products }) => {
               boxShadow: mode === "short" ? "0 1px 3px rgba(0,0,0,0.08)" : "none"
             }}>Stories</button>
           </div>
+          <button onClick={saveCurrentAsTemplate} style={{
+            padding: "5px 10px", borderRadius: 6, border: "1px solid #5E6AD2",
+            background: "#5E6AD215", color: "#5E6AD2", fontSize: 11, fontWeight: 600,
+            cursor: "pointer", fontFamily: "inherit",
+          }} title="Guardar mensaje actual como template reutilizable">★ Guardar template</button>
           <Btn onClick={copyToClipboard} style={{ background: copied ? "linear-gradient(135deg, #00b894, #00cec9)" : "linear-gradient(135deg, #25d366, #128c7e)" }}>
             {copied ? "✅ Copiado!" : "📋 Copiar"}
           </Btn>
@@ -186,6 +224,48 @@ export const WhatsAppMessage = ({ products }) => {
         </div>
       </Card>
 
+      {customTemplates.length > 0 && (
+        <Card style={{ marginBottom: 14 }}>
+          <h4 style={{ margin: "0 0 10px", fontSize: 12, color: "#37352F", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
+            ⭐ Templates guardados
+          </h4>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {customTemplates.map(t => {
+              const isActive = mode === "custom" && activeTemplateId === t.id;
+              return (
+                <span key={t.id} style={{
+                  display: "inline-flex", alignItems: "center", gap: 4,
+                  padding: "5px 8px 5px 10px", borderRadius: 999,
+                  background: isActive ? "#EAECF9" : "#FAFAF9",
+                  border: `1px solid ${isActive ? "#5E6AD2" : "#E8E7E3"}`,
+                }}>
+                  <button onClick={() => { setActiveTemplateId(t.id); setMode("custom"); }} style={{
+                    background: "transparent", border: "none", color: isActive ? "#5E6AD2" : "#37352F",
+                    cursor: "pointer", fontSize: 12, fontWeight: 600, padding: 0, fontFamily: "inherit",
+                  }}>{t.name}</button>
+                  <button onClick={() => deleteTemplate(t.id)} style={{
+                    background: "transparent", border: "none", color: "#8C8A82",
+                    cursor: "pointer", fontSize: 14, padding: "0 2px", lineHeight: 1,
+                  }} aria-label="Eliminar template">×</button>
+                </span>
+              );
+            })}
+          </div>
+          {mode === "custom" && activeTemplate && (
+            <textarea
+              value={activeTemplate.body}
+              onChange={e => updateActiveTemplate(e.target.value)}
+              rows={8}
+              style={{
+                width: "100%", marginTop: 10, padding: 10, borderRadius: 6,
+                border: "1px solid #E8E7E3", fontSize: 13, fontFamily: "monospace",
+                background: "#FFF", color: "#37352F", resize: "vertical", outline: "none",
+                boxSizing: "border-box",
+              }}
+            />
+          )}
+        </Card>
+      )}
       <Card>
         <div style={{
           whiteSpace: "pre-wrap", fontFamily: "monospace", fontSize: 13, color: "#555247",
