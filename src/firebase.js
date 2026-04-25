@@ -61,6 +61,8 @@ export const clearWriteError = () => { lastWriteError = null; };
 // Helper to save a full collection as a single doc
 // Returns true on success, false on failure. Retries once on failure.
 export const saveToFirestore = async (key, data) => {
+    const dataLen = Array.isArray(data) ? data.length : (typeof data === "number" ? data : "N/A");
+    console.log(`[SAVE-DEBUG] saveToFirestore(${key}) ENTER — dataLen=${dataLen} auth=${!!auth.currentUser} email=${auth.currentUser?.email || "null"}`);
     const attempt = async () => {
       const now = new Date().toISOString();
       await setDoc(doc(db, "appData", key), { data: JSON.stringify(data), updatedAt: now });
@@ -69,17 +71,19 @@ export const saveToFirestore = async (key, data) => {
     try {
       await attempt();
       lastWriteError = null;
+      console.log(`[SAVE-DEBUG] ✅ saveToFirestore(${key}) SUCCESS first try`);
       return true;
     } catch (e) {
-      console.error(`[SAVE] First attempt failed for ${key}:`, e.code || e.message);
+      console.error(`[SAVE-DEBUG] ❌ First attempt failed for ${key}:`, e.code || e.message);
       // Retry once after 1 second
       try {
         await new Promise(r => setTimeout(r, 1000));
         await attempt();
         lastWriteError = null;
+        console.log(`[SAVE-DEBUG] ✅ saveToFirestore(${key}) SUCCESS on retry`);
         return true;
       } catch (e2) {
-        console.error(`[SAVE] Retry failed for ${key}:`, e2.code || e2.message);
+        console.error(`[SAVE-DEBUG] ❌❌ Retry failed for ${key}:`, e2.code || e2.message);
         lastWriteError = { key, error: e2.code || e2.message, time: new Date().toISOString() };
         return false;
       }

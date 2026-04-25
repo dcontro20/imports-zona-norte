@@ -85,8 +85,9 @@ export function useFirebaseSync() {
     const markKeyLoaded = (key) => {
       initialLoadDone.current[key] = true;
       const allLoaded = DATA_KEYS.every(k => initialLoadDone.current[k.key]);
+      console.log(`[SYNC-DEBUG] markKeyLoaded(${key}) — allLoaded=${allLoaded} firestoreReady=${firestoreReady.current}`);
       if (allLoaded && !firestoreReady.current) {
-        console.log("[SYNC] All keys loaded — enabling writes");
+        console.log("[SYNC-DEBUG] ✅ All keys loaded — enabling writes (firestoreReady=true)");
         setDataReady(true);
         setSyncStatus("online");
         // Enable writes immediately — fromFirestore flags prevent loops
@@ -99,18 +100,17 @@ export function useFirebaseSync() {
       return subscribeToFirestore(key,
         // onData
         (data) => {
+          console.log(`[SYNC-DEBUG] onSnapshot ${key} — data arrived (setting fromFirestore=true, data.length=${Array.isArray(data) ? data.length : "N/A"})`);
           try { localStorage.setItem(`vapestock_${key}`, JSON.stringify(data)); } catch {}
           fromFirestore.current[key] = true;
           setter(data);
           markKeyLoaded(key);
         },
-        // onNotFound — doc doesn't exist yet
-        () => { markKeyLoaded(key); },
-        // onError — subscription failed (permission denied, etc.)
+        // onNotFound
+        () => { console.log(`[SYNC-DEBUG] onNotFound ${key}`); markKeyLoaded(key); },
+        // onError
         (err) => {
-          console.error(`[SYNC] Subscription error for ${key}:`, err.code || err.message);
-          // STILL mark as loaded so firestoreReady can activate
-          // The data from localStorage will be used as fallback
+          console.error(`[SYNC-DEBUG] ❌ Subscription error for ${key}:`, err.code || err.message);
           markKeyLoaded(key);
         }
       );
@@ -146,22 +146,29 @@ export function useFirebaseSync() {
 
   // ---- smartSave: localStorage + Firestore ----
   const smartSave = useCallback((key, data) => {
+    const dataLen = Array.isArray(data) ? data.length : (typeof data === "number" ? data : "N/A");
+    console.log(`[SYNC-DEBUG] smartSave(${key}) called — firestoreReady=${firestoreReady.current} fromFirestore=${!!fromFirestore.current[key]} dataLen=${dataLen}`);
+
     // Always save to localStorage first (instant, offline-safe)
     try { localStorage.setItem(`vapestock_${key}`, JSON.stringify(data)); } catch {}
 
     // Block writes until initial load completes
     if (!firestoreReady.current) {
+      console.log(`[SYNC-DEBUG] ⛔ smartSave(${key}) BLOCKED — firestoreReady=false`);
       return;
     }
 
     // Don't write back data that came FROM Firestore (anti-loop)
     if (fromFirestore.current[key]) {
+      console.log(`[SYNC-DEBUG] ⏭️  smartSave(${key}) SKIPPED — fromFirestore=true, resetting flag`);
       fromFirestore.current[key] = false;
       return;
     }
 
     // Write to Firestore (with retry built into saveToFirestore)
+    console.log(`[SYNC-DEBUG] ✍️  smartSave(${key}) WRITING to Firestore...`);
     saveToFirestore(key, data).then(ok => {
+      console.log(`[SYNC-DEBUG] ${ok ? "✅" : "❌"} saveToFirestore(${key}) completed — ok=${ok}`);
       if (!ok) {
         writeFailCount.current++;
         if (writeFailCount.current >= 3) {
