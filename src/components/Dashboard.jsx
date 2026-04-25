@@ -4,6 +4,7 @@ import { calcTotalRevenue, calcTotalRevenueUSD } from "../calcs.js";
 import { BRAND_COLORS, isGarantia } from "../constants.js";
 import { useResponsive } from "../App.jsx";
 import { useAppContext } from "../AppContext.js";
+import { useSettings } from "../useSettings.js";
 import { T, pickAvatarColor } from "../theme.js";
 
 // ---------- helpers ----------
@@ -117,12 +118,14 @@ const SectionLabel = ({ children, icon, color = T.textMuted, right }) => (
 // ============================================
 export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, clients = [], cashMovements }) => {
   const { exchangeRate } = useAppContext();
+  const settings = useSettings();
   const { isMobile } = useResponsive();
   const [period, setPeriod] = useState("month"); // today | week | month
   const [showAllAlerts, setShowAllAlerts] = useState(false);
   const [reorderModal, setReorderModal] = useState(false);
   const [reorderQty, setReorderQty] = useState({}); // productId -> qty sugerida/editada
   const [copyToast, setCopyToast] = useState("");
+  const [trendingProduct, setTrendingProduct] = useState(null); // producto seleccionado para ver histórico 30d
 
   const now = new Date();
   const todayStr = now.toDateString();
@@ -192,7 +195,7 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, c
   // ---- stock ----
   const totalStock = products.reduce((s, p) => s + (p.stock || 0), 0);
   const stockValueUSD = products.reduce((s, p) => s + (p.stock || 0) * (p.priceUSD || 0), 0);
-  const lowStock = products.filter(p => p.stock > 0 && p.stock <= 3);
+  const lowStock = products.filter(p => p.stock > 0 && p.stock <= settings.lowStockThreshold);
   const outOfStock = products.filter(p => (p.stock || 0) <= 0);
 
   // ---- sparkline: last 14 days revenue ----
@@ -218,6 +221,61 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, c
       label: brand, value: qty, color: BRAND_COLORS[brand] || T.purple,
     }));
   }, [monthSales, productsById]);
+
+  // ---- channel breakdown (period-based) ----
+  // Cada canal tiene color fijo + se calcula % del total + ticket promedio (proxy de conversión)
+  const channelStats = useMemo(() => {
+    const CHANNEL_COLORS = {
+      "WhatsApp": "#25D366",
+      "Instagram": "#E1306C",
+      "Delivery": "#F59E0B",
+      "Presencial": "#6366f1",
+      "Sin canal": "#94A3B8",
+    };
+    const map = {};
+    periodSales.forEach(s => {
+      const ch = s.channel || "Sin canal";
+      if (!map[ch]) map[ch] = { count: 0, units: 0, revenueARS: 0 };
+      map[ch].count += 1;
+      map[ch].units += (s.items || []).reduce((a, i) => a + (i.qty || 1), 0);
+      const totalARS = s.currency === "USD" ? (s.total || 0) * exchangeRate : (s.total || 0);
+      map[ch].revenueARS += totalARS;
+    });
+    const totalCount = Object.values(map).reduce((a, b) => a + b.count, 0);
+    return Object.entries(map)
+      .sort((a, b) => b[1].count - a[1].count)
+      .map(([ch, v]) => ({
+        label: ch,
+        color: CHANNEL_COLORS[ch] || T.purple,
+        count: v.count,
+        units: v.units,
+        pct: totalCount > 0 ? (v.count / totalCount) * 100 : 0,
+        avgTicket: v.count > 0 ? v.revenueARS / v.count : 0,
+      }));
+  }, [periodSales, exchangeRate]);
+
+  // ---- runway: días de liquidez al ritmo actual de gastos ----
+  // Liquidez ≈ saldos iniciales ARS + ingresos ARS - egresos ARS - costos ARS de los últimos 90d.
+  // Burn diario = (gastos último mes) / 30. Runway = liquidez / burn.
+  const runway = useMemo(() => {
+    const ninetyAgo = new Date(now.getTime() - 90 * msPerDay).toISOString();
+    const recentSales = sales.filter(s => !s.isDeleted && s.date >= ninetyAgo);
+    const recentExpenses = expenses.filter(e => !e.isDeleted && e.date >= ninetyAgo);
+    const recentPurchases = (purchases || []).filter(p => !p.isDeleted && p.date >= ninetyAgo && p.status === "verificado");
+    const initialARS = 273646.62 + 120000;
+    const salesARS = recentSales.reduce((s, sale) => {
+      const totalARS = sale.currency === "USD" ? (sale.total || 0) * exchangeRate : (sale.total || 0);
+      return s + totalARS;
+    }, 0);
+    const expensesARS = recentExpenses.reduce((s, e) => s + (e.amountARS || 0), 0);
+    const purchasesARS = recentPurchases.reduce((s, p) => s + (p.totalUSDT || 0) * exchangeRate, 0);
+    const liquidityARS = initialARS + salesARS - expensesARS - purchasesARS;
+    const monthlyBurn = monthExpenses.reduce((s, e) => s + (e.amountARS || 0), 0);
+    const dailyBurn = monthlyBurn / 30;
+    const days = dailyBurn > 0 ? liquidityARS / dailyBurn : Infinity;
+    return { liquidityARS, dailyBurn, days };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sales, expenses, purchases, monthExpenses, exchangeRate]);
 
   // ---- top products ----
   const topProducts = useMemo(() => {
@@ -285,33 +343,38 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, c
       detail: outOfStock.slice(0, 3).map(p => `${p.brand} ${p.model}`).join(", "),
     });
     if (lowStock.length > 0) list.push({
-      t: "warning", msg: `${lowStock.length} con stock bajo (≤3)`,
+      t: "warning", msg: `${lowStock.length} con stock bajo (≤${settings.lowStockThreshold})`,
       detail: lowStock.slice(0, 3).map(p => `${p.brand} ${p.model} (${p.stock})`).join(", "),
     });
 
     const sevenAgo = new Date(now.getTime() - 7 * msPerDay).toISOString();
     const weekItems = {};
     sales.filter(s => !s.isDeleted && s.date >= sevenAgo).forEach(s => (s.items || []).forEach(i => { weekItems[i.productId] = (weekItems[i.productId] || 0) + (i.qty || 1); }));
-    const willRunOut = products.filter(p => p.stock > 0 && p.stock <= 10 && weekItems[p.id] > 0 && p.stock / (weekItems[p.id] / 7) <= 7);
+    const willRunOut = products.filter(p =>
+      p.stock > 0 && p.stock <= settings.willRunOutMaxStock &&
+      weekItems[p.id] > 0 &&
+      p.stock / (weekItems[p.id] / 7) <= settings.willRunOutDays
+    );
     if (willRunOut.length > 0) list.push({
       t: "warning",
-      msg: `${willRunOut.length} se agota${willRunOut.length > 1 ? "n" : ""} en ≤7 días`,
+      msg: `${willRunOut.length} se agota${willRunOut.length > 1 ? "n" : ""} en ≤${settings.willRunOutDays} días`,
       detail: willRunOut.slice(0, 3).map(p => `${p.brand} ${p.model}`).join(", "),
     });
 
-    const thirtyAgo = new Date(now.getTime() - 30 * msPerDay).toISOString();
+    const staleAgo = new Date(now.getTime() - settings.staleProductDays * msPerDay).toISOString();
     const recentItems = {};
-    sales.filter(s => !s.isDeleted && s.date >= thirtyAgo).forEach(s => (s.items || []).forEach(i => { recentItems[i.productId] = (recentItems[i.productId] || 0) + (i.qty || 1); }));
+    sales.filter(s => !s.isDeleted && s.date >= staleAgo).forEach(s => (s.items || []).forEach(i => { recentItems[i.productId] = (recentItems[i.productId] || 0) + (i.qty || 1); }));
     const stale = products.filter(p => p.stock > 0 && !recentItems[p.id]);
     if (stale.length > 0) list.push({
-      t: "info", msg: `${stale.length} sin vender hace 30+ días`,
+      t: "info", msg: `${stale.length} sin vender hace ${settings.staleProductDays}+ días`,
       detail: stale.slice(0, 3).map(p => `${p.brand} ${p.model}`).join(", "),
     });
 
     const debtors = clients.filter(c => (c.balance || 0) < 0);
-    if (debtors.length > 0) list.push({
+    const totalDebt = debtors.reduce((s, c) => s + Math.abs(c.balance), 0);
+    if (debtors.length > 0 && totalDebt > settings.debtTotalAlertARS) list.push({
       t: "warning", msg: `${debtors.length} cliente${debtors.length > 1 ? "s" : ""} con deuda`,
-      detail: `Total: ${formatMoney(debtors.reduce((s, c) => s + Math.abs(c.balance), 0))}`,
+      detail: `Total: ${formatMoney(totalDebt)}`,
     });
 
     // === MERMAS ===
@@ -385,9 +448,9 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, c
       Object.keys(garantiasByModel).forEach(key => {
         const g = garantiasByModel[key];
         const ventas = ventasByModel[key] || 0;
-        if (g.count >= 2 && ventas > 0) {
+        if (g.count >= settings.warrantyMonthlyCount && ventas > 0) {
           const rate = g.count / ventas;
-          if (rate > 0.03) {
+          if (rate > settings.warrantyRatePct / 100) {
             problemModels.push({ name: g.name, count: g.count, ventas, rate });
           }
         }
@@ -402,9 +465,9 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, c
       }
     }
 
-    // 8.4 Cambios por daño de envío Paraguay (>= 3 este mes)
+    // 8.4 Cambios por daño de envío Paraguay (umbral configurable)
     const dañoEnvio = garantiasMes.filter(w => w.failureReason === "Daño de envío Paraguay");
-    if (dañoEnvio.length >= 3) {
+    if (dañoEnvio.length >= settings.shippingDamageMonthly) {
       const qty = dañoEnvio.reduce((s, w) => s + (w.qty || 0), 0);
       const usd = dañoEnvio.reduce((s, w) => s + wCost(w), 0);
       list.push({
@@ -415,11 +478,11 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, c
     }
 
     // 8.45 Productos próximos a vencer (expiryDate ≤ 30 días) o ya vencidos
-    const thirtyDaysAhead = now.getTime() + 30 * msPerDay;
+    const expireBefore = now.getTime() + settings.expiringDaysAhead * msPerDay;
     const expiringSoon = products.filter(p => {
       if (!p.expiryDate || !p.stock || p.stock <= 0) return false;
       const t = new Date(p.expiryDate).getTime();
-      return !Number.isNaN(t) && t <= thirtyDaysAhead;
+      return !Number.isNaN(t) && t <= expireBefore;
     });
     const expired = expiringSoon.filter(p => new Date(p.expiryDate).getTime() < now.getTime());
     const soonNotExpired = expiringSoon.filter(p => new Date(p.expiryDate).getTime() >= now.getTime());
@@ -433,16 +496,15 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, c
     if (soonNotExpired.length > 0) {
       list.push({
         t: "warning",
-        msg: `${soonNotExpired.length} producto${soonNotExpired.length > 1 ? "s" : ""} vence${soonNotExpired.length === 1 ? "" : "n"} en ≤30 días`,
+        msg: `${soonNotExpired.length} producto${soonNotExpired.length > 1 ? "s" : ""} vence${soonNotExpired.length === 1 ? "" : "n"} en ≤${settings.expiringDaysAhead} días`,
         detail: soonNotExpired.slice(0, 3).map(p => `${p.brand} ${p.model}: ${formatDate(p.expiryDate)}`).join(" · "),
       });
     }
 
-    // 8.5 Lotes Paraguay sin rotar (verificados hace >14 días con productos todavía en stock alto)
-    // Indicador: compra verificada hace >14 días cuyos items todavía tienen stock >= 70% del lote
-    const fourteenAgo = now.getTime() - 14 * msPerDay;
+    // 8.5 Lotes Paraguay sin rotar (configurable: días + % stock restante)
+    const stagnantBefore = now.getTime() - settings.stagnantLoteMinDays * msPerDay;
     const stagnantLotes = (purchases || [])
-      .filter(p => !p.isDeleted && p.status === "verificado" && new Date(p.date).getTime() < fourteenAgo)
+      .filter(p => !p.isDeleted && p.status === "verificado" && new Date(p.date).getTime() < stagnantBefore)
       .map(p => {
         const items = p.items || [];
         const totalLoteQty = items.reduce((s, i) => s + (Number(i.qty) || 0), 0);
@@ -454,13 +516,13 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, c
         const pct = totalLoteQty > 0 ? currentStock / totalLoteQty : 0;
         return { p, totalLoteQty, currentStock, pct };
       })
-      .filter(x => x && x.pct >= 0.7)
+      .filter(x => x && x.pct >= settings.stagnantLoteMinPct)
       .sort((a, b) => new Date(a.p.date) - new Date(b.p.date));
     if (stagnantLotes.length > 0) {
       const top = stagnantLotes.slice(0, 2);
       list.push({
         t: "info",
-        msg: `${stagnantLotes.length} lote${stagnantLotes.length > 1 ? "s" : ""} sin rotar (≥70% stock, >14 días)`,
+        msg: `${stagnantLotes.length} lote${stagnantLotes.length > 1 ? "s" : ""} sin rotar (≥${Math.round(settings.stagnantLoteMinPct * 100)}% stock, >${settings.stagnantLoteMinDays}d)`,
         detail: top.map(x => {
           const label = x.p.loteNumber ? `${x.p.loteNumber} (${x.p.supplier || "?"})` : (x.p.supplier || "Lote sin nombre");
           const days = Math.floor((now.getTime() - new Date(x.p.date).getTime()) / msPerDay);
@@ -470,7 +532,7 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, c
     }
 
     return list;
-  }, [outOfStock, lowStock, products, productsById, sales, clients, withdrawals, purchases]);
+  }, [outOfStock, lowStock, products, productsById, sales, clients, withdrawals, purchases, settings]);
 
   const alertStyles = {
     danger: { bg: T.redBg, border: T.redBorder, dot: T.red },
@@ -653,10 +715,20 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, c
               {topProducts.map((p, i) => {
                 const medals = [T.amber, "#C0C0C0", "#CD7F32"];
                 return (
-                  <div key={p.id} style={{
-                    display: "flex", alignItems: "center", gap: 10, padding: "8px 0",
-                    borderBottom: i < topProducts.length - 1 ? `1px solid ${T.borderSoft}` : "none",
-                  }}>
+                  <div
+                    key={p.id}
+                    onClick={() => setTrendingProduct(p)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={e => { if (e.key === "Enter") setTrendingProduct(p); }}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10, padding: "8px 0",
+                      borderBottom: i < topProducts.length - 1 ? `1px solid ${T.borderSoft}` : "none",
+                      cursor: "pointer", borderRadius: 6,
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = T.surface2; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
+                  >
                     <span style={{
                       width: 22, height: 22, borderRadius: 6,
                       background: i < 3 ? medals[i] : T.surface2,
@@ -690,17 +762,33 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, c
             </SectionLabel>
             {(lowStock.length + outOfStock.length) > 0 && (
               <button onClick={() => {
-                // Precargar qty sugerida: 2x peak ventas semanales últimos 30d, mínimo 5
+                // Smart reorder: velocidad × (leadTime + safetyStock) - stock actual.
+                // leadTime 30d (importación Paraguay), safety 7d, mínimo 5 uds.
+                // Si el producto vende mucho recientemente (últimos 7d > 50% del último mes),
+                // se aplica multiplicador 1.3x para anticipar tendencia ascendente.
+                const LEAD_TIME = 30, SAFETY = 7;
                 const thirtyAgo = new Date(now.getTime() - 30 * msPerDay).toISOString();
+                const sevenAgoIso = new Date(now.getTime() - 7 * msPerDay).toISOString();
                 const recentItems = {};
+                const lastWeekItems = {};
                 sales.filter(s => !s.isDeleted && s.date >= thirtyAgo).forEach(s =>
-                  (s.items || []).forEach(i => { recentItems[i.productId] = (recentItems[i.productId] || 0) + (i.qty || 1); })
+                  (s.items || []).forEach(i => {
+                    recentItems[i.productId] = (recentItems[i.productId] || 0) + (i.qty || 1);
+                    if (s.date >= sevenAgoIso) {
+                      lastWeekItems[i.productId] = (lastWeekItems[i.productId] || 0) + (i.qty || 1);
+                    }
+                  })
                 );
                 const defaults = {};
                 [...outOfStock, ...lowStock].forEach(p => {
                   const monthlyQty = recentItems[p.id] || 0;
-                  const suggested = Math.max(5, Math.ceil((monthlyQty / 30) * 14)); // 2 semanas de stock
-                  defaults[p.id] = suggested;
+                  const weeklyQty = lastWeekItems[p.id] || 0;
+                  const velocity = monthlyQty / 30; // uds/día
+                  const trending = monthlyQty > 0 && (weeklyQty / monthlyQty) > 0.5; // último 7d > 50% del mes
+                  const trendMultiplier = trending ? 1.3 : 1;
+                  const target = Math.ceil(velocity * (LEAD_TIME + SAFETY) * trendMultiplier);
+                  const needed = target - (p.stock || 0);
+                  defaults[p.id] = Math.max(5, needed);
                 });
                 setReorderQty(defaults);
                 setReorderModal(true);
@@ -748,6 +836,89 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, c
                   +{lowStock.length - 6} más
                 </div>
               )}
+            </div>
+          )}
+        </PCard>
+      </div>
+
+      {/* ===== CHANNEL + RUNWAY ===== */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+        gap: 16, marginBottom: 16,
+      }}>
+        {/* Ventas por canal */}
+        <PCard>
+          <SectionLabel icon="📡">Ventas por canal · {periodLabel}</SectionLabel>
+          {channelStats.length === 0 ? (
+            <p style={{ color: T.textMuted, fontSize: 13, padding: "12px 0" }}>Sin ventas este período</p>
+          ) : (
+            <div>
+              {channelStats.map(ch => (
+                <div key={ch.label} style={{ marginBottom: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                    <span style={{ width: 10, height: 10, borderRadius: 3, background: ch.color, flexShrink: 0 }} />
+                    <span style={{ color: T.text, fontSize: 13, fontWeight: 600, flex: 1 }}>{ch.label}</span>
+                    <span style={{ color: T.text, fontSize: 13, fontWeight: 700, fontFamily: T.fontDisplay }}>
+                      {ch.pct.toFixed(0)}%
+                    </span>
+                  </div>
+                  <div style={{ height: 6, background: T.surface2, borderRadius: 3, overflow: "hidden", marginBottom: 4 }}>
+                    <div style={{ width: `${ch.pct}%`, height: "100%", background: ch.color, transition: "width .3s" }} />
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: T.textMuted }}>
+                    <span>{ch.count} venta{ch.count !== 1 ? "s" : ""} · {ch.units} uds</span>
+                    <span>Ticket prom. {formatMoney(ch.avgTicket)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </PCard>
+
+        {/* Runway / liquidez */}
+        <PCard>
+          <SectionLabel icon="⛽">Runway · liquidez estimada</SectionLabel>
+          {runway.dailyBurn === 0 ? (
+            <div style={{ padding: "12px 0" }}>
+              <p style={{ color: T.textMuted, fontSize: 13, margin: 0 }}>Sin gastos registrados este mes — no se puede proyectar runway.</p>
+            </div>
+          ) : (
+            <div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
+                <span style={{
+                  fontSize: 32, fontWeight: 800, fontFamily: T.fontDisplay,
+                  color: runway.days < 30 ? T.red : runway.days < 60 ? T.amber : T.green,
+                }}>
+                  {runway.days === Infinity ? "∞" : Math.floor(runway.days)}
+                </span>
+                <span style={{ fontSize: 13, color: T.textMuted }}>días al ritmo actual</span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 12 }}>
+                <div>
+                  <div style={{ color: T.textMuted, marginBottom: 2 }}>Liquidez estim.</div>
+                  <div style={{ color: T.text, fontWeight: 700, fontFamily: T.fontDisplay }}>
+                    {formatMoney(runway.liquidityARS)}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ color: T.textMuted, marginBottom: 2 }}>Burn diario</div>
+                  <div style={{ color: T.text, fontWeight: 700, fontFamily: T.fontDisplay }}>
+                    {formatMoney(runway.dailyBurn)}
+                  </div>
+                </div>
+              </div>
+              {runway.days < 30 && runway.days !== Infinity && (
+                <div style={{
+                  marginTop: 10, padding: "8px 10px", background: T.redBg, border: `1px solid ${T.redBorder}`,
+                  borderRadius: 6, fontSize: 11, color: T.red, fontWeight: 600,
+                }}>
+                  ⚠️ Runway crítico — revisar gastos o acelerar ventas
+                </div>
+              )}
+              <div style={{ marginTop: 8, fontSize: 10, color: T.textMuted, lineHeight: 1.4 }}>
+                Estimación basada en saldos iniciales + flujo último 90d. Burn = gastos del mes / 30.
+              </div>
             </div>
           )}
         </PCard>
@@ -822,6 +993,14 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, c
         />
       )}
 
+      {trendingProduct && (
+        <TrendingProductModal
+          product={trendingProduct}
+          sales={sales}
+          onClose={() => setTrendingProduct(null)}
+        />
+      )}
+
       {/* Toast de confirmación */}
       {copyToast && (
         <div style={{
@@ -838,6 +1017,134 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, c
 // ============================================
 // ReorderModal — compone el mensaje para el proveedor
 // ============================================
+// ============================================
+// TrendingProductModal — histórico 30d de un producto
+// ============================================
+const TrendingProductModal = ({ product, sales, onClose }) => {
+  const dailyData = useMemo(() => {
+    const now = new Date();
+    const days = [];
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      d.setHours(0, 0, 0, 0);
+      days.push({ date: d, qty: 0, revenue: 0 });
+    }
+    sales.forEach(s => {
+      if (s.isDeleted) return;
+      const sd = new Date(s.date);
+      sd.setHours(0, 0, 0, 0);
+      const idx = days.findIndex(d => d.date.getTime() === sd.getTime());
+      if (idx === -1) return;
+      (s.items || []).forEach(it => {
+        if (it.productId === product.id) {
+          days[idx].qty += (it.qty || 1);
+          days[idx].revenue += (it.price || 0) * (it.qty || 1);
+        }
+      });
+    });
+    return days;
+  }, [sales, product.id]);
+
+  const totalQty = dailyData.reduce((a, d) => a + d.qty, 0);
+  const totalRevenue = dailyData.reduce((a, d) => a + d.revenue, 0);
+  const peakDay = dailyData.reduce((max, d) => d.qty > max.qty ? d : max, dailyData[0]);
+  const avgPerDay = totalQty / 30;
+  const daysWithSales = dailyData.filter(d => d.qty > 0).length;
+  const maxQty = Math.max(1, ...dailyData.map(d => d.qty));
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, background: "rgba(15,18,28,0.55)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        zIndex: 1000, padding: 16,
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: T.surface, border: `1px solid ${T.borderSoft}`, borderRadius: 12,
+          padding: 24, maxWidth: 540, width: "100%", maxHeight: "92vh", overflowY: "auto",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+          <div>
+            <div style={{ fontSize: 11, color: T.textMuted, fontWeight: 600, letterSpacing: 0.5, textTransform: "uppercase" }}>
+              Histórico 30 días
+            </div>
+            <h3 style={{ margin: "4px 0 2px", fontSize: 18, fontWeight: 700, color: T.text }}>{product.name}</h3>
+            {product.flavor && <div style={{ fontSize: 13, color: T.textMuted }}>{product.flavor}</div>}
+          </div>
+          <button onClick={onClose} style={{
+            background: "transparent", border: "none", color: T.textMuted,
+            fontSize: 22, cursor: "pointer", padding: 0, lineHeight: 1,
+          }} aria-label="Cerrar">×</button>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 18 }}>
+          <div>
+            <div style={{ fontSize: 10, color: T.textMuted, marginBottom: 2 }}>Total uds</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: T.text, fontFamily: T.fontDisplay }}>{totalQty}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 10, color: T.textMuted, marginBottom: 2 }}>Promedio/día</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: T.text, fontFamily: T.fontDisplay }}>{avgPerDay.toFixed(1)}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 10, color: T.textMuted, marginBottom: 2 }}>Días con venta</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: T.text, fontFamily: T.fontDisplay }}>{daysWithSales}/30</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 10, color: T.textMuted, marginBottom: 2 }}>Pico</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: T.text, fontFamily: T.fontDisplay }}>{peakDay.qty}</div>
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 18 }}>
+          <div style={{ fontSize: 11, color: T.textMuted, fontWeight: 600, marginBottom: 6 }}>Ventas diarias</div>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 2, height: 80, padding: "8px 0", borderBottom: `1px solid ${T.borderSoft}` }}>
+            {dailyData.map((d, i) => (
+              <div
+                key={i}
+                title={`${d.date.toLocaleDateString("es-AR", { day: "numeric", month: "short" })}: ${d.qty} uds`}
+                style={{
+                  flex: 1,
+                  height: `${(d.qty / maxQty) * 100}%`,
+                  minHeight: d.qty > 0 ? 2 : 1,
+                  background: d.qty > 0 ? T.primary : T.borderSoft,
+                  borderRadius: "2px 2px 0 0",
+                }}
+              />
+            ))}
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: T.textMuted, marginTop: 4 }}>
+            <span>{dailyData[0]?.date.toLocaleDateString("es-AR", { day: "numeric", month: "short" })}</span>
+            <span>Hoy</span>
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, fontSize: 12 }}>
+          <div style={{ background: T.surface2, padding: 10, borderRadius: 8 }}>
+            <div style={{ color: T.textMuted, marginBottom: 2 }}>Ingresos 30d</div>
+            <div style={{ color: T.text, fontWeight: 700, fontFamily: T.fontDisplay }}>{formatMoney(totalRevenue)}</div>
+          </div>
+          <div style={{ background: T.surface2, padding: 10, borderRadius: 8 }}>
+            <div style={{ color: T.textMuted, marginBottom: 2 }}>Stock actual</div>
+            <div style={{
+              color: (product.stock || 0) === 0 ? T.red : (product.stock || 0) <= 3 ? T.amber : T.text,
+              fontWeight: 700, fontFamily: T.fontDisplay,
+            }}>
+              {product.stock || 0} uds {avgPerDay > 0 && product.stock > 0 && `· ${Math.floor(product.stock / avgPerDay)} días`}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const ReorderModal = ({ products, qtyMap, setQtyMap, onClose, onCopied }) => {
   const { isMobile } = useResponsive();
 

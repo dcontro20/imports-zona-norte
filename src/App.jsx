@@ -48,6 +48,7 @@ const StockLog = lazy(() => import("./components/StockLog.jsx").then(m => ({ def
 const AuditLog = lazy(() => import("./components/AuditLog.jsx").then(m => ({ default: m.AuditLog })));
 const ExchangeMonitor = lazy(() => import("./components/ExchangeMonitor.jsx").then(m => ({ default: m.ExchangeMonitor })));
 const Trash = lazy(() => import("./components/Trash.jsx").then(m => ({ default: m.Trash })));
+const SettingsModal = lazy(() => import("./components/SettingsModal.jsx").then(m => ({ default: m.SettingsModal })));
 const QuickSale = lazy(() => import("./components/QuickSale.jsx").then(m => ({ default: m.QuickSale })));
 const QuickWithdrawal = lazy(() => import("./components/QuickWithdrawal.jsx").then(m => ({ default: m.QuickWithdrawal })));
 
@@ -140,6 +141,7 @@ export default function App() {
   const [quickSaleOpen, setQuickSaleOpen] = useState(false);
   const [quickMermaOpen, setQuickMermaOpen] = useState(false);
   const [fabMenuOpen, setFabMenuOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Safety net: si saveToFirestore falla, mostramos toast rojo al usuario.
   // El evento "izn:write-error" lo dispara firebase.js cuando un write fracasa
@@ -455,6 +457,17 @@ export default function App() {
                 Blue: <span style={{ color: "#37352F", fontWeight: 700 }}>${exchangeRate}</span>
               </div>
             )}
+            {/* Settings button (ownerOnly) */}
+            {isOwnerUser && (
+              <button onClick={() => setSettingsOpen(true)} aria-label="Configuración"
+                style={{
+                  background: "transparent", border: "1px solid #E8E7E3",
+                  borderRadius: 8, padding: isMobile ? "5px 8px" : "5px 10px",
+                  cursor: "pointer", color: "#8C8A82", fontSize: 14,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  flexShrink: 0, fontFamily: "inherit",
+                }}>⚙️</button>
+            )}
             {/* User badge */}
             <div style={{
               display: "flex", alignItems: "center", gap: isMobile ? 4 : 6,
@@ -655,6 +668,13 @@ export default function App() {
       {/* Toast de error de escritura — safety net para que ningún write
           fallido pase desapercibido. Lo dispara firebase.js cuando setDoc
           falla tras retry. */}
+      {/* Settings modal — owner only, montado lazy */}
+      {settingsOpen && (
+        <Suspense fallback={null}>
+          <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+        </Suspense>
+      )}
+
       {writeErrorToast && (
         <div style={{
           position: "fixed", top: 70, left: "50%", transform: "translateX(-50%)",
