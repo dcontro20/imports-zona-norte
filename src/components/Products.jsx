@@ -4,11 +4,12 @@ import { Modal, Card, Btn, Input, Select, Table, Badge, SearchBar } from "./UI.j
 import { BRANDS, BRAND_COLORS } from "../constants.js";
 import { useResponsive } from "../App.jsx";
 import { useAppContext } from "../AppContext.js";
+import { T } from "../theme.js";
 
 // -- PRODUCTS / STOCK --
 
 
-export const Products = ({ products, setProducts }) => {
+export const Products = ({ products, setProducts, priceLog = [] }) => {
   const { exchangeRate, logStock, logPrice, currentUser, logAudit } = useAppContext();
   const { isMobile } = useResponsive();
   const [search, setSearch] = useState("");
@@ -20,7 +21,10 @@ export const Products = ({ products, setProducts }) => {
   const [quickEdit, setQuickEdit] = useState(false);
   const [quickStocks, setQuickStocks] = useState({});
   const [toast, setToast] = useState("");
-  const [form, setForm] = useState({ brand: "", model: "", flavor: "", puffs: "", priceUSD: "", priceARS: "", stock: 0, expiryDate: "" });
+  const [form, setForm] = useState({ brand: "", model: "", flavor: "", puffs: "", priceUSD: "", priceARS: "", stock: 0, expiryDate: "", tags: [], photoUrl: "" });
+  const [tagFilter, setTagFilter] = useState("");
+  const [bulkImportOpen, setBulkImportOpen] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState("");
 
   // Quick edit handlers
   const startQuickEdit = () => {
@@ -57,11 +61,19 @@ export const Products = ({ products, setProducts }) => {
 
   const activeProducts = products.filter(p => !p.isDeleted);
   const filtered = activeProducts.filter(p => {
-    const matchSearch = `${p.brand} ${p.model} ${p.flavor} ${p.puffs}`.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = `${p.brand} ${p.model} ${p.flavor} ${p.puffs} ${(p.tags || []).join(" ")}`.toLowerCase().includes(search.toLowerCase());
     const matchBrand = !brandFilter || p.brand === brandFilter;
     const matchStock = stockFilter === "all" || (stockFilter === "instock" && p.stock > 0) || (stockFilter === "nostock" && p.stock === 0);
-    return matchSearch && matchBrand && matchStock;
+    const matchTag = !tagFilter || (p.tags || []).includes(tagFilter);
+    return matchSearch && matchBrand && matchStock && matchTag;
   });
+
+  // Tags únicos disponibles para filtro
+  const allTags = useMemo(() => {
+    const set = new Set();
+    products.forEach(p => (p.tags || []).forEach(t => set.add(t)));
+    return Array.from(set).sort();
+  }, [products]);
 
   // Group by Brand → Model (sorted alphabetically)
   const grouped = useMemo(() => {
@@ -85,8 +97,8 @@ export const Products = ({ products, setProducts }) => {
   const totalInStock = filtered.reduce((s, p) => s + (p.stock || 0), 0);
   const totalWithStock = filtered.filter(p => p.stock > 0).length;
 
-  const openNew = () => { setForm({ brand: "", model: "", flavor: "", puffs: "", priceUSD: "", priceARS: "", stock: 0, expiryDate: "" }); setEditing(null); setModal(true); };
-  const openEdit = (p) => { setForm(p); setEditing(p.id); setModal(true); };
+  const openNew = () => { setForm({ brand: "", model: "", flavor: "", puffs: "", priceUSD: "", priceARS: "", stock: 0, expiryDate: "", tags: [], photoUrl: "" }); setEditing(null); setModal(true); };
+  const openEdit = (p) => { setForm({ tags: [], photoUrl: "", ...p }); setEditing(p.id); setModal(true); };
 
   const save = () => {
     if (!form.brand || !form.model || !form.flavor) return;
@@ -139,6 +151,7 @@ export const Products = ({ products, setProducts }) => {
           ) : (
             <>
               <Btn variant="secondary" onClick={startQuickEdit} style={{ padding: "10px 14px" }}>⚡ Edición rápida</Btn>
+              <Btn variant="secondary" onClick={() => setBulkImportOpen(true)} style={{ padding: "10px 14px" }}>📥 Importar CSV</Btn>
               <Btn onClick={openNew}>+ Nuevo</Btn>
             </>
           )}
@@ -174,6 +187,28 @@ export const Products = ({ products, setProducts }) => {
           }}>{label}</button>
         ))}
       </div>
+
+      {allTags.length > 0 && (
+        <div style={{ display: "flex", gap: 8, marginBottom: 14, overflowX: "auto", paddingBottom: 4, alignItems: "center" }}>
+          <span style={{ fontSize: 11, color: T.textMuted, fontWeight: 600, marginRight: 4, whiteSpace: "nowrap" }}>Tags:</span>
+          <button onClick={() => setTagFilter("")} style={{
+            padding: "5px 10px", borderRadius: 14, minHeight: 28, flexShrink: 0,
+            border: "1px solid " + (tagFilter === "" ? T.primary : T.borderSoft),
+            background: tagFilter === "" ? `${T.primary}15` : "transparent",
+            color: tagFilter === "" ? T.primary : T.textMuted,
+            cursor: "pointer", fontSize: 11, fontWeight: 600, fontFamily: "inherit", whiteSpace: "nowrap",
+          }}>Todos</button>
+          {allTags.map(tag => (
+            <button key={tag} onClick={() => setTagFilter(tag)} style={{
+              padding: "5px 10px", borderRadius: 14, minHeight: 28, flexShrink: 0,
+              border: "1px solid " + (tagFilter === tag ? T.primary : T.borderSoft),
+              background: tagFilter === tag ? `${T.primary}15` : "transparent",
+              color: tagFilter === tag ? T.primary : T.textSub,
+              cursor: "pointer", fontSize: 11, fontWeight: 600, fontFamily: "inherit", whiteSpace: "nowrap",
+            }}>#{tag}</button>
+          ))}
+        </div>
+      )}
 
       {/* Quick edit banner */}
       {quickEdit && (
@@ -237,17 +272,50 @@ export const Products = ({ products, setProducts }) => {
                   }}
                   onMouseEnter={e => { if (!quickEdit) e.currentTarget.style.background = "#F5F5F2"; }}
                   onMouseLeave={e => { if (!quickEdit) e.currentTarget.style.background = "transparent"; }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
                       <span style={{
                         width: 8, height: 8, borderRadius: "50%",
                         background: p.stock > 0 ? "#00b894" : "#E03E3E",
                         flexShrink: 0
                       }} />
+                      {p.photoUrl && (
+                        <img
+                          src={p.photoUrl}
+                          alt=""
+                          onClick={e => { e.stopPropagation(); setLightboxUrl(p.photoUrl); }}
+                          onError={e => { e.target.style.display = "none"; }}
+                          style={{
+                            width: 28, height: 28, borderRadius: 4, objectFit: "cover",
+                            border: `1px solid ${T.borderSoft}`, cursor: "zoom-in", flexShrink: 0,
+                          }}
+                        />
+                      )}
                       <span style={{
                         color: p.stock > 0 ? "#37352F" : "#B1AFA7",
                         fontSize: 14,
-                        textDecoration: p.stock === 0 ? "line-through" : "none"
+                        textDecoration: p.stock === 0 ? "line-through" : "none",
                       }}>{p.flavor}</span>
+                      {(p.tags || []).slice(0, 3).map(tag => (
+                        <span key={tag} style={{
+                          fontSize: 10, padding: "2px 6px", borderRadius: 8,
+                          background: `${T.primary}15`, color: T.primary, fontWeight: 600,
+                          flexShrink: 0,
+                        }}>#{tag}</span>
+                      ))}
+                      {p.expiryDate && (() => {
+                        const days = Math.floor((new Date(p.expiryDate) - new Date()) / 86400000);
+                        if (days > 60) return null;
+                        return (
+                          <span style={{
+                            fontSize: 10, padding: "2px 6px", borderRadius: 8,
+                            background: days < 0 ? T.redBg : days < 30 ? T.amberBg : T.surface2,
+                            color: days < 0 ? T.red : days < 30 ? T.amber : T.textMuted,
+                            fontWeight: 600, flexShrink: 0,
+                          }}>
+                            {days < 0 ? `Vencido` : `Vence ${days}d`}
+                          </span>
+                        );
+                      })()}
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                       {quickEdit ? (
@@ -297,11 +365,235 @@ export const Products = ({ products, setProducts }) => {
         </div>
         <Input label="Stock" type="number" value={form.stock} onChange={e => setForm(f => ({ ...f, stock: Number(e.target.value) }))} />
         <Input label="Fecha de vencimiento (opcional)" type="date" value={form.expiryDate || ""} onChange={e => setForm(f => ({ ...f, expiryDate: e.target.value }))} />
+        <Input
+          label="Tags (separados por coma — ej: premium, puff alto, discontinuado)"
+          placeholder="premium, puff alto"
+          value={(form.tags || []).join(", ")}
+          onChange={e => setForm(f => ({ ...f, tags: e.target.value.split(",").map(t => t.trim()).filter(Boolean) }))}
+        />
+        <Input
+          label="Foto (URL — opcional)"
+          placeholder="https://..."
+          value={form.photoUrl || ""}
+          onChange={e => setForm(f => ({ ...f, photoUrl: e.target.value }))}
+        />
+        {form.photoUrl && (
+          <div style={{ marginBottom: 12 }}>
+            <img src={form.photoUrl} alt="preview" style={{
+              maxWidth: 120, maxHeight: 120, borderRadius: 8, border: `1px solid ${T.borderSoft}`,
+            }} onError={e => { e.target.style.display = "none"; }} />
+          </div>
+        )}
+        {editing && (() => {
+          const history = (priceLog || [])
+            .filter(p => p.productId === editing)
+            .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+            .slice(0, 8);
+          if (history.length === 0) return null;
+          return (
+            <div style={{
+              marginTop: 8, marginBottom: 12,
+              padding: 12, background: T.surface2,
+              border: `1px solid ${T.borderSoft}`, borderRadius: 8,
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: T.text, marginBottom: 8 }}>
+                📈 Histórico de precios (últimos {history.length})
+              </div>
+              {history.map((h, i) => {
+                const diff = (Number(h.newPrice) || 0) - (Number(h.oldPrice) || 0);
+                const up = diff > 0;
+                return (
+                  <div key={i} style={{
+                    display: "flex", justifyContent: "space-between", alignItems: "center",
+                    padding: "5px 0", borderBottom: i < history.length - 1 ? `1px solid ${T.borderSoft}` : "none",
+                    fontSize: 12,
+                  }}>
+                    <span style={{ color: T.textMuted }}>{(h.date || "").slice(0, 10)}</span>
+                    <span style={{ color: T.textSub }}>
+                      {formatMoney(h.oldPrice, h.currency || "USD")} → <strong>{formatMoney(h.newPrice, h.currency || "USD")}</strong>
+                    </span>
+                    <span style={{
+                      color: up ? T.green : T.red, fontWeight: 700, fontSize: 11,
+                      background: up ? T.greenBg : T.redBg, padding: "2px 6px", borderRadius: 4,
+                    }}>
+                      {up ? "▲" : "▼"} {Math.abs(diff).toFixed(2)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 16 }}>
           <Btn variant="secondary" onClick={() => setModal(false)}>Cancelar</Btn>
           <Btn onClick={save}>{editing ? "Guardar" : "Crear"}</Btn>
         </div>
       </Modal>
+
+      {bulkImportOpen && (
+        <BulkImportModal
+          products={products}
+          setProducts={setProducts}
+          logAudit={logAudit}
+          onClose={() => setBulkImportOpen(false)}
+        />
+      )}
+
+      {lightboxUrl && (
+        <div
+          onClick={() => setLightboxUrl("")}
+          style={{
+            position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 1000, padding: 20, cursor: "pointer",
+          }}
+        >
+          <img src={lightboxUrl} alt="" style={{ maxWidth: "90vw", maxHeight: "90vh", borderRadius: 8 }} />
+        </div>
+      )}
     </div>
+  );
+};
+
+// ============================================
+// BulkImportModal — pegar CSV o subir archivo para crear/actualizar productos
+// Headers esperados: brand,model,flavor,puffs,priceUSD,priceARS,stock,expiryDate,tags,photoUrl
+// Match por (brand+model+flavor) → si existe, actualiza; sino, crea nuevo.
+// ============================================
+const BulkImportModal = ({ products, setProducts, logAudit, onClose }) => {
+  const [csv, setCsv] = useState("");
+  const [preview, setPreview] = useState(null); // { toCreate: [], toUpdate: [], errors: [] }
+
+  const parseCsv = () => {
+    const lines = csv.trim().split("\n").filter(l => l.trim());
+    if (lines.length < 2) {
+      setPreview({ toCreate: [], toUpdate: [], errors: ["CSV debe tener al menos header + 1 fila"] });
+      return;
+    }
+    const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
+    const REQUIRED = ["brand", "model", "flavor"];
+    const missing = REQUIRED.filter(r => !headers.includes(r));
+    if (missing.length > 0) {
+      setPreview({ toCreate: [], toUpdate: [], errors: [`Faltan columnas: ${missing.join(", ")}`] });
+      return;
+    }
+    const toCreate = [];
+    const toUpdate = [];
+    const errors = [];
+    for (let i = 1; i < lines.length; i++) {
+      const cells = lines[i].split(",").map(c => c.trim());
+      const row = {};
+      headers.forEach((h, idx) => { row[h] = cells[idx] || ""; });
+      if (!row.brand || !row.model || !row.flavor) {
+        errors.push(`Fila ${i + 1}: faltan brand/model/flavor`);
+        continue;
+      }
+      const existing = products.find(p =>
+        !p.isDeleted &&
+        p.brand?.toLowerCase() === row.brand.toLowerCase() &&
+        p.model?.toLowerCase() === row.model.toLowerCase() &&
+        p.flavor?.toLowerCase() === row.flavor.toLowerCase()
+      );
+      const data = {
+        brand: row.brand,
+        model: row.model,
+        flavor: row.flavor,
+        puffs: row.puffs || "",
+        priceUSD: Number(row.priceusd) || Number(row.priceUSD) || 0,
+        priceARS: Number(row.pricears) || Number(row.priceARS) || 0,
+        stock: Number(row.stock) || 0,
+        expiryDate: row.expirydate || "",
+        tags: row.tags ? row.tags.split(";").map(t => t.trim()).filter(Boolean) : [],
+        photoUrl: row.photourl || "",
+      };
+      if (existing) toUpdate.push({ ...data, id: existing.id, oldStock: existing.stock || 0 });
+      else toCreate.push(data);
+    }
+    setPreview({ toCreate, toUpdate, errors });
+  };
+
+  const applyImport = () => {
+    if (!preview) return;
+    const newIds = [];
+    setProducts(prev => {
+      let next = prev.map(p => {
+        const upd = preview.toUpdate.find(u => u.id === p.id);
+        return upd ? { ...p, ...upd, id: p.id } : p;
+      });
+      preview.toCreate.forEach(p => {
+        const id = uid();
+        newIds.push(id);
+        next = [...next, { ...p, id }];
+      });
+      return next;
+    });
+    if (logAudit) logAudit("import", "products", "bulk", `Importación CSV: ${preview.toCreate.length} nuevos + ${preview.toUpdate.length} actualizados`);
+    onClose();
+  };
+
+  const onFile = (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = ev => setCsv(String(ev.target.result || ""));
+    reader.readAsText(f);
+  };
+
+  return (
+    <Modal open onClose={onClose} title="📥 Importar productos desde CSV">
+      <p style={{ fontSize: 12, color: T.textMuted, margin: "0 0 12px" }}>
+        Headers esperados: <code>brand,model,flavor,puffs,priceUSD,priceARS,stock,expiryDate,tags,photoUrl</code>.
+        Tags separados por <code>;</code>. Match por marca+modelo+sabor (case-insensitive).
+      </p>
+
+      <input type="file" accept=".csv,text/csv" onChange={onFile} style={{ marginBottom: 10, fontSize: 13 }} />
+
+      <textarea
+        value={csv}
+        onChange={e => { setCsv(e.target.value); setPreview(null); }}
+        placeholder="Pega aquí el CSV o subí un archivo arriba..."
+        style={{
+          width: "100%", minHeight: 140, padding: 10, borderRadius: 8,
+          border: `1px solid ${T.borderSoft}`, fontFamily: "monospace", fontSize: 12,
+          background: T.surface2, color: T.text, marginBottom: 10, resize: "vertical",
+        }}
+      />
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        <Btn variant="secondary" onClick={parseCsv} disabled={!csv.trim()}>👁 Previsualizar</Btn>
+        {preview && preview.errors.length === 0 && (preview.toCreate.length + preview.toUpdate.length) > 0 && (
+          <Btn onClick={applyImport}>✓ Aplicar import</Btn>
+        )}
+      </div>
+
+      {preview && (
+        <div style={{ background: T.surface2, padding: 12, borderRadius: 8, fontSize: 12, color: T.text, maxHeight: 280, overflowY: "auto" }}>
+          {preview.errors.length > 0 && (
+            <div style={{ color: T.red, marginBottom: 8 }}>
+              <strong>Errores:</strong>
+              <ul style={{ margin: "4px 0 0 16px", padding: 0 }}>
+                {preview.errors.map((e, i) => <li key={i}>{e}</li>)}
+              </ul>
+            </div>
+          )}
+          <div style={{ color: T.green, marginBottom: 6 }}>
+            <strong>{preview.toCreate.length}</strong> nuevos · <strong>{preview.toUpdate.length}</strong> a actualizar
+          </div>
+          {preview.toCreate.slice(0, 5).map((p, i) => (
+            <div key={`c${i}`} style={{ color: T.green, padding: "2px 0" }}>+ {p.brand} {p.model} {p.flavor} (stock: {p.stock})</div>
+          ))}
+          {preview.toUpdate.slice(0, 5).map((p, i) => (
+            <div key={`u${i}`} style={{ color: T.amber, padding: "2px 0" }}>~ {p.brand} {p.model} {p.flavor} (stock: {p.oldStock} → {p.stock})</div>
+          ))}
+          {(preview.toCreate.length + preview.toUpdate.length) > 10 && (
+            <div style={{ color: T.textMuted, marginTop: 6 }}>...y {preview.toCreate.length + preview.toUpdate.length - 10} más</div>
+          )}
+        </div>
+      )}
+
+      <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 14 }}>
+        <Btn variant="secondary" onClick={onClose}>Cerrar</Btn>
+      </div>
+    </Modal>
   );
 };
