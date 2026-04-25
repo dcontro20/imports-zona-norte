@@ -16,8 +16,51 @@ const emptyPurchaseForm = () => ({
   supplier: "", loteNumber: "", groups: [],
   supplierCommPercent: "", supplierCommUSDT: "",
   paseroPercent: "", paseroCostARS: "", envioCostARS: "",
-  notes: "", date: new Date().toISOString().slice(0, 10), status: "pedido"
+  notes: "", date: new Date().toISOString().slice(0, 10), status: "pedido",
+  invoiceUrl: "",
+  statusHistory: [], // [{ status, timestamp, note }]
 });
+
+// Alertar atraso si una compra lleva más de N días en este estado
+const STATUS_DELAY_DAYS = { en_camino: 21, recibido: 7 };
+
+// Stepper visual de estados (Pedido → En camino → Recibido → Verificado)
+const PurchaseStepper = ({ status }) => {
+  const currentIdx = PURCHASE_STATUSES.findIndex(s => s.value === status);
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4, marginBottom: 2 }}>
+      {PURCHASE_STATUSES.map((s, i) => {
+        const isPast = i < currentIdx;
+        const isCurrent = i === currentIdx;
+        const isFuture = i > currentIdx;
+        return (
+          <div key={s.value} style={{ display: "flex", alignItems: "center", flex: 1, gap: 4 }}>
+            <div style={{
+              width: 16, height: 16, borderRadius: "50%", flexShrink: 0,
+              background: isPast ? s.color : isCurrent ? s.color : "#E8E7E3",
+              border: isCurrent ? `2px solid ${s.color}` : "none",
+              boxShadow: isCurrent ? `0 0 0 3px ${s.color}33` : "none",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 9, fontWeight: 800, color: "#fff",
+            }}>{isPast ? "✓" : ""}</div>
+            <span style={{
+              fontSize: 10, fontWeight: isCurrent ? 700 : 500,
+              color: isFuture ? "#B1AFA7" : isCurrent ? s.color : "#37352F",
+              whiteSpace: "nowrap",
+            }}>{s.label.replace(/^\S+\s/, "")}</span>
+            {i < PURCHASE_STATUSES.length - 1 && (
+              <div style={{
+                flex: 1, height: 2,
+                background: isPast ? PURCHASE_STATUSES[i + 1].color : "#E8E7E3",
+                margin: "0 2px",
+              }} />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
 export const Purchases = ({ purchases, setPurchases, products, setProducts, exchangeRate, logStock, currentUser, logAudit }) => {
   const { isMobile } = useResponsive();
@@ -27,6 +70,8 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
   const [costsModal, setCostsModal] = useState(null);
   const [costsForm, setCostsForm] = useState({ supplierCommPercent: "", supplierCommUSDT: "", paseroPercent: "", paseroCostARS: "", envioCostARS: "" });
   const [form, setForm] = useState(emptyPurchaseForm());
+  const [verifyNote, setVerifyNote] = useState("");
+  const [showSupplierStats, setShowSupplierStats] = useState(false);
 
   // Get unique models from products
   const modelOptions = useMemo(() => {
@@ -133,13 +178,19 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
     setModal(false); setEditing(null); setForm(emptyPurchaseForm());
   };
 
-  const updateStatus = (purchaseId, newStatus) => {
+  const updateStatus = (purchaseId, newStatus, note = "") => {
     setPurchases(prev => prev.map(p => {
       if (p.id !== purchaseId) return p;
       if (newStatus === "verificado" && p.status !== "verificado") {
         (p.items || []).forEach(item => { if (item.productId) { setProducts(pr => pr.map(prod => prod.id === item.productId ? { ...prod, stock: (prod.stock || 0) + Number(item.qty) } : prod)); logStock({ productId: item.productId, type: "compra", qty: Number(item.qty), reason: `Pedido verificado - ${p.supplier || ""}`, refId: p.id }); } });
       }
-      return { ...p, status: newStatus };
+      const history = [...(p.statusHistory || []), {
+        status: newStatus,
+        timestamp: new Date().toISOString(),
+        note: note || "",
+        user: currentUser?.name || "?",
+      }];
+      return { ...p, status: newStatus, statusHistory: history };
     }));
     setVerifyModal(null);
   };
@@ -156,6 +207,62 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
 
   const getStatusBadge = (s) => { const st = PURCHASE_STATUSES.find(x => x.value === s) || PURCHASE_STATUSES[0]; return <Badge color={st.color}>{st.label}</Badge>; };
   const getNextStatus = (s) => { const i = PURCHASE_STATUSES.findIndex(x => x.value === s); return i < PURCHASE_STATUSES.length - 1 ? PURCHASE_STATUSES[i + 1] : null; };
+
+  // Detecta si una compra está atrasada en su estado actual
+  const getDelayInfo = (purchase) => {
+    if (!purchase || purchase.status === "verificado") return null;
+    const limit = STATUS_DELAY_DAYS[purchase.status];
+    if (!limit) return null;
+    const lastChange = (purchase.statusHistory || []).slice().reverse().find(h => h.status === purchase.status);
+    const since = lastChange?.timestamp || purchase.date;
+    const days = Math.floor((Date.now() - new Date(since).getTime()) / 86400000);
+    return days > limit ? { days, limit } : null;
+  };
+
+  // Stats por proveedor: count, USDT total, lead time promedio (pedido→recibido)
+  const supplierStats = useMemo(() => {
+    const map = {};
+    purchases.filter(p => !p.isDeleted).forEach(p => {
+      const sup = p.supplier || "Sin proveedor";
+      if (!map[sup]) map[sup] = { name: sup, count: 0, totalUSDT: 0, totalARS: 0, leadTimes: [], pending: 0 };
+      map[sup].count += 1;
+      map[sup].totalUSDT += Number(p.totalUSDT) || 0;
+      map[sup].totalARS += Number(p.totalCostARS) || 0;
+      if (p.status !== "verificado") map[sup].pending += 1;
+      // Lead time: timestamp de pedido → de recibido
+      const hist = p.statusHistory || [];
+      const orderedAt = hist.find(h => h.status === "pedido")?.timestamp || p.date;
+      const receivedAt = hist.find(h => h.status === "recibido")?.timestamp;
+      if (orderedAt && receivedAt) {
+        const days = (new Date(receivedAt) - new Date(orderedAt)) / 86400000;
+        if (days >= 0 && days < 365) map[sup].leadTimes.push(days);
+      }
+    });
+    return Object.values(map)
+      .map(s => ({
+        ...s,
+        avgLeadTime: s.leadTimes.length > 0
+          ? Math.round(s.leadTimes.reduce((a, b) => a + b, 0) / s.leadTimes.length)
+          : null,
+      }))
+      .sort((a, b) => b.totalUSDT - a.totalUSDT);
+  }, [purchases]);
+
+  // Calcula margen real promedio de una compra verificada
+  const calcRealMargin = (purchase) => {
+    if (!purchase || !purchase.totalCostARS || !purchase.items?.length) return null;
+    const totalUnits = purchase.items.reduce((s, i) => s + (Number(i.qty) || 0), 0);
+    if (!totalUnits) return null;
+    const costPerUnitARS = Number(purchase.totalCostARS) / totalUnits;
+    const expectedRevenueARS = purchase.items.reduce((s, item) => {
+      const prod = products.find(p => p.id === item.productId);
+      const priceARS = prod ? (prod.priceARS || (prod.priceUSD * exchangeRate) || 0) : 0;
+      return s + priceARS * (Number(item.qty) || 0);
+    }, 0);
+    const profit = expectedRevenueARS - Number(purchase.totalCostARS);
+    const marginPct = expectedRevenueARS > 0 ? (profit / expectedRevenueARS) * 100 : 0;
+    return { costPerUnitARS, expectedRevenueARS, profit, marginPct };
+  };
   const verifyPurchase = purchases.find(p => p.id === verifyModal);
 
   const openCosts = (purchase) => {
@@ -189,6 +296,58 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
         {PURCHASE_STATUSES.map(s => <StatCard key={s.value} label={s.label} value={purchases.filter(p => !p.isDeleted && p.status === s.value).length} color={s.color} />)}
       </div>
 
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+        <button onClick={() => setShowSupplierStats(s => !s)} style={{
+          padding: "8px 14px", borderRadius: 8, border: "1px solid #E8E7E3",
+          background: showSupplierStats ? "#5E6AD215" : "transparent",
+          color: showSupplierStats ? "#5E6AD2" : "#37352F",
+          fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+        }}>
+          {showSupplierStats ? "▼" : "▶"} 📊 Stats por proveedor ({supplierStats.length})
+        </button>
+      </div>
+
+      {showSupplierStats && supplierStats.length > 0 && (
+        <Card style={{ marginBottom: 16 }}>
+          <h3 style={{ margin: "0 0 14px", fontSize: 14, fontWeight: 700, color: "#37352F" }}>
+            🏭 Histórico por proveedor (lead time + volumen)
+          </h3>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
+            {supplierStats.map(s => (
+              <div key={s.name} style={{
+                padding: 14, background: "#FAFAF9",
+                border: "1px solid #E8E7E3", borderRadius: 10,
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <strong style={{ fontSize: 13, color: "#37352F" }}>{s.name}</strong>
+                  {s.pending > 0 && (
+                    <span style={{
+                      fontSize: 10, padding: "2px 6px", borderRadius: 4,
+                      background: "#FEF6E4", color: "#A65800", fontWeight: 700,
+                    }}>{s.pending} pend.</span>
+                  )}
+                </div>
+                <div style={{ fontSize: 11, color: "#8C8A82", marginBottom: 4 }}>
+                  {s.count} pedido{s.count !== 1 ? "s" : ""} · {formatMoney(s.totalUSDT, "USDT")}
+                </div>
+                <div style={{ fontSize: 11, color: "#8C8A82", marginBottom: 8 }}>
+                  Total ARS: {formatMoney(s.totalARS)}
+                </div>
+                <div style={{
+                  padding: "6px 10px",
+                  background: s.avgLeadTime !== null ? "#E8F5E9" : "#F0EFEB",
+                  borderRadius: 6, fontSize: 11, fontWeight: 600,
+                  color: s.avgLeadTime !== null ? "#0F7B6C" : "#8C8A82",
+                  textAlign: "center",
+                }}>
+                  ⏱️ Lead time: {s.avgLeadTime !== null ? `${s.avgLeadTime} días promedio` : "Sin datos"}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
       <Card>
         {isMobile ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -213,6 +372,30 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
                       </div>
                       {getStatusBadge(r.status)}
                     </div>
+                    {/* Status stepper visual */}
+                    <PurchaseStepper status={r.status} />
+                    {/* Delay alert */}
+                    {(() => {
+                      const delay = getDelayInfo(r);
+                      if (!delay) return null;
+                      return (
+                        <div style={{
+                          padding: "6px 10px", background: "#FEF6E4", border: "1px solid #F59E0B55",
+                          borderRadius: 6, fontSize: 11, color: "#A65800", fontWeight: 600,
+                          display: "flex", alignItems: "center", gap: 6,
+                        }}>
+                          ⚠️ Atrasado: {delay.days} días en "{r.status.replace("_", " ")}" (límite {delay.limit}d)
+                        </div>
+                      );
+                    })()}
+                    {/* Invoice thumbnail */}
+                    {r.invoiceUrl && (
+                      <a href={r.invoiceUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                        style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, color: "#5E6AD2", textDecoration: "none" }}
+                      >
+                        🧾 Ver invoice
+                      </a>
+                    )}
                     {/* Row 2: fecha + unidades + costo */}
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12, color: "#8C8A82" }}>
                       <span>{formatDate(r.date)}</span>
@@ -393,6 +576,12 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
           </div>
         </div>}
 
+        <Input
+          label="URL invoice / captura del pedido (opcional)"
+          value={form.invoiceUrl || ""}
+          onChange={e => setForm(f => ({ ...f, invoiceUrl: e.target.value }))}
+          placeholder="https://..."
+        />
         <Input label="Notas" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Opcional..." />
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 16 }}>
           <Btn variant="secondary" onClick={() => { setModal(false); setEditing(null); }}>Cancelar</Btn>
@@ -421,9 +610,52 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
           <div style={{ background: "#00b89415", border: "1px solid #00b89433", borderRadius: 10, padding: "10px 14px", marginBottom: 16 }}>
             <span style={{ color: "#00b894", fontSize: 13 }}>⚠️ Al confirmar, se suma todo al stock.</span>
           </div>
+          {(() => {
+            const margin = calcRealMargin(verifyPurchase);
+            if (!margin) return null;
+            const positive = margin.profit > 0;
+            return (
+              <div style={{
+                background: positive ? "#E8F5E9" : "#FEE9E7",
+                border: `1px solid ${positive ? "#22C55E55" : "#EF444455"}`,
+                borderRadius: 10, padding: 14, marginBottom: 14,
+              }}>
+                <div style={{
+                  fontSize: 12, fontWeight: 700, color: positive ? "#0F7B6C" : "#E03E3E",
+                  textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8,
+                }}>📊 Margen real proyectado</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 12 }}>
+                  <div>
+                    <div style={{ color: "#8C8A82" }}>Costo / unidad</div>
+                    <div style={{ fontWeight: 700, color: "#37352F" }}>{formatMoney(margin.costPerUnitARS)}</div>
+                  </div>
+                  <div>
+                    <div style={{ color: "#8C8A82" }}>Revenue esperado</div>
+                    <div style={{ fontWeight: 700, color: "#37352F" }}>{formatMoney(margin.expectedRevenueARS)}</div>
+                  </div>
+                  <div>
+                    <div style={{ color: "#8C8A82" }}>Ganancia bruta</div>
+                    <div style={{ fontWeight: 700, color: positive ? "#0F7B6C" : "#E03E3E" }}>{formatMoney(margin.profit)}</div>
+                  </div>
+                  <div>
+                    <div style={{ color: "#8C8A82" }}>Margen</div>
+                    <div style={{ fontWeight: 700, color: positive ? "#0F7B6C" : "#E03E3E" }}>
+                      {margin.marginPct.toFixed(1)}%
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+          <Input
+            label="Nota interna (opcional, queda en historial)"
+            value={verifyNote}
+            onChange={e => setVerifyNote(e.target.value)}
+            placeholder="ej: Faltaron 2 unidades del modelo X..."
+          />
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-            <Btn variant="secondary" onClick={() => setVerifyModal(null)}>Cancelar</Btn>
-            <Btn variant="success" onClick={() => updateStatus(verifyPurchase.id, "verificado")}>✅ Verificar</Btn>
+            <Btn variant="secondary" onClick={() => { setVerifyModal(null); setVerifyNote(""); }}>Cancelar</Btn>
+            <Btn variant="success" onClick={() => { updateStatus(verifyPurchase.id, "verificado", verifyNote); setVerifyNote(""); }}>✅ Verificar</Btn>
           </div>
         </div>)}
       </Modal>
