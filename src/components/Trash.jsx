@@ -23,6 +23,7 @@ export function Trash({
   const [activeTab, setActiveTab] = useState("all");
   const [confirmRestore, setConfirmRestore] = useState(null);
   const [confirmPermanent, setConfirmPermanent] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
 
   // Gather all deleted items
   const trashItems = useMemo(() => {
@@ -57,6 +58,48 @@ export function Trash({
   }, [products, sales, purchases, expenses, cashMovements, partnerWithdrawals]);
 
   const filtered = activeTab === "all" ? trashItems : trashItems.filter(i => i._type === activeTab);
+
+  // Multi-select bulk actions
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+  const clearSelection = () => setSelectedIds([]);
+  const selectAll = () => setSelectedIds(filtered.map(i => i.id));
+  const bulkRestore = () => {
+    if (selectedIds.length === 0) return;
+    const items = trashItems.filter(i => selectedIds.includes(i.id));
+    if (!confirm(`¿Restaurar ${items.length} items? Se reactivarán y volverán a aparecer en sus secciones.`)) return;
+    items.forEach(item => {
+      const setter = item._type === "product" ? setProducts
+        : item._type === "sale" ? setSales
+        : item._type === "purchase" ? setPurchases
+        : item._type === "expense" ? setExpenses
+        : item._type === "cashMovement" ? setCashMovements
+        : item._type === "partnerWithdrawal" ? setPartnerWithdrawals
+        : null;
+      if (setter) setter(prev => prev.map(x => x.id === item.id ? { ...x, isDeleted: false, deletedAt: null, deletedBy: null } : x));
+    });
+    if (logAudit) logAudit("restore", "trash", "bulk", `Restauración masiva: ${items.length} items`);
+    clearSelection();
+  };
+  const bulkDeleteForever = () => {
+    if (selectedIds.length === 0) return;
+    if (!confirm(`⚠️ ¿ELIMINAR PERMANENTEMENTE ${selectedIds.length} items? Esta acción NO se puede deshacer.`)) return;
+    if (!confirm(`Última confirmación. ¿Estás seguro?`)) return;
+    const items = trashItems.filter(i => selectedIds.includes(i.id));
+    items.forEach(item => {
+      const setter = item._type === "product" ? setProducts
+        : item._type === "sale" ? setSales
+        : item._type === "purchase" ? setPurchases
+        : item._type === "expense" ? setExpenses
+        : item._type === "cashMovement" ? setCashMovements
+        : item._type === "partnerWithdrawal" ? setPartnerWithdrawals
+        : null;
+      if (setter) setter(prev => prev.filter(x => x.id !== item.id));
+    });
+    if (logAudit) logAudit("delete_forever", "trash", "bulk", `Eliminación masiva permanente: ${items.length} items`);
+    clearSelection();
+  };
 
   // Count per type
   const counts = useMemo(() => {
@@ -196,6 +239,46 @@ export function Trash({
 
       {/* Items */}
       <div style={{ background: "#FFFFFF", border: "1px solid #E8E7E3", borderRadius: 12, overflow: "hidden" }}>
+        {filtered.length > 0 && (
+          <div style={{
+            display: "flex", alignItems: "center", gap: 10, padding: 10, marginBottom: 10,
+            background: selectedIds.length > 0 ? "#EAECF9" : "#FAFAF9",
+            border: `1px solid ${selectedIds.length > 0 ? "#5E6AD244" : "#E8E7E3"}`,
+            borderRadius: 8, flexWrap: "wrap",
+          }}>
+            <input
+              type="checkbox"
+              checked={selectedIds.length === filtered.length && filtered.length > 0}
+              onChange={() => selectedIds.length === filtered.length ? clearSelection() : selectAll()}
+              style={{ width: 16, height: 16, cursor: "pointer" }}
+              aria-label="Seleccionar todo"
+            />
+            <span style={{ fontSize: 12, color: "#37352F", fontWeight: 600 }}>
+              {selectedIds.length === 0
+                ? "Seleccionar todo"
+                : `${selectedIds.length} seleccionado${selectedIds.length > 1 ? "s" : ""}`}
+            </span>
+            {selectedIds.length > 0 && (
+              <div style={{ display: "flex", gap: 6, marginLeft: "auto" }}>
+                <button onClick={bulkRestore} style={{
+                  padding: "5px 10px", borderRadius: 6, border: "1px solid #0F7B6C",
+                  background: "#E8F5E9", color: "#0F7B6C", fontSize: 11, fontWeight: 700,
+                  cursor: "pointer", fontFamily: "inherit",
+                }}>↩ Restaurar selección</button>
+                <button onClick={bulkDeleteForever} style={{
+                  padding: "5px 10px", borderRadius: 6, border: "1px solid #E03E3E",
+                  background: "#FBE4E4", color: "#E03E3E", fontSize: 11, fontWeight: 700,
+                  cursor: "pointer", fontFamily: "inherit",
+                }}>🗑️ Borrar permanente</button>
+                <button onClick={clearSelection} style={{
+                  padding: "5px 10px", borderRadius: 6, border: "1px solid #E8E7E3",
+                  background: "transparent", color: "#8C8A82", fontSize: 11, fontWeight: 600,
+                  cursor: "pointer", fontFamily: "inherit",
+                }}>Cancelar</button>
+              </div>
+            )}
+          </div>
+        )}
         {filtered.length === 0 ? (
           <div style={{ padding: 40, textAlign: "center", color: "#B1AFA7", fontSize: 14 }}>
             La papelera está vacía
@@ -210,7 +293,15 @@ export function Trash({
               <div key={item.id} style={{
                 display: "flex", alignItems: "center", gap: 12, padding: "12px 16px",
                 borderBottom: i < filtered.length - 1 ? "1px solid #E8E7E3" : "none",
+                background: selectedIds.includes(item.id) ? "#EAECF940" : "transparent",
               }}>
+                <input
+                  type="checkbox"
+                  checked={selectedIds.includes(item.id)}
+                  onChange={() => toggleSelect(item.id)}
+                  style={{ width: 16, height: 16, cursor: "pointer", flexShrink: 0 }}
+                  aria-label="Seleccionar item"
+                />
                 <span style={{ fontSize: 20 }}>{entityInfo.icon}</span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, color: "#37352F", fontWeight: 600 }}>{item._label}</div>
