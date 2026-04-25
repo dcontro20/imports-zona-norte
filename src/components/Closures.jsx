@@ -7,11 +7,19 @@ import { useResponsive } from "../App.jsx";
 export const MonthlyClosures = ({ monthlyClosures, setMonthlyClosures, sales, purchases, expenses, withdrawals, products, exchangeRate, logAudit }) => {
   const { isMobile } = useResponsive();
   const [showConfirm, setShowConfirm] = useState(false);
+  const [closureNotes, setClosureNotes] = useState("");
 
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const currentMonthLabel = now.toLocaleDateString("es-AR", { month: "long", year: "numeric" });
   const alreadyClosed = monthlyClosures.some(c => c.month === currentMonth);
+
+  // Auto-cierre reminder: si estamos en los primeros 5 días del mes y el anterior no está cerrado
+  const previousMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const previousMonth = `${previousMonthDate.getFullYear()}-${String(previousMonthDate.getMonth() + 1).padStart(2, "0")}`;
+  const previousMonthLabel = previousMonthDate.toLocaleDateString("es-AR", { month: "long", year: "numeric" });
+  const previousMonthClosed = monthlyClosures.some(c => c.month === previousMonth);
+  const showReminder = now.getDate() <= 5 && !previousMonthClosed;
 
   const mFilter = (d, month) => {
     if (!d) return false;
@@ -61,15 +69,44 @@ export const MonthlyClosures = ({ monthlyClosures, setMonthlyClosures, sales, pu
   const [postActionsFor, setPostActionsFor] = useState(null); // closure object para post-acciones
   const [copyToast, setCopyToast] = useState("");
 
+  // Calcula top productos y top clientes del mes (para snapshot detallado)
+  const calcDetailedSnapshot = (month) => {
+    const monthSales = (sales || []).filter(s => !s.isDeleted && (s.date || "").slice(0, 7) === month);
+    const productMap = {};
+    const clientMap = {};
+    monthSales.forEach(s => {
+      (s.items || []).forEach(it => {
+        const key = it.productId;
+        if (!productMap[key]) {
+          const prod = (products || []).find(p => p.id === key);
+          productMap[key] = { name: prod ? `${prod.brand} ${prod.model}` : "Desconocido", flavor: prod?.flavor || "", qty: 0 };
+        }
+        productMap[key].qty += (it.qty || 1);
+      });
+      if (s.clientName) {
+        if (!clientMap[s.clientName]) clientMap[s.clientName] = { name: s.clientName, count: 0, revenue: 0 };
+        clientMap[s.clientName].count += 1;
+        clientMap[s.clientName].revenue += s.total || 0;
+      }
+    });
+    const topProducts = Object.values(productMap).sort((a, b) => b.qty - a.qty).slice(0, 5);
+    const topClients = Object.values(clientMap).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
+    return { topProducts, topClients };
+  };
+
   const closeCurrent = () => {
     const data = calcMonthData(currentMonth);
+    const detailed = calcDetailedSnapshot(currentMonth);
     const closure = {
       id: uid(), month: currentMonth, label: currentMonthLabel,
       closedAt: new Date().toISOString(), exchangeRate,
-      ...data
+      notes: closureNotes.trim() || "",
+      ...data,
+      ...detailed,
     };
     setMonthlyClosures(prev => [closure, ...prev]);
     setShowConfirm(false);
+    setClosureNotes("");
     setPostActionsFor(closure);
     if (logAudit) logAudit("create", "closure", closure.id, `Cierre mensual: ${closure.label} · ganancia ${formatMoney(closure.netProfitARS)}`);
   };
@@ -175,21 +212,57 @@ export const MonthlyClosures = ({ monthlyClosures, setMonthlyClosures, sales, pu
           <h2 style={{ color: "#37352F", margin: 0, fontSize: 22 }}>Cierres Mensuales</h2>
           <span style={{ color: "#8C8A82", fontSize: 13 }}>Foto financiera de cada mes para comparar evolución</span>
         </div>
-        {!alreadyClosed ? (
-          <Btn onClick={() => setShowConfirm(true)}>📅 Cerrar {currentMonthLabel}</Btn>
-        ) : (
-          <Badge color="#00b894">✅ {currentMonthLabel} cerrado</Badge>
-        )}
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={() => window.print()} style={{
+            padding: "8px 14px", borderRadius: 8, border: "1px solid #E8E7E3",
+            background: "transparent", color: "#37352F", fontSize: 12, fontWeight: 600,
+            cursor: "pointer", fontFamily: "inherit",
+          }} title="Imprimir cierres como PDF">📄 PDF</button>
+          {!alreadyClosed ? (
+            <Btn onClick={() => setShowConfirm(true)}>📅 Cerrar {currentMonthLabel}</Btn>
+          ) : (
+            <Badge color="#00b894">✅ {currentMonthLabel} cerrado</Badge>
+          )}
+        </div>
       </div>
+
+      {showReminder && (
+        <Card style={{
+          marginBottom: 14, background: "#FEF6E4",
+          border: "1px solid #F2D59A",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 22 }}>📅</span>
+            <div style={{ flex: 1 }}>
+              <strong style={{ color: "#A65800", fontSize: 13 }}>Recordatorio: cerrá {previousMonthLabel}</strong>
+              <p style={{ margin: "2px 0 0", color: "#8C8A82", fontSize: 12 }}>
+                Estamos en los primeros días del mes. Hacé el cierre del mes anterior antes de que se acumulen ajustes.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Confirm closure */}
       {showConfirm && (
         <Card style={{ marginBottom: 14, background: "#FAFAF9", border: "1px solid #5E6AD244" }}>
           <h4 style={{ color: "#5E6AD2", margin: "0 0 10px", fontSize: 14 }}>¿Cerrar {currentMonthLabel}?</h4>
-          <span style={{ color: "#8C8A82", fontSize: 13 }}>Se va a guardar una foto con todos los números del mes. Podés seguir registrando ventas normalmente después del cierre.</span>
+          <span style={{ color: "#8C8A82", fontSize: 13 }}>Se va a guardar una foto con todos los números del mes + top productos/clientes. Podés seguir registrando ventas normalmente después del cierre.</span>
+          <textarea
+            value={closureNotes}
+            onChange={e => setClosureNotes(e.target.value)}
+            placeholder="📝 Notas del mes (opcional): contexto, eventos, decisiones tomadas..."
+            rows={3}
+            style={{
+              width: "100%", padding: 10, marginTop: 10, marginBottom: 4,
+              border: "1px solid #E8E7E3", borderRadius: 8,
+              fontSize: 13, fontFamily: "inherit", resize: "vertical", outline: "none",
+              background: "#FFF", color: "#37352F", boxSizing: "border-box",
+            }}
+          />
           <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
             <Btn variant="success" onClick={closeCurrent}>✅ Confirmar cierre</Btn>
-            <Btn variant="secondary" onClick={() => setShowConfirm(false)}>Cancelar</Btn>
+            <Btn variant="secondary" onClick={() => { setShowConfirm(false); setClosureNotes(""); }}>Cancelar</Btn>
           </div>
         </Card>
       )}
@@ -243,6 +316,42 @@ export const MonthlyClosures = ({ monthlyClosures, setMonthlyClosures, sales, pu
       </Card>
 
       {/* Historical closures */}
+      {monthlyClosures.length >= 2 && (
+        <Card style={{ marginBottom: 14 }}>
+          <h4 style={{ color: "#37352F", margin: "0 0 14px", fontSize: 14, fontWeight: 700 }}>📈 Evolución últimos cierres</h4>
+          {(() => {
+            const recent = [...monthlyClosures]
+              .sort((a, b) => (a.month || "").localeCompare(b.month || ""))
+              .slice(-6);
+            const maxRev = Math.max(1, ...recent.map(c => c.revenueARS || 0));
+            const maxProf = Math.max(1, ...recent.map(c => Math.abs(c.netProfitARS || 0)));
+            return (
+              <div>
+                <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 100, marginBottom: 8, paddingBottom: 18, borderBottom: "1px solid #E8E7E3" }}>
+                  {recent.map(c => (
+                    <div key={c.id} title={`${c.label}: rev ${formatMoney(c.revenueARS)} · profit ${formatMoney(c.netProfitARS)}`}
+                      style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end", height: "100%", gap: 2 }}>
+                      <div style={{ height: `${((c.revenueARS || 0) / maxRev) * 70}%`, background: "#5E6AD2", borderRadius: "3px 3px 0 0" }} />
+                      <div style={{
+                        height: `${(Math.abs(c.netProfitARS || 0) / maxProf) * 30}%`,
+                        background: (c.netProfitARS || 0) >= 0 ? "#00b894" : "#E03E3E",
+                      }} />
+                      <div style={{ fontSize: 9, color: "#8C8A82", textAlign: "center", marginTop: 4, whiteSpace: "nowrap" }}>
+                        {c.month?.slice(5)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: "flex", gap: 14, fontSize: 11, color: "#8C8A82" }}>
+                  <span><span style={{ display: "inline-block", width: 10, height: 10, background: "#5E6AD2", borderRadius: 2, marginRight: 4 }} />Revenue</span>
+                  <span><span style={{ display: "inline-block", width: 10, height: 10, background: "#00b894", borderRadius: 2, marginRight: 4 }} />Profit (verde) / Pérdida (rojo)</span>
+                </div>
+              </div>
+            );
+          })()}
+        </Card>
+      )}
+
       {monthlyClosures.length > 0 && (
         <Card>
           <h4 style={{ color: "#a855f7", margin: "0 0 14px", fontSize: 14, textTransform: "uppercase" }}>Historial de cierres</h4>
