@@ -65,21 +65,75 @@ export function Trash({
   };
   const clearSelection = () => setSelectedIds([]);
   const selectAll = () => setSelectedIds(filtered.map(i => i.id));
+  // _type viene PLURAL desde trashItems ("products", "sales", "purchases", "expenses", "cashMovements", "partnerWithdrawals")
+  const setterByType = {
+    products: setProducts,
+    sales: setSales,
+    purchases: setPurchases,
+    expenses: setExpenses,
+    cashMovements: setCashMovements,
+    partnerWithdrawals: setPartnerWithdrawals,
+  };
   const bulkRestore = () => {
     if (selectedIds.length === 0) return;
     const items = trashItems.filter(i => selectedIds.includes(i.id));
-    if (!confirm(`¿Restaurar ${items.length} items? Se reactivarán y volverán a aparecer en sus secciones.`)) return;
+    if (!confirm(`¿Restaurar ${items.length} items? Se reactivarán y se revertirán los efectos secundarios (stock, balances) que habían sido revertidos al borrar.`)) return;
+
+    // 1) Revertir efectos colaterales por tipo (igual que restore() individual)
+    const stockDeltas = {}; // productId -> qty a aplicar (negativo para sales, positivo para purchases)
+    const balanceDeltas = {}; // clientId -> ARS a aplicar al balance
     items.forEach(item => {
-      const setter = item._type === "product" ? setProducts
-        : item._type === "sale" ? setSales
-        : item._type === "purchase" ? setPurchases
-        : item._type === "expense" ? setExpenses
-        : item._type === "cashMovement" ? setCashMovements
-        : item._type === "partnerWithdrawal" ? setPartnerWithdrawals
-        : null;
-      if (setter) setter(prev => prev.map(x => x.id === item.id ? { ...x, isDeleted: false, deletedAt: null, deletedBy: null } : x));
+      if (item._type === "sales") {
+        // Re-decrementar stock (deleteSale lo había devuelto)
+        (item.items || []).forEach(it => {
+          if (!it.productId) return;
+          stockDeltas[it.productId] = (stockDeltas[it.productId] || 0) - (it.qty || 1);
+        });
+        // Re-aplicar efectos en balance del cliente
+        if (item.clientId) {
+          let delta = 0;
+          if (item.debtAmount > 0) delta -= item.debtAmount;
+          if (item.creditUsed > 0) delta -= item.creditUsed;
+          if (item.changeAmount > 0 && item.changeMethod === "credit") delta += item.changeAmount;
+          if (delta !== 0) balanceDeltas[item.clientId] = (balanceDeltas[item.clientId] || 0) + delta;
+        }
+      } else if (item._type === "purchases" && item.status === "verificado") {
+        // Re-sumar stock (deletePurchase lo había restado)
+        (item.items || []).forEach(it => {
+          if (!it.productId) return;
+          stockDeltas[it.productId] = (stockDeltas[it.productId] || 0) + Number(it.qty || 0);
+        });
+      }
     });
-    if (logAudit) logAudit("restore", "trash", "bulk", `Restauración masiva: ${items.length} items`);
+    if (Object.keys(stockDeltas).length > 0) {
+      setProducts(prev => prev.map(p => stockDeltas[p.id] !== undefined && !p.isDeleted
+        ? { ...p, stock: Math.max(0, (p.stock || 0) + stockDeltas[p.id]) }
+        : p
+      ));
+    }
+    if (Object.keys(balanceDeltas).length > 0 && setClients) {
+      setClients(prev => prev.map(c => balanceDeltas[c.id] !== undefined
+        ? { ...c, balance: Math.round(((c.balance || 0) + balanceDeltas[c.id]) * 100) / 100 }
+        : c
+      ));
+    }
+
+    // 2) Toggle isDeleted off agrupado por tipo (un solo setter por tipo evita race)
+    const idsByType = {};
+    items.forEach(item => {
+      if (!idsByType[item._type]) idsByType[item._type] = new Set();
+      idsByType[item._type].add(item.id);
+    });
+    Object.entries(idsByType).forEach(([type, idSet]) => {
+      const setter = setterByType[type];
+      if (!setter) return;
+      setter(prev => prev.map(x => idSet.has(x.id) ? (() => {
+        const { isDeleted, deletedAt, deletedBy, ...rest } = x;
+        return rest;
+      })() : x));
+    });
+
+    if (logAudit) logAudit("restore", "trash", "bulk", `Restauración masiva: ${items.length} items (stock y balances revertidos)`);
     clearSelection();
   };
   const bulkDeleteForever = () => {
@@ -88,13 +142,7 @@ export function Trash({
     if (!confirm(`Última confirmación. ¿Estás seguro?`)) return;
     const items = trashItems.filter(i => selectedIds.includes(i.id));
     items.forEach(item => {
-      const setter = item._type === "product" ? setProducts
-        : item._type === "sale" ? setSales
-        : item._type === "purchase" ? setPurchases
-        : item._type === "expense" ? setExpenses
-        : item._type === "cashMovement" ? setCashMovements
-        : item._type === "partnerWithdrawal" ? setPartnerWithdrawals
-        : null;
+      const setter = setterByType[item._type];
       if (setter) setter(prev => prev.filter(x => x.id !== item.id));
     });
     if (logAudit) logAudit("delete_forever", "trash", "bulk", `Eliminación masiva permanente: ${items.length} items`);

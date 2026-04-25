@@ -20,7 +20,7 @@ export const Partners = ({ partnerWithdrawals, setPartnerWithdrawals, sales, pur
     // Si es aporte, el monto se guarda negativo para que reste correctamente del balance
     const sign = form.tipoMovimiento === "aporte" ? -1 : 1;
     setPartnerWithdrawals(prev => [{ ...form, id: newId, amount: Number(form.amount) * sign, createdBy: currentUser?.name || "" }, ...prev]);
-    if (logAudit) logAudit("create", "partnerWithdrawal", newId, `Creó retiro socio: ${form.person} · $${form.amount}`);
+    if (logAudit) logAudit("create", "partnerWithdrawal", newId, `${form.tipoMovimiento === "aporte" ? "Aporte de capital" : "Retiro"} socio: ${form.person} · $${form.amount}`);
     setModal(false);
     setForm({ person: "Diego", amount: "", currency: "ARS", source: "", description: "", date: new Date().toISOString().slice(0, 10), tipoMovimiento: "retiro" });
   };

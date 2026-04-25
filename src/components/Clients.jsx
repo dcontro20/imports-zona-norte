@@ -110,7 +110,11 @@ export const Clients = ({ clients, setClients, sales, products, withdrawals = []
     // Dormido: sin ventas hace ≥60d
     // Nuevo: sin ninguna venta aún
     const revenues = Object.values(map).map(m => m.totalSpent).filter(v => v > 0).sort((a, b) => a - b);
-    const p90 = revenues.length > 0 ? revenues[Math.floor(revenues.length * 0.9)] : Infinity;
+    // Percentil 90: el valor que tiene 90% de los datos por debajo o igual.
+    // Math.floor(N * 0.9) toma el último item con N=10 (índice 9). Math.ceil(N * 0.9) - 1 da el índice correcto.
+    const p90 = revenues.length > 0
+      ? revenues[Math.max(0, Math.ceil(revenues.length * 0.9) - 1)]
+      : Infinity;
     const now = Date.now();
     Object.entries(map).forEach(([cid, m]) => {
       const daysSinceLast = m.lastPurchase ? Math.floor((now - new Date(m.lastPurchase.date)) / 86400000) : Infinity;

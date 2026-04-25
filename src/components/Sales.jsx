@@ -562,9 +562,40 @@ export const Sales = ({
   const clearSelection = () => setSelectedSaleIds([]);
   const bulkDelete = () => {
     if (selectedSaleIds.length === 0) return;
-    if (!confirm(`¿Eliminar ${selectedSaleIds.length} ventas seleccionadas? Se moverán a Papelera.`)) return;
-    setSales(prev => prev.map(s => selectedSaleIds.includes(s.id) ? { ...s, isDeleted: true, deletedAt: new Date().toISOString() } : s));
-    if (logAudit) selectedSaleIds.forEach(id => logAudit("delete", "sale", id, `Borrado masivo (${selectedSaleIds.length} ventas)`));
+    if (!confirm(`¿Eliminar ${selectedSaleIds.length} ventas seleccionadas? Se moverán a Papelera, se restaurará el stock y se revertirán los balances de clientes.`)) return;
+    const salesToDelete = sales.filter(s => selectedSaleIds.includes(s.id) && !s.isDeleted);
+    // 1. Restaurar stock de cada item de cada venta
+    const stockDeltas = {}; // productId -> qty a sumar
+    salesToDelete.forEach(sale => {
+      (sale.items || []).forEach(item => {
+        if (!item.productId) return;
+        stockDeltas[item.productId] = (stockDeltas[item.productId] || 0) + (item.qty || 1);
+      });
+    });
+    setProducts(prev => prev.map(p => stockDeltas[p.id] && !p.isDeleted ? { ...p, stock: (p.stock || 0) + stockDeltas[p.id] } : p));
+    // 2. Restaurar balance de clientes (undo debt, credit used, change-as-credit)
+    const balanceDeltas = {}; // clientId -> ARS a sumar al balance
+    salesToDelete.forEach(sale => {
+      if (!sale.clientId) return;
+      let delta = 0;
+      if (sale.debtAmount > 0) delta += sale.debtAmount;
+      if (sale.creditUsed > 0) delta += sale.creditUsed;
+      if (sale.changeAmount > 0 && sale.changeMethod === "credit") delta -= sale.changeAmount;
+      if (delta !== 0) balanceDeltas[sale.clientId] = (balanceDeltas[sale.clientId] || 0) + delta;
+    });
+    if (Object.keys(balanceDeltas).length > 0) {
+      setClients(prev => prev.map(c => {
+        if (!balanceDeltas[c.id]) return c;
+        return { ...c, balance: Math.round(((c.balance || 0) + balanceDeltas[c.id]) * 100) / 100 };
+      }));
+    }
+    // 3. Soft-delete las ventas
+    setSales(prev => prev.map(s => selectedSaleIds.includes(s.id)
+      ? { ...s, isDeleted: true, deletedAt: new Date().toISOString(), deletedBy: currentUser?.name || "?" }
+      : s
+    ));
+    // 4. Audit log con detalle del bulk
+    if (logAudit) selectedSaleIds.forEach(id => logAudit("delete", "sale", id, `Borrado masivo (${salesToDelete.length} ventas) — stock y balances restaurados`));
     clearSelection();
   };
   const filteredRevenue = filtered.reduce((s, sale) => s + (sale.total || 0), 0);
