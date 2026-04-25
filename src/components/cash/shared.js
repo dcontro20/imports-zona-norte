@@ -53,6 +53,15 @@ export const primaryBtn = () => ({
   cursor: "pointer", fontFamily: "inherit", boxShadow: T.shadowSm,
 });
 
+// Umbral de "egreso grande" (ARS) que pide confirmación extra antes de guardar
+export const LARGE_EXPENSE_THRESHOLD_ARS = 200000;
+
+// Ventana de detección de duplicados en movimientos de caja (ms)
+export const DUP_WINDOW_MS = 5 * 60 * 1000; // 5 minutos
+
+// Debounce del botón Registrar después de tocar para evitar doble submit
+export const SUBMIT_DEBOUNCE_MS = 3000;
+
 // Traduce un método de pago (Sales.jsx) al accountId de caja correspondiente.
 // Devuelve "" si el método es desconocido — el caller debe guard contra eso.
 export function payMethodToAccountId(method, mpAccount) {

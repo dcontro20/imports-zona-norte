@@ -8,6 +8,7 @@ import {
   MOVEMENT_TYPES, TYPE_BY_KEY, normalizeType,
   payMethodToAccountId, ACCOUNT_METHOD_MAP,
   ghostBtn, primaryBtn,
+  LARGE_EXPENSE_THRESHOLD_ARS, DUP_WINDOW_MS, SUBMIT_DEBOUNCE_MS,
 } from "./cash/shared.js";
 import MovementForm from "./cash/MovementForm.jsx";
 import { calcAccountBalance } from "../calcs.js";
@@ -925,14 +926,6 @@ const FlowStat = ({ label, value, color, span, emphasize }) => (
 
 // ============================================
 // MOVEMENT FORM
-// ============================================
-// Umbral configurable de "egreso grande" (ARS) que pide confirmación extra
-const LARGE_EXPENSE_THRESHOLD_ARS = 200000;
-// Ventana de detección de duplicados (ms)
-const DUP_WINDOW_MS = 5 * 60 * 1000; // 5 minutos
-// Debounce del botón Registrar después de tocar (ms)
-const SUBMIT_DEBOUNCE_MS = 3000;
-
 // ============================================
 // DAILY CLOSES LIST
 // ============================================
