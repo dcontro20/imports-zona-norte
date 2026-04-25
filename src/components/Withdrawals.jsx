@@ -44,6 +44,9 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
     // Garantía: producto que falló (el cliente lo trajo)
     failedProductId: "", failureReason: "", failureNotes: "",
     reclamableProveedor: false,
+    failurePhotoUrl: "",
+    providerReturnDate: "",
+    replacedVsReturned: "",
     notes: "", date: new Date().toISOString().slice(0, 10),
   });
 
@@ -243,6 +246,9 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
         failedProductId: isGarantia(form.withdrawType) ? (form.failedProductId || form.productId) : undefined,
         failureReason: isGarantia(form.withdrawType) ? (form.failureReason || "") : undefined,
         failureNotes: (isGarantia(form.withdrawType) && form.failureNotes) ? form.failureNotes.trim() : undefined,
+        failurePhotoUrl: (isGarantia(form.withdrawType) && form.failurePhotoUrl) ? form.failurePhotoUrl.trim() : undefined,
+        providerReturnDate: (form.reclamableProveedor && form.providerReturnDate) ? form.providerReturnDate : undefined,
+        replacedVsReturned: (form.reclamableProveedor && form.replacedVsReturned) ? form.replacedVsReturned : undefined,
         editedAt: new Date().toISOString(),
         editedBy: currentUser?.name || "",
       };
@@ -295,11 +301,14 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
       ...(form.linkedSaleId ? { linkedSaleId: form.linkedSaleId, linkedSaleClient: form.linkedSaleClient, linkedSaleDate: form.linkedSaleDate } : {}),
       ...(form.linkedClientId ? { linkedClientId: form.linkedClientId, linkedClientName: form.linkedClientName } : {}),
       ...(form.reclamableProveedor && isGarantia(form.withdrawType) ? { reclamableProveedor: true } : {}),
+      ...(form.reclamableProveedor && form.providerReturnDate ? { providerReturnDate: form.providerReturnDate } : {}),
+      ...(form.reclamableProveedor && form.replacedVsReturned ? { replacedVsReturned: form.replacedVsReturned } : {}),
       // Campos específicos de Cambio por garantía
       ...(isGarantia(form.withdrawType) ? {
         failedProductId: form.failedProductId || form.productId,
         failureReason: form.failureReason || "",
         ...(form.failureNotes ? { failureNotes: form.failureNotes.trim() } : {}),
+        ...(form.failurePhotoUrl ? { failurePhotoUrl: form.failurePhotoUrl.trim() } : {}),
       } : {}),
     };
 
@@ -353,6 +362,37 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
 
   // ---- Stats (only active) ----
   const active = withdrawals.filter(w => !w.isDeleted);
+
+  // Reporte mensual: 12 meses por tipo, suma USD perdido + count
+  const monthlyMermas = useMemo(() => {
+    const now = new Date();
+    const months = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({
+        key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
+        label: d.toLocaleDateString("es-AR", { month: "short" }),
+        propio: { count: 0, usd: 0 }, garantia: { count: 0, usd: 0 }, canje: { count: 0, usd: 0 },
+        total: 0, totalUSD: 0,
+      });
+    }
+    active.forEach(w => {
+      const d = new Date(w.date);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const m = months.find(x => x.key === key);
+      if (!m) return;
+      const usd = Number(w.costRealUSD || w.costEstimateUSD) || 0;
+      const type = isGarantia(w.withdrawType) ? "garantia"
+        : (w.withdrawType || "").toLowerCase().includes("canje") ? "canje"
+        : "propio";
+      m[type].count += 1;
+      m[type].usd += usd;
+      m.total += 1;
+      m.totalUSD += usd;
+    });
+    return months;
+  }, [active]);
+  const [showMermasReport, setShowMermasReport] = useState(false);
   const totalMine = active.filter(w => w.person === "Diego").reduce((s, w) => s + w.qty, 0);
   const totalBro = active.filter(w => w.person === "Gustavo").reduce((s, w) => s + w.qty, 0);
   const totalCostUSD = active.reduce((s, w) => s + Number(w.costRealUSD || w.costEstimateUSD || 0), 0);
@@ -372,8 +412,71 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
           <h2 style={{ color: "#37352F", margin: 0, fontSize: 22 }}>Mermas</h2>
           <span style={{ color: "#8C8A82", fontSize: 13 }}>Consumo propio, garantías, canjes — {active.length} registros</span>
         </div>
+        <button onClick={() => setShowMermasReport(s => !s)} style={{
+          padding: "8px 14px", borderRadius: 8,
+          border: "1px solid #E8E7E3",
+          background: showMermasReport ? "#5E6AD215" : "transparent",
+          color: showMermasReport ? "#5E6AD2" : "#37352F",
+          fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+        }}>
+          {showMermasReport ? "▼" : "▶"} 📊 Reporte mensual 12m
+        </button>
         <Btn onClick={() => setModal(true)}>+ Registrar Merma</Btn>
       </div>
+
+      {showMermasReport && (
+        <Card style={{ marginBottom: 16 }}>
+          <h3 style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 700, color: "#37352F" }}>
+            📊 Mermas últimos 12 meses (USD perdido por tipo)
+          </h3>
+          {(() => {
+            const totalPropio = monthlyMermas.reduce((s, m) => s + m.propio.usd, 0);
+            const totalGarantia = monthlyMermas.reduce((s, m) => s + m.garantia.usd, 0);
+            const totalCanje = monthlyMermas.reduce((s, m) => s + m.canje.usd, 0);
+            const grandTotal = totalPropio + totalGarantia + totalCanje;
+            const maxMonth = Math.max(1, ...monthlyMermas.map(m => m.totalUSD));
+            return (
+              <>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 14 }}>
+                  <div style={{ padding: 10, background: "#FAFAF9", borderRadius: 8 }}>
+                    <div style={{ fontSize: 10, color: "#8C8A82", textTransform: "uppercase", fontWeight: 700 }}>Total 12m</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: "#37352F" }}>{formatMoney(grandTotal, "USD")}</div>
+                  </div>
+                  <div style={{ padding: 10, background: "#EAECF9", borderRadius: 8 }}>
+                    <div style={{ fontSize: 10, color: "#5E6AD2", textTransform: "uppercase", fontWeight: 700 }}>Consumo propio</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#5E6AD2" }}>{formatMoney(totalPropio, "USD")}</div>
+                  </div>
+                  <div style={{ padding: 10, background: "#FDECC8", borderRadius: 8 }}>
+                    <div style={{ fontSize: 10, color: "#A65800", textTransform: "uppercase", fontWeight: 700 }}>Garantías</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#A65800" }}>{formatMoney(totalGarantia, "USD")}</div>
+                  </div>
+                  <div style={{ padding: 10, background: "#E8F5E9", borderRadius: 8 }}>
+                    <div style={{ fontSize: 10, color: "#0F7B6C", textTransform: "uppercase", fontWeight: 700 }}>Canjes</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#0F7B6C" }}>{formatMoney(totalCanje, "USD")}</div>
+                  </div>
+                </div>
+                <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 100, paddingBottom: 18, borderBottom: "1px solid #E8E7E3" }}>
+                  {monthlyMermas.map((m, i) => {
+                    const pct = (m.totalUSD / maxMonth) * 100;
+                    return (
+                      <div key={i} title={`${m.label}: ${formatMoney(m.totalUSD, "USD")} (${m.total} mermas)`}
+                        style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end", height: "100%" }}
+                      >
+                        <div style={{ display: "flex", flexDirection: "column", height: `${pct}%`, justifyContent: "flex-end" }}>
+                          {m.canje.usd > 0 && <div style={{ flex: m.canje.usd, background: "#0F7B6C" }} />}
+                          {m.garantia.usd > 0 && <div style={{ flex: m.garantia.usd, background: "#CB912F" }} />}
+                          {m.propio.usd > 0 && <div style={{ flex: m.propio.usd, background: "#5E6AD2" }} />}
+                        </div>
+                        <div style={{ fontSize: 9, color: "#8C8A82", textAlign: "center", marginTop: 4 }}>{m.label}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            );
+          })()}
+        </Card>
+      )}
 
       {/* Success toast */}
       {showSuccess && (
@@ -1367,6 +1470,66 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
               </div>
             </div>
           </label>
+        )}
+
+        {/* Tracking proveedor: cuándo se devolvió + qué pasó */}
+        {isGarantia(form.withdrawType) && form.reclamableProveedor && (
+          <div style={{
+            display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14,
+            padding: 10, background: "#FFF7E0", border: "1px solid #F2D59A", borderRadius: 10,
+          }}>
+            <div>
+              <label style={{ display: "block", fontSize: 11, color: "#8C8A82", marginBottom: 4, fontWeight: 600 }}>
+                Fecha devolución a proveedor
+              </label>
+              <input
+                type="date"
+                value={form.providerReturnDate || ""}
+                onChange={e => setForm(f => ({ ...f, providerReturnDate: e.target.value }))}
+                style={{ width: "100%", padding: "8px 10px", borderRadius: 6, border: "1px solid #E8E7E3", fontSize: 13, fontFamily: "inherit", background: "#fff" }}
+              />
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: 11, color: "#8C8A82", marginBottom: 4, fontWeight: 600 }}>
+                Resultado
+              </label>
+              <select
+                value={form.replacedVsReturned || ""}
+                onChange={e => setForm(f => ({ ...f, replacedVsReturned: e.target.value }))}
+                style={{ width: "100%", padding: "8px 10px", borderRadius: 6, border: "1px solid #E8E7E3", fontSize: 13, fontFamily: "inherit", background: "#fff" }}
+              >
+                <option value="">Pendiente…</option>
+                <option value="reemplazado">✓ Reemplazado</option>
+                <option value="devuelto">↩ Crédito devuelto</option>
+                <option value="rechazado">✗ Rechazado por proveedor</option>
+              </select>
+            </div>
+          </div>
+        )}
+
+        {/* Foto del producto fallado */}
+        {isGarantia(form.withdrawType) && (
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ display: "block", fontSize: 11, color: "#8C8A82", marginBottom: 4, fontWeight: 600 }}>
+              📸 Foto del defecto (URL — opcional, evidencia)
+            </label>
+            <input
+              type="url"
+              value={form.failurePhotoUrl || ""}
+              onChange={e => setForm(f => ({ ...f, failurePhotoUrl: e.target.value }))}
+              placeholder="https://..."
+              style={{
+                width: "100%", padding: "8px 10px", borderRadius: 6,
+                border: "1px solid #E8E7E3", fontSize: 13, fontFamily: "inherit",
+                background: "#fff", boxSizing: "border-box",
+              }}
+            />
+            {form.failurePhotoUrl && (
+              <img src={form.failurePhotoUrl} alt="" onError={e => { e.target.style.display = "none"; }}
+                style={{ marginTop: 6, maxWidth: 120, maxHeight: 120, borderRadius: 6, border: "1px solid #E8E7E3" }}
+              />
+            )}
+          </div>
         )}
 
         {/* Notes + date */}
