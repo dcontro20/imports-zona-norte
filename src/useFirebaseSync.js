@@ -37,10 +37,19 @@ export function useFirebaseSync() {
   const [auditLog, setAuditLog] = useState(() => loadData("auditLog", []));
 
   // ---- Sync flags ----
-  const fromFirestore = useRef({});
+  // lastFirestoreData[key] = JSON serializado de la última data recibida de Firestore.
+  // smartSave compara la data entrante contra esto: si es igual = es loop (skipear),
+  // si es distinta = el usuario mutó (escribir). Reemplaza el flag boolean
+  // `fromFirestore` que tenía un race fatal: si onSnapshot disparaba antes del save
+  // del usuario, el flag quedaba true y el primer write del usuario se perdía
+  // silenciosamente. Bug evidenciado el 2026-04-25 con persistentLocalCache N9.
+  const lastFirestoreData = useRef({});
   const initialLoadDone = useRef({});
   const firestoreReady = useRef(false);
   const writeFailCount = useRef(0);
+  // fromFirestore se mantiene SOLO para compat con consumers externos (ver
+  // App.jsx que destructurea esto del hook). Ya no se usa internamente.
+  const fromFirestore = useRef({});
 
   const [dataReady, setDataReady] = useState(false);
   const [syncStatus, setSyncStatus] = useState("syncing"); // "syncing" | "online" | "offline" | "error"
@@ -85,12 +94,9 @@ export function useFirebaseSync() {
     const markKeyLoaded = (key) => {
       initialLoadDone.current[key] = true;
       const allLoaded = DATA_KEYS.every(k => initialLoadDone.current[k.key]);
-      console.log(`[SYNC-DEBUG] markKeyLoaded(${key}) — allLoaded=${allLoaded} firestoreReady=${firestoreReady.current}`);
       if (allLoaded && !firestoreReady.current) {
-        console.log("[SYNC-DEBUG] ✅ All keys loaded — enabling writes (firestoreReady=true)");
         setDataReady(true);
         setSyncStatus("online");
-        // Enable writes immediately — fromFirestore flags prevent loops
         firestoreReady.current = true;
       }
     };
@@ -100,17 +106,20 @@ export function useFirebaseSync() {
       return subscribeToFirestore(key,
         // onData
         (data) => {
-          console.log(`[SYNC-DEBUG] onSnapshot ${key} — data arrived (setting fromFirestore=true, data.length=${Array.isArray(data) ? data.length : "N/A"})`);
-          try { localStorage.setItem(`vapestock_${key}`, JSON.stringify(data)); } catch {}
-          fromFirestore.current[key] = true;
+          // Trackear el JSON exacto que vino de Firestore. smartSave lo compara
+          // contra la data entrante para decidir si es loop o mutación de usuario.
+          const serialized = JSON.stringify(data);
+          lastFirestoreData.current[key] = serialized;
+          try { localStorage.setItem(`vapestock_${key}`, serialized); } catch {}
           setter(data);
           markKeyLoaded(key);
         },
-        // onNotFound
-        () => { console.log(`[SYNC-DEBUG] onNotFound ${key}`); markKeyLoaded(key); },
+        // onNotFound — el doc no existe todavía. lastFirestoreData queda undefined,
+        // así smartSave escribirá la primera vez sin problema.
+        () => { markKeyLoaded(key); },
         // onError
         (err) => {
-          console.error(`[SYNC-DEBUG] ❌ Subscription error for ${key}:`, err.code || err.message);
+          console.error(`[SYNC] Subscription error for ${key}:`, err.code || err.message);
           markKeyLoaded(key);
         }
       );
@@ -119,8 +128,9 @@ export function useFirebaseSync() {
     const unsubRate = subscribeToFirestore("exchangeRate",
       (data) => {
         if (typeof data === "number") {
-          try { localStorage.setItem("vapestock_exchangeRate", JSON.stringify(data)); } catch {}
-          fromFirestore.current["exchangeRate"] = true;
+          const serialized = JSON.stringify(data);
+          lastFirestoreData.current["exchangeRate"] = serialized;
+          try { localStorage.setItem("vapestock_exchangeRate", serialized); } catch {}
           setExchangeRate(data);
         }
       },
@@ -145,30 +155,35 @@ export function useFirebaseSync() {
   }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---- smartSave: localStorage + Firestore ----
+  // Algoritmo:
+  //   1. Serializar data entrante a JSON
+  //   2. Guardar en localStorage siempre (instant, offline-safe)
+  //   3. Bloquear si firestoreReady es false (initial load no completó)
+  //   4. Si la data serializada es IDÉNTICA a la última que vino de Firestore
+  //      (lastFirestoreData[key]), es un loop del setter — skipear write
+  //   5. Si es DISTINTA, es mutación del usuario — escribir + actualizar
+  //      lastFirestoreData para que el próximo onSnapshot del mismo write
+  //      no dispare otra escritura
   const smartSave = useCallback((key, data) => {
-    const dataLen = Array.isArray(data) ? data.length : (typeof data === "number" ? data : "N/A");
-    console.log(`[SYNC-DEBUG] smartSave(${key}) called — firestoreReady=${firestoreReady.current} fromFirestore=${!!fromFirestore.current[key]} dataLen=${dataLen}`);
+    const serialized = JSON.stringify(data);
 
-    // Always save to localStorage first (instant, offline-safe)
-    try { localStorage.setItem(`vapestock_${key}`, JSON.stringify(data)); } catch {}
+    // Always save to localStorage first
+    try { localStorage.setItem(`vapestock_${key}`, serialized); } catch {}
 
     // Block writes until initial load completes
-    if (!firestoreReady.current) {
-      console.log(`[SYNC-DEBUG] ⛔ smartSave(${key}) BLOCKED — firestoreReady=false`);
-      return;
-    }
+    if (!firestoreReady.current) return;
 
-    // Don't write back data that came FROM Firestore (anti-loop)
-    if (fromFirestore.current[key]) {
-      console.log(`[SYNC-DEBUG] ⏭️  smartSave(${key}) SKIPPED — fromFirestore=true, resetting flag`);
-      fromFirestore.current[key] = false;
-      return;
-    }
+    // Anti-loop: si la data es exactamente la que tenemos en Firestore, skipear.
+    // Esto cubre tanto el primer onSnapshot del initial load como los snapshots
+    // generados por nuestros propios writes (cuando Firestore confirma).
+    if (lastFirestoreData.current[key] === serialized) return;
 
-    // Write to Firestore (with retry built into saveToFirestore)
-    console.log(`[SYNC-DEBUG] ✍️  smartSave(${key}) WRITING to Firestore...`);
+    // Es una mutación real del usuario. Actualizamos lastFirestoreData ANTES
+    // de escribir, así el snapshot que vendrá como confirmación del write no
+    // dispara un segundo write.
+    lastFirestoreData.current[key] = serialized;
+
     saveToFirestore(key, data).then(ok => {
-      console.log(`[SYNC-DEBUG] ${ok ? "✅" : "❌"} saveToFirestore(${key}) completed — ok=${ok}`);
       if (!ok) {
         writeFailCount.current++;
         if (writeFailCount.current >= 3) {

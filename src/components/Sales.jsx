@@ -368,18 +368,12 @@ export const Sales = ({
       setSales(prev => prev.map(s => s.id === editing ? saleData : s));
       if (logAudit) logAudit("update", "sale", editing, `Editó venta: ${form.clientName || "sin nombre"} · ${formatMoney(total, form.currency)}`);
     } else {
-      console.log(`[SALES-DEBUG] save() llamando setSales — saleId=${saleId} total=${total} items=${validItems.length}`);
       // Log stock
       validItems.forEach(item => {
         logStock({ productId: item.productId, type: "venta", qty: -(Number(item.qty) || 1), reason: `Venta a ${form.clientName || "sin nombre"}`, refId: saleId, date: form.date });
       });
-      setSales(prev => {
-        const next = [saleData, ...prev];
-        console.log(`[SALES-DEBUG] setSales callback — prev.length=${prev.length} next.length=${next.length}`);
-        return next;
-      });
+      setSales(prev => [saleData, ...prev]);
       if (logAudit) logAudit("create", "sale", saleId, `Creó venta: ${form.clientName || "sin nombre"} · ${formatMoney(total, form.currency)}`);
-      console.log(`[SALES-DEBUG] save() setSales call completed — esperando useEffect smartSave...`);
     }
 
     // ---- Helper: reverse a sale's balance impact on a client ----

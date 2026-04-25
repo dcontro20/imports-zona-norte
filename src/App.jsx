@@ -141,6 +141,26 @@ export default function App() {
   const [quickMermaOpen, setQuickMermaOpen] = useState(false);
   const [fabMenuOpen, setFabMenuOpen] = useState(false);
 
+  // Safety net: si saveToFirestore falla, mostramos toast rojo al usuario.
+  // El evento "izn:write-error" lo dispara firebase.js cuando un write fracasa
+  // tras retry. Esto previene "pérdida silenciosa" — Diego ve inmediatamente
+  // que algo no se guardó y puede reintentar.
+  const [writeErrorToast, setWriteErrorToast] = useState(null);
+  useEffect(() => {
+    const handler = (e) => {
+      const detail = e.detail || {};
+      setWriteErrorToast({
+        key: detail.key || "datos",
+        message: detail.error || "Error desconocido",
+        time: detail.time || new Date().toISOString(),
+      });
+      // Auto-hide después de 10s para no quedar pegado
+      setTimeout(() => setWriteErrorToast(null), 10000);
+    };
+    window.addEventListener("izn:write-error", handler);
+    return () => window.removeEventListener("izn:write-error", handler);
+  }, []);
+
   // Body scroll lock cuando sidebar mobile está abierto
   useEffect(() => {
     if (isMobile && menuOpen) {
@@ -631,6 +651,33 @@ export default function App() {
           />
         </Suspense>
       </div>
+
+      {/* Toast de error de escritura — safety net para que ningún write
+          fallido pase desapercibido. Lo dispara firebase.js cuando setDoc
+          falla tras retry. */}
+      {writeErrorToast && (
+        <div style={{
+          position: "fixed", top: 70, left: "50%", transform: "translateX(-50%)",
+          zIndex: 2000, maxWidth: "92vw",
+          background: "#E03E3E", color: "#FFFFFF",
+          padding: "12px 18px", borderRadius: 10,
+          boxShadow: "0 8px 24px rgba(224,62,62,0.35)",
+          fontSize: 13, fontWeight: 600, fontFamily: "inherit",
+          display: "flex", alignItems: "center", gap: 10,
+        }}>
+          <span style={{ fontSize: 18 }}>⚠️</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700 }}>No se pudo guardar "{writeErrorToast.key}"</div>
+            <div style={{ fontSize: 11, opacity: 0.9, marginTop: 2 }}>
+              {writeErrorToast.message} · Reintentá o refrescá la página.
+            </div>
+          </div>
+          <button onClick={() => setWriteErrorToast(null)} style={{
+            background: "transparent", border: "none", color: "#FFFFFF",
+            fontSize: 18, cursor: "pointer", padding: 0, lineHeight: 1,
+          }}>×</button>
+        </div>
+      )}
     </AppContext.Provider>
   );
 }
