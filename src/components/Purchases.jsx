@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { uid, formatMoney, formatDate } from "../helpers.js";
 import { isDateInClosedMonth } from "../calcs.js";
+import { buildProductSalesStats, suggestPurchaseQty } from "../productIntelligence.js";
 import { Modal, Card, Btn, Input, Select, Table, Badge, StatCard } from "./UI.jsx";
 import { BRAND_COLORS } from "../constants.js";
 import { useResponsive } from "../App.jsx";
@@ -63,7 +64,7 @@ const PurchaseStepper = ({ status }) => {
   );
 };
 
-export const Purchases = ({ purchases, setPurchases, products, setProducts, exchangeRate, logStock, currentUser, logAudit, monthlyClosures = [] }) => {
+export const Purchases = ({ purchases, setPurchases, products, setProducts, exchangeRate, logStock, currentUser, logAudit, monthlyClosures = [], sales = [] }) => {
   const { isMobile } = useResponsive();
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -73,6 +74,23 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
   const [form, setForm] = useState(emptyPurchaseForm());
   const [verifyNote, setVerifyNote] = useState("");
   const [showSupplierStats, setShowSupplierStats] = useState(false);
+
+  // S15.7 — Sugeridor de qty a pedir Paraguay
+  const [showQtySuggestions, setShowQtySuggestions] = useState(false);
+  const [leadTimeDays, setLeadTimeDays] = useState(30);
+  const [coverDays, setCoverDays] = useState(30);
+  const productStats = useMemo(
+    () => buildProductSalesStats(products, sales, exchangeRate),
+    [products, sales, exchangeRate]
+  );
+  const purchaseSuggestions = useMemo(
+    () => suggestPurchaseQty(productStats, { leadTimeDays, coverDays, safetyDays: 7 }),
+    [productStats, leadTimeDays, coverDays]
+  );
+  const suggestionsWithDemand = useMemo(
+    () => purchaseSuggestions.filter(s => s.suggestedQty > 0),
+    [purchaseSuggestions]
+  );
 
   // Get unique models from products
   const modelOptions = useMemo(() => {
@@ -311,7 +329,15 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
         {PURCHASE_STATUSES.map(s => <StatCard key={s.value} label={s.label} value={purchases.filter(p => !p.isDeleted && p.status === s.value).length} color={s.color} />)}
       </div>
 
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12, gap: 8, flexWrap: "wrap" }}>
+        <button onClick={() => setShowQtySuggestions(s => !s)} style={{
+          padding: "8px 14px", borderRadius: 8, border: "1px solid #E8E7E3",
+          background: showQtySuggestions ? "#0F7B6C15" : "transparent",
+          color: showQtySuggestions ? "#0F7B6C" : "#37352F",
+          fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+        }}>
+          {showQtySuggestions ? "▼" : "▶"} 🎯 Sugerir qty próxima compra ({suggestionsWithDemand.length})
+        </button>
         <button onClick={() => setShowSupplierStats(s => !s)} style={{
           padding: "8px 14px", borderRadius: 8, border: "1px solid #E8E7E3",
           background: showSupplierStats ? "#5E6AD215" : "transparent",
@@ -321,6 +347,94 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
           {showSupplierStats ? "▼" : "▶"} 📊 Stats por proveedor ({supplierStats.length})
         </button>
       </div>
+
+      {/* S15.7 — Sugeridor qty Paraguay */}
+      {showQtySuggestions && (
+        <Card style={{ marginBottom: 16 }}>
+          <h3 style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#37352F" }}>
+            🎯 Sugerencias de qty para próxima compra Paraguay
+          </h3>
+          <p style={{ margin: "0 0 14px", fontSize: 12, color: "#8C8A82" }}>
+            Basado en velocity últimos 30d × (lead time + cover + safety). Ajustá los parámetros si tu lead time real es distinto.
+          </p>
+          <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 14, alignItems: "center" }}>
+            <label style={{ fontSize: 12, color: "#37352F", fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+              Lead time (días):
+              <input
+                type="number" min={1} max={120}
+                value={leadTimeDays}
+                onChange={e => setLeadTimeDays(Math.max(1, Number(e.target.value) || 30))}
+                style={{ width: 70, padding: "5px 8px", borderRadius: 6, border: "1px solid #E8E7E3", fontSize: 13, textAlign: "right" }}
+              />
+            </label>
+            <label style={{ fontSize: 12, color: "#37352F", fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+              Cover (días):
+              <input
+                type="number" min={1} max={180}
+                value={coverDays}
+                onChange={e => setCoverDays(Math.max(1, Number(e.target.value) || 30))}
+                style={{ width: 70, padding: "5px 8px", borderRadius: 6, border: "1px solid #E8E7E3", fontSize: 13, textAlign: "right" }}
+              />
+            </label>
+            <span style={{ fontSize: 11, color: "#8C8A82" }}>
+              + 7d safety = horizonte total <strong>{leadTimeDays + coverDays + 7}d</strong>
+            </span>
+          </div>
+          {suggestionsWithDemand.length === 0 ? (
+            <p style={{ color: "#B1AFA7", fontSize: 12, padding: 14 }}>
+              No hay productos con demanda activa que necesiten reposición.
+            </p>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                <thead>
+                  <tr>
+                    {["Producto", "Velocity", "Stock actual", "Target", "Sugerir pedir", "Cobertura"].map(h => (
+                      <th key={h} style={{ textAlign: "left", padding: "6px 8px", fontSize: 10, color: "#8C8A82", textTransform: "uppercase", borderBottom: "1px solid #E8E7E3" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {suggestionsWithDemand.slice(0, 30).map(s => {
+                    const daysOfStock = s.velocity30dPerDay > 0 ? Math.floor(s.stockActual / s.velocity30dPerDay) : Infinity;
+                    return (
+                      <tr key={s.productId}>
+                        <td style={{ padding: "6px 8px", color: "#37352F", borderBottom: "1px solid #F0EFEB", fontWeight: 600 }}>
+                          {s.product.brand} {s.product.model} {s.product.flavor && `· ${s.product.flavor}`}
+                        </td>
+                        <td style={{ padding: "6px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>
+                          {s.velocity30dPerDay} <span style={{ fontSize: 10, color: "#8C8A82" }}>uds/día</span>
+                        </td>
+                        <td style={{ padding: "6px 8px", color: s.stockActual === 0 ? "#E03E3E" : "#555247", borderBottom: "1px solid #F0EFEB", fontWeight: s.stockActual === 0 ? 700 : 500 }}>
+                          {s.stockActual} uds
+                        </td>
+                        <td style={{ padding: "6px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{s.target} uds</td>
+                        <td style={{ padding: "6px 8px", borderBottom: "1px solid #F0EFEB" }}>
+                          <Badge color="#0F7B6C">{s.suggestedQty} uds</Badge>
+                        </td>
+                        <td style={{ padding: "6px 8px", color: daysOfStock < 14 ? "#E03E3E" : daysOfStock < 30 ? "#CB912F" : "#0F7B6C", borderBottom: "1px solid #F0EFEB", fontWeight: 600 }}>
+                          {daysOfStock === Infinity ? "—" : `${daysOfStock}d`}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {suggestionsWithDemand.length > 30 && (
+                <p style={{ marginTop: 8, fontSize: 11, color: "#8C8A82" }}>...y {suggestionsWithDemand.length - 30} productos más con demanda.</p>
+              )}
+              <div style={{ marginTop: 14, padding: 10, background: "#FAFAF9", borderRadius: 8, fontSize: 12, color: "#37352F" }}>
+                <strong>Total sugerido a pedir:</strong> {suggestionsWithDemand.reduce((s, x) => s + x.suggestedQty, 0)} unidades
+                {(() => {
+                  const totalUSD = suggestionsWithDemand.reduce((s, x) => s + x.suggestedQty * (Number(x.product.costUSDT) || 0), 0);
+                  if (totalUSD > 0) return <> · valor estimado al costo: <strong>{formatMoney(totalUSD, "USD")}</strong></>;
+                  return null;
+                })()}
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
 
       {showSupplierStats && supplierStats.length > 0 && (
         <Card style={{ marginBottom: 16 }}>

@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { formatMoney, formatDate, safeRate } from "../helpers.js";
 import { calcTotalRevenue, calcTotalRevenueUSD } from "../calcs.js";
+import { buildProductSalesStats, findVelocityDrops } from "../productIntelligence.js";
 import { BRAND_COLORS, isGarantia } from "../constants.js";
 import { useResponsive } from "../App.jsx";
 import { useAppContext } from "../AppContext.js";
@@ -430,6 +431,19 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, c
         detail: `Facturado YTD: ${formatMoney(ytdRevenue)} de ${formatMoney(limit)}.`,
       });
     }
+
+    // === S15.8 — Pérdida de velocidad de productos ===
+    // Si productos top venían vendiendo bien y la última semana cayeron ≥50%,
+    // alerta para investigar (¿competencia? ¿stock visible? ¿agotamiento?).
+    const stats = buildProductSalesStats(products, sales, exchangeRate);
+    const drops = findVelocityDrops(stats, { minMonthlyQty: 5, minDropPct: 50 });
+    if (drops.length > 0) list.push({
+      t: "warning",
+      msg: `📉 ${drops.length} producto${drops.length > 1 ? "s" : ""} con caída de ventas`,
+      detail: drops.slice(0, 3).map(d =>
+        `${d.product.brand} ${d.product.model}${d.product.flavor ? ` · ${d.product.flavor}` : ""} (-${d.dropPct}%)`
+      ).join(", "),
+    });
 
     // === MERMAS ===
     const wActive = (withdrawals || []).filter(w => !w.isDeleted);
