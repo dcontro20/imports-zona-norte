@@ -106,6 +106,94 @@ export const MonthlyClosures = ({ monthlyClosures, setMonthlyClosures, sales, pu
   };
 
   // Descarga CSV del cierre (key=value por línea)
+  // S14.16 — Export contable formato debe/haber para contador.
+  // Una fila por transacción del mes (ventas, compras, gastos, mermas).
+  // Columnas: fecha · concepto · categoría · debe (ARS) · haber (ARS) · moneda · ref
+  // El "debe" es lo que sale (gastos, costos, mermas) y "haber" lo que entra (ingresos por venta).
+  const downloadAccountingCSV = (c) => {
+    const month = c.month;
+    const rows = [];
+    const escape = s => `"${String(s ?? "").replace(/"/g, '""')}"`;
+    const rate = c.exchangeRate || exchangeRate;
+    const toARS = (amount, cur) => (cur === "USD" || cur === "USDT") ? Math.round((amount || 0) * rate) : (amount || 0);
+
+    // Header
+    rows.push(["Fecha", "Concepto", "Categoría", "Debe (ARS)", "Haber (ARS)", "Moneda original", "Monto original", "Ref"]);
+
+    // VENTAS → haber
+    sales.filter(s => !s.isDeleted && (s.date || "").slice(0, 7) === month)
+      .sort((a, b) => (a.date || "").localeCompare(b.date || ""))
+      .forEach(s => {
+        const cur = s.currency || "ARS";
+        const ars = toARS(s.total, cur);
+        rows.push([
+          (s.date || "").slice(0, 10),
+          `Venta ${s.clientName || "sin nombre"} (${s.channel || "?"})`,
+          "Ingresos por ventas",
+          0, ars, cur, s.total || 0, s.id,
+        ]);
+      });
+
+    // COMPRAS verificadas → debe
+    purchases.filter(p => !p.isDeleted && (p.date || "").slice(0, 7) === month && p.status === "verificado")
+      .sort((a, b) => (a.date || "").localeCompare(b.date || ""))
+      .forEach(p => {
+        const ars = p.totalCostARS || Math.round((p.totalUSDT || 0) * rate) + (p.paseroCostARS || 0) + (p.envioCostARS || 0);
+        rows.push([
+          (p.date || "").slice(0, 10),
+          `Compra ${p.supplier || "?"} (lote ${p.loteNumber || "?"})`,
+          "Costos mercadería",
+          ars, 0, "USDT", p.totalUSDT || 0, p.id,
+        ]);
+      });
+
+    // GASTOS → debe
+    expenses.filter(e => !e.isDeleted && (e.date || "").slice(0, 7) === month)
+      .sort((a, b) => (a.date || "").localeCompare(b.date || ""))
+      .forEach(e => {
+        rows.push([
+          (e.date || "").slice(0, 10),
+          e.description || e.category || "Gasto",
+          e.category || "Gastos operativos",
+          e.amountARS || 0, 0, e.currency || "ARS", e.amountARS || 0, e.id,
+        ]);
+      });
+
+    // MERMAS → debe (separadas en común vs personal)
+    (withdrawals || []).filter(w => !w.isDeleted && (w.date || "").slice(0, 7) === month)
+      .sort((a, b) => (a.date || "").localeCompare(b.date || ""))
+      .forEach(w => {
+        const usd = Number(w.costRealUSD || w.costEstimateUSD || 0);
+        const ars = Math.round(usd * rate);
+        const isPersonal = w.withdrawType === "Consumo propio";
+        const cat = isPersonal ? `Consumo personal ${w.person || ""}`.trim() : "Mermas operativas";
+        rows.push([
+          (w.date || "").slice(0, 10),
+          `${w.withdrawType || "Merma"} ${w.qty || 0} uds`,
+          cat,
+          ars, 0, "USD", usd, w.id,
+        ]);
+      });
+
+    // Totales finales
+    rows.push(["", "", "", "", "", "", "", ""]);
+    const totalDebe = rows.slice(1).reduce((s, r) => s + (Number(r[3]) || 0), 0);
+    const totalHaber = rows.slice(1).reduce((s, r) => s + (Number(r[4]) || 0), 0);
+    rows.push(["", "TOTALES", "", totalDebe, totalHaber, "", "", ""]);
+    rows.push(["", "Resultado del mes (Haber − Debe)", "", "", totalHaber - totalDebe, "", "", ""]);
+
+    const csv = rows.map(r => r.map(escape).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `IZN_LibroMayor_${month}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const downloadCSV = (c) => {
     const rows = [
       ["Mes", c.label],
@@ -256,7 +344,11 @@ export const MonthlyClosures = ({ monthlyClosures, setMonthlyClosures, sales, pu
             <button onClick={() => downloadCSV(postActionsFor)} style={{
               padding: "10px 16px", minHeight: 42, border: "1px solid #5E6AD2", borderRadius: 8,
               background: "#EEF0FC", color: "#5E6AD2", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
-            }}>📥 Descargar CSV</button>
+            }}>📥 Descargar resumen CSV</button>
+            <button onClick={() => downloadAccountingCSV(postActionsFor)} style={{
+              padding: "10px 16px", minHeight: 42, border: "1px solid #0F7B6C", borderRadius: 8,
+              background: "#DDEDEA", color: "#0F7B6C", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+            }} title="Libro mayor en formato debe/haber para contador">📚 Libro mayor</button>
             <button onClick={() => copySummary(postActionsFor)} style={{
               padding: "10px 16px", minHeight: 42, border: "none", borderRadius: 8,
               background: "#5E6AD2", color: "#FFFFFF", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
@@ -394,7 +486,8 @@ export const MonthlyClosures = ({ monthlyClosures, setMonthlyClosures, sales, pu
                     <td style={{ padding: "8px 10px", fontSize: 13, color: "#5E6AD2", borderBottom: "1px solid #F0EFEB" }}>{c.stockTotal} uds</td>
                     <td style={{ padding: "8px 10px", fontSize: 13, color: "#00b894", borderBottom: "1px solid #F0EFEB" }}>${c.exchangeRate}</td>
                     <td style={{ padding: "8px 10px", borderBottom: "1px solid #F0EFEB", display: "flex", gap: 4 }}>
-                      <button onClick={() => downloadCSV(c)} title="Descargar CSV" style={{ background: "none", border: "none", color: "#5E6AD2", cursor: "pointer", fontSize: 14 }}>📥</button>
+                      <button onClick={() => downloadCSV(c)} title="Descargar CSV resumen" style={{ background: "none", border: "none", color: "#5E6AD2", cursor: "pointer", fontSize: 14 }}>📥</button>
+                      <button onClick={() => downloadAccountingCSV(c)} title="Libro mayor (CSV contable debe/haber)" style={{ background: "none", border: "none", color: "#0F7B6C", cursor: "pointer", fontSize: 14 }}>📚</button>
                       <button onClick={() => openWhatsApp(c)} title="Enviar por WhatsApp" style={{ background: "none", border: "none", color: "#25D366", cursor: "pointer", fontSize: 14 }}>📲</button>
                       <button onClick={() => deleteClosure(c.id)} style={{ background: "none", border: "none", color: "#E03E3E", cursor: "pointer", fontSize: 14 }}>🗑️</button>
                     </td>

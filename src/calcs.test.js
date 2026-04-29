@@ -5,12 +5,20 @@ import {
   calcTotalCosts,
   calcTotalExpenses,
   calcConsumoValue,
+  calcConsumoPersonalARS,
+  calcMermasComunesARS,
   calcNetProfit,
   calcPartnerBalances,
+  calcMonthSummary,
   formatMoney,
   reverseSaleBalanceDelta,
   validateWithdrawalForm,
   calcAccountBalance,
+  isMonthClosed,
+  isDateInClosedMonth,
+  isValidPartner,
+  getEffectiveUSDTRate,
+  migrateLegacySales,
 } from "./calcs.js";
 import {
   ACCOUNT_METHOD_MAP, payMethodToAccountId, normalizeType,
@@ -584,5 +592,197 @@ describe("calcAccountBalance", () => {
   it("ignores daily_close entries (snapshot-only, no ledger impact)", () => {
     const cashMovements = [{ id: "m1", type: "daily_close", from: "mpDiego", amount: 999 }];
     expect(calcAccountBalance("mpDiego", { ...ctx, sales: [], purchases: [], cashMovements })).toBe(1000);
+  });
+});
+
+// =====================================================================
+// S14 — Tests del bloque de confiabilidad financiera
+// =====================================================================
+
+describe("isValidPartner (S14.15)", () => {
+  it("acepta Diego y Gustavo", () => {
+    expect(isValidPartner("Diego")).toBe(true);
+    expect(isValidPartner("Gustavo")).toBe(true);
+  });
+  it("rechaza typos y vacíos", () => {
+    expect(isValidPartner("Diegoo")).toBe(false);
+    expect(isValidPartner("")).toBe(false);
+    expect(isValidPartner(null)).toBe(false);
+    expect(isValidPartner(undefined)).toBe(false);
+  });
+});
+
+describe("calcConsumoPersonalARS — validación person (S14.15)", () => {
+  it("retorna 0 si person no es socio válido", () => {
+    const w = [{ id: "w1", withdrawType: "Consumo propio", person: "Diegoo", costRealUSD: 10 }];
+    expect(calcConsumoPersonalARS(w, "Diegoo", RATE)).toBe(0);
+  });
+  it("suma normalmente para Diego", () => {
+    const w = [{ id: "w1", withdrawType: "Consumo propio", person: "Diego", costRealUSD: 10 }];
+    expect(calcConsumoPersonalARS(w, "Diego", RATE)).toBe(10 * RATE);
+  });
+});
+
+describe("isMonthClosed / isDateInClosedMonth (S14.5)", () => {
+  const closures = [{ month: "2026-03" }, { month: "2026-02" }];
+  it("detecta mes cerrado", () => {
+    expect(isMonthClosed(closures, "2026-03")).toBe(true);
+    expect(isMonthClosed(closures, "2026-04")).toBe(false);
+  });
+  it("isDateInClosedMonth chequea por fecha completa", () => {
+    expect(isDateInClosedMonth(closures, "2026-03-15")).toBe(true);
+    expect(isDateInClosedMonth(closures, "2026-04-01")).toBe(false);
+    expect(isDateInClosedMonth(closures, null)).toBe(false);
+    expect(isDateInClosedMonth([], "2026-03-15")).toBe(false);
+  });
+  it("ignora closures soft-deleted", () => {
+    expect(isMonthClosed([{ month: "2026-03", isDeleted: true }], "2026-03")).toBe(false);
+  });
+});
+
+describe("getEffectiveUSDTRate (S14.12)", () => {
+  it("usa rateUSDT explícito si está", () => {
+    const m = { type: "crypto_buy", amount: 140000, amountUSDT: 100, rateUSDT: 1500 };
+    expect(getEffectiveUSDTRate(m, 1400)).toBe(1500);
+  });
+  it("deriva del movement si es crypto sin rateUSDT", () => {
+    const m = { type: "crypto_buy", amount: 140000, amountUSDT: 100 };
+    expect(getEffectiveUSDTRate(m, 1400)).toBe(1400); // 140000/100
+  });
+  it("derivado puede diferir del fallback (spread Lemon)", () => {
+    const m = { type: "crypto_buy", amount: 145000, amountUSDT: 100 }; // pagué más por menos
+    expect(getEffectiveUSDTRate(m, 1400)).toBe(1450);
+  });
+  it("fallback al rate global si no hay datos", () => {
+    expect(getEffectiveUSDTRate(null, 1400)).toBe(1400);
+    expect(getEffectiveUSDTRate({ type: "expense" }, 1400)).toBe(1400);
+  });
+});
+
+describe("migrateLegacySales (S14.14)", () => {
+  it("agrega exchangeRate a sales USD sin él", () => {
+    const sales = [
+      { id: "s1", currency: "USD", total: 100 },
+      { id: "s2", currency: "USDT", total: 50 },
+      { id: "s3", currency: "ARS", total: 5000 },
+      { id: "s4", currency: "USD", total: 200, exchangeRate: 1300 },
+    ];
+    const result = migrateLegacySales(sales, 1400);
+    expect(result[0].exchangeRate).toBe(1400);
+    expect(result[0]._migrated).toBe(true);
+    expect(result[1].exchangeRate).toBe(1400);
+    expect(result[2].exchangeRate).toBeUndefined(); // ARS no necesita
+    expect(result[2]._migrated).toBeUndefined();
+    expect(result[3].exchangeRate).toBe(1300); // ya tenía, no toca
+    expect(result[3]._migrated).toBeUndefined();
+  });
+  it("no muta el array original", () => {
+    const sales = [{ id: "s1", currency: "USD", total: 100 }];
+    const result = migrateLegacySales(sales, 1400);
+    expect(sales[0].exchangeRate).toBeUndefined();
+    expect(result[0].exchangeRate).toBe(1400);
+  });
+});
+
+describe("calcMonthSummary (S14.4) — fuente única de verdad", () => {
+  const baseCtx = {
+    sales: [
+      { id: "s1", date: "2026-04-15", total: 10000, currency: "ARS", items: [{ qty: 2 }] },
+      { id: "s2", date: "2026-04-20", total: 5000, currency: "ARS", items: [{ qty: 1 }] },
+      { id: "s3", date: "2026-03-10", total: 7777, currency: "ARS", items: [{ qty: 1 }] }, // otro mes
+    ],
+    purchases: [
+      { id: "p1", date: "2026-04-05", totalUSDT: 100, totalCostARS: 150000 },
+    ],
+    expenses: [
+      { id: "e1", date: "2026-04-08", amountARS: 2000 },
+    ],
+    withdrawals: [
+      { id: "w1", date: "2026-04-12", withdrawType: "Garantía", costRealUSD: 5, qty: 1 },
+      { id: "w2", date: "2026-04-13", withdrawType: "Consumo propio", person: "Diego", costRealUSD: 3, qty: 1 },
+      { id: "w3", date: "2026-04-13", withdrawType: "Consumo propio", person: "Gustavo", costRealUSD: 2, qty: 1 },
+    ],
+    products: [
+      { id: "prod1", stock: 50, priceUSD: 10 },
+    ],
+    exchangeRate: RATE,
+  };
+
+  it("filtra por mes correctamente y excluye otros meses", () => {
+    const r = calcMonthSummary("2026-04", baseCtx);
+    expect(r.totalSalesCount).toBe(2);
+    expect(r.totalUnits).toBe(3);
+    expect(r.totalRevenue).toBe(15000);
+    expect(r.purchasesCount).toBe(1);
+    expect(r.expensesCount).toBe(1);
+  });
+
+  it("separa mermas comunes de consumo personal", () => {
+    const r = calcMonthSummary("2026-04", baseCtx);
+    // mermasComunes: w1 (garantía) = 5 USD = 7000 ARS
+    expect(r.mermasComunesUSD).toBe(5);
+    expect(r.mermasComunesARS).toBe(5 * RATE);
+    // consumo Diego: 3 USD = 4200 ARS
+    expect(r.consumoDiegoUSD).toBe(3);
+    expect(r.consumoDiegoARS).toBe(3 * RATE);
+    // consumo Gustavo: 2 USD = 2800 ARS
+    expect(r.consumoGustavoUSD).toBe(2);
+    expect(r.consumoGustavoARS).toBe(2 * RATE);
+  });
+
+  it("netProfitOperativo NO descuenta consumo personal", () => {
+    const r = calcMonthSummary("2026-04", baseCtx);
+    // operativo = revenue - costs - expenses - mermasComunes
+    //           = 15000 - 150000 - 2000 - 7000 = -144000
+    expect(r.netProfitOperativo).toBe(15000 - 150000 - 2000 - 5 * RATE);
+  });
+
+  it("netProfitTotal SÍ descuenta consumo personal", () => {
+    const r = calcMonthSummary("2026-04", baseCtx);
+    // total = operativo - consumoDiego - consumoGustavo
+    expect(r.netProfitTotal).toBe(r.netProfitOperativo - 3 * RATE - 2 * RATE);
+  });
+
+  it("Closures legacy: netProfitARS apunta al operativo", () => {
+    const r = calcMonthSummary("2026-04", baseCtx);
+    expect(r.netProfitARS).toBe(r.netProfitOperativo);
+  });
+
+  it("ignora soft-deleted en todas las colecciones", () => {
+    const ctx = {
+      ...baseCtx,
+      sales: [...baseCtx.sales, { id: "sd", date: "2026-04-15", total: 999999, isDeleted: true, items: [] }],
+    };
+    const r = calcMonthSummary("2026-04", ctx);
+    expect(r.totalRevenue).toBe(15000); // no incluye la deleted
+  });
+
+  it("mes vacío devuelve ceros", () => {
+    const r = calcMonthSummary("2026-12", baseCtx);
+    expect(r.totalRevenue).toBe(0);
+    expect(r.netProfitOperativo).toBe(0);
+    expect(r.marginPctOperativo).toBe(0);
+  });
+});
+
+describe("calcMonthSummary alineado con calcPartnerBalances (S14.6)", () => {
+  // El test crítico: calcMonthSummary.netProfitOperativo del mes
+  // debe coincidir con calcPartnerBalances.netProfitComun cuando le pasamos
+  // los mismos datos del mes. Esto valida que NO hay drift entre Closures y Partners.
+  it("Closures.netProfitOperativo == Partners.netProfitComun para mismo mes", () => {
+    const sales = [{ id: "s1", date: "2026-04-15", total: 100000, currency: "ARS" }];
+    const purchases = [{ id: "p1", date: "2026-04-05", totalUSDT: 10, totalCostARS: 14000 }];
+    const expenses = [{ id: "e1", date: "2026-04-08", amountARS: 5000 }];
+    const withdrawals = [
+      { id: "w1", date: "2026-04-10", withdrawType: "Garantía", costRealUSD: 2 },
+      { id: "w2", date: "2026-04-11", withdrawType: "Consumo propio", person: "Diego", costRealUSD: 1 },
+    ];
+    const ctx = { sales, purchases, expenses, withdrawals, products: [], exchangeRate: RATE };
+    const monthSum = calcMonthSummary("2026-04", ctx);
+    const partner = calcPartnerBalances(sales, purchases, expenses, withdrawals, [], RATE);
+
+    // Operativo de Closures debe ser igual al netProfitComun de Partners
+    // cuando la única data es la de un mes (caso testeable)
+    expect(monthSum.netProfitOperativo).toBe(partner.netProfitComun);
   });
 });
