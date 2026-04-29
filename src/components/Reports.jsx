@@ -1,6 +1,13 @@
 import { useState, useMemo } from "react";
 import { formatMoney, formatDate } from "../helpers.js";
 import { calcTotalRevenue } from "../calcs.js";
+import {
+  buildProductSalesStats,
+  calcABCAnalysis,
+  calcBrandPerformance,
+  calcInventoryHealth,
+  calcProductMargin,
+} from "../productIntelligence.js";
 import { Card, Badge, Table } from "./UI.jsx";
 import { BRAND_COLORS, WITHDRAW_TYPES, FAILURE_REASONS, FAILURE_REASON_CATEGORY, isGarantia } from "../constants.js";
 import { useResponsive } from "../App.jsx";
@@ -85,6 +92,23 @@ const DonutChart = ({ data, size = 160 }) => {
 export const Reports = ({ products, sales, purchases, expenses, withdrawals, clients = [] }) => {
   const { exchangeRate } = useAppContext();
   const { isMobile } = useResponsive();
+
+  // S15 — Inteligencia de productos (consumido por las 4 sub-secciones nuevas).
+  // Una sola pasada construye los stats y los demás cálculos derivan de él.
+  const productStats = useMemo(
+    () => buildProductSalesStats(products, sales, exchangeRate),
+    [products, sales, exchangeRate]
+  );
+  const abcAnalysis = useMemo(() => calcABCAnalysis(productStats), [productStats]);
+  const brandPerformance = useMemo(
+    () => calcBrandPerformance(productStats, products),
+    [productStats, products]
+  );
+  const inventoryHealth = useMemo(
+    () => calcInventoryHealth(products, purchases, sales, productStats),
+    [products, purchases, sales, productStats]
+  );
+
   // Note: App.jsx already passes active* (filtered) data for most read-only components,
   // but we add safety filters here for any that might slip through
   const brandStats = useMemo(() => {
@@ -258,6 +282,202 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
           </Card>
         );
       })()}
+
+      {/* ============================================
+          S15 — INTELIGENCIA DE PRODUCTOS
+          Sección con 4 sub-bloques: salud inventario, ABC, marca, ROI ranking.
+          Toda la data viene de productIntelligence.js (funciones puras).
+          ============================================ */}
+
+      {/* S15.14 — Salud de inventario */}
+      <Card style={{ marginBottom: 14 }}>
+        <h3 style={{ margin: "0 0 14px", fontSize: 14, fontWeight: 700, color: "#37352F" }}>
+          📦 Salud del inventario
+        </h3>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit, minmax(150px, 1fr))", gap: 10 }}>
+          {[
+            { label: "SKUs activos", value: inventoryHealth.skuCount, color: "#37352F" },
+            { label: "Con stock", value: `${inventoryHealth.productsWithStock}/${inventoryHealth.skuCount}`, sub: `${inventoryHealth.fillRatePct}% fill rate`, color: inventoryHealth.fillRatePct >= 70 ? "#0F7B6C" : "#CB912F" },
+            { label: "Unidades en stock", value: inventoryHealth.stockUnits, color: "#5E6AD2" },
+            { label: "Valor stock (USD)", value: formatMoney(inventoryHealth.stockValueUSD, "USD"), color: "#37352F" },
+            { label: "Turnover anual", value: inventoryHealth.turnoverAnnualized.toFixed(1) + "x", sub: inventoryHealth.dio !== null ? `DIO: ${inventoryHealth.dio} días` : "Sin compras 90d", color: inventoryHealth.turnoverAnnualized >= 4 ? "#0F7B6C" : "#CB912F" },
+            { label: "Dead stock", value: `${inventoryHealth.deadStockCount} SKUs`, sub: `${inventoryHealth.deadStockPct}% del valor`, color: inventoryHealth.deadStockPct >= 20 ? "#E03E3E" : inventoryHealth.deadStockPct >= 10 ? "#CB912F" : "#0F7B6C" },
+          ].map((kpi, i) => (
+            <div key={i} style={{ padding: 10, background: "#FAFAF9", borderRadius: 8, border: "1px solid #E8E7E3" }}>
+              <div style={{ fontSize: 10, color: "#8C8A82", textTransform: "uppercase", fontWeight: 700 }}>{kpi.label}</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: kpi.color, fontFamily: "'Rubik', sans-serif" }}>{kpi.value}</div>
+              {kpi.sub && <div style={{ fontSize: 10, color: "#8C8A82", marginTop: 2 }}>{kpi.sub}</div>}
+            </div>
+          ))}
+        </div>
+        <div style={{ marginTop: 8, fontSize: 11, color: "#8C8A82", lineHeight: 1.4 }}>
+          Turnover = COGS últ. 90d / valor inventario × (365/90). DIO = días en que rotás el stock.
+          Dead stock = productos sin venta ≥90d con stock ≥1.
+        </div>
+      </Card>
+
+      {/* S15.2 — ABC Analysis (Pareto 80/20) */}
+      <Card style={{ marginBottom: 14 }}>
+        <h3 style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#37352F" }}>
+          📊 ABC Analysis — Pareto 80/20
+        </h3>
+        <p style={{ margin: "0 0 14px", fontSize: 12, color: "#8C8A82" }}>
+          A = top productos que acumulan el 80% del revenue · B = siguientes 15% · C = el 5% restante
+        </p>
+        {(() => {
+          const aSet = abcAnalysis.filter(x => x.classification === "A");
+          const bSet = abcAnalysis.filter(x => x.classification === "B");
+          const cSet = abcAnalysis.filter(x => x.classification === "C");
+          return (
+            <>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 14 }}>
+                {[
+                  { label: "Clase A (top)", count: aSet.length, color: "#0F7B6C", bg: "#DDEDEA" },
+                  { label: "Clase B (medio)", count: bSet.length, color: "#CB912F", bg: "#FEF6E4" },
+                  { label: "Clase C (bottom)", count: cSet.length, color: "#8C8A82", bg: "#F5F5F2" },
+                ].map((seg, i) => (
+                  <div key={i} style={{ padding: 10, background: seg.bg, borderRadius: 8, textAlign: "center" }}>
+                    <div style={{ fontSize: 11, color: seg.color, fontWeight: 700, textTransform: "uppercase" }}>{seg.label}</div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: seg.color, fontFamily: "'Rubik', sans-serif" }}>{seg.count}</div>
+                    <div style={{ fontSize: 10, color: seg.color }}>productos</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                  <thead>
+                    <tr>
+                      {["#", "Clase", "Producto", "Uds", "Revenue", "% del total", "Acumul."].map(h => (
+                        <th key={h} style={{ textAlign: "left", padding: "6px 8px", fontSize: 10, color: "#8C8A82", textTransform: "uppercase", borderBottom: "1px solid #E8E7E3" }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {abcAnalysis.slice(0, 20).map((row, i) => {
+                      const colors = { A: "#0F7B6C", B: "#CB912F", C: "#8C8A82" };
+                      return (
+                        <tr key={row.productId}>
+                          <td style={{ padding: "5px 8px", color: "#8C8A82", borderBottom: "1px solid #F0EFEB" }}>{i + 1}</td>
+                          <td style={{ padding: "5px 8px", borderBottom: "1px solid #F0EFEB" }}>
+                            <Badge color={colors[row.classification]}>{row.classification}</Badge>
+                          </td>
+                          <td style={{ padding: "5px 8px", color: "#37352F", borderBottom: "1px solid #F0EFEB", fontWeight: 600 }}>
+                            {row.product?.brand} {row.product?.model} {row.product?.flavor && `· ${row.product.flavor}`}
+                          </td>
+                          <td style={{ padding: "5px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{row.totalQty}</td>
+                          <td style={{ padding: "5px 8px", color: "#37352F", borderBottom: "1px solid #F0EFEB", fontWeight: 600 }}>{formatMoney(row.totalRevenueARS)}</td>
+                          <td style={{ padding: "5px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{row.revenuePct.toFixed(1)}%</td>
+                          <td style={{ padding: "5px 8px", color: colors[row.classification], borderBottom: "1px solid #F0EFEB", fontWeight: 600 }}>{row.cumulativePct}%</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                {abcAnalysis.length > 20 && (
+                  <div style={{ marginTop: 8, fontSize: 11, color: "#8C8A82" }}>...y {abcAnalysis.length - 20} productos más.</div>
+                )}
+              </div>
+            </>
+          );
+        })()}
+      </Card>
+
+      {/* S15.5 — Comparativa rentabilidad por marca */}
+      <Card style={{ marginBottom: 14 }}>
+        <h3 style={{ margin: "0 0 14px", fontSize: 14, fontWeight: 700, color: "#37352F" }}>
+          🏷️ Rentabilidad por marca
+        </h3>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+            <thead>
+              <tr>
+                {["Marca", "SKUs", "Con stock", "Uds vendidas", "Velocity 30d", "Revenue", "Margen prom.", "Stock USD"].map(h => (
+                  <th key={h} style={{ textAlign: "left", padding: "6px 8px", fontSize: 10, color: "#8C8A82", textTransform: "uppercase", borderBottom: "1px solid #E8E7E3" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {brandPerformance.map(b => (
+                <tr key={b.brand}>
+                  <td style={{ padding: "6px 8px", color: BRAND_COLORS[b.brand] || "#37352F", fontWeight: 700, borderBottom: "1px solid #F0EFEB" }}>{b.brand}</td>
+                  <td style={{ padding: "6px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{b.skuCount}</td>
+                  <td style={{ padding: "6px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{b.productsWithStock}</td>
+                  <td style={{ padding: "6px 8px", color: "#37352F", borderBottom: "1px solid #F0EFEB", fontWeight: 600 }}>{b.totalQty}</td>
+                  <td style={{ padding: "6px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{b.velocity30dTotal}</td>
+                  <td style={{ padding: "6px 8px", color: "#0F7B6C", borderBottom: "1px solid #F0EFEB", fontWeight: 600 }}>{formatMoney(b.totalRevenueARS)}</td>
+                  <td style={{ padding: "6px 8px", borderBottom: "1px solid #F0EFEB" }}>
+                    {b.avgMarginPct !== null ? (
+                      <Badge color={b.avgMarginPct >= 50 ? "#0F7B6C" : b.avgMarginPct >= 30 ? "#CB912F" : "#E03E3E"}>{b.avgMarginPct}%</Badge>
+                    ) : (
+                      <span style={{ color: "#B1AFA7", fontSize: 11 }}>—</span>
+                    )}
+                  </td>
+                  <td style={{ padding: "6px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{formatMoney(b.stockValueUSD, "USD")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {brandPerformance.length === 0 && (
+            <p style={{ color: "#B1AFA7", fontSize: 12, padding: 14 }}>Sin datos para mostrar.</p>
+          )}
+        </div>
+      </Card>
+
+      {/* S15.15 — ROI ranking por unidad × volumen */}
+      <Card style={{ marginBottom: 14 }}>
+        <h3 style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#37352F" }}>
+          💎 ROI ranking — qué te dio más ganancia $
+        </h3>
+        <p style={{ margin: "0 0 14px", fontSize: 12, color: "#8C8A82" }}>
+          Producto × ganancia/unidad × unidades vendidas. El "ROI ranking" combina alta margen + alto volumen — los que más plata te dieron en términos absolutos.
+        </p>
+        {(() => {
+          const ranked = Object.values(productStats)
+            .map(s => {
+              const margin = calcProductMargin(s.product);
+              if (!margin || s.totalQty === 0) return null;
+              const profitPerUnit = margin.marginUSD;
+              const totalProfit = profitPerUnit * s.totalQty;
+              return { ...s, profitPerUnit, totalProfit, marginPct: margin.marginPct, roiPct: margin.roiPct };
+            })
+            .filter(Boolean)
+            .sort((a, b) => b.totalProfit - a.totalProfit)
+            .slice(0, 15);
+          if (ranked.length === 0) {
+            return <p style={{ color: "#B1AFA7", fontSize: 12 }}>Cargá costUSDT en los productos para ver el ranking de ROI.</p>;
+          }
+          return (
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                <thead>
+                  <tr>
+                    {["#", "Producto", "Uds vend.", "$/ud", "Total $", "Margen", "ROI"].map(h => (
+                      <th key={h} style={{ textAlign: "left", padding: "6px 8px", fontSize: 10, color: "#8C8A82", textTransform: "uppercase", borderBottom: "1px solid #E8E7E3" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {ranked.map((r, i) => (
+                    <tr key={r.productId}>
+                      <td style={{ padding: "5px 8px", color: i < 3 ? "#0F7B6C" : "#8C8A82", borderBottom: "1px solid #F0EFEB", fontWeight: 700 }}>{i + 1}</td>
+                      <td style={{ padding: "5px 8px", color: "#37352F", borderBottom: "1px solid #F0EFEB", fontWeight: 600 }}>
+                        {r.product.brand} {r.product.model} {r.product.flavor && `· ${r.product.flavor}`}
+                      </td>
+                      <td style={{ padding: "5px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{r.totalQty}</td>
+                      <td style={{ padding: "5px 8px", color: "#0F7B6C", borderBottom: "1px solid #F0EFEB", fontWeight: 600 }}>{formatMoney(r.profitPerUnit, "USD")}</td>
+                      <td style={{ padding: "5px 8px", color: "#0F7B6C", borderBottom: "1px solid #F0EFEB", fontWeight: 700 }}>{formatMoney(r.totalProfit, "USD")}</td>
+                      <td style={{ padding: "5px 8px", borderBottom: "1px solid #F0EFEB" }}>
+                        <Badge color={r.marginPct >= 50 ? "#0F7B6C" : r.marginPct >= 30 ? "#CB912F" : "#E03E3E"}>{r.marginPct}%</Badge>
+                      </td>
+                      <td style={{ padding: "5px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{r.roiPct !== null ? `${r.roiPct}%` : "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
+      </Card>
 
       {/* Financial summary */}
       <Card style={{ marginBottom: 14 }}>
