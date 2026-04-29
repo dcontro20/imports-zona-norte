@@ -47,6 +47,7 @@ const DATA_KEYS = [
   { key: "monthlyClosures", default: [] },
   { key: "partnerWithdrawals", default: [] },
   { key: "auditLog", default: [] },
+  { key: "coupons", default: [] }, // S16.1 — sistema de cupones formal
 ];
 
 export function useFirebaseSync() {
@@ -64,6 +65,7 @@ export function useFirebaseSync() {
   const [partnerWithdrawals, setPartnerWithdrawals] = useState(() => loadData("partnerWithdrawals", []));
   const [exchangeRate, setExchangeRate] = useState(() => loadData("exchangeRate", 1415));
   const [auditLog, setAuditLog] = useState(() => loadData("auditLog", []));
+  const [coupons, setCoupons] = useState(() => loadData("coupons", []));
 
   // ---- Sync flags ----
   // lastFirestoreData[key] = JSON serializado de la última data recibida de Firestore.
@@ -112,7 +114,7 @@ export function useFirebaseSync() {
     clients: setClients, expenses: setExpenses, withdrawals: setWithdrawals,
     cashMovements: setCashMovements, stockLog: setStockLog, priceLog: setPriceLog,
     monthlyClosures: setMonthlyClosures, partnerWithdrawals: setPartnerWithdrawals,
-    auditLog: setAuditLog,
+    auditLog: setAuditLog, coupons: setCoupons,
   }).current;
 
   // ---- Subscribe to Firestore ONLY when authenticated ----
@@ -260,6 +262,7 @@ export function useFirebaseSync() {
   useEffect(() => smartSave("monthlyClosures", monthlyClosures), [monthlyClosures]); // eslint-disable-line
   useEffect(() => smartSave("partnerWithdrawals", partnerWithdrawals), [partnerWithdrawals]); // eslint-disable-line
   useEffect(() => smartSave("auditLog", auditLog), [auditLog]); // eslint-disable-line
+  useEffect(() => smartSave("coupons", coupons), [coupons]); // eslint-disable-line
   useEffect(() => smartSave("exchangeRate", exchangeRate), [exchangeRate]); // eslint-disable-line
 
   // ---- Auto-fetch dolar blue ----
@@ -300,6 +303,7 @@ export function useFirebaseSync() {
     cashMovements, setCashMovements, stockLog, setStockLog, priceLog, setPriceLog,
     monthlyClosures, setMonthlyClosures, partnerWithdrawals, setPartnerWithdrawals,
     exchangeRate, setExchangeRate, auditLog, setAuditLog,
+    coupons, setCoupons,
     dataReady, syncStatus, fromFirestore,
     logStock, logPrice,
   };

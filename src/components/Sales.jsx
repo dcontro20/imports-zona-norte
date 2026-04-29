@@ -4,6 +4,7 @@ import { useResponsive } from "../App.jsx";
 import { Modal, Card, Btn, Input, Select, Table, Badge, SearchBar, StatCard } from "./UI.jsx";
 import { CHANNELS, PAYMENT_METHODS, MP_ACCOUNTS, DISCOUNT_REASONS, BRAND_COLORS } from "../constants.js";
 import { reverseSaleBalanceDelta, isDateInClosedMonth } from "../calcs.js";
+import { findCouponByCode, validateCoupon, calcCouponDiscount } from "../pricing.js";
 import { T, pickAvatarColor } from "../theme.js";
 import SaleCard from "./sales/SaleCard.jsx";
 
@@ -41,6 +42,8 @@ const emptyForm = () => ({
   channel: getLastChannel(), currency: "ARS",
   payments: [emptyPayment()],
   discountType: "none", discountValue: "", discountReason: "",
+  // S16.1 — cupón aplicado
+  couponCode: "", couponDiscount: 0,
   extras: [],
   // Change (vuelto)
   changeAmount: 0, changeMethod: "", changeMpAccount: "",
@@ -53,6 +56,7 @@ const emptyForm = () => ({
 export const Sales = ({
   sales, setSales, products, setProducts, logStock, exchangeRate, currentUser, logAudit,
   clients, setClients, cashMovements, setCashMovements, monthlyClosures = [],
+  coupons = [], setCoupons,
 }) => {
   const { isMobile } = useResponsive();
   const [modal, setModal] = useState(false);
@@ -157,7 +161,30 @@ export const Sales = ({
   const subtotal = calcSubtotal();
   const discountAmount = calcDiscount(subtotal);
   const extrasTotal = (form.extras || []).reduce((s, e) => s + (Number(e.amount) || 0), 0);
-  const finalTotal = Math.max(0, subtotal - discountAmount + extrasTotal);
+
+  // S16.1 — Cupón aplicado al subtotal después del descuento manual.
+  // Se evalúa el cupón en cada render para validar (vigencia, audiencia, etc).
+  const couponState = useMemo(() => {
+    if (!form.couponCode) return { applied: null, discount: 0, error: null };
+    const coupon = findCouponByCode(coupons, form.couponCode);
+    if (!coupon) return { applied: null, discount: 0, error: "Cupón no encontrado" };
+    const client = (clients || []).find(c => c.id === form.clientId);
+    const isFirstPurchase = client
+      ? !(sales || []).some(s => !s.isDeleted && s.clientId === client.id && s.id !== editing)
+      : true;
+    const subAfterDiscount = Math.max(0, subtotal - discountAmount);
+    const validation = validateCoupon(coupon, {
+      subtotalARS: subAfterDiscount,
+      client,
+      isFirstPurchase,
+    });
+    if (!validation.ok) return { applied: null, discount: 0, error: validation.reason };
+    const discount = calcCouponDiscount(coupon, subAfterDiscount);
+    return { applied: coupon, discount, error: null };
+  }, [form.couponCode, form.clientId, coupons, clients, sales, subtotal, discountAmount, editing]);
+  const couponDiscount = couponState.discount;
+
+  const finalTotal = Math.max(0, subtotal - discountAmount - couponDiscount + extrasTotal);
 
   // ---- client credit: check if client has a balance (positive = store owes them) ----
   const clientCredit = useMemo(() => {
@@ -362,6 +389,9 @@ export const Sales = ({
       discountValue: Number(form.discountValue) || 0,
       discountAmount,
       discountReason: form.discountReason,
+      // S16.1 — cupón aplicado (puede ser null si no se usó)
+      couponCode: couponState.applied ? couponState.applied.code : "",
+      couponDiscount: couponState.discount || 0,
       extrasTotal,
       extras: form.extras,
       creditUsed,
@@ -404,6 +434,11 @@ export const Sales = ({
       });
       setSales(prev => [saleData, ...prev]);
       if (logAudit) logAudit("create", "sale", saleId, `Creó venta: ${form.clientName || "sin nombre"} · ${formatMoney(total, form.currency)}`);
+      // S16.1 — incrementar usedCount del cupón solo en ventas nuevas (no edits)
+      if (couponState.applied && setCoupons) {
+        const couponId = couponState.applied.id;
+        setCoupons(prev => prev.map(c => c.id === couponId ? { ...c, usedCount: (c.usedCount || 0) + 1 } : c));
+      }
     }
 
     // ---- Helper: reverse a sale's balance impact on a client ----
@@ -1198,6 +1233,41 @@ export const Sales = ({
           )}
         </>
       )}
+
+      {/* S16.1 — Input de cupón */}
+      <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px dashed #E8E7E3" }}>
+        <label style={{ display: "block", fontSize: 12, color: "#5E6AD2", marginBottom: 6, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
+          🎟️ Cupón (opcional)
+        </label>
+        <Input
+          placeholder="Código (ej: BIENVENIDO10)"
+          value={form.couponCode || ""}
+          onChange={e => setForm(f => ({ ...f, couponCode: e.target.value.toUpperCase() }))}
+          style={{ fontFamily: "monospace", fontWeight: 600 }}
+        />
+        {form.couponCode && couponState.error && (
+          <div style={{
+            marginTop: 6, padding: "6px 10px",
+            background: "#FBE4E4", color: "#E03E3E",
+            borderRadius: 6, fontSize: 12, fontWeight: 600,
+          }}>
+            ⚠️ {couponState.error}
+          </div>
+        )}
+        {form.couponCode && couponState.applied && (
+          <div style={{
+            marginTop: 6, padding: "6px 10px",
+            background: "#DDEDEA", color: "#0F7B6C",
+            borderRadius: 6, fontSize: 12, fontWeight: 600,
+          }}>
+            ✓ <strong>{couponState.applied.code}</strong> aplicado:
+            {couponState.applied.discountType === "percent"
+              ? ` -${couponState.applied.discountValue}%`
+              : ` -${formatMoney(couponState.applied.discountValue, form.currency)}`}
+            <span style={{ float: "right" }}>-{formatMoney(couponDiscount, form.currency)}</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 
