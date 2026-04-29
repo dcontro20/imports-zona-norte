@@ -5,11 +5,19 @@ import { BRANDS, BRAND_COLORS } from "../constants.js";
 import { useResponsive } from "../App.jsx";
 import { useAppContext } from "../AppContext.js";
 import { T } from "../theme.js";
+import {
+  buildProductSalesStats,
+  calcProductMargin,
+  classifyVelocity,
+  findSlowMovers,
+  findDeadStock,
+  classifyLifecycle,
+} from "../productIntelligence.js";
 
 // -- PRODUCTS / STOCK --
 
 
-export const Products = ({ products, setProducts, priceLog = [] }) => {
+export const Products = ({ products, setProducts, priceLog = [], sales = [] }) => {
   const { exchangeRate, logStock, logPrice, currentUser, logAudit } = useAppContext();
   const { isMobile } = useResponsive();
   const [search, setSearch] = useState("");
@@ -21,7 +29,7 @@ export const Products = ({ products, setProducts, priceLog = [] }) => {
   const [quickEdit, setQuickEdit] = useState(false);
   const [quickStocks, setQuickStocks] = useState({});
   const [toast, setToast] = useState("");
-  const [form, setForm] = useState({ brand: "", model: "", flavor: "", puffs: "", priceUSD: "", priceARS: "", stock: 0, expiryDate: "", tags: [], photoUrl: "" });
+  const [form, setForm] = useState({ brand: "", model: "", flavor: "", puffs: "", priceUSD: "", priceARS: "", costUSDT: "", stock: 0, expiryDate: "", tags: [], photoUrl: "" });
   const [tagFilter, setTagFilter] = useState("");
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState("");
@@ -75,6 +83,24 @@ export const Products = ({ products, setProducts, priceLog = [] }) => {
     return Array.from(set).sort();
   }, [products]);
 
+  // S15 — Inteligencia de producto: stats por producto en una pasada, después
+  // derivados slow/dead/lifecycle desde el mismo map. useMemo para no recalcular
+  // en cada render si sales no cambió.
+  const productStats = useMemo(
+    () => buildProductSalesStats(products, sales, exchangeRate),
+    [products, sales, exchangeRate]
+  );
+  const slowMoverIds = useMemo(() => {
+    const set = new Set();
+    findSlowMovers(productStats, products).forEach(s => set.add(s.productId));
+    return set;
+  }, [productStats, products]);
+  const deadStockIds = useMemo(() => {
+    const set = new Set();
+    findDeadStock(productStats).forEach(s => set.add(s.productId));
+    return set;
+  }, [productStats]);
+
   // Group by Brand → Model (sorted alphabetically)
   const grouped = useMemo(() => {
     const map = {};
@@ -97,7 +123,7 @@ export const Products = ({ products, setProducts, priceLog = [] }) => {
   const totalInStock = filtered.reduce((s, p) => s + (p.stock || 0), 0);
   const totalWithStock = filtered.filter(p => p.stock > 0).length;
 
-  const openNew = () => { setForm({ brand: "", model: "", flavor: "", puffs: "", priceUSD: "", priceARS: "", stock: 0, expiryDate: "", tags: [], photoUrl: "" }); setEditing(null); setModal(true); };
+  const openNew = () => { setForm({ brand: "", model: "", flavor: "", puffs: "", priceUSD: "", priceARS: "", costUSDT: "", stock: 0, expiryDate: "", tags: [], photoUrl: "" }); setEditing(null); setModal(true); };
   const openEdit = (p) => { setForm({ tags: [], photoUrl: "", ...p }); setEditing(p.id); setModal(true); };
 
   const save = () => {
@@ -316,6 +342,69 @@ export const Products = ({ products, setProducts, priceLog = [] }) => {
                           </span>
                         );
                       })()}
+                      {/* S15 — badges de inteligencia de producto */}
+                      {(() => {
+                        const stat = productStats[p.id];
+                        if (!stat) return null;
+                        const v = classifyVelocity(stat.velocity30dPerDay);
+                        const lc = classifyLifecycle(stat);
+                        const isSlow = slowMoverIds.has(p.id);
+                        const isDead = deadStockIds.has(p.id);
+                        const margin = calcProductMargin(p);
+                        return (
+                          <>
+                            {/* Velocity tier (15.1) — solo mostrar si hay stock o ventas */}
+                            {(p.stock > 0 || stat.totalQty > 0) && (
+                              <span title={`Velocidad: ${stat.velocity30dPerDay.toFixed(2)} uds/día (últ. 30d)`}
+                                style={{
+                                  fontSize: 10, padding: "2px 6px", borderRadius: 8,
+                                  background: `${v.color}18`, color: v.color, fontWeight: 600,
+                                  flexShrink: 0, border: `1px solid ${v.color}33`,
+                                }}>
+                                {v.label}
+                              </span>
+                            )}
+                            {/* Slow mover (15.4) o Dead stock (15.6) — mutually exclusive, dead gana */}
+                            {isDead && (
+                              <span title={`Stock dormido: ${stat.daysSinceLastSale === Infinity ? "nunca vendido" : stat.daysSinceLastSale + " días sin venta"}`}
+                                style={{
+                                  fontSize: 10, padding: "2px 6px", borderRadius: 8,
+                                  background: T.redBg, color: T.red, fontWeight: 700,
+                                  flexShrink: 0, border: `1px solid ${T.redBorder}`,
+                                }}>💀 Dead</span>
+                            )}
+                            {!isDead && isSlow && (
+                              <span title={`${stat.daysSinceLastSale} días sin venta — considerar promo`}
+                                style={{
+                                  fontSize: 10, padding: "2px 6px", borderRadius: 8,
+                                  background: T.amberBg, color: T.amber, fontWeight: 600,
+                                  flexShrink: 0, border: `1px solid ${T.amberBorder}`,
+                                }}>🐌 Slow</span>
+                            )}
+                            {/* Lifecycle (15.9) — solo "new" para no inflar */}
+                            {lc.stage === "new" && (
+                              <span title="Producto creado hace <30 días"
+                                style={{
+                                  fontSize: 10, padding: "2px 6px", borderRadius: 8,
+                                  background: `${lc.color}18`, color: lc.color, fontWeight: 600,
+                                  flexShrink: 0, border: `1px solid ${lc.color}33`,
+                                }}>{lc.label}</span>
+                            )}
+                            {/* Margen (15.3) — visible si hay datos de costo */}
+                            {margin && margin.roiPct !== null && (
+                              <span title={`Margen ${margin.marginPct}% · ROI ${margin.roiPct}% · Cost ${formatMoney(p.costUSDT, "USDT")}`}
+                                style={{
+                                  fontSize: 10, padding: "2px 6px", borderRadius: 8,
+                                  background: margin.marginPct >= 50 ? T.greenBg : margin.marginPct >= 30 ? T.amberBg : T.redBg,
+                                  color: margin.marginPct >= 50 ? T.green : margin.marginPct >= 30 ? T.amber : T.red,
+                                  fontWeight: 600, flexShrink: 0,
+                                }}>
+                                m{margin.marginPct}%
+                              </span>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                       {quickEdit ? (
@@ -363,6 +452,30 @@ export const Products = ({ products, setProducts, priceLog = [] }) => {
             <Input label="Precio venta ARS" type="number" value={form.priceARS} onChange={e => setForm(f => ({ ...f, priceARS: e.target.value }))} />
           </div>
         </div>
+        {/* S15.3 — Costo USDT (importación Paraguay). Necesario para calcular margen real. */}
+        <Input
+          label="Costo USDT (lo que pagás en Paraguay — para cálculo de margen)"
+          type="number"
+          value={form.costUSDT}
+          onChange={e => setForm(f => ({ ...f, costUSDT: e.target.value }))}
+          placeholder="ej: 5.50"
+        />
+        {/* Margen preview en vivo */}
+        {form.priceUSD > 0 && form.costUSDT > 0 && (() => {
+          const margin = calcProductMargin({ priceUSD: Number(form.priceUSD), costUSDT: Number(form.costUSDT) });
+          if (!margin) return null;
+          const color = margin.marginPct >= 50 ? T.green : margin.marginPct >= 30 ? T.amber : T.red;
+          return (
+            <div style={{
+              padding: "8px 12px", marginBottom: 12,
+              background: `${color}15`, border: `1px solid ${color}33`, borderRadius: 8,
+              fontSize: 12, color, fontWeight: 600,
+            }}>
+              📊 Margen: <strong>{margin.marginPct}%</strong> · Ganancia/ud: ${margin.marginUSD} USD
+              {margin.roiPct !== null && <> · ROI: <strong>{margin.roiPct}%</strong></>}
+            </div>
+          );
+        })()}
         <Input label="Stock" type="number" value={form.stock} onChange={e => setForm(f => ({ ...f, stock: Number(e.target.value) }))} />
         <Input label="Fecha de vencimiento (opcional)" type="date" value={form.expiryDate || ""} onChange={e => setForm(f => ({ ...f, expiryDate: e.target.value }))} />
         <Input
@@ -501,6 +614,7 @@ const BulkImportModal = ({ products, setProducts, logAudit, onClose }) => {
         puffs: row.puffs || "",
         priceUSD: Number(row.priceusd) || Number(row.priceUSD) || 0,
         priceARS: Number(row.pricears) || Number(row.priceARS) || 0,
+        costUSDT: Number(row.costusdt) || Number(row.costUSDT) || 0,
         stock: Number(row.stock) || 0,
         expiryDate: row.expirydate || "",
         tags: row.tags ? row.tags.split(";").map(t => t.trim()).filter(Boolean) : [],
@@ -542,7 +656,7 @@ const BulkImportModal = ({ products, setProducts, logAudit, onClose }) => {
   return (
     <Modal open onClose={onClose} title="📥 Importar productos desde CSV">
       <p style={{ fontSize: 12, color: T.textMuted, margin: "0 0 12px" }}>
-        Headers esperados: <code>brand,model,flavor,puffs,priceUSD,priceARS,stock,expiryDate,tags,photoUrl</code>.
+        Headers esperados: <code>brand,model,flavor,puffs,priceUSD,priceARS,costUSDT,stock,expiryDate,tags,photoUrl</code>.
         Tags separados por <code>;</code>. Match por marca+modelo+sabor (case-insensitive).
       </p>
 
