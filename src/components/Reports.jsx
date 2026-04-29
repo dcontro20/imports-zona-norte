@@ -10,6 +10,7 @@ import {
   calcProductCoOccurrence,
   calcDayOfWeekPattern,
   calcSellThroughRate,
+  calcPriceElasticity,
 } from "../productIntelligence.js";
 import { Card, Badge, Table } from "./UI.jsx";
 import { BRAND_COLORS, WITHDRAW_TYPES, FAILURE_REASONS, FAILURE_REASON_CATEGORY, isGarantia } from "../constants.js";
@@ -92,7 +93,7 @@ const DonutChart = ({ data, size = 160 }) => {
   );
 };
 
-export const Reports = ({ products, sales, purchases, expenses, withdrawals, clients = [] }) => {
+export const Reports = ({ products, sales, purchases, expenses, withdrawals, clients = [], priceLog = [] }) => {
   const { exchangeRate } = useAppContext();
   const { isMobile } = useResponsive();
 
@@ -122,6 +123,10 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
   const sellThroughRates = useMemo(
     () => calcSellThroughRate(purchases, sales),
     [purchases, sales]
+  );
+  const priceElasticity = useMemo(
+    () => calcPriceElasticity(products, sales, priceLog),
+    [products, sales, priceLog]
   );
 
   // Note: App.jsx already passes active* (filtered) data for most read-only components,
@@ -615,6 +620,60 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
                     </td>
                     <td style={{ padding: "6px 8px", color: s.daysSinceArrived >= 90 ? "#E03E3E" : "#555247", borderBottom: "1px solid #F0EFEB" }}>
                       {s.daysSinceArrived}d
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {/* S15.12 — Análisis de elasticidad precio-demanda */}
+      {priceElasticity.length > 0 && (
+        <Card style={{ marginBottom: 14 }}>
+          <h3 style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#37352F" }}>
+            ⚖️ Elasticidad precio-demanda
+          </h3>
+          <p style={{ margin: "0 0 14px", fontSize: 12, color: "#8C8A82" }}>
+            Cómo respondió la demanda a cambios de precio (ventana 30d antes/después).
+            Elasticidad &lt; -1 = elástico (sensible al precio). Elasticidad entre -1 y 0 = inelástico.
+            Direction "anomalous" = demanda y precio se mueven en mismo sentido (raro, revisar).
+          </p>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <thead>
+                <tr>
+                  {["Producto", "Cambio precio", "Δ%", "Antes", "Después", "Δ% demanda", "Elasticidad", "Tipo"].map(h => (
+                    <th key={h} style={{ textAlign: "left", padding: "6px 8px", fontSize: 10, color: "#8C8A82", textTransform: "uppercase", borderBottom: "1px solid #E8E7E3" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {priceElasticity.slice(0, 15).map((e, i) => (
+                  <tr key={i}>
+                    <td style={{ padding: "6px 8px", color: "#37352F", borderBottom: "1px solid #F0EFEB", fontWeight: 600 }}>
+                      {e.product.brand} {e.product.model} {e.product.flavor && `· ${e.product.flavor}`}
+                    </td>
+                    <td style={{ padding: "6px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>
+                      ${e.oldPrice} → ${e.newPrice}
+                    </td>
+                    <td style={{ padding: "6px 8px", color: e.pricePctChange < 0 ? "#0F7B6C" : "#E03E3E", borderBottom: "1px solid #F0EFEB", fontWeight: 600 }}>
+                      {e.pricePctChange > 0 ? "+" : ""}{e.pricePctChange}%
+                    </td>
+                    <td style={{ padding: "6px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{e.beforeQty} uds</td>
+                    <td style={{ padding: "6px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{e.afterQty} uds</td>
+                    <td style={{ padding: "6px 8px", color: e.demandPctChange > 0 ? "#0F7B6C" : "#E03E3E", borderBottom: "1px solid #F0EFEB", fontWeight: 600 }}>
+                      {e.demandPctChange > 0 ? "+" : ""}{e.demandPctChange}%
+                    </td>
+                    <td style={{ padding: "6px 8px", borderBottom: "1px solid #F0EFEB" }}>
+                      <Badge color={Math.abs(e.elasticity) > 1 ? "#5E6AD2" : "#8C8A82"}>{e.elasticity}</Badge>
+                    </td>
+                    <td style={{ padding: "6px 8px", borderBottom: "1px solid #F0EFEB" }}>
+                      <Badge color={e.direction === "normal" ? "#0F7B6C" : "#E03E3E"}>
+                        {e.category === "elastic" ? "Elástico" : "Inelástico"}
+                        {e.direction === "anomalous" && " ⚠️"}
+                      </Badge>
                     </td>
                   </tr>
                 ))}

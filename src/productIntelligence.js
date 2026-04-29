@@ -549,6 +549,78 @@ export function calcSellThroughRate(purchases, sales) {
 }
 
 /**
+ * S15.12 — Análisis de elasticidad precio-demanda.
+ *
+ * Para cada producto con cambios de precio en el priceLog, compara la
+ * velocity de venta antes vs después del cambio. Devuelve productos con
+ * señal clara de elasticidad:
+ *
+ *   - elasticity = (% cambio en demanda) / (% cambio en precio)
+ *
+ * Ejemplo: bajaste precio 10% y la velocity subió 30% → elasticity = -3
+ * (muy elástico — bajar precio rinde mucho).
+ *
+ * Por simplicidad usamos ventanas de 30d antes y 30d después del cambio.
+ * Devuelve solo productos con al menos 3 ventas en cada ventana.
+ *
+ * Convención: elasticity NEGATIVA significa que demanda y precio se mueven
+ * inverso (lo normal). |elasticity| > 1 = elástico, < 1 = inelástico.
+ */
+export function calcPriceElasticity(products, sales, priceLog, options = {}) {
+  const { windowDays = 30, minSales = 3 } = options;
+  const result = [];
+  (priceLog || []).forEach(entry => {
+    if (!entry || !entry.productId || !entry.date) return;
+    const oldPrice = Number(entry.oldPrice) || 0;
+    const newPrice = Number(entry.newPrice) || 0;
+    if (oldPrice <= 0 || newPrice <= 0 || oldPrice === newPrice) return;
+    const product = (products || []).find(p => p.id === entry.productId);
+    if (!product || product.isDeleted) return;
+    const changeMs = new Date(entry.date).getTime();
+    if (!Number.isFinite(changeMs)) return;
+    const beforeStart = changeMs - windowDays * MS_PER_DAY;
+    const afterEnd = changeMs + windowDays * MS_PER_DAY;
+    let beforeQty = 0;
+    let afterQty = 0;
+    (sales || []).forEach(sale => {
+      if (!sale || sale.isDeleted) return;
+      const ms = new Date(sale.date).getTime();
+      if (!Number.isFinite(ms)) return;
+      const isBefore = ms >= beforeStart && ms < changeMs;
+      const isAfter = ms >= changeMs && ms < afterEnd;
+      if (!isBefore && !isAfter) return;
+      const qty = (sale.items || [])
+        .filter(it => it.productId === entry.productId)
+        .reduce((s, it) => s + (Number(it.qty) || 0), 0);
+      if (isBefore) beforeQty += qty;
+      else afterQty += qty;
+    });
+    if (beforeQty < minSales || afterQty < minSales) return;
+    const pricePctChange = ((newPrice - oldPrice) / oldPrice) * 100;
+    const demandPctChange = ((afterQty - beforeQty) / beforeQty) * 100;
+    const elasticity = pricePctChange !== 0
+      ? Math.round((demandPctChange / pricePctChange) * 100) / 100
+      : 0;
+    result.push({
+      productId: entry.productId,
+      product,
+      date: entry.date,
+      oldPrice,
+      newPrice,
+      pricePctChange: Math.round(pricePctChange * 10) / 10,
+      beforeQty,
+      afterQty,
+      demandPctChange: Math.round(demandPctChange * 10) / 10,
+      elasticity,
+      // Categorización útil para UX
+      category: Math.abs(elasticity) > 1 ? "elastic" : "inelastic",
+      direction: elasticity < 0 ? "normal" : "anomalous", // negative is healthy
+    });
+  });
+  return result.sort((a, b) => Math.abs(b.elasticity) - Math.abs(a.elasticity));
+}
+
+/**
  * S15.14 — Salud de inventario (KPIs globales).
  *
  *   inventoryTurnover = COGS_period / avgInventoryValue   (anualizado)

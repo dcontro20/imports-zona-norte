@@ -376,7 +376,7 @@ export default function App() {
         setStockLog={setStockLog} setPriceLog={setPriceLog}
         logAudit={logAudit} currentUser={currentUser}
       />;
-      case "reports": return <Reports products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} clients={clients} />;
+      case "reports": return <Reports products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} clients={clients} priceLog={priceLog} />;
       case "exchange": return <ExchangeMonitor exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} />;
       case "audit": return <AuditLog auditLog={auditLog} products={products} />;
       case "trash": return <Trash products={products} setProducts={setProducts} sales={sales} setSales={setSales} purchases={purchases} setPurchases={setPurchases} expenses={expenses} setExpenses={setExpenses} cashMovements={cashMovements} setCashMovements={setCashMovements} partnerWithdrawals={partnerWithdrawals} setPartnerWithdrawals={setPartnerWithdrawals} clients={clients} setClients={setClients} logAudit={logAudit} currentUser={currentUser} />;

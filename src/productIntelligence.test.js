@@ -14,6 +14,7 @@ import {
   calcDayOfWeekPattern,
   calcSellThroughRate,
   calcInventoryHealth,
+  calcPriceElasticity,
 } from "./productIntelligence.js";
 
 const RATE = 1400;
@@ -298,6 +299,64 @@ describe("calcInventoryHealth (S15.14)", () => {
     const map = buildProductSalesStats(PRODUCTS, SALES, RATE, NOW);
     const health = calcInventoryHealth(PRODUCTS, [], SALES, map);
     expect(health.deadStockCount).toBeGreaterThan(0);
+  });
+});
+
+describe("calcPriceElasticity (S15.12)", () => {
+  it("detecta producto elástico (bajaste precio, demanda subió mucho)", () => {
+    const product = { id: "px", brand: "X", model: "X", priceUSD: 9, isDeleted: false };
+    const products = [product];
+    const priceChangeDate = daysAgo(15);
+    const priceLog = [{ productId: "px", oldPrice: 10, newPrice: 9, date: priceChangeDate }];
+    const sales = [
+      // 4 ventas antes (windowDays=30 antes del cambio)
+      { id: "b1", date: daysAgo(40), items: [{ productId: "px", qty: 1 }] },
+      { id: "b2", date: daysAgo(35), items: [{ productId: "px", qty: 1 }] },
+      { id: "b3", date: daysAgo(25), items: [{ productId: "px", qty: 1 }] },
+      { id: "b4", date: daysAgo(20), items: [{ productId: "px", qty: 1 }] },
+      // 12 ventas después (3x más)
+      ...Array.from({ length: 12 }, (_, i) => ({
+        id: `a${i}`, date: daysAgo(14 - i), items: [{ productId: "px", qty: 1 }],
+      })),
+    ];
+    const result = calcPriceElasticity(products, sales, priceLog);
+    expect(result).toHaveLength(1);
+    expect(result[0].pricePctChange).toBe(-10);
+    expect(result[0].demandPctChange).toBe(200); // 4 → 12
+    expect(result[0].elasticity).toBe(-20); // 200% / -10%
+    expect(result[0].category).toBe("elastic");
+    expect(result[0].direction).toBe("normal");
+  });
+
+  it("requiere mínimo de ventas en ambas ventanas", () => {
+    const products = [{ id: "px", brand: "X", model: "X", priceUSD: 9 }];
+    const priceLog = [{ productId: "px", oldPrice: 10, newPrice: 9, date: daysAgo(15) }];
+    const sales = [
+      { id: "s1", date: daysAgo(20), items: [{ productId: "px", qty: 1 }] },
+      // Solo 1 venta antes — debería filtrarse
+      ...Array.from({ length: 5 }, (_, i) => ({
+        id: `a${i}`, date: daysAgo(10 - i), items: [{ productId: "px", qty: 1 }],
+      })),
+    ];
+    expect(calcPriceElasticity(products, sales, priceLog)).toHaveLength(0);
+  });
+
+  it("ignora cambios de precio sin movimiento", () => {
+    const products = [{ id: "px", brand: "X", model: "X", priceUSD: 10 }];
+    const priceLog = [{ productId: "px", oldPrice: 10, newPrice: 10, date: daysAgo(15) }];
+    const sales = Array.from({ length: 10 }, (_, i) => ({
+      id: `s${i}`, date: daysAgo(20 - i), items: [{ productId: "px", qty: 1 }],
+    }));
+    expect(calcPriceElasticity(products, sales, priceLog)).toHaveLength(0);
+  });
+
+  it("ignora productos eliminados", () => {
+    const products = [{ id: "px", brand: "X", model: "X", priceUSD: 9, isDeleted: true }];
+    const priceLog = [{ productId: "px", oldPrice: 10, newPrice: 9, date: daysAgo(15) }];
+    const sales = Array.from({ length: 10 }, (_, i) => ({
+      id: `s${i}`, date: daysAgo(20 - i), items: [{ productId: "px", qty: 1 }],
+    }));
+    expect(calcPriceElasticity(products, sales, priceLog)).toHaveLength(0);
   });
 });
 
