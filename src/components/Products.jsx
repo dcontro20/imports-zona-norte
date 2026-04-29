@@ -29,7 +29,7 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
   const [quickEdit, setQuickEdit] = useState(false);
   const [quickStocks, setQuickStocks] = useState({});
   const [toast, setToast] = useState("");
-  const [form, setForm] = useState({ brand: "", model: "", flavor: "", puffs: "", priceUSD: "", priceARS: "", costUSDT: "", stock: 0, expiryDate: "", tags: [], photoUrl: "" });
+  const [form, setForm] = useState({ brand: "", model: "", flavor: "", puffs: "", priceUSD: "", priceARS: "", costUSDT: "", stock: 0, expiryDate: "", tags: [], photoUrl: "", priceByChannel: {} });
   const [tagFilter, setTagFilter] = useState("");
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState("");
@@ -123,8 +123,8 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
   const totalInStock = filtered.reduce((s, p) => s + (p.stock || 0), 0);
   const totalWithStock = filtered.filter(p => p.stock > 0).length;
 
-  const openNew = () => { setForm({ brand: "", model: "", flavor: "", puffs: "", priceUSD: "", priceARS: "", costUSDT: "", stock: 0, expiryDate: "", tags: [], photoUrl: "" }); setEditing(null); setModal(true); };
-  const openEdit = (p) => { setForm({ tags: [], photoUrl: "", ...p }); setEditing(p.id); setModal(true); };
+  const openNew = () => { setForm({ brand: "", model: "", flavor: "", puffs: "", priceUSD: "", priceARS: "", costUSDT: "", stock: 0, expiryDate: "", tags: [], photoUrl: "", priceByChannel: {} }); setEditing(null); setModal(true); };
+  const openEdit = (p) => { setForm({ tags: [], photoUrl: "", priceByChannel: {}, ...p }); setEditing(p.id); setModal(true); };
 
   const save = () => {
     if (!form.brand || !form.model || !form.flavor) return;
@@ -478,6 +478,50 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
         })()}
         <Input label="Stock" type="number" value={form.stock} onChange={e => setForm(f => ({ ...f, stock: Number(e.target.value) }))} />
         <Input label="Fecha de vencimiento (opcional)" type="date" value={form.expiryDate || ""} onChange={e => setForm(f => ({ ...f, expiryDate: e.target.value }))} />
+
+        {/* S16.2 — Pricing por canal (override opcional) */}
+        <details style={{ marginBottom: 12 }}>
+          <summary style={{ cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#5E6AD2", padding: "6px 0" }}>
+            🛒 Precios por canal (override opcional, en USD)
+          </summary>
+          <div style={{ paddingTop: 8, paddingLeft: 12, borderLeft: "2px solid #E8E7E3", display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
+            {[
+              { key: "whatsapp", label: "WhatsApp" },
+              { key: "instagram", label: "Instagram" },
+              { key: "presencial", label: "Presencial" },
+              { key: "delivery", label: "Delivery" },
+              { key: "mercadolibre", label: "MercadoLibre" },
+            ].map(ch => (
+              <div key={ch.key} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <label style={{ fontSize: 11, color: "#8C8A82", flex: 1, fontWeight: 600 }}>{ch.label}</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder={`USD (default: ${form.priceUSD || "—"})`}
+                  value={form.priceByChannel?.[ch.key] || ""}
+                  onChange={e => {
+                    const val = e.target.value;
+                    setForm(f => ({
+                      ...f,
+                      priceByChannel: {
+                        ...(f.priceByChannel || {}),
+                        [ch.key]: val === "" ? undefined : Number(val),
+                      },
+                    }));
+                  }}
+                  style={{
+                    width: 100, padding: "6px 8px", borderRadius: 6,
+                    border: "1px solid #E8E7E3", fontSize: 13, fontFamily: "inherit",
+                    textAlign: "right",
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+          <p style={{ fontSize: 11, color: "#8C8A82", marginTop: 6, paddingLeft: 12 }}>
+            Vacío = usa precio default. Sirve para cargar fee de MercadoLibre o descuento presencial.
+          </p>
+        </details>
         <Input
           label="Tags (separados por coma — ej: premium, puff alto, discontinuado)"
           placeholder="premium, puff alto"

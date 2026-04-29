@@ -4,7 +4,10 @@ import { useResponsive } from "../App.jsx";
 import { Modal, Card, Btn, Input, Select, Table, Badge, SearchBar, StatCard } from "./UI.jsx";
 import { CHANNELS, PAYMENT_METHODS, MP_ACCOUNTS, DISCOUNT_REASONS, BRAND_COLORS } from "../constants.js";
 import { reverseSaleBalanceDelta, isDateInClosedMonth } from "../calcs.js";
-import { findCouponByCode, validateCoupon, calcCouponDiscount } from "../pricing.js";
+import {
+  findCouponByCode, validateCoupon, calcCouponDiscount,
+  resolveChannelPrice, hasChannelPriceOverride,
+} from "../pricing.js";
 import { T, pickAvatarColor } from "../theme.js";
 import SaleCard from "./sales/SaleCard.jsx";
 
@@ -141,7 +144,10 @@ export const Sales = ({
     if (item.customPrice !== "" && item.customPrice !== undefined) return Number(item.customPrice) || 0;
     const prod = products.find(p => p.id === item.productId);
     if (!prod) return 0;
-    return form.currency === "USD" ? (prod.priceUSD || 0) : Math.round((prod.priceUSD || 0) * activeRate);
+    // S16.2 — Si el producto tiene override de precio para el canal, lo usamos.
+    // Sino, fallback al priceUSD default. resolveChannelPrice maneja ambos casos.
+    const priceUSD = resolveChannelPrice(prod, form.channel, "USD");
+    return form.currency === "USD" ? priceUSD : Math.round(priceUSD * activeRate);
   };
 
   const calcSubtotal = () => {
@@ -828,6 +834,41 @@ export const Sales = ({
                 </div>
               </div>
             )}
+            {/* S16.7/16.11 — Sugerencias de descuento en el item */}
+            {selectedProd && (() => {
+              const tips = [];
+              // Última unidad (16.11)
+              if (selectedProd.stock === 1) {
+                tips.push({ icon: "🎯", color: "#5E6AD2", text: "Última unidad — sugerí -10% para cerrar venta" });
+              }
+              // Vencimiento próximo (16.7)
+              if (selectedProd.expiryDate) {
+                const days = Math.floor((new Date(selectedProd.expiryDate) - new Date()) / 86400000);
+                if (days < 0) tips.push({ icon: "⚠️", color: "#E03E3E", text: `Vencido hace ${Math.abs(days)} días — liquidar urgente -40%` });
+                else if (days < 7) tips.push({ icon: "⏰", color: "#E03E3E", text: `Vence en ${days}d — sugerí -25%` });
+                else if (days < 14) tips.push({ icon: "⏰", color: "#CB912F", text: `Vence en ${days}d — sugerí -15%` });
+                else if (days < 30) tips.push({ icon: "⏰", color: "#CB912F", text: `Vence en ${days}d — sugerí -5%` });
+              }
+              // Override de canal (16.2)
+              if (hasChannelPriceOverride(selectedProd, form.channel)) {
+                tips.push({ icon: "🛒", color: "#0F7B6C", text: `Precio especial para canal "${form.channel}" aplicado` });
+              }
+              if (tips.length === 0) return null;
+              return (
+                <div style={{ marginTop: 6 }}>
+                  {tips.map((t, idx) => (
+                    <div key={idx} style={{
+                      padding: "4px 8px", marginTop: 4, fontSize: 11, fontWeight: 600,
+                      background: `${t.color}15`, color: t.color, borderRadius: 6,
+                      border: `1px solid ${t.color}33`,
+                      display: "flex", alignItems: "center", gap: 6,
+                    }}>
+                      <span>{t.icon}</span><span>{t.text}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         );
       })}

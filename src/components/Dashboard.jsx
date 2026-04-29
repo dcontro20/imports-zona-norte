@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { formatMoney, formatDate, safeRate } from "../helpers.js";
 import { calcTotalRevenue, calcTotalRevenueUSD } from "../calcs.js";
 import { buildProductSalesStats, findVelocityDrops } from "../productIntelligence.js";
+import { findLowMarginProducts } from "../pricing.js";
 import { BRAND_COLORS, isGarantia } from "../constants.js";
 import { useResponsive } from "../App.jsx";
 import { useAppContext } from "../AppContext.js";
@@ -442,6 +443,27 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, c
       msg: `📉 ${drops.length} producto${drops.length > 1 ? "s" : ""} con caída de ventas`,
       detail: drops.slice(0, 3).map(d =>
         `${d.product.brand} ${d.product.model}${d.product.flavor ? ` · ${d.product.flavor}` : ""} (-${d.dropPct}%)`
+      ).join(", "),
+    });
+
+    // === S16.8 — Productos con margen bajo ===
+    // Identifica productos que tienen costUSDT cargado pero margen <25% (warning)
+    // o <15% (danger). Evita vender en pérdida sin darse cuenta.
+    const lowMargin = findLowMarginProducts(products, { dangerPct: 15, warningPct: 25 });
+    const dangerMargin = lowMargin.filter(x => x.severity === "danger");
+    if (dangerMargin.length > 0) list.push({
+      t: "danger",
+      msg: `💸 ${dangerMargin.length} producto${dangerMargin.length > 1 ? "s" : ""} con margen crítico (<15%)`,
+      detail: dangerMargin.slice(0, 3).map(d =>
+        `${d.product.brand} ${d.product.model}${d.product.flavor ? ` · ${d.product.flavor}` : ""} (${d.marginPct}%)`
+      ).join(", "),
+    });
+    const warningMargin = lowMargin.filter(x => x.severity === "warning");
+    if (warningMargin.length > 0 && dangerMargin.length === 0) list.push({
+      t: "warning",
+      msg: `📉 ${warningMargin.length} producto${warningMargin.length > 1 ? "s" : ""} con margen bajo (<25%)`,
+      detail: warningMargin.slice(0, 3).map(d =>
+        `${d.product.brand} ${d.product.model}${d.product.flavor ? ` · ${d.product.flavor}` : ""} (${d.marginPct}%)`
       ).join(", "),
     });
 
