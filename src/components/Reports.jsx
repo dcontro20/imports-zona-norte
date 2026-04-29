@@ -7,6 +7,9 @@ import {
   calcBrandPerformance,
   calcInventoryHealth,
   calcProductMargin,
+  calcProductCoOccurrence,
+  calcDayOfWeekPattern,
+  calcSellThroughRate,
 } from "../productIntelligence.js";
 import { Card, Badge, Table } from "./UI.jsx";
 import { BRAND_COLORS, WITHDRAW_TYPES, FAILURE_REASONS, FAILURE_REASON_CATEGORY, isGarantia } from "../constants.js";
@@ -107,6 +110,18 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
   const inventoryHealth = useMemo(
     () => calcInventoryHealth(products, purchases, sales, productStats),
     [products, purchases, sales, productStats]
+  );
+  const coOccurrence = useMemo(
+    () => calcProductCoOccurrence(sales, products, 3),
+    [sales, products]
+  );
+  const dowPattern = useMemo(
+    () => calcDayOfWeekPattern(sales, null, 90),
+    [sales]
+  );
+  const sellThroughRates = useMemo(
+    () => calcSellThroughRate(purchases, sales),
+    [purchases, sales]
   );
 
   // Note: App.jsx already passes active* (filtered) data for most read-only components,
@@ -478,6 +493,136 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
           );
         })()}
       </Card>
+
+      {/* S15.10 — Cross-sell: matriz de co-ocurrencia */}
+      <Card style={{ marginBottom: 14 }}>
+        <h3 style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#37352F" }}>
+          🤝 Cross-sell — los que compran X también compran Y
+        </h3>
+        <p style={{ margin: "0 0 14px", fontSize: 12, color: "#8C8A82" }}>
+          Productos con mayor co-ocurrencia en ventas. Útil para sugerir combos y bundles. Top 10 productos.
+        </p>
+        {(() => {
+          // Top productos por número total de relaciones de cross-sell
+          const ranked = Object.entries(coOccurrence)
+            .map(([productId, partners]) => {
+              const product = products.find(p => p.id === productId);
+              if (!product || product.isDeleted) return null;
+              const totalCo = partners.reduce((s, p) => s + p.co, 0);
+              return { productId, product, partners, totalCo };
+            })
+            .filter(Boolean)
+            .sort((a, b) => b.totalCo - a.totalCo)
+            .slice(0, 10);
+          if (ranked.length === 0) {
+            return <p style={{ color: "#B1AFA7", fontSize: 12 }}>Sin datos suficientes — necesitás ventas con 2+ productos.</p>;
+          }
+          return (
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
+              {ranked.map(r => (
+                <div key={r.productId} style={{ padding: 10, background: "#FAFAF9", borderRadius: 8, border: "1px solid #E8E7E3" }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: BRAND_COLORS[r.product.brand] || "#37352F", marginBottom: 6 }}>
+                    {r.product.brand} {r.product.model} {r.product.flavor && `· ${r.product.flavor}`}
+                  </div>
+                  <div style={{ fontSize: 11, color: "#8C8A82", marginBottom: 6 }}>
+                    Suele ir junto con:
+                  </div>
+                  {r.partners.map((p, i) => (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: 12 }}>
+                      <span style={{ color: "#37352F", fontWeight: 500 }}>{p.productName}</span>
+                      <Badge color="#5E6AD2">{p.co}x</Badge>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+      </Card>
+
+      {/* S15.11 — Patrones por día de la semana */}
+      <Card style={{ marginBottom: 14 }}>
+        <h3 style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#37352F" }}>
+          📅 Patrones por día de semana
+        </h3>
+        <p style={{ margin: "0 0 14px", fontSize: 12, color: "#8C8A82" }}>
+          Unidades vendidas por día (últimos 90 días). Te dice qué días publicar promo.
+        </p>
+        {(() => {
+          const max = Math.max(1, ...dowPattern.map(d => d.qty));
+          const total = dowPattern.reduce((s, d) => s + d.qty, 0);
+          const peak = dowPattern.reduce((m, d) => d.qty > m.qty ? d : m, dowPattern[0]);
+          if (total === 0) {
+            return <p style={{ color: "#B1AFA7", fontSize: 12 }}>Sin ventas en los últimos 90 días.</p>;
+          }
+          return (
+            <>
+              <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 120, marginBottom: 12 }}>
+                {dowPattern.map(d => (
+                  <div key={d.dow} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                    <div style={{ fontSize: 10, color: "#37352F", fontWeight: 600 }}>{d.qty}</div>
+                    <div title={`${d.label}: ${d.qty} uds`} style={{
+                      width: "100%",
+                      height: `${(d.qty / max) * 90}%`,
+                      minHeight: d.qty > 0 ? 4 : 1,
+                      background: d.dow === peak.dow ? "#0F7B6C" : "#5E6AD2",
+                      borderRadius: "4px 4px 0 0",
+                      transition: "height .3s",
+                    }} />
+                    <div style={{ fontSize: 11, color: d.dow === peak.dow ? "#0F7B6C" : "#8C8A82", fontWeight: d.dow === peak.dow ? 700 : 500 }}>
+                      {d.label}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ padding: 10, background: "#DDEDEA", borderRadius: 8, fontSize: 12, color: "#0F7B6C" }}>
+                🏆 Día pico: <strong>{peak.label}</strong> con {peak.qty} unidades vendidas en últimos 90 días
+                ({total > 0 ? Math.round((peak.qty / total) * 100) : 0}% del total).
+              </div>
+            </>
+          );
+        })()}
+      </Card>
+
+      {/* S15.13 — Sell-through rate por lote */}
+      {sellThroughRates.length > 0 && (
+        <Card style={{ marginBottom: 14 }}>
+          <h3 style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#37352F" }}>
+            🚚 Sell-through rate por lote (compras verificadas)
+          </h3>
+          <p style={{ margin: "0 0 14px", fontSize: 12, color: "#8C8A82" }}>
+            Cuánto del stock comprado ya se vendió. Lotes con STR bajo y ya viejos = candidatos a promo/liquidación.
+          </p>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+              <thead>
+                <tr>
+                  {["Proveedor", "Fecha", "Lote", "Comprado", "Vendido", "STR", "Días en mercado"].map(h => (
+                    <th key={h} style={{ textAlign: "left", padding: "6px 8px", fontSize: 10, color: "#8C8A82", textTransform: "uppercase", borderBottom: "1px solid #E8E7E3" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sellThroughRates.slice(0, 15).map(s => (
+                  <tr key={s.purchaseId}>
+                    <td style={{ padding: "6px 8px", color: "#37352F", borderBottom: "1px solid #F0EFEB", fontWeight: 600 }}>{s.supplier}</td>
+                    <td style={{ padding: "6px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{formatDate(s.date)}</td>
+                    <td style={{ padding: "6px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{s.loteNumber || "—"}</td>
+                    <td style={{ padding: "6px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{s.totalQty}</td>
+                    <td style={{ padding: "6px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{s.totalSold}</td>
+                    <td style={{ padding: "6px 8px", borderBottom: "1px solid #F0EFEB" }}>
+                      <Badge color={s.strPct >= 75 ? "#0F7B6C" : s.strPct >= 50 ? "#CB912F" : "#E03E3E"}>{s.strPct}%</Badge>
+                    </td>
+                    <td style={{ padding: "6px 8px", color: s.daysSinceArrived >= 90 ? "#E03E3E" : "#555247", borderBottom: "1px solid #F0EFEB" }}>
+                      {s.daysSinceArrived}d
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
 
       {/* Financial summary */}
       <Card style={{ marginBottom: 14 }}>
