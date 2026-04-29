@@ -21,7 +21,7 @@ generación de outputs para marketing manual.
 | Sección | Tema | Mejoras | Estado |
 |---------|------|---------|--------|
 | **S14** | Bugs críticos + Precisión contable | 16 | ✅ COMPLETA |
-| **S15** | Inteligencia de Producto | 16 | Pendiente |
+| **S15** | Inteligencia de Producto | 16 | ✅ COMPLETA (15/16, 15.16 diferido) |
 | **S16** | Sistema de promos y pricing | 19 | Pendiente |
 | **S17** | Inteligencia de cliente avanzada | 15 | Pendiente |
 | **S18** | Marketing Hub interno (generadores output) | 16 | Pendiente |
@@ -67,29 +67,41 @@ S14.2 mitiga el riesgo. Sprint dedicado a futuro.
 
 ---
 
-## 🟣 S15 — Inteligencia de Producto
+## ✅ S15 — Inteligencia de Producto (CERRADA)
 
-**Objetivo:** que el sistema diga qué vender más, qué descontar, qué dejar de pedir.
-**KPI que mueve:** rotación de stock, contribución al revenue, decisiones de compra Paraguay.
+**Cerrada el 2026-04-29.** 15 de 16 mejoras implementadas (15.16 diferido).
 
-| # | Mejora | Prio | Esfuerzo |
-|---|--------|------|----------|
-| 15.1 | **Velocity dashboard** — units/día por modelo, ranking top 10 fast movers, alerta si cae de 5+ a <1/día | 🔴 | Bajo |
-| 15.2 | **ABC analysis Pareto 80/20** — tabla con % acumulado de revenue por producto. Identifica los 20% que generan 80% | 🔴 | Bajo |
-| 15.3 | **Margen real por producto** — margin% = (priceUSD - costUSDT) / priceUSD visible en Products + Reports | 🟠 | Bajo |
-| 15.4 | **Top slow movers + sugerencias** — tabla "X stock, 0 ventas 60d → bajar 15%, promo, liquidar" | 🟠 | Bajo |
-| 15.5 | **Comparativa rentabilidad por marca** — tabla marca × (margen, units, revenue, ROI) | 🟠 | Bajo |
-| 15.6 | **Dead stock identifier** — flag para: sin venta >30d, ratio stock:velocity próximo mes <0.2 | 🟠 | Medio |
-| 15.7 | **Sugeridor de qty a pedir Paraguay** — basado en velocity × (leadTime + safety). Visible en modal de Purchases | 🟠 | Alto |
-| 15.8 | **Alertas de pérdida de velocidad** — si producto vendía 10/sem y bajó a 2/sem, flag rojo "investigar" | 🟠 | Alto |
-| 15.9 | **Lifecycle de producto** — etiqueta nuevo/top/maduro/decline basada en createdAt + ventas | 🟡 | Medio |
-| 15.10 | **Matriz correlación productos** — "clientes que compran X también compran Y (45%)" para cross-sell | 🟡 | Alto |
-| 15.11 | **Patrones por día/hora/estación** — heatmap "Lost Mary vende 2x viernes" | 🟡 | Medio |
-| 15.12 | **Análisis de elasticidad precio-demanda** — si bajó precio 10% y subió venta 40%, mostrar | 🟡 | Alto |
-| 15.13 | **Sell-through rate (STR)** — % de lo comprado que se vendió en X días por lote | 🟡 | Medio |
-| 15.14 | **Dashboard salud inventario** — turnover ratio, days inventory outstanding, fill rate | 🟡 | Medio |
-| 15.15 | **ROI por unidad x impacto al revenue total** — qty × margin$ ranking | 🟡 | Medio |
-| 15.16 | **Stock vs shelf space (proxy puffs)** — si vende 1/mes pero "ocupa" mucho, sugerir consolidar | 🟢 | Bajo |
+**Objetivo cumplido:** el sistema ahora dice qué vender más, qué descontar,
+qué dejar de pedir, con badges inline en Products + reportes panorámicos
+en Reports + sugeridor activo en Purchases + alertas en Dashboard.
+
+| # | Mejora | Status | Commit |
+|---|--------|--------|--------|
+| 15.1 | Velocity dashboard | ✅ | 69b446b |
+| 15.2 | ABC analysis Pareto 80/20 | ✅ | b52e00d |
+| 15.3 | Margen real por producto | ✅ | 69b446b |
+| 15.4 | Top slow movers + sugerencias | ✅ | 69b446b |
+| 15.5 | Comparativa rentabilidad por marca | ✅ | b52e00d |
+| 15.6 | Dead stock identifier | ✅ | 69b446b |
+| 15.7 | Sugeridor de qty a pedir Paraguay | ✅ | 62d4148 |
+| 15.8 | Alertas de pérdida de velocidad | ✅ | 62d4148 |
+| 15.9 | Lifecycle de producto | ✅ | 69b446b |
+| 15.10 | Matriz correlación productos (cross-sell) | ✅ | 22c8a3c |
+| 15.11 | Patrones por día de semana | ✅ | 22c8a3c |
+| 15.12 | Análisis de elasticidad precio-demanda | ✅ | a88893e |
+| 15.13 | Sell-through rate (STR) por lote | ✅ | 22c8a3c |
+| 15.14 | Dashboard salud inventario | ✅ | b52e00d |
+| 15.15 | ROI ranking | ✅ | b52e00d |
+| 15.16 | Stock vs shelf space (puffs proxy) | ⏸️ Diferido | — |
+
+**Archivos clave creados:**
+- `src/productIntelligence.js` (685 líneas, 15 funciones puras)
+- `src/productIntelligence.test.js` (38 tests, 134 totales en proyecto)
+
+**Decisión de S15.16 diferido:** "stock vs shelf space" usaba puffs como proxy
+de espacio físico. Para vapes de Paraguay esto agrega complejidad sin un
+ROI claro vs los 4 reportes (ABC, brand, salud, ROI ranking) que ya cubren
+las decisiones críticas de inventario. Se reactiva si Diego lo pide.
 
 ---
 

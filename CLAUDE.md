@@ -318,7 +318,7 @@ pregunta "qué viene después" o "qué hay en SXX", abrir ese doc.
 | Sección | Tema | Estado |
 |---------|------|--------|
 | S14 | Bugs críticos + Precisión contable (16 ítems) | ✅ COMPLETA (2026-04-29) |
-| S15 | Inteligencia de Producto (16) | Pendiente |
+| S15 | Inteligencia de Producto (16) | ✅ COMPLETA (2026-04-29, 15/16) |
 | S16 | Sistema de promos y pricing (19) | Pendiente |
 | S17 | Inteligencia de cliente avanzada (15) | Pendiente |
 | S18 | Marketing Hub interno — generadores output (16) | Pendiente |
@@ -357,6 +357,33 @@ Highlights:
 **Decisión arquitectónica clave:** S14.3 (field-level Firestore writes)
 documentada como deuda técnica. Refactor masivo del path de saveToFirestore.
 La detección informativa de S14.2 mitiga riesgo por ahora.
+
+### ✅ S15 cerrada el 29/04/2026 — Inteligencia de Producto
+
+**15/16 mejoras** (15.16 diferido). 6 commits (`c050a3f` → `a88893e`).
+
+**Resultado:** el sistema ahora tiene una capa completa de inteligencia
+de producto. Diego puede ver de un vistazo:
+- Qué productos son top movers vs slow movers vs dead stock (badges inline)
+- Margen y ROI real por producto (con costUSDT)
+- ABC Analysis Pareto: los 20% productos que generan 80% del revenue
+- Comparativa rentabilidad entre marcas (Lost Mary vs Elf Bar vs Geek Bar)
+- Salud del inventario: turnover, DIO, fill rate, dead stock %
+- Cross-sell: los que compran X también compran Y
+- Patrones por día de la semana (cuándo mandar promos)
+- Sell-through rate por lote Paraguay
+- Sugeridor de qty a pedir basado en velocity × leadtime
+- Alerta de pérdida de velocidad (Dashboard)
+- Análisis de elasticidad precio-demanda (post-cambios de precio)
+
+Archivos nuevos:
+- `src/productIntelligence.js` (15 funciones puras, 685 líneas)
+- `src/productIntelligence.test.js` (38 tests, 134 totales en proyecto)
+
+Cambios estructurales:
+- Campo `costUSDT` añadido al form de Products + bulk import CSV
+- Nuevo `priceLog` pasado a Reports para análisis de elasticidad
+- App.jsx pasa `activeSales` a Products y Purchases para cálculos
 
 ### 🏁 Big push 23-24 abril (docs/SESSION_2026-04-23_to_24_big_push.md)
 
