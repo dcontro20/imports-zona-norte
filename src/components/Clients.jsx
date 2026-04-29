@@ -53,7 +53,7 @@ export const Clients = ({ clients, setClients, sales, products, withdrawals = []
   const [zoneFilter, setZoneFilter] = useState("");
   const [monthFilter, setMonthFilter] = useState(""); // "" | "YYYY-MM"
   const [modal, setModal] = useState(false);
-  const [form, setForm] = useState({ name: "", phone: "", email: "", instagram: "", zona: "", notes: "", dateOfBirth: "", isBlocked: false, blockReason: "" });
+  const [form, setForm] = useState({ name: "", phone: "", email: "", instagram: "", zona: "", notes: "", dateOfBirth: "", isBlocked: false, blockReason: "", tier: "regular" });
   const [editing, setEditing] = useState(null);
   const [phoneError, setPhoneError] = useState("");
 
@@ -238,11 +238,12 @@ export const Clients = ({ clients, setClients, sales, products, withdrawals = []
   }, [sales]);
 
   // ---- actions ----
-  const openNew = () => { setForm({ name: "", phone: "", email: "", instagram: "", zona: "", notes: "", dateOfBirth: "", isBlocked: false, blockReason: "" }); setEditing(null); setPhoneError(""); setModal(true); };
+  const openNew = () => { setForm({ name: "", phone: "", email: "", instagram: "", zona: "", notes: "", dateOfBirth: "", isBlocked: false, blockReason: "", tier: "regular" }); setEditing(null); setPhoneError(""); setModal(true); };
   const openEdit = (c) => { setForm({
     name: c.name || "", phone: c.phone || "", email: c.email || "", instagram: c.instagram || "",
     zona: c.zona || "", notes: c.notes || "",
     dateOfBirth: c.dateOfBirth || "", isBlocked: !!c.isBlocked, blockReason: c.blockReason || "",
+    tier: c.tier || "regular",
   }); setEditing(c.id); setPhoneError(""); setModal(true); };
 
   const save = () => {
@@ -853,6 +854,20 @@ const ClientForm = ({ form, setForm, phoneError, setPhoneError, knownZones, edit
           placeholder="Opcional — preferencias, recordatorios, etc."
           rows={3}
           style={{ ...fieldStyle(), resize: "vertical", minHeight: 64 }} />
+      </div>
+
+      {/* S16.9 — Tier de cliente para descuentos automáticos */}
+      <div>
+        <label style={labelStyle}>Tier (descuento automático en ventas)</label>
+        <select
+          value={form.tier || "regular"}
+          onChange={e => setForm(f => ({ ...f, tier: e.target.value }))}
+          style={fieldStyle()}
+        >
+          <option value="regular">Regular (sin descuento)</option>
+          <option value="vip">VIP (-5% automático)</option>
+          <option value="diamante">Diamante (-10% automático)</option>
+        </select>
       </div>
 
       <div>

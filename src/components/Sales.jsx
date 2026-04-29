@@ -7,6 +7,7 @@ import { reverseSaleBalanceDelta, isDateInClosedMonth } from "../calcs.js";
 import {
   findCouponByCode, validateCoupon, calcCouponDiscount,
   resolveChannelPrice, hasChannelPriceOverride,
+  calcVolumeDiscountPct, calcTierDiscountPct, calcLoyaltyDiscountPct,
 } from "../pricing.js";
 import { T, pickAvatarColor } from "../theme.js";
 import SaleCard from "./sales/SaleCard.jsx";
@@ -206,6 +207,23 @@ export const Sales = ({
   const difference = totalPaid - effectiveTotal; // positive = overpaid (change), negative = underpaid (debt)
 
   const autoVolume = totalQty >= 3 && form.discountType === "none";
+
+  // S16.3 — Descuento automático por volumen
+  // S16.9 — Descuento automático por tier
+  // S16.19 — Descuento por fidelización (compras del mes)
+  const autoDiscounts = useMemo(() => {
+    const client = (clients || []).find(c => c.id === form.clientId);
+    const volumePct = calcVolumeDiscountPct(totalQty);
+    const tierPct = calcTierDiscountPct(client);
+    const loyaltyPct = calcLoyaltyDiscountPct(client, sales);
+    return {
+      volumePct,
+      tierPct,
+      loyaltyPct,
+      maxPct: Math.max(volumePct, tierPct, loyaltyPct),
+      total: volumePct + tierPct + loyaltyPct,
+    };
+  }, [totalQty, form.clientId, clients, sales]);
 
   // ---- client search ----
   const filteredClients = useMemo(() => {
@@ -1236,6 +1254,51 @@ export const Sales = ({
   const renderDiscountSection = () => (
     <div style={{ background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10, padding: 14, marginBottom: 14 }}>
       <label style={{ display: "block", fontSize: 12, color: "#b8860b", marginBottom: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>🏷️ Descuento</label>
+
+      {/* S16.3+9+19 — Sugerencias automáticas según volumen, tier y fidelización */}
+      {(autoDiscounts.volumePct > 0 || autoDiscounts.tierPct > 0 || autoDiscounts.loyaltyPct > 0) && (
+        <div style={{
+          padding: "8px 10px", marginBottom: 10,
+          background: "#EAECF9", border: "1px solid #D4D7F2", borderRadius: 8,
+          fontSize: 12,
+        }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#5E6AD2", marginBottom: 6 }}>
+            💡 Descuentos sugeridos automáticos:
+          </div>
+          {autoDiscounts.volumePct > 0 && (
+            <div style={{ color: "#37352F", marginBottom: 3 }}>
+              📦 Volumen ({totalQty} uds): <strong>-{autoDiscounts.volumePct}%</strong>
+            </div>
+          )}
+          {autoDiscounts.tierPct > 0 && (
+            <div style={{ color: "#37352F", marginBottom: 3 }}>
+              ⭐ Tier cliente: <strong>-{autoDiscounts.tierPct}%</strong>
+            </div>
+          )}
+          {autoDiscounts.loyaltyPct > 0 && (
+            <div style={{ color: "#37352F", marginBottom: 3 }}>
+              🤝 Fidelización (10+ compras este mes): <strong>-{autoDiscounts.loyaltyPct}%</strong>
+            </div>
+          )}
+          <button
+            onClick={() => setForm(f => ({
+              ...f,
+              discountType: "percent",
+              discountValue: String(autoDiscounts.maxPct),
+              discountReason: autoDiscounts.tierPct === autoDiscounts.maxPct ? "tier" :
+                              autoDiscounts.loyaltyPct === autoDiscounts.maxPct ? "fidelizacion" :
+                              "volumen",
+            }))}
+            style={{
+              marginTop: 4, padding: "4px 10px", borderRadius: 6,
+              background: "#5E6AD2", color: "#fff",
+              border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+            }}
+          >
+            Aplicar mejor descuento ({autoDiscounts.maxPct}%)
+          </button>
+        </div>
+      )}
       <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
         {[
           { value: "none", label: "Sin descuento" },
