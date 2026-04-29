@@ -400,6 +400,37 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, c
       detail: `Total: ${formatMoney(totalDebt)}`,
     });
 
+    // === S14.9 — Tax tracking monotributo (AR) ===
+    // Si el usuario configuró un techo anual, alertar al 75/85/100% del cupo.
+    if (settings.monotributoYearlyLimitARS > 0) {
+      const year = now.getFullYear();
+      const yearSales = sales.filter(s => !s.isDeleted && new Date(s.date).getFullYear() === year);
+      const fallbackRate = safeRate(exchangeRate);
+      const ytdRevenue = yearSales.reduce((sum, sale) => {
+        const cur = sale.currency || "ARS";
+        const total = sale.total || 0;
+        const rate = sale.exchangeRate || fallbackRate || 1;
+        return sum + ((cur === "USD" || cur === "USDT") ? total * rate : total);
+      }, 0);
+      const limit = settings.monotributoYearlyLimitARS;
+      const pct = (ytdRevenue / limit) * 100;
+      if (pct >= 100) list.push({
+        t: "danger",
+        msg: `🏛️ Monotributo: superaste el techo anual (${pct.toFixed(0)}%)`,
+        detail: `Facturado YTD: ${formatMoney(ytdRevenue)} de ${formatMoney(limit)}. Re-categorizá YA.`,
+      });
+      else if (pct >= 85) list.push({
+        t: "warning",
+        msg: `🏛️ Monotributo: ${pct.toFixed(0)}% del techo anual`,
+        detail: `Facturado YTD: ${formatMoney(ytdRevenue)} de ${formatMoney(limit)}. Preparate para re-categorizar.`,
+      });
+      else if (pct >= 75) list.push({
+        t: "info",
+        msg: `🏛️ Monotributo: ${pct.toFixed(0)}% del techo anual`,
+        detail: `Facturado YTD: ${formatMoney(ytdRevenue)} de ${formatMoney(limit)}.`,
+      });
+    }
+
     // === MERMAS ===
     const wActive = (withdrawals || []).filter(w => !w.isDeleted);
     const wCost = (w) => Number(w.costRealUSD || w.costEstimateUSD) || 0;

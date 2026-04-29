@@ -56,11 +56,42 @@ export const Partners = ({ partnerWithdrawals, setPartnerWithdrawals, sales, pur
     netProfit, profitRemaining, diegoBalance, gustavoBalance,
   } = calcPartnerBalances(sales, purchases, expenses, withdrawals || [], partnerWithdrawals || [], exchangeRate);
 
-  // Calculadora "qué retiramos este mes": sugiere monto seguro de retiro por socio
-  // Regla: 70% del halfProfit como retiro seguro, dejando 30% como capital de trabajo.
-  // Si el socio ya retiró más que su share, sugiere 0.
-  const safeWithdrawDiego = Math.max(0, Math.floor((halfProfit * 0.7) - diegoTotal));
-  const safeWithdrawGustavo = Math.max(0, Math.floor((halfProfit * 0.7) - gustavoTotal));
+  // S14.8 — Calculadora "qué retiramos este mes" con cap por balance real.
+  // Regla: 70% del halfProfit COMO TECHO, pero NUNCA superar el balance del
+  // socio (lo que efectivamente le queda a favor del pozo). Si el socio ya
+  // tiene balance negativo (sobre-retiró), sugiere 0.
+  // ANTES: la fórmula `halfProfit*0.7 - retiros` podía sugerir retiro a un
+  // socio endeudado si halfProfit subió mucho — el cap por balance lo evita.
+  const safeWithdrawDiego = Math.max(0, Math.min(
+    Math.floor((halfProfit * 0.7) - diegoTotal),
+    Math.floor(diegoBalance)
+  ));
+  const safeWithdrawGustavo = Math.max(0, Math.min(
+    Math.floor((halfProfit * 0.7) - gustavoTotal),
+    Math.floor(gustavoBalance)
+  ));
+
+  // S14.13 — Equidad desglosada: 4 números separados (retiros vs aportes
+  // por socio) en lugar de un único equityDiff abstracto. Hace explícito
+  // por qué hay desequilibrio: si Diego aportó capital, no es lo mismo que
+  // si Gustavo se "llevó de más".
+  // amount negativo en partnerWithdrawals = aporte (S10.3 convención)
+  const sumByPersonAndDir = (person, isDeposit) => {
+    return (partnerWithdrawals || [])
+      .filter(w => !w.isDeleted && w.person === person)
+      .reduce((sum, w) => {
+        const isAporte = w.amount < 0 || w.tipoMovimiento === "aporte";
+        if (isDeposit !== isAporte) return sum;
+        const ars = (w.currency === "USD" || w.currency === "USDT")
+          ? Math.abs(w.amount) * exchangeRate
+          : Math.abs(w.amount);
+        return sum + ars;
+      }, 0);
+  };
+  const retirosDiego = sumByPersonAndDir("Diego", false);
+  const aportesDiego = sumByPersonAndDir("Diego", true);
+  const retirosGustavo = sumByPersonAndDir("Gustavo", false);
+  const aportesGustavo = sumByPersonAndDir("Gustavo", true);
 
   // Reporte de equidad: saldo a favor o en contra entre socios
   const equityDiff = diegoBalance - gustavoBalance;
@@ -230,13 +261,39 @@ export const Partners = ({ partnerWithdrawals, setPartnerWithdrawals, sales, pur
             </div>
           </div>
         </div>
+        {/* S14.13 — Desglose explícito retiros vs aportes por socio */}
+        <div style={{
+          padding: 10, background: "#FAFAF9", border: "1px solid #E8E7E3",
+          borderRadius: 8, fontSize: 12, color: "#37352F", marginBottom: 10,
+        }}>
+          <div style={{ fontSize: 11, color: "#8C8A82", fontWeight: 700, textTransform: "uppercase", marginBottom: 6 }}>
+            Movimientos del histórico
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div>
+              <div style={{ fontSize: 11, color: "#5E6AD2", fontWeight: 600 }}>Diego</div>
+              <div style={{ fontSize: 11, color: "#37352F" }}>
+                Retiró {formatMoney(retirosDiego)}
+                {aportesDiego > 0 && <> · Aportó {formatMoney(aportesDiego)}</>}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, color: "#0F7B6C", fontWeight: 600 }}>Gustavo</div>
+              <div style={{ fontSize: 11, color: "#37352F" }}>
+                Retiró {formatMoney(retirosGustavo)}
+                {aportesGustavo > 0 && <> · Aportó {formatMoney(aportesGustavo)}</>}
+              </div>
+            </div>
+          </div>
+        </div>
         {moreWithdrawn && Math.abs(equityDiff) > 1000 && (
           <div style={{
             padding: 10, background: "#FFF7E0", border: "1px solid #F2D59A",
             borderRadius: 8, fontSize: 12, color: "#A65800",
           }}>
-            ⚖️ <strong>Desequilibrio detectado</strong>: <strong>{moreWithdrawn}</strong> retiró {formatMoney(Math.abs(equityDiff))} más que su socio.
-            Para emparejar, el otro socio puede retirar {formatMoney(Math.abs(equityDiff))} extra.
+            ⚖️ <strong>Desequilibrio detectado</strong>: <strong>{moreWithdrawn}</strong> tiene
+            {" "}{formatMoney(Math.abs(equityDiff))} de saldo{equityDiff > 0 ? " a favor (le toca menos retiro)" : " en contra (le toca más retiro)"}.
+            Para emparejar, el otro socio puede retirar {formatMoney(Math.abs(equityDiff))} extra del pozo.
           </div>
         )}
       </Card>

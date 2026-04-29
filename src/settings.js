@@ -29,6 +29,14 @@ export const DEFAULT_SETTINGS = {
 
   // Backups
   backupReminderDays: 7,       // recordatorio si no se hizo backup en N días
+
+  // Tax (monotributo Argentina)
+  // Techo de facturación anual de tu categoría. Cuando el revenue YTD supere
+  // 75/85/100% de este número, el dashboard muestra alerta para que prepares
+  // el cambio de categoría o re-categorización.
+  // Default 0 = deshabilitado. El usuario lo configura desde Settings.
+  monotributoYearlyLimitARS: 0,
+  monotributoCategory: "",     // libre: "Categoría B", "Categoría C", etc.
 };
 
 export function loadSettings() {
