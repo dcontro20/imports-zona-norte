@@ -163,6 +163,32 @@ export default function App() {
     return () => window.removeEventListener("izn:write-error", handler);
   }, []);
 
+  // Toast de cuota localStorage llena (S14 — bug B6).
+  // El sistema sigue funcionando porque Firestore es la fuente de verdad,
+  // pero el caché local ya no se actualiza. Guía al usuario a exportar
+  // backup y limpiar para evitar pérdida si pierde conexión.
+  const [storageQuotaToast, setStorageQuotaToast] = useState(false);
+  useEffect(() => {
+    const handler = () => {
+      setStorageQuotaToast(true);
+      setTimeout(() => setStorageQuotaToast(false), 30000);
+    };
+    window.addEventListener("izn:storage-quota-error", handler);
+    return () => window.removeEventListener("izn:storage-quota-error", handler);
+  }, []);
+
+  // Toast de concurrent edit (S14.2 — Diego y Gustavo escribiendo en simultáneo)
+  // Avisa que el dato puede haber sido sobrescrito por el otro socio.
+  const [concurrentEditToast, setConcurrentEditToast] = useState(null);
+  useEffect(() => {
+    const handler = (e) => {
+      setConcurrentEditToast({ key: e.detail?.key || "datos", at: e.detail?.at });
+      setTimeout(() => setConcurrentEditToast(null), 8000);
+    };
+    window.addEventListener("izn:concurrent-edit", handler);
+    return () => window.removeEventListener("izn:concurrent-edit", handler);
+  }, []);
+
   // Body scroll lock cuando sidebar mobile está abierto
   useEffect(() => {
     if (isMobile && menuOpen) {
@@ -693,6 +719,56 @@ export default function App() {
             </div>
           </div>
           <button onClick={() => setWriteErrorToast(null)} style={{
+            background: "transparent", border: "none", color: "#FFFFFF",
+            fontSize: 18, cursor: "pointer", padding: 0, lineHeight: 1,
+          }}>×</button>
+        </div>
+      )}
+
+      {storageQuotaToast && (
+        <div style={{
+          position: "fixed", top: 70, left: "50%", transform: "translateX(-50%)",
+          zIndex: 2001, maxWidth: "92vw",
+          background: "#CB912F", color: "#FFFFFF",
+          padding: "12px 18px", borderRadius: 10,
+          boxShadow: "0 8px 24px rgba(203,145,47,0.35)",
+          fontSize: 13, fontWeight: 600, fontFamily: "inherit",
+          display: "flex", alignItems: "center", gap: 10,
+        }}>
+          <span style={{ fontSize: 18 }}>📦</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700 }}>Almacenamiento local lleno</div>
+            <div style={{ fontSize: 11, opacity: 0.9, marginTop: 2 }}>
+              Tu navegador rechazó guardar caché. Tus datos siguen seguros en la nube.
+              Para evitar problemas, exportá un backup y limpiá el caché del navegador.
+            </div>
+          </div>
+          <button onClick={() => setStorageQuotaToast(false)} style={{
+            background: "transparent", border: "none", color: "#FFFFFF",
+            fontSize: 18, cursor: "pointer", padding: 0, lineHeight: 1,
+          }}>×</button>
+        </div>
+      )}
+
+      {concurrentEditToast && (
+        <div style={{
+          position: "fixed", top: 70, left: "50%", transform: "translateX(-50%)",
+          zIndex: 2002, maxWidth: "92vw",
+          background: "#5E6AD2", color: "#FFFFFF",
+          padding: "12px 18px", borderRadius: 10,
+          boxShadow: "0 8px 24px rgba(94,106,210,0.35)",
+          fontSize: 13, fontWeight: 600, fontFamily: "inherit",
+          display: "flex", alignItems: "center", gap: 10,
+        }}>
+          <span style={{ fontSize: 18 }}>👥</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700 }}>Edición simultánea detectada</div>
+            <div style={{ fontSize: 11, opacity: 0.9, marginTop: 2 }}>
+              El otro socio modificó "{concurrentEditToast.key}" al mismo tiempo. Verificá
+              que tu cambio haya quedado guardado.
+            </div>
+          </div>
+          <button onClick={() => setConcurrentEditToast(null)} style={{
             background: "transparent", border: "none", color: "#FFFFFF",
             fontSize: 18, cursor: "pointer", padding: 0, lineHeight: 1,
           }}>×</button>

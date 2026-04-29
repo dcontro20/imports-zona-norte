@@ -4,6 +4,35 @@ import { onAuthStateChanged } from "firebase/auth";
 import { DEFAULT_PRODUCTS } from "./constants.js";
 import { loadData, uid } from "./helpers.js";
 
+// safeSetItem — escribe a localStorage manejando QuotaExceededError.
+// Si el storage llena (típicamente 5-10MB en mobile/Safari), el setItem
+// nativo falla silenciosamente. Este helper detecta esa falla y dispara
+// el event "izn:storage-quota-error" para que la app muestre un toast
+// pidiendo al usuario que limpie cache o exporte y resetee.
+function safeSetItem(key, value) {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (e) {
+    const isQuota = e && (
+      e.name === "QuotaExceededError" ||
+      e.code === 22 ||
+      e.code === 1014 // Firefox: NS_ERROR_DOM_QUOTA_REACHED
+    );
+    if (isQuota) {
+      console.error(`[SYNC] localStorage quota exceeded saving ${key}`);
+      try {
+        window.dispatchEvent(new CustomEvent("izn:storage-quota-error", {
+          detail: { key, size: value?.length || 0 },
+        }));
+      } catch {}
+    } else {
+      console.error(`[SYNC] localStorage error saving ${key}:`, e);
+    }
+    return false;
+  }
+}
+
 // All synced data keys with their default values
 const DATA_KEYS = [
   { key: "products", default: DEFAULT_PRODUCTS },
@@ -44,6 +73,10 @@ export function useFirebaseSync() {
   // del usuario, el flag quedaba true y el primer write del usuario se perdía
   // silenciosamente. Bug evidenciado el 2026-04-25 con persistentLocalCache N9.
   const lastFirestoreData = useRef({});
+  // lastWriteAt[key] = timestamp ms del último smartSave hacia Firestore.
+  // Se compara contra el momento en que llega un onSnapshot con data distinta:
+  // si la diferencia es < 3s, hay alta chance de concurrent edit con el otro socio.
+  const lastWriteAt = useRef({});
   const initialLoadDone = useRef({});
   const firestoreReady = useRef(false);
   const writeFailCount = useRef(0);
@@ -64,6 +97,7 @@ export function useFirebaseSync() {
         firestoreReady.current = false;
         initialLoadDone.current = {};
         fromFirestore.current = {};
+        lastWriteAt.current = {};
         writeFailCount.current = 0;
         setSyncStatus("syncing");
         setDataReady(false);
@@ -109,8 +143,23 @@ export function useFirebaseSync() {
           // Trackear el JSON exacto que vino de Firestore. smartSave lo compara
           // contra la data entrante para decidir si es loop o mutación de usuario.
           const serialized = JSON.stringify(data);
+          // Detector de concurrent edit: si el contenido nuevo es distinto al que
+          // teníamos como lastFirestoreData Y nosotros escribimos hace <3s, es
+          // probable que el otro socio haya escrito en paralelo y nuestro write
+          // perdió contra el suyo (o viceversa).
+          const prev = lastFirestoreData.current[key];
+          const lastWrite = lastWriteAt.current[key] || 0;
+          const recentlyWrote = (Date.now() - lastWrite) < 3000;
+          if (prev !== undefined && prev !== serialized && recentlyWrote && initialLoadDone.current[key]) {
+            console.warn(`[SYNC] Concurrent edit detectado en "${key}" — otro socio escribió en paralelo`);
+            try {
+              window.dispatchEvent(new CustomEvent("izn:concurrent-edit", {
+                detail: { key, at: new Date().toISOString() },
+              }));
+            } catch {}
+          }
           lastFirestoreData.current[key] = serialized;
-          try { localStorage.setItem(`vapestock_${key}`, serialized); } catch {}
+          safeSetItem(`vapestock_${key}`, serialized);
           setter(data);
           markKeyLoaded(key);
         },
@@ -130,7 +179,7 @@ export function useFirebaseSync() {
         if (typeof data === "number") {
           const serialized = JSON.stringify(data);
           lastFirestoreData.current["exchangeRate"] = serialized;
-          try { localStorage.setItem("vapestock_exchangeRate", serialized); } catch {}
+          safeSetItem("vapestock_exchangeRate", serialized);
           setExchangeRate(data);
         }
       },
@@ -168,7 +217,7 @@ export function useFirebaseSync() {
     const serialized = JSON.stringify(data);
 
     // Always save to localStorage first
-    try { localStorage.setItem(`vapestock_${key}`, serialized); } catch {}
+    safeSetItem(`vapestock_${key}`, serialized);
 
     // Block writes until initial load completes
     if (!firestoreReady.current) return;
@@ -182,6 +231,8 @@ export function useFirebaseSync() {
     // de escribir, así el snapshot que vendrá como confirmación del write no
     // dispara un segundo write.
     lastFirestoreData.current[key] = serialized;
+    // Marcamos timestamp de write para detección de concurrent edits
+    lastWriteAt.current[key] = Date.now();
 
     saveToFirestore(key, data).then(ok => {
       if (!ok) {
