@@ -321,6 +321,15 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
     const req = TYPE_BY_KEY[t]?.requires || [];
     for (const r of req) if (!form[r]) return false;
 
+    // Defense in depth: para crypto, exigir amountUSDT > 0 incluso si el form pasó.
+    // Sin esto un crypto_buy con amountUSDT=0 corrompe el balance de Lemon USDT
+    // silenciosamente (queda registrado el debit ARS pero no entra USDT).
+    if ((t === "crypto_buy" || t === "crypto_sell") && (!form.amountUSDT || Number(form.amountUSDT) <= 0)) {
+      console.error(`[saveMovement] rechazado: ${t} sin amountUSDT válido`, form);
+      alert("Error: las operaciones crypto requieren un monto USDT mayor a 0. No se guardó el movimiento.");
+      return false;
+    }
+
     // Usa el id pre-generado del form (estable desde antes de submit) o genera uno nuevo.
     // Si ya existe un movimiento con este id (doble submit antes del debounce, race
     // de Firestore al refrescar), aborta sin crear duplicado.

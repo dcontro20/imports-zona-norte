@@ -52,6 +52,16 @@ export function calcTotalExpenses(expenses) {
 export const CONSUMO_PERSONAL_TYPE = "Consumo propio";
 
 /**
+ * Socios válidos del negocio. Se usa para validar withdrawals de consumo personal
+ * y evitar que se pierdan silenciosamente por typos en el campo person.
+ */
+export const VALID_PARTNERS = ["Diego", "Gustavo"];
+
+export function isValidPartner(person) {
+  return VALID_PARTNERS.includes(person);
+}
+
+/**
  * Helper interno: extrae el costo unitario USD de un withdrawal.
  * Datos nuevos guardan `costRealUSD` (costo de importación real, lo que perdés).
  * Datos viejos solo tenían `costEstimateUSD` (originalmente basado en priceUSD,
@@ -85,8 +95,27 @@ export function calcMermasComunesARS(withdrawals, exchangeRate) {
 /**
  * Suma del costo de consumo PERSONAL de un socio (Diego o Gustavo).
  * Lo que ese socio se fumó/usó individualmente. Devuelve ARS.
+ *
+ * Si person no es un socio válido (typo, ej "Diegoo"), retorna 0.
+ * Adicionalmente, si hay withdrawals con person inválido en consumo personal,
+ * se loguea warning para que se detecte y arregle el dato.
  */
 export function calcConsumoPersonalARS(withdrawals, person, exchangeRate) {
+  if (!isValidPartner(person)) {
+    return 0;
+  }
+  // Detectar withdrawals huérfanos: consumo personal con person no válido
+  const orphans = withdrawals.filter(w =>
+    !w.isDeleted &&
+    w.withdrawType === CONSUMO_PERSONAL_TYPE &&
+    !isValidPartner(w.person)
+  );
+  if (orphans.length > 0 && typeof console !== "undefined") {
+    console.warn(
+      `[calcConsumoPersonalARS] ${orphans.length} withdrawal(s) de consumo personal con person inválido:`,
+      orphans.map(w => ({ id: w.id, person: w.person, date: w.date }))
+    );
+  }
   return withdrawals
     .filter(w => !w.isDeleted && w.withdrawType === CONSUMO_PERSONAL_TYPE && w.person === person)
     .reduce((sum, w) => sum + withdrawalCostUSD(w), 0) * safeRate(exchangeRate);
