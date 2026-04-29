@@ -379,6 +379,67 @@ export function validateWithdrawalForm(form, products = [], sales = [], clients 
 }
 
 /**
+ * S14.12 — Rate efectivo USDT → ARS para un cashMovement crypto.
+ *
+ * Cuando hay spread real entre USD blue y USDT (ej: Lemon cobra fee al comprar
+ * USDT), un crypto_buy registrado podría tener su propio rate distinto del blue
+ * general. Este helper devuelve el rate efectivo:
+ *   - Si el movement tiene `rateUSDT` explícito (campo nuevo opcional), úsalo.
+ *   - Sino, deriva el rate del propio movement: amount ARS / amountUSDT.
+ *   - Sino, fallback al rate global (que es blue, ARS/USD).
+ *
+ * Pure function — no muta state.
+ */
+export function getEffectiveUSDTRate(movement, fallbackRate) {
+  if (!movement) return safeRate(fallbackRate);
+  if (movement.rateUSDT && Number(movement.rateUSDT) > 0) {
+    return Number(movement.rateUSDT);
+  }
+  // Derivar del propio movement crypto: si compré 100 USDT por 140000 ARS,
+  // el rate efectivo fue 1400 ARS/USDT.
+  const a = Number(movement.amount) || 0;
+  const u = Number(movement.amountUSDT) || 0;
+  if (a > 0 && u > 0 && (movement.type === "crypto_buy" || movement.type === "crypto_sell")) {
+    return a / u;
+  }
+  return safeRate(fallbackRate);
+}
+
+/**
+ * S14.14 — Migration de ventas legacy sin campo exchangeRate.
+ *
+ * Devuelve un NUEVO array de ventas donde a las que les falta exchangeRate
+ * se les asigna `fallbackRate` para que no se revalúen al rate actual.
+ * Útil para correr UNA VEZ desde consola del navegador:
+ *
+ *   import { migrateLegacySales } from "./calcs.js";
+ *   const fixed = migrateLegacySales(sales, 1200); // rate de cuando se hicieron
+ *   setSales(fixed); // o pegar el resultado vía Firestore admin
+ *
+ * No muta el array original. No persiste — el caller decide qué hacer con el output.
+ */
+export function migrateLegacySales(sales, fallbackRate) {
+  if (!Array.isArray(sales)) return [];
+  const rate = safeRate(fallbackRate);
+  if (rate <= 0) {
+    console.warn("[migrateLegacySales] fallbackRate inválido, no se migrarán ventas USD/USDT");
+  }
+  let count = 0;
+  const result = sales.map(sale => {
+    if (!sale) return sale;
+    if (sale.exchangeRate) return sale; // ya tiene rate
+    const cur = sale.currency || "ARS";
+    if (cur === "ARS") return sale; // no necesita rate
+    count++;
+    return { ...sale, exchangeRate: rate, _migrated: true };
+  });
+  if (typeof console !== "undefined") {
+    console.log(`[migrateLegacySales] Marcadas ${count} ventas legacy con rate=${rate}`);
+  }
+  return result;
+}
+
+/**
  * Devuelve true si el mes (YYYY-MM) ya tiene un closure registrado.
  * Usado por Sales/Purchases/Expenses para advertir/bloquear ediciones de meses
  * cerrados, así los snapshots de cierres se mantienen consistentes con el dato.

@@ -1510,11 +1510,31 @@ export const Sales = ({
       {/* ============================================ */}
       <Modal open={modal} onClose={() => { setModal(false); setEditing(null); setEditingRate(null); setStep(1); }} title={editing ? "Editar Venta" : "Nueva Venta"}>
 
-        {/* Exchange rate indicator */}
+        {/* B3 — Exchange rate locked indicator (S14 mejorado).
+            Cuando se edita una venta, se preserva su rate original para no
+            revaluar el revenue históricamente. El banner ahora es explícito. */}
         {editing && editingRate && (
-          <div style={{ background: "#DDEBF1", border: "1px solid #B1D4E8", borderRadius: 8, padding: "6px 12px", marginBottom: 12, fontSize: 12, color: "#2383E2", fontWeight: 600, display: "flex", justifyContent: "space-between" }}>
-            <span>Tipo de cambio de esta venta: ${editingRate}</span>
-            {editingRate !== exchangeRate && <span style={{ color: "#B1AFA7", fontWeight: 400 }}>Actual: ${exchangeRate}</span>}
+          <div style={{
+            background: editingRate !== exchangeRate ? "#FFF7E0" : "#DDEBF1",
+            border: `1px solid ${editingRate !== exchangeRate ? "#F2D59A" : "#B1D4E8"}`,
+            borderRadius: 8, padding: "8px 12px", marginBottom: 12,
+            fontSize: 12, fontWeight: 600,
+            color: editingRate !== exchangeRate ? "#A65800" : "#2383E2",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: editingRate !== exchangeRate ? 4 : 0 }}>
+              🔒 <span>Tasa lockeada: ${editingRate}</span>
+              {editingRate !== exchangeRate && (
+                <span style={{ marginLeft: "auto", fontWeight: 500, fontSize: 11 }}>
+                  Blue actual: ${exchangeRate}
+                </span>
+              )}
+            </div>
+            {editingRate !== exchangeRate && (
+              <div style={{ fontSize: 10, fontWeight: 500, opacity: 0.85 }}>
+                El cambio de la venta se mantiene al rate original para preservar la
+                contabilidad histórica. No se revalúa con el blue de hoy.
+              </div>
+            )}
           </div>
         )}
 
