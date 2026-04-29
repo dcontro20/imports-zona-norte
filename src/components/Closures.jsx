@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { uid, formatMoney, formatDate, safeRate } from "../helpers.js";
+import { calcMonthSummary } from "../calcs.js";
 import { Card, Btn, Badge, StatCard } from "./UI.jsx";
 import { useResponsive } from "../App.jsx";
 
@@ -28,42 +29,16 @@ export const MonthlyClosures = ({ monthlyClosures, setMonthlyClosures, sales, pu
     return key === month;
   };
 
+  // calcMonthData ahora delega en calcMonthSummary (función pura única en calcs.js).
+  // Antes esta función restaba TODAS las mermas (incluyendo consumo personal de socios)
+  // del netProfitARS, lo que generaba un drift contra Partners.netProfitComun y
+  // mostraba ganancia menor de la real. Ahora ambos usan la misma lógica:
+  //   netProfitOperativo = revenue - costs - expenses - mermasComunes (sin personal)
+  // Ver S14.4 + S14.6 en plan de mejoras.
   const calcMonthData = (month) => {
-    const monthSales = sales.filter(s => !s.isDeleted && mFilter(s.date, month));
-    const monthPurchases = purchases.filter(p => !p.isDeleted && mFilter(p.date, month));
-    const monthExpenses = expenses.filter(e => !e.isDeleted && mFilter(e.date, month));
-    const monthWithdrawals = (withdrawals || []).filter(w => !w.isDeleted && mFilter(w.date, month));
-
-    const totalSalesCount = monthSales.length;
-    const totalUnits = monthSales.reduce((s, sale) => s + (sale.items || []).reduce((s2, i) => s2 + (Number(i.qty) || 0), 0), 0);
-    const totalRevenue = monthSales.reduce((s, sale) => s + (sale.total || 0), 0);
-    const totalDiscounts = monthSales.reduce((s, sale) => s + (sale.discountAmount || 0), 0);
-    const totalExtras = monthSales.reduce((s, sale) => s + (sale.extrasTotal || 0), 0);
-    const totalCostUSDT = monthPurchases.reduce((s, p) => s + (p.totalUSDT || 0), 0);
-    const totalPasero = monthPurchases.reduce((s, p) => s + (p.paseroCostARS || 0), 0);
-    const totalEnvio = monthPurchases.reduce((s, p) => s + (p.envioCostARS || 0), 0);
-    const totalExpensesARS = monthExpenses.reduce((s, e) => s + (e.amountARS || 0), 0);
-    const totalConsumo = monthWithdrawals.reduce((s, w) => s + w.qty, 0);
-    const totalConsumoUSD = monthWithdrawals.reduce((s, w) => s + Number(w.costRealUSD || w.costEstimateUSD || 0), 0);
-    const stockTotal = products.reduce((s, p) => s + (p.stock || 0), 0);
-    const stockValue = products.reduce((s, p) => s + (p.stock || 0) * (p.priceUSD || 0), 0);
-
-    // Ganancia neta: revenue − costos USDT (convertido a ARS) − pasero − envío − gastos − consumo común
-    const rate = safeRate(exchangeRate);
-    const totalCostARS = Math.round(totalCostUSDT * rate);
-    const totalConsumoARS = Math.round(totalConsumoUSD * rate);
-    const netProfitARS = totalRevenue - totalCostARS - totalPasero - totalEnvio - totalExpensesARS - totalConsumoARS;
-    const marginPct = totalRevenue > 0 ? Math.round((netProfitARS / totalRevenue) * 100) : 0;
-
-    return {
-      totalSalesCount, totalUnits, totalRevenue, totalDiscounts, totalExtras,
-      totalCostUSDT, totalCostARS, totalPasero, totalEnvio, totalExpensesARS,
-      totalConsumo, totalConsumoUSD, totalConsumoARS,
-      stockTotal, stockValue,
-      netProfitARS, marginPct,
-      purchasesCount: monthPurchases.length,
-      expensesCount: monthExpenses.length,
-    };
+    return calcMonthSummary(month, {
+      sales, purchases, expenses, withdrawals, products, exchangeRate,
+    });
   };
 
   const [postActionsFor, setPostActionsFor] = useState(null); // closure object para post-acciones
@@ -354,7 +329,47 @@ export const MonthlyClosures = ({ monthlyClosures, setMonthlyClosures, sales, pu
 
       {monthlyClosures.length > 0 && (
         <Card>
-          <h4 style={{ color: "#a855f7", margin: "0 0 14px", fontSize: 14, textTransform: "uppercase" }}>Historial de cierres</h4>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
+            <h4 style={{ color: "#a855f7", margin: 0, fontSize: 14, textTransform: "uppercase" }}>Historial de cierres</h4>
+            <button onClick={() => {
+              // S14.10 — Detector de inconsistencias: compara los snapshots
+              // guardados contra el cálculo actual (con datos vivos). Si la
+              // diferencia supera 0.01 ARS en cualquier total, es un drift.
+              const diffs = [];
+              monthlyClosures.forEach(c => {
+                const live = calcMonthData(c.month);
+                const fields = [
+                  ["totalRevenue", "Ingresos"],
+                  ["totalCostARS", "Costos ARS"],
+                  ["totalExpensesARS", "Gastos"],
+                  ["mermasComunesARS", "Mermas comunes"],
+                  ["consumoPersonalARS", "Consumo personal"],
+                  ["netProfitOperativo", "Ganancia operativa"],
+                ];
+                fields.forEach(([key, label]) => {
+                  const snap = Number(c[key] || 0);
+                  const now = Number(live[key] || 0);
+                  if (Math.abs(snap - now) > 0.01) {
+                    diffs.push({ month: c.label, field: label, snap, now, diff: now - snap });
+                  }
+                });
+              });
+              if (diffs.length === 0) {
+                alert("✓ Todos los cierres están consistentes con el dato actual.");
+              } else {
+                const msg = diffs.slice(0, 15).map(d =>
+                  `${d.month} · ${d.field}: snapshot ${formatMoney(d.snap)} vs actual ${formatMoney(d.now)} (diff ${d.diff >= 0 ? "+" : ""}${formatMoney(d.diff)})`
+                ).join("\n");
+                alert(`⚠️ ${diffs.length} inconsistencias detectadas (cierres vs cálculo actual):\n\n${msg}${diffs.length > 15 ? "\n\n…y más." : ""}\n\nEsto pasa cuando se editaron ventas/compras/gastos de meses ya cerrados.`);
+                console.warn("[S14.10] Inconsistencias entre cierres y cálculo actual:", diffs);
+              }
+            }} style={{
+              padding: "7px 12px", borderRadius: 8,
+              border: "1px solid #E8E7E3",
+              background: "transparent", color: "#37352F",
+              fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+            }}>🧮 Verificar consistencia</button>
+          </div>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>

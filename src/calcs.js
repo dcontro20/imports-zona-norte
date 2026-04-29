@@ -377,3 +377,182 @@ export function validateWithdrawalForm(form, products = [], sales = [], clients 
   }
   return null;
 }
+
+/**
+ * Devuelve true si el mes (YYYY-MM) ya tiene un closure registrado.
+ * Usado por Sales/Purchases/Expenses para advertir/bloquear ediciones de meses
+ * cerrados, así los snapshots de cierres se mantienen consistentes con el dato.
+ */
+export function isMonthClosed(monthlyClosures, month) {
+  if (!month || !Array.isArray(monthlyClosures)) return false;
+  return monthlyClosures.some(c => c && !c.isDeleted && c.month === month);
+}
+
+/**
+ * Devuelve true si la fecha (string YYYY-MM-DD o ISO) cae en un mes con closure.
+ * Wrapper de isMonthClosed que acepta el `date` directamente.
+ */
+export function isDateInClosedMonth(monthlyClosures, date) {
+  if (!date) return false;
+  const month = String(date).slice(0, 7);
+  return isMonthClosed(monthlyClosures, month);
+}
+
+/**
+ * Filtra una colección por mes en formato "YYYY-MM" sobre el campo `date`.
+ * Función helper interna usada por calcMonthSummary.
+ */
+function filterByMonth(items, month, dateField = "date") {
+  if (!Array.isArray(items)) return [];
+  return items.filter(item => {
+    if (!item || item.isDeleted) return false;
+    const d = item[dateField];
+    if (!d) return false;
+    return String(d).slice(0, 7) === month;
+  });
+}
+
+/**
+ * calcMonthSummary — fuente única de verdad para los totales mensuales del negocio.
+ *
+ * Calcula TODOS los métricos relevantes de un mes (revenue, costos, gastos, mermas
+ * separadas por tipo, ganancia operativa vs total) usando la lógica oficial.
+ *
+ * IMPORTANTE: esta función reemplaza los cálculos duplicados que existían en:
+ *   - Closures.jsx:calcMonthData (resta TODAS las mermas, inflando "pérdida")
+ *   - Reports.jsx (varias secciones con filter inline)
+ *   - Dashboard.jsx (monthRevenue, monthExpenses, etc)
+ *
+ * Definiciones contables (alineadas con calcPartnerBalances):
+ *   - mermasComunes  = consumo NO personal (garantías, regalos, canjes, etc)
+ *   - consumoPersonal = sumado por socio, NO afecta el pozo común
+ *   - netProfitOperativo = revenue - costs - expenses - mermasComunes
+ *       (es lo que se reparte 50/50 — coincide con netProfitComun de Partners)
+ *   - netProfitTotal = netProfitOperativo - consumoPersonalDiego - consumoPersonalGustavo
+ *       (ganancia total del negocio descontando incluso lo que los socios
+ *        consumieron personalmente — útil para reportes de eficiencia)
+ *
+ * @param {string} month — "YYYY-MM"
+ * @param {object} ctx — { sales, purchases, expenses, withdrawals, products, exchangeRate }
+ * @returns {object} todos los totales (ver shape al final de la función)
+ */
+export function calcMonthSummary(month, ctx) {
+  const {
+    sales = [], purchases = [], expenses = [], withdrawals = [],
+    products = [], exchangeRate = 1,
+  } = ctx || {};
+
+  const monthSales = filterByMonth(sales, month);
+  const monthPurchases = filterByMonth(purchases, month);
+  const monthExpenses = filterByMonth(expenses, month);
+  const monthWithdrawals = filterByMonth(withdrawals, month);
+
+  // ---- Ventas ----
+  const totalSalesCount = monthSales.length;
+  const totalUnits = monthSales.reduce(
+    (s, sale) => s + (sale.items || []).reduce((s2, i) => s2 + (Number(i.qty) || 0), 0),
+    0
+  );
+  const totalRevenue = calcTotalRevenue(monthSales, exchangeRate);
+  const totalDiscounts = monthSales.reduce((s, sale) => s + (sale.discountAmount || 0), 0);
+  const totalExtras = monthSales.reduce((s, sale) => s + (sale.extrasTotal || 0), 0);
+
+  // ---- Compras ----
+  const totalCostUSDT = monthPurchases.reduce((s, p) => s + (p.totalUSDT || 0), 0);
+  const totalPasero = monthPurchases.reduce((s, p) => s + (p.paseroCostARS || 0), 0);
+  const totalEnvio = monthPurchases.reduce((s, p) => s + (p.envioCostARS || 0), 0);
+  // Costo total ARS: usa totalCostARS si está poblado (datos nuevos), sino calcula
+  const totalCostARS = monthPurchases.reduce((s, p) => {
+    if (p.totalCostARS) return s + p.totalCostARS;
+    return s + Math.round((p.totalUSDT || 0) * safeRate(exchangeRate)) + (p.paseroCostARS || 0) + (p.envioCostARS || 0);
+  }, 0);
+
+  // ---- Gastos ----
+  const totalExpensesARS = calcTotalExpenses(monthExpenses);
+
+  // ---- Mermas (separadas) ----
+  const mermasComunesUSD = monthWithdrawals
+    .filter(w => w.withdrawType !== CONSUMO_PERSONAL_TYPE)
+    .reduce((s, w) => s + Number(w.costRealUSD || w.costEstimateUSD || 0), 0);
+  const consumoDiegoUSD = monthWithdrawals
+    .filter(w => w.withdrawType === CONSUMO_PERSONAL_TYPE && w.person === "Diego")
+    .reduce((s, w) => s + Number(w.costRealUSD || w.costEstimateUSD || 0), 0);
+  const consumoGustavoUSD = monthWithdrawals
+    .filter(w => w.withdrawType === CONSUMO_PERSONAL_TYPE && w.person === "Gustavo")
+    .reduce((s, w) => s + Number(w.costRealUSD || w.costEstimateUSD || 0), 0);
+
+  const rate = safeRate(exchangeRate);
+  const mermasComunesARS = Math.round(mermasComunesUSD * rate);
+  const consumoDiegoARS = Math.round(consumoDiegoUSD * rate);
+  const consumoGustavoARS = Math.round(consumoGustavoUSD * rate);
+  const consumoPersonalARS = consumoDiegoARS + consumoGustavoARS;
+  const totalConsumoUSD = mermasComunesUSD + consumoDiegoUSD + consumoGustavoUSD;
+  const totalConsumoARS = mermasComunesARS + consumoPersonalARS;
+  const totalConsumoUnits = monthWithdrawals.reduce((s, w) => s + (Number(w.qty) || 0), 0);
+
+  // ---- Ganancia (definiciones consistentes con Partners) ----
+  // OPERATIVO: lo que va al pozo común (50/50). NO incluye consumo personal.
+  const netProfitOperativo = totalRevenue - totalCostARS - totalExpensesARS - mermasComunesARS;
+  // TOTAL: ganancia neta del negocio descontando todo (incluyendo consumo personal).
+  const netProfitTotal = netProfitOperativo - consumoPersonalARS;
+  const marginPctOperativo = totalRevenue > 0
+    ? Math.round((netProfitOperativo / totalRevenue) * 100)
+    : 0;
+  const marginPctTotal = totalRevenue > 0
+    ? Math.round((netProfitTotal / totalRevenue) * 100)
+    : 0;
+
+  // ---- Stock (snapshot) ----
+  const stockTotal = (products || []).reduce((s, p) => s + (p.stock || 0), 0);
+  const stockValue = (products || []).reduce((s, p) => s + (p.stock || 0) * (p.priceUSD || 0), 0);
+
+  return {
+    // Identificación
+    month,
+
+    // Ventas
+    totalSalesCount,
+    totalUnits,
+    totalRevenue,
+    totalDiscounts,
+    totalExtras,
+
+    // Compras y costos
+    totalCostUSDT,
+    totalCostARS,
+    totalPasero,
+    totalEnvio,
+    purchasesCount: monthPurchases.length,
+
+    // Gastos operativos
+    totalExpensesARS,
+    expensesCount: monthExpenses.length,
+
+    // Mermas (separadas)
+    mermasComunesUSD,
+    mermasComunesARS,
+    consumoDiegoUSD,
+    consumoDiegoARS,
+    consumoGustavoUSD,
+    consumoGustavoARS,
+    consumoPersonalARS,
+    totalConsumoUSD,
+    totalConsumoARS,
+    totalConsumoUnits,
+
+    // Ganancia (dos vistas)
+    netProfitOperativo,    // lo que se reparte 50/50 — alineado con Partners.netProfitComun
+    netProfitTotal,        // ganancia descontando consumo personal
+    marginPctOperativo,
+    marginPctTotal,
+
+    // Compat: campos con nombres antiguos (Closures legacy)
+    netProfitARS: netProfitOperativo,  // ⚠️ antes restaba TODAS las mermas; ahora alineado
+    marginPct: marginPctOperativo,
+    totalConsumo: totalConsumoUnits,
+
+    // Stock snapshot
+    stockTotal,
+    stockValue,
+  };
+}

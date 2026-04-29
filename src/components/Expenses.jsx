@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { uid, formatMoney, formatDate } from "../helpers.js";
+import { isDateInClosedMonth } from "../calcs.js";
 import { useResponsive } from "../App.jsx";
 import { Modal, Card, Btn, Input, Select, Table, Badge, StatCard } from "./UI.jsx";
 import { EXPENSE_CATEGORIES } from "../constants.js";
@@ -20,7 +21,7 @@ const CAT_COLORS = {
 };
 
 // -- EXPENSES MEJORADO --
-export const Expenses = ({ expenses, setExpenses, currentUser, exchangeRate, logAudit }) => {
+export const Expenses = ({ expenses, setExpenses, currentUser, exchangeRate, logAudit, monthlyClosures = [] }) => {
   const { isMobile } = useResponsive();
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -50,6 +51,14 @@ export const Expenses = ({ expenses, setExpenses, currentUser, exchangeRate, log
   };
 
   const openEdit = (e) => {
+    // S14.5 — guard mes cerrado
+    if (isDateInClosedMonth(monthlyClosures, e.date)) {
+      const proceed = confirm(
+        `⚠️ Este gasto es de un mes YA CERRADO (${(e.date || "").slice(0, 7)}).\n\n` +
+        `Editarlo descuadrara el snapshot del cierre. ¿Continuar de todos modos?`
+      );
+      if (!proceed) return;
+    }
     setForm({
       category: e.category || "", description: e.description || "",
       amountARS: e.amountARS || "", amountUSD: e.amountUSD || "",

@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { uid, formatMoney, formatDate } from "../helpers.js";
+import { isDateInClosedMonth } from "../calcs.js";
 import { Modal, Card, Btn, Input, Select, Table, Badge, StatCard } from "./UI.jsx";
 import { BRAND_COLORS } from "../constants.js";
 import { useResponsive } from "../App.jsx";
@@ -62,7 +63,7 @@ const PurchaseStepper = ({ status }) => {
   );
 };
 
-export const Purchases = ({ purchases, setPurchases, products, setProducts, exchangeRate, logStock, currentUser, logAudit }) => {
+export const Purchases = ({ purchases, setPurchases, products, setProducts, exchangeRate, logStock, currentUser, logAudit, monthlyClosures = [] }) => {
   const { isMobile } = useResponsive();
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -133,6 +134,14 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
 
   const openNew = () => { setForm(emptyPurchaseForm()); setEditing(null); setModal(true); };
   const openEdit = (p) => {
+    // S14.5 — guard mes cerrado
+    if (isDateInClosedMonth(monthlyClosures, p.date)) {
+      const proceed = confirm(
+        `⚠️ Esta compra es de un mes YA CERRADO (${(p.date || "").slice(0, 7)}).\n\n` +
+        `Editarla descuadrara el snapshot del cierre. ¿Continuar de todos modos?`
+      );
+      if (!proceed) return;
+    }
     let groups = p.groups || [];
     if (groups.length === 0 && p.items) {
       const gmap = {};
@@ -198,6 +207,12 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
   const [confirmDelete, setConfirmDelete] = useState(null);
 
   const deletePurchase = (purchase) => {
+    if (confirmDelete !== purchase.id && isDateInClosedMonth(monthlyClosures, purchase.date)) {
+      const proceed = confirm(
+        `⚠️ Esta compra es de un mes YA CERRADO. Borrarla descuadrara el snapshot del cierre.\n\n¿Borrar de todos modos?`
+      );
+      if (!proceed) return;
+    }
     if (confirmDelete !== purchase.id) { setConfirmDelete(purchase.id); return; }
     if (purchase.status === "verificado") { (purchase.items || []).forEach(item => { setProducts(prev => prev.map(p => p.id === item.productId ? { ...p, stock: Math.max(0, (p.stock || 0) - Number(item.qty)) } : p)); }); }
     setPurchases(prev => prev.map(p => p.id === purchase.id ? { ...p, isDeleted: true, deletedAt: new Date().toISOString(), deletedBy: currentUser?.name || "?" } : p));

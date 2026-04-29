@@ -3,7 +3,7 @@ import { uid, formatMoney, formatDate } from "../helpers.js";
 import { useResponsive } from "../App.jsx";
 import { Modal, Card, Btn, Input, Select, Table, Badge, SearchBar, StatCard } from "./UI.jsx";
 import { CHANNELS, PAYMENT_METHODS, MP_ACCOUNTS, DISCOUNT_REASONS, BRAND_COLORS } from "../constants.js";
-import { reverseSaleBalanceDelta } from "../calcs.js";
+import { reverseSaleBalanceDelta, isDateInClosedMonth } from "../calcs.js";
 import { T, pickAvatarColor } from "../theme.js";
 import SaleCard from "./sales/SaleCard.jsx";
 
@@ -52,7 +52,7 @@ const emptyForm = () => ({
 
 export const Sales = ({
   sales, setSales, products, setProducts, logStock, exchangeRate, currentUser, logAudit,
-  clients, setClients, cashMovements, setCashMovements,
+  clients, setClients, cashMovements, setCashMovements, monthlyClosures = [],
 }) => {
   const { isMobile } = useResponsive();
   const [modal, setModal] = useState(false);
@@ -225,6 +225,19 @@ export const Sales = ({
   };
 
   const openEdit = (sale) => {
+    // S14.5 — Congelar closures: advertir si la venta cae en un mes ya cerrado.
+    // No bloqueamos duro porque puede haber casos legítimos de corrección, pero
+    // dejamos al usuario decidir conscientemente.
+    if (isDateInClosedMonth(monthlyClosures, sale.date)) {
+      const proceed = confirm(
+        `⚠️ Esta venta es de un mes YA CERRADO (${(sale.date || "").slice(0, 7)}).\n\n` +
+        `Si la editás, los números del cierre snapshot seguirán mostrando el dato VIEJO ` +
+        `mientras que Reports y Dashboard mostrarán el NUEVO. Vas a tener inconsistencia.\n\n` +
+        `Si necesitás corregir, considerá hacer un ajuste contable en el mes corriente.\n\n` +
+        `¿Editar de todos modos?`
+      );
+      if (!proceed) return;
+    }
     // Reconstruct form from saved sale
     const items = (sale.items || []).map(i => {
       const prod = products.find(p => p.id === i.productId);
@@ -488,6 +501,14 @@ export const Sales = ({
   // ---- DELETE ----
   const [confirmDeleteSale, setConfirmDeleteSale] = useState(null);
   const deleteSale = (sale) => {
+    // S14.5 — guard de mes cerrado en delete
+    if (isDateInClosedMonth(monthlyClosures, sale.date) && confirmDeleteSale !== sale.id) {
+      const proceed = confirm(
+        `⚠️ Esta venta es de un mes YA CERRADO. Borrarla descuadrara el snapshot del cierre.\n\n` +
+        `¿Borrar de todos modos?`
+      );
+      if (!proceed) return;
+    }
     if (confirmDeleteSale !== sale.id) { setConfirmDeleteSale(sale.id); setTimeout(() => setConfirmDeleteSale(null), 3000); return; }
     setConfirmDeleteSale(null);
     // Restore stock (only non-deleted products)

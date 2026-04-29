@@ -269,13 +269,23 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, c
     }, 0);
     const expensesARS = recentExpenses.reduce((s, e) => s + (e.amountARS || 0), 0);
     const purchasesARS = recentPurchases.reduce((s, p) => s + (p.totalUSDT || 0) * exchangeRate, 0);
-    const liquidityARS = initialARS + salesARS - expensesARS - purchasesARS;
+    const liquidityARSGross = initialARS + salesARS - expensesARS - purchasesARS;
+
+    // S14.7 — créditos pendientes a clientes son PASIVO real, no cash disponible.
+    // Si Diego le dio $5000 de vuelto-crédito a un cliente, esos $5000 los DEBE
+    // entregar (en próxima compra o devolución). La liquidez real es lo que tengo
+    // MENOS lo que les debo a clientes.
+    const clientCreditOwed = (clients || [])
+      .filter(c => !c.isDeleted && (c.balance || 0) > 0)
+      .reduce((s, c) => s + (c.balance || 0), 0);
+    const liquidityARS = liquidityARSGross - clientCreditOwed;
+
     const monthlyBurn = monthExpenses.reduce((s, e) => s + (e.amountARS || 0), 0);
     const dailyBurn = monthlyBurn / 30;
     const days = dailyBurn > 0 ? liquidityARS / dailyBurn : Infinity;
-    return { liquidityARS, dailyBurn, days };
+    return { liquidityARS, liquidityARSGross, clientCreditOwed, dailyBurn, days };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sales, expenses, purchases, monthExpenses, exchangeRate]);
+  }, [sales, expenses, purchases, monthExpenses, exchangeRate, clients]);
 
   // ---- top products ----
   const topProducts = useMemo(() => {
@@ -909,10 +919,15 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, c
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 12 }}>
                 <div>
-                  <div style={{ color: T.textMuted, marginBottom: 2 }}>Liquidez estim.</div>
+                  <div style={{ color: T.textMuted, marginBottom: 2 }}>Liquidez disponible</div>
                   <div style={{ color: T.text, fontWeight: 700, fontFamily: T.fontDisplay }}>
                     {formatMoney(runway.liquidityARS)}
                   </div>
+                  {runway.clientCreditOwed > 0 && (
+                    <div style={{ color: T.textMuted, fontSize: 10, marginTop: 2 }}>
+                      Bruto {formatMoney(runway.liquidityARSGross)} − {formatMoney(runway.clientCreditOwed)} debido a clientes
+                    </div>
+                  )}
                 </div>
                 <div>
                   <div style={{ color: T.textMuted, marginBottom: 2 }}>Burn diario</div>
