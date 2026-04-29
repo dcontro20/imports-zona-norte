@@ -305,7 +305,58 @@ A partir del 14/04/2026, GitHub está sincronizado y es la fuente de verdad del 
 
 ---
 
-## Estado del proyecto al 24/04/2026
+## Estado del proyecto al 29/04/2026
+
+### 📋 Plan maestro de mejoras S14–S22
+
+Después de S1–S13 + bug fixes (`aff00ae`), una auditoría 360° identificó
+**155+ mejoras** y **10 bugs** organizados en 9 secciones nuevas.
+
+**Plan completo:** `docs/PLAN_S14_S22.md` — fuente de verdad. Si una sesión
+pregunta "qué viene después" o "qué hay en SXX", abrir ese doc.
+
+| Sección | Tema | Estado |
+|---------|------|--------|
+| S14 | Bugs críticos + Precisión contable (16 ítems) | ✅ COMPLETA (2026-04-29) |
+| S15 | Inteligencia de Producto (16) | Pendiente |
+| S16 | Sistema de promos y pricing (19) | Pendiente |
+| S17 | Inteligencia de cliente avanzada (15) | Pendiente |
+| S18 | Marketing Hub interno — generadores output (16) | Pendiente |
+| S19 | Dashboards y métricas ejecutivas (15) | Pendiente |
+| S20 | Operativa diaria pulida (18) | Pendiente |
+| S21 | Robustez y confiabilidad (17) | Pendiente |
+| S22 | Power user y atajos (14) | Pendiente |
+
+**Importante:** este sistema es 100% INTERNO (Diego + Gustavo). La presencia
+pública (catálogo web, SEO, QR) se construye separadamente con Claude Design.
+Las mejoras S14–S22 son TODAS herramientas internas de gestión, inteligencia
+y generación de outputs para marketing manual (el sistema arma mensajes/listas;
+Diego los pega afuera).
+
+### ✅ S14 cerrada el 29/04/2026 (docs/SESSION_2026-04-29_S14.md)
+
+**16 mejoras + 10 bugs verificados en 6 commits** (`cc8c570` → `a367bb9`).
+
+Highlights:
+- **`calcMonthSummary` única función pura** (S14.4) — Closures, Reports y
+  Dashboard usan misma lógica. Cero drift entre módulos.
+- **Mermas separadas correctamente** (S14.6) — consumo personal NO infla
+  pérdida del mes; alineado con `calcPartnerBalances.netProfitComun`.
+- **Closures congelados** (S14.5) — confirm explícito al editar/borrar items
+  de mes cerrado en Sales/Purchases/Expenses.
+- **Crédito-vuelto como pasivo** (S14.7) — runway descuenta créditos pendientes
+  a clientes del cash disponible.
+- **Tax monotributo** (S14.9) — alerta 75/85/100% del techo anual configurable.
+- **Detección concurrent edits** (S14.2) — toast al usuario cuando Diego/Gustavo
+  escriben en simultáneo. Field-level writes (S14.3) DIFERIDO a sprint dedicado.
+- **Detector de inconsistencias** (S14.10) — botón en Closures que reporta drift
+  entre snapshots y dato vivo.
+- **Libro mayor CSV** (S14.16) — formato debe/haber para contador externo.
+- **Tests**: 75 → **96** (+21 financieros). Bloquea regresiones críticas.
+
+**Decisión arquitectónica clave:** S14.3 (field-level Firestore writes)
+documentada como deuda técnica. Refactor masivo del path de saveToFirestore.
+La detección informativa de S14.2 mitiga riesgo por ahora.
 
 ### 🏁 Big push 23-24 abril (docs/SESSION_2026-04-23_to_24_big_push.md)
 
