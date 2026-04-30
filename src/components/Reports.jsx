@@ -15,6 +15,7 @@ import {
 import {
   findPromoCandidates,
   buildLiquidationScenarios,
+  calcPriceSensitivityMatrix,
 } from "../pricing.js";
 import { Card, Badge, Table } from "./UI.jsx";
 import { BRAND_COLORS, WITHDRAW_TYPES, FAILURE_REASONS, FAILURE_REASON_CATEGORY, isGarantia } from "../constants.js";
@@ -712,6 +713,67 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
                 ))}
               </tbody>
             </table>
+          </div>
+        </Card>
+      )}
+
+      {/* S16.18 — Matriz de sensibilidad de precio */}
+      {priceElasticity.length > 0 && (
+        <Card style={{ marginBottom: 14 }}>
+          <h3 style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#37352F" }}>
+            🎚️ Matriz de sensibilidad — simulador "qué pasa si subo/bajo precio"
+          </h3>
+          <p style={{ margin: "0 0 14px", fontSize: 12, color: "#8C8A82" }}>
+            Top 5 productos con datos de elasticidad. Para cada uno, simula el impacto en revenue
+            y margen al cambiar el precio. Verde = revenue mejora; rojo = revenue empeora.
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {priceElasticity.slice(0, 5).map(e => {
+              const matrix = calcPriceSensitivityMatrix(e.product, e.elasticity);
+              return (
+                <div key={`${e.productId}-${e.date}`} style={{ background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 8, padding: 12 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#37352F", marginBottom: 8 }}>
+                    {e.product.brand} {e.product.model} {e.product.flavor && `· ${e.product.flavor}`}
+                    <span style={{ marginLeft: 10, fontSize: 11, color: "#8C8A82", fontWeight: 500 }}>
+                      Elasticidad medida: {e.elasticity}
+                    </span>
+                  </div>
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+                      <thead>
+                        <tr>
+                          {["Δ% precio", "Precio nuevo", "Δ% demanda", "Δ% revenue", "Margen nuevo"].map(h => (
+                            <th key={h} style={{ textAlign: "left", padding: "4px 8px", fontSize: 10, color: "#8C8A82", fontWeight: 700 }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {matrix.map((row, i) => {
+                          const isCurrent = row.pricePct === 0;
+                          return (
+                            <tr key={i} style={{ background: isCurrent ? "#EAECF9" : "transparent" }}>
+                              <td style={{ padding: "4px 8px", fontWeight: row.pricePct < 0 ? 700 : row.pricePct > 0 ? 700 : 400, color: row.pricePct < 0 ? "#0F7B6C" : row.pricePct > 0 ? "#E03E3E" : "#37352F" }}>
+                                {row.pricePct > 0 ? "+" : ""}{row.pricePct}%
+                              </td>
+                              <td style={{ padding: "4px 8px", color: "#37352F" }}>${row.newPrice}</td>
+                              <td style={{ padding: "4px 8px", color: row.demandPct > 0 ? "#0F7B6C" : "#E03E3E" }}>
+                                {row.demandPct > 0 ? "+" : ""}{row.demandPct}%
+                              </td>
+                              <td style={{ padding: "4px 8px", fontWeight: 700, color: row.revenuePct > 0 ? "#0F7B6C" : "#E03E3E" }}>
+                                {row.revenuePct > 0 ? "+" : ""}{row.revenuePct}%
+                              </td>
+                              <td style={{ padding: "4px 8px", color: row.newMarginPct < 20 ? "#E03E3E" : row.newMarginPct < 40 ? "#CB912F" : "#0F7B6C" }}>
+                                {row.newMarginPct}%
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </Card>
       )}

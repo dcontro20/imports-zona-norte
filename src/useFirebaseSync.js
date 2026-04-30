@@ -48,6 +48,7 @@ const DATA_KEYS = [
   { key: "partnerWithdrawals", default: [] },
   { key: "auditLog", default: [] },
   { key: "coupons", default: [] }, // S16.1 — sistema de cupones formal
+  { key: "bundles", default: [] }, // S16.10 — bundles/combos preconfigurados
 ];
 
 export function useFirebaseSync() {
@@ -66,6 +67,7 @@ export function useFirebaseSync() {
   const [exchangeRate, setExchangeRate] = useState(() => loadData("exchangeRate", 1415));
   const [auditLog, setAuditLog] = useState(() => loadData("auditLog", []));
   const [coupons, setCoupons] = useState(() => loadData("coupons", []));
+  const [bundles, setBundles] = useState(() => loadData("bundles", []));
 
   // ---- Sync flags ----
   // lastFirestoreData[key] = JSON serializado de la última data recibida de Firestore.
@@ -114,7 +116,7 @@ export function useFirebaseSync() {
     clients: setClients, expenses: setExpenses, withdrawals: setWithdrawals,
     cashMovements: setCashMovements, stockLog: setStockLog, priceLog: setPriceLog,
     monthlyClosures: setMonthlyClosures, partnerWithdrawals: setPartnerWithdrawals,
-    auditLog: setAuditLog, coupons: setCoupons,
+    auditLog: setAuditLog, coupons: setCoupons, bundles: setBundles,
   }).current;
 
   // ---- Subscribe to Firestore ONLY when authenticated ----
@@ -263,6 +265,7 @@ export function useFirebaseSync() {
   useEffect(() => smartSave("partnerWithdrawals", partnerWithdrawals), [partnerWithdrawals]); // eslint-disable-line
   useEffect(() => smartSave("auditLog", auditLog), [auditLog]); // eslint-disable-line
   useEffect(() => smartSave("coupons", coupons), [coupons]); // eslint-disable-line
+  useEffect(() => smartSave("bundles", bundles), [bundles]); // eslint-disable-line
   useEffect(() => smartSave("exchangeRate", exchangeRate), [exchangeRate]); // eslint-disable-line
 
   // ---- Auto-fetch dolar blue ----
@@ -304,6 +307,7 @@ export function useFirebaseSync() {
     monthlyClosures, setMonthlyClosures, partnerWithdrawals, setPartnerWithdrawals,
     exchangeRate, setExchangeRate, auditLog, setAuditLog,
     coupons, setCoupons,
+    bundles, setBundles,
     dataReady, syncStatus, fromFirestore,
     logStock, logPrice,
   };

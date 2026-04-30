@@ -32,12 +32,95 @@ const emptyCoupon = () => ({
   onlyFirstPurchase: false,
 });
 
-export const Coupons = ({ coupons = [], setCoupons, sales = [], clients = [], currentUser, logAudit }) => {
+// S16.10 — Bundle: grupo de productos con precio especial.
+// Schema:
+//   { id, name, items: [{ productId, qty }], specialPriceUSD, isDeleted }
+const emptyBundle = () => ({
+  name: "",
+  description: "",
+  items: [{ productId: "", qty: 1 }],
+  specialPriceUSD: "",
+});
+
+export const Coupons = ({
+  coupons = [], setCoupons,
+  bundles = [], setBundles,
+  products = [],
+  sales = [], clients = [], currentUser, logAudit,
+}) => {
   const { isMobile } = useResponsive();
+  const [tab, setTab] = useState("coupons"); // "coupons" | "bundles"
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyCoupon());
   const [confirmDel, setConfirmDel] = useState(null);
+  // Bundles
+  const [bundleModal, setBundleModal] = useState(false);
+  const [editingBundle, setEditingBundle] = useState(null);
+  const [bundleForm, setBundleForm] = useState(emptyBundle());
+  const [confirmDelBundle, setConfirmDelBundle] = useState(null);
+
+  const activeBundles = (bundles || []).filter(b => !b.isDeleted);
+
+  const openNewBundle = () => {
+    setBundleForm(emptyBundle());
+    setEditingBundle(null);
+    setBundleModal(true);
+  };
+  const openEditBundle = (b) => {
+    setBundleForm({
+      name: b.name || "",
+      description: b.description || "",
+      items: b.items && b.items.length > 0 ? b.items : [{ productId: "", qty: 1 }],
+      specialPriceUSD: b.specialPriceUSD || "",
+    });
+    setEditingBundle(b.id);
+    setBundleModal(true);
+  };
+  const saveBundle = () => {
+    if (!bundleForm.name.trim()) { alert("El nombre es obligatorio"); return; }
+    const validItems = bundleForm.items.filter(i => i.productId && Number(i.qty) > 0);
+    if (validItems.length < 2) { alert("Un bundle debe tener al menos 2 items"); return; }
+    if (!bundleForm.specialPriceUSD || Number(bundleForm.specialPriceUSD) <= 0) {
+      alert("Definí el precio especial del bundle"); return;
+    }
+    const data = {
+      name: bundleForm.name.trim(),
+      description: (bundleForm.description || "").trim(),
+      items: validItems.map(i => ({ productId: i.productId, qty: Number(i.qty) || 1 })),
+      specialPriceUSD: Number(bundleForm.specialPriceUSD),
+    };
+    if (editingBundle) {
+      setBundles(prev => prev.map(b => b.id === editingBundle ? { ...b, ...data } : b));
+      if (logAudit) logAudit("update", "bundle", editingBundle, `Editó bundle ${data.name}`);
+    } else {
+      const newId = uid();
+      setBundles(prev => [{
+        ...data, id: newId,
+        createdAt: new Date().toISOString(),
+        createdBy: currentUser?.name || "?",
+      }, ...prev]);
+      if (logAudit) logAudit("create", "bundle", newId, `Creó bundle ${data.name}`);
+    }
+    setBundleModal(false);
+    setEditingBundle(null);
+  };
+  const removeBundle = (id) => {
+    if (confirmDelBundle !== id) {
+      setConfirmDelBundle(id);
+      setTimeout(() => setConfirmDelBundle(null), 3000);
+      return;
+    }
+    setBundles(prev => prev.map(b => b.id === id ? { ...b, isDeleted: true, deletedAt: new Date().toISOString(), deletedBy: currentUser?.name || "?" } : b));
+    if (logAudit) logAudit("delete", "bundle", id, `Eliminó bundle`);
+    setConfirmDelBundle(null);
+  };
+  const calcBundleRetailPrice = (bundle) => {
+    return (bundle.items || []).reduce((sum, it) => {
+      const p = (products || []).find(x => x.id === it.productId);
+      return sum + (p ? Number(p.priceUSD) || 0 : 0) * (Number(it.qty) || 0);
+    }, 0);
+  };
 
   // S16.13 — Histórico/analytics
   const promoHistory = useMemo(
@@ -140,16 +223,103 @@ export const Coupons = ({ coupons = [], setCoupons, sales = [], clients = [], cu
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 18 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 14 }}>
         <div>
-          <h2 style={{ color: "#37352F", margin: 0, fontSize: 22, fontWeight: 800 }}>Cupones</h2>
+          <h2 style={{ color: "#37352F", margin: 0, fontSize: 22, fontWeight: 800 }}>Promociones</h2>
           <p style={{ color: "#8C8A82", margin: "4px 0 0", fontSize: 13 }}>
-            Sistema de descuentos formal · {activeCoupons.length} activos
+            Cupones ({activeCoupons.length}) y bundles ({activeBundles.length})
           </p>
         </div>
-        <Btn onClick={openNew}>+ Nuevo cupón</Btn>
+        {tab === "coupons" ? (
+          <Btn onClick={openNew}>+ Nuevo cupón</Btn>
+        ) : (
+          <Btn onClick={openNewBundle}>+ Nuevo bundle</Btn>
+        )}
       </div>
 
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 18, borderBottom: "1px solid #E8E7E3" }}>
+        {[
+          { key: "coupons", label: "🎟️ Cupones", count: activeCoupons.length },
+          { key: "bundles", label: "📦 Bundles", count: activeBundles.length },
+        ].map(t => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            style={{
+              padding: "10px 16px", border: "none", background: "transparent",
+              color: tab === t.key ? "#5E6AD2" : "#8C8A82",
+              fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+              borderBottom: tab === t.key ? "2px solid #5E6AD2" : "2px solid transparent",
+              marginBottom: -1,
+            }}
+          >
+            {t.label} ({t.count})
+          </button>
+        ))}
+      </div>
+
+      {tab === "bundles" && (
+        <>
+          {/* Lista de bundles */}
+          <Card style={{ marginBottom: 14 }}>
+            {activeBundles.length === 0 ? (
+              <div style={{ padding: 32, textAlign: "center", color: "#B1AFA7", fontSize: 13 }}>
+                Aún no creaste bundles. Click en "Nuevo bundle" para armar combos con precio especial.
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {activeBundles.map(b => {
+                  const retail = calcBundleRetailPrice(b);
+                  const savings = retail - (b.specialPriceUSD || 0);
+                  const savingsPct = retail > 0 ? Math.round((savings / retail) * 100) : 0;
+                  return (
+                    <div key={b.id} style={{ background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 8, padding: 14 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 8 }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: "#37352F" }}>{b.name}</div>
+                          {b.description && <div style={{ fontSize: 12, color: "#8C8A82", marginTop: 2 }}>{b.description}</div>}
+                        </div>
+                        <div style={{ display: "flex", gap: 6 }}>
+                          <button onClick={() => openEditBundle(b)} style={{ background: "none", border: "none", color: "#5E6AD2", cursor: "pointer", fontSize: 14 }}>✏️</button>
+                          {confirmDelBundle === b.id ? (
+                            <button onClick={() => removeBundle(b.id)} style={{ background: "#F7D7D6", border: "1px solid #E03E3E55", color: "#E03E3E", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>¿Borrar?</button>
+                          ) : (
+                            <button onClick={() => removeBundle(b.id)} style={{ background: "none", border: "none", color: "#E03E3E", cursor: "pointer", fontSize: 14 }}>🗑️</button>
+                          )}
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 10, paddingLeft: 8, borderLeft: "2px solid #E8E7E3" }}>
+                        {(b.items || []).map((it, i) => {
+                          const p = (products || []).find(x => x.id === it.productId);
+                          return (
+                            <div key={i} style={{ fontSize: 12, color: "#555247" }}>
+                              {it.qty}× {p ? `${p.brand} ${p.model}${p.flavor ? ` · ${p.flavor}` : ""}` : "(producto eliminado)"}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div style={{ display: "flex", gap: 14, fontSize: 12, alignItems: "center", flexWrap: "wrap" }}>
+                        <span style={{ color: "#8C8A82" }}>
+                          Suelto: <s style={{ color: "#B1AFA7" }}>{formatMoney(retail, "USD")}</s>
+                        </span>
+                        <span style={{ color: "#0F7B6C", fontWeight: 700, fontSize: 14 }}>
+                          Bundle: {formatMoney(b.specialPriceUSD, "USD")}
+                        </span>
+                        {savings > 0 && (
+                          <Badge color="#0F7B6C">Ahorro {savingsPct}%</Badge>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
+        </>
+      )}
+
+      {tab === "coupons" && (<>
       {/* Lista de cupones */}
       <Card style={{ marginBottom: 14 }}>
         {activeCoupons.length === 0 ? (
@@ -247,6 +417,7 @@ export const Coupons = ({ coupons = [], setCoupons, sales = [], clients = [], cu
           </div>
         </Card>
       )}
+      </>)}
 
       {/* Modal de cupón */}
       <Modal open={modal} onClose={() => { setModal(false); setEditing(null); }} title={editing ? "Editar cupón" : "Nuevo cupón"}>
@@ -343,6 +514,95 @@ export const Coupons = ({ coupons = [], setCoupons, sales = [], clients = [], cu
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 16 }}>
           <Btn variant="secondary" onClick={() => { setModal(false); setEditing(null); }}>Cancelar</Btn>
           <Btn onClick={save}>{editing ? "Guardar" : "Crear cupón"}</Btn>
+        </div>
+      </Modal>
+
+      {/* Modal de bundle */}
+      <Modal open={bundleModal} onClose={() => { setBundleModal(false); setEditingBundle(null); }} title={editingBundle ? "Editar bundle" : "Nuevo bundle"}>
+        <Input
+          label="Nombre del bundle"
+          value={bundleForm.name}
+          onChange={e => setBundleForm(f => ({ ...f, name: e.target.value }))}
+          placeholder="ej: Combo Verano · 5 sabores"
+        />
+        <Input
+          label="Descripción (opcional)"
+          value={bundleForm.description}
+          onChange={e => setBundleForm(f => ({ ...f, description: e.target.value }))}
+          placeholder="ej: Pack para clientes nuevos"
+        />
+        <div style={{ marginBottom: 10 }}>
+          <label style={{ display: "block", fontSize: 11, color: "#5E6AD2", marginBottom: 6, fontWeight: 700, textTransform: "uppercase" }}>Items del bundle</label>
+          {bundleForm.items.map((it, i) => (
+            <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center" }}>
+              <select
+                value={it.productId}
+                onChange={e => setBundleForm(f => ({
+                  ...f, items: f.items.map((x, j) => j === i ? { ...x, productId: e.target.value } : x),
+                }))}
+                style={{ flex: 1, padding: "6px 8px", borderRadius: 6, border: "1px solid #E8E7E3", fontSize: 12 }}
+              >
+                <option value="">Seleccionar producto…</option>
+                {(products || []).filter(p => !p.isDeleted).map(p => (
+                  <option key={p.id} value={p.id}>{p.brand} {p.model} · {p.flavor}</option>
+                ))}
+              </select>
+              <input
+                type="number"
+                min={1}
+                value={it.qty}
+                onChange={e => setBundleForm(f => ({
+                  ...f, items: f.items.map((x, j) => j === i ? { ...x, qty: e.target.value } : x),
+                }))}
+                style={{ width: 70, padding: "6px 8px", borderRadius: 6, border: "1px solid #E8E7E3", fontSize: 12, textAlign: "center" }}
+              />
+              <button
+                onClick={() => setBundleForm(f => ({ ...f, items: f.items.filter((_, j) => j !== i) }))}
+                style={{ background: "none", border: "none", color: "#E03E3E", cursor: "pointer", fontSize: 14 }}
+              >✕</button>
+            </div>
+          ))}
+          <button
+            onClick={() => setBundleForm(f => ({ ...f, items: [...f.items, { productId: "", qty: 1 }] }))}
+            style={{
+              padding: "5px 10px", borderRadius: 6, border: "1px dashed #5E6AD2",
+              background: "transparent", color: "#5E6AD2", fontSize: 11, fontWeight: 600,
+              cursor: "pointer", fontFamily: "inherit",
+            }}
+          >+ Agregar item</button>
+        </div>
+        <Input
+          label="Precio especial del bundle (USD)"
+          type="number" step="0.01"
+          value={bundleForm.specialPriceUSD}
+          onChange={e => setBundleForm(f => ({ ...f, specialPriceUSD: e.target.value }))}
+          placeholder="ej: 45"
+        />
+        {/* Preview ahorro */}
+        {bundleForm.specialPriceUSD > 0 && (() => {
+          const tempBundle = { items: bundleForm.items, specialPriceUSD: Number(bundleForm.specialPriceUSD) };
+          const retail = calcBundleRetailPrice(tempBundle);
+          const savings = retail - tempBundle.specialPriceUSD;
+          if (retail <= 0) return null;
+          const pct = Math.round((savings / retail) * 100);
+          return (
+            <div style={{
+              padding: "8px 12px", marginBottom: 12,
+              background: savings > 0 ? "#DDEDEA" : "#FEF6E4",
+              border: `1px solid ${savings > 0 ? "#0F7B6C33" : "#F2D59A"}`,
+              borderRadius: 8, fontSize: 12, fontWeight: 600,
+              color: savings > 0 ? "#0F7B6C" : "#A65800",
+            }}>
+              {savings > 0
+                ? `📊 Ahorro vs comprar suelto: ${formatMoney(savings, "USD")} (${pct}%)`
+                : `⚠️ Bundle más caro que comprar suelto`
+              }
+            </div>
+          );
+        })()}
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 16 }}>
+          <Btn variant="secondary" onClick={() => { setBundleModal(false); setEditingBundle(null); }}>Cancelar</Btn>
+          <Btn onClick={saveBundle}>{editingBundle ? "Guardar" : "Crear bundle"}</Btn>
         </div>
       </Modal>
     </div>

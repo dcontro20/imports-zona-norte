@@ -106,7 +106,7 @@ const NAV_ITEMS = [
   { key: "whatsapp", label: "WhatsApp", icon: "📲" },
   { key: "stocklog", label: "Historial", icon: "📋" },
   { key: "pricelog", label: "Precios", icon: "💲" },
-  { key: "coupons", label: "Cupones", icon: "🎟️", ownerOnly: true },
+  { key: "coupons", label: "Promos", icon: "🎟️", ownerOnly: true },
   { key: "partners", label: "Socios", icon: "🤝", ownerOnly: true },
   { key: "closures", label: "Cierres", icon: "📅", ownerOnly: true },
   { key: "export", label: "Exportar", icon: "📥", ownerOnly: true },
@@ -209,6 +209,7 @@ export default function App() {
     monthlyClosures, setMonthlyClosures, partnerWithdrawals, setPartnerWithdrawals,
     exchangeRate, setExchangeRate, auditLog,
     coupons, setCoupons,
+    bundles, setBundles,
     syncStatus, logStock, logPrice,
   } = sync;
 
@@ -382,7 +383,7 @@ export default function App() {
       case "reports": return <Reports products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} clients={clients} priceLog={priceLog} />;
       case "exchange": return <ExchangeMonitor exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} />;
       case "audit": return <AuditLog auditLog={auditLog} products={products} />;
-      case "coupons": return <Coupons coupons={coupons} setCoupons={setCoupons} sales={activeSales} clients={clients} currentUser={currentUser} logAudit={logAudit} />;
+      case "coupons": return <Coupons coupons={coupons} setCoupons={setCoupons} bundles={bundles} setBundles={setBundles} products={activeProducts} sales={activeSales} clients={clients} currentUser={currentUser} logAudit={logAudit} />;
       case "trash": return <Trash products={products} setProducts={setProducts} sales={sales} setSales={setSales} purchases={purchases} setPurchases={setPurchases} expenses={expenses} setExpenses={setExpenses} cashMovements={cashMovements} setCashMovements={setCashMovements} partnerWithdrawals={partnerWithdrawals} setPartnerWithdrawals={setPartnerWithdrawals} clients={clients} setClients={setClients} logAudit={logAudit} currentUser={currentUser} />;
       default: return null;
     }
