@@ -3,7 +3,7 @@ import { uid, formatMoney, formatDate, formatDateTime } from "../helpers.js";
 import { useResponsive } from "../App.jsx";
 import { Modal, Card, Btn, Input, Select, Table, Badge, StatCard } from "./UI.jsx";
 import { WITHDRAW_PERSONS, WITHDRAW_TYPES, BRAND_COLORS, FAILURE_REASONS, FAILURE_REASON_CATEGORY, isGarantia } from "../constants.js";
-import { validateWithdrawalForm } from "../calcs.js";
+import { validateWithdrawalForm, isDateInClosedMonth } from "../calcs.js";
 
 // -- MERMAS: Consumo propio, Garantías, Canjes --
 // Ventana de detección de duplicados (5 min)
@@ -12,7 +12,7 @@ const DUP_WINDOW_MS = 5 * 60 * 1000;
 const SUBMIT_DEBOUNCE_MS = 3000;
 
 // Helper: muestra fecha + hora corta. Si el ISO no tiene hora, solo fecha.
-export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts, sales, clients = [], logStock, exchangeRate, currentUser, logAudit }) => {
+export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts, sales, clients = [], monthlyClosures = [], logStock, exchangeRate, currentUser, logAudit }) => {
   const { isMobile } = useResponsive();
   const [modal, setModal] = useState(false);
   const [editingId, setEditingId] = useState(null); // id del withdrawal en edición, null = modo creación
@@ -200,6 +200,16 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
         console.warn(`[Withdrawals] editingId ${editingId} no encontrado`);
         return;
       }
+      // S14.5 — guard de mes cerrado al editar (consistente con Sales/Purchases/Expenses)
+      if (isDateInClosedMonth(monthlyClosures, original.date)) {
+        const proceed = confirm(
+          `⚠️ Esta merma es de un mes YA CERRADO (${(original.date || "").slice(0, 7)}).\n\n` +
+          `Si la editás, los números del snapshot del cierre van a quedar inconsistentes ` +
+          `con Reports/Dashboard.\n\n` +
+          `¿Continuar igual?`
+        );
+        if (!proceed) return;
+      }
       const priceUSD = Number(prod.priceUSD) || 0;
       const costUSDTunit = Number(prod.costUSDT) || 0;
       const costPerUnitUSD = costUSDTunit > 0 ? costUSDTunit : priceUSD * 0.55;
@@ -345,6 +355,14 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
 
   // ---- DELETE (soft) ----
   const deleteWithdrawal = (w) => {
+    // S14.5 — guard de mes cerrado al borrar (consistente con Sales/Purchases/Expenses)
+    if (isDateInClosedMonth(monthlyClosures, w.date) && confirmDel !== w.id) {
+      const proceed = confirm(
+        `⚠️ Esta merma es de un mes YA CERRADO. Borrarla descuadrará el snapshot del cierre.\n\n` +
+        `¿Borrar de todos modos?`
+      );
+      if (!proceed) return;
+    }
     if (confirmDel !== w.id) { setConfirmDel(w.id); setTimeout(() => setConfirmDel(null), 3000); return; }
     // Restore stock
     setProducts(prev => prev.map(p =>

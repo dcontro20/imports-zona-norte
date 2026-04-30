@@ -18,6 +18,7 @@ export function Trash({
   cashMovements = [], setCashMovements,
   partnerWithdrawals = [], setPartnerWithdrawals,
   clients = [], setClients,
+  coupons = [], setCoupons,
   logAudit, currentUser
 }) {
   const [activeTab, setActiveTab] = useState("all");
@@ -82,6 +83,7 @@ export function Trash({
     // 1) Revertir efectos colaterales por tipo (igual que restore() individual)
     const stockDeltas = {}; // productId -> qty a aplicar (negativo para sales, positivo para purchases)
     const balanceDeltas = {}; // clientId -> ARS a aplicar al balance
+    const couponDeltas = {}; // couponCode -> usedCount a re-incrementar
     items.forEach(item => {
       if (item._type === "sales") {
         // Re-decrementar stock (deleteSale lo había devuelto)
@@ -96,6 +98,10 @@ export function Trash({
           if (item.creditUsed > 0) delta -= item.creditUsed;
           if (item.changeAmount > 0 && item.changeMethod === "credit") delta += item.changeAmount;
           if (delta !== 0) balanceDeltas[item.clientId] = (balanceDeltas[item.clientId] || 0) + delta;
+        }
+        // S16.1 BUG-FIX — re-incrementar usedCount del cupón (deleteSale lo había decrementado)
+        if (item.couponCode) {
+          couponDeltas[item.couponCode] = (couponDeltas[item.couponCode] || 0) + 1;
         }
       } else if (item._type === "purchases" && item.status === "verificado") {
         // Re-sumar stock (deletePurchase lo había restado)
@@ -114,6 +120,12 @@ export function Trash({
     if (Object.keys(balanceDeltas).length > 0 && setClients) {
       setClients(prev => prev.map(c => balanceDeltas[c.id] !== undefined
         ? { ...c, balance: Math.round(((c.balance || 0) + balanceDeltas[c.id]) * 100) / 100 }
+        : c
+      ));
+    }
+    if (Object.keys(couponDeltas).length > 0 && setCoupons) {
+      setCoupons(prev => prev.map(c => couponDeltas[c.code] !== undefined
+        ? { ...c, usedCount: (c.usedCount || 0) + couponDeltas[c.code] }
         : c
       ));
     }
@@ -188,6 +200,12 @@ export function Trash({
           if (item.changeAmount > 0 && item.changeMethod === "credit") bal += item.changeAmount; // re-dar vuelto como crédito
           return { ...c, balance: Math.round(bal * 100) / 100 };
         }));
+      }
+      // S16.1 BUG-FIX — re-incrementar usedCount del cupón (deleteSale lo había decrementado)
+      if (item.couponCode && setCoupons) {
+        setCoupons(prev => prev.map(c =>
+          c.code === item.couponCode ? { ...c, usedCount: (c.usedCount || 0) + 1 } : c
+        ));
       }
     }
 

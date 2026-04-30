@@ -449,8 +449,27 @@ export const Sales = ({
     });
 
     if (editing) {
+      const originalSale = sales.find(s => s.id === editing);
       setSales(prev => prev.map(s => s.id === editing ? saleData : s));
       if (logAudit) logAudit("update", "sale", editing, `Editó venta: ${form.clientName || "sin nombre"} · ${formatMoney(total, form.currency)}`);
+      // S16.1 BUG-FIX — al editar, ajustar usedCount si cambió el cupón.
+      // Antes: solo se incrementaba en ventas nuevas → al cambiar cupón en edit
+      // los counts quedaban drift (ROI falso, posible bloqueo por maxUses fantasma).
+      if (setCoupons) {
+        const oldCode = originalSale?.couponCode || "";
+        const newCode = couponState.applied?.code || "";
+        if (oldCode !== newCode) {
+          setCoupons(prev => prev.map(c => {
+            if (oldCode && c.code === oldCode) {
+              return { ...c, usedCount: Math.max(0, (c.usedCount || 0) - 1) };
+            }
+            if (newCode && c.id === couponState.applied?.id) {
+              return { ...c, usedCount: (c.usedCount || 0) + 1 };
+            }
+            return c;
+          }));
+        }
+      }
     } else {
       // Log stock
       validItems.forEach(item => {
@@ -458,7 +477,7 @@ export const Sales = ({
       });
       setSales(prev => [saleData, ...prev]);
       if (logAudit) logAudit("create", "sale", saleId, `Creó venta: ${form.clientName || "sin nombre"} · ${formatMoney(total, form.currency)}`);
-      // S16.1 — incrementar usedCount del cupón solo en ventas nuevas (no edits)
+      // S16.1 — incrementar usedCount del cupón solo en ventas nuevas
       if (couponState.applied && setCoupons) {
         const couponId = couponState.applied.id;
         setCoupons(prev => prev.map(c => c.id === couponId ? { ...c, usedCount: (c.usedCount || 0) + 1 } : c));
@@ -584,6 +603,13 @@ export const Sales = ({
         if (sale.changeAmount > 0 && sale.changeMethod === "credit") bal -= sale.changeAmount; // undo credit given as change
         return { ...c, balance: Math.round(bal * 100) / 100 };
       }));
+    }
+    // S16.1 BUG-FIX — decrementar usedCount del cupón si la venta tenía uno.
+    // Trash.restore lo vuelve a incrementar simétricamente.
+    if (sale.couponCode && setCoupons) {
+      setCoupons(prev => prev.map(c =>
+        c.code === sale.couponCode ? { ...c, usedCount: Math.max(0, (c.usedCount || 0) - 1) } : c
+      ));
     }
     setSales(prev => prev.map(s => s.id === sale.id ? { ...s, isDeleted: true, deletedAt: new Date().toISOString(), deletedBy: currentUser?.name || "?" } : s));
     if (logAudit) logAudit("delete", "sale", sale.id, `Eliminó venta: ${sale.clientName || "sin nombre"} · ${formatMoney(sale.total, sale.currency)}`);
