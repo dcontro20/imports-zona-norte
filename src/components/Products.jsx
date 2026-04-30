@@ -101,7 +101,8 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [brandFilter, setBrandFilter] = useState("");
-  const [stockFilter, setStockFilter] = useState("all");
+  // Default "instock" — Diego prefiere ver primero lo disponible.
+  const [stockFilter, setStockFilter] = useState("instock");
   const [collapsed, setCollapsed] = useState({});
   const [quickEdit, setQuickEdit] = useState(false);
   const [quickStocks, setQuickStocks] = useState({});
@@ -283,7 +284,7 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
           }}>{b || "Todas"}</button>
         ))}
         <span style={{ color: "#E8E7E3", margin: "0 4px", flexShrink: 0 }}>|</span>
-        {[["all", "Todos"], ["instock", "Con stock"], ["nostock", "Sin stock"]].map(([val, label]) => (
+        {[["instock", "Con stock"], ["all", "Todos"], ["nostock", "Sin stock"]].map(([val, label]) => (
           <button key={val} onClick={() => setStockFilter(val)} style={{
             padding: "8px 14px", borderRadius: 20, minHeight: 36, flexShrink: 0,
             border: "1px solid " + (stockFilter === val ? "#00b894" : "#E8E7E3"),
