@@ -9,13 +9,89 @@ import {
   buildProductSalesStats,
   calcProductMargin,
   classifyVelocity,
-  findSlowMovers,
-  findDeadStock,
   classifyLifecycle,
 } from "../productIntelligence.js";
 import { calcMarginGuard } from "../pricing.js";
 
 // -- PRODUCTS / STOCK --
+
+// Sub-componente: badges informativos de un producto en la lista de stock.
+// Diego pidió quitar los badges "Lento" y "Sin movimiento" porque no eran
+// accionables en la lista y generaban ruido. Mantenemos solo: tags, expiry,
+// "🔥 Top mover", "🆕 Nuevo" y margen (cuando hay datos).
+const ProductBadges = ({ product, stat, margin, lc, expiryBadge, isMobile }) => {
+  const tags = product.tags || [];
+  const maxTags = isMobile ? 2 : 3;
+  const tagsToShow = tags.slice(0, maxTags);
+  const hasMoreTags = tags.length > maxTags;
+
+  const velocity = stat ? classifyVelocity(stat.velocity30d) : null;
+  // Solo mostramos hot/warm (Top mover, Activo). cold/frozen quedaron afuera.
+  const showVelocity = velocity && (velocity.tier === "hot" || velocity.tier === "warm") && stat?.totalQty > 0;
+  const showLifecycle = lc && lc.stage === "new";
+  const showMargin = margin && margin.marginPct !== null;
+
+  const hasAnyBadge = tagsToShow.length > 0 || expiryBadge || showVelocity || showLifecycle || showMargin;
+  if (!hasAnyBadge) return null;
+
+  const baseStyle = {
+    fontSize: isMobile ? 10 : 10,
+    padding: "2px 7px",
+    borderRadius: 10,
+    fontWeight: 600,
+    whiteSpace: "nowrap",
+    flexShrink: 0,
+    lineHeight: 1.4,
+  };
+
+  return (
+    <div style={{
+      display: "flex", flexWrap: "wrap", gap: 4,
+      alignItems: "center",
+      marginLeft: isMobile ? 0 : 8,
+    }}>
+      {tagsToShow.map(tag => (
+        <span key={tag} style={{
+          ...baseStyle,
+          background: `${T.primary}15`, color: T.primary,
+          border: `1px solid ${T.primary}33`,
+        }}>#{tag}</span>
+      ))}
+      {hasMoreTags && (
+        <span style={{ ...baseStyle, background: T.surface2, color: T.textMuted }}>
+          +{tags.length - maxTags}
+        </span>
+      )}
+      {expiryBadge && (
+        <span style={{
+          ...baseStyle,
+          background: expiryBadge.bg, color: expiryBadge.color,
+        }}>{expiryBadge.label}</span>
+      )}
+      {showLifecycle && (
+        <span style={{
+          ...baseStyle,
+          background: `${lc.color}18`, color: lc.color,
+          border: `1px solid ${lc.color}40`,
+        }}>{lc.label}</span>
+      )}
+      {showVelocity && (
+        <span style={{
+          ...baseStyle,
+          background: `${velocity.color}18`, color: velocity.color,
+          border: `1px solid ${velocity.color}40`,
+        }}>{velocity.label}</span>
+      )}
+      {showMargin && !isMobile && (
+        <span style={{
+          ...baseStyle,
+          background: margin.marginPct >= 50 ? T.greenBg : margin.marginPct >= 30 ? T.amberBg : T.redBg,
+          color: margin.marginPct >= 50 ? T.green : margin.marginPct >= 30 ? T.amber : T.red,
+        }}>{margin.marginPct}% margen</span>
+      )}
+    </div>
+  );
+};
 
 
 export const Products = ({ products, setProducts, priceLog = [], sales = [] }) => {
@@ -84,23 +160,13 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
     return Array.from(set).sort();
   }, [products]);
 
-  // S15 — Inteligencia de producto: stats por producto en una pasada, después
-  // derivados slow/dead/lifecycle desde el mismo map. useMemo para no recalcular
-  // en cada render si sales no cambió.
+  // S15 — Inteligencia de producto: stats por producto en una pasada.
+  // Los badges slow/dead se quitaron por feedback de UX (poco accionables
+  // en la lista). La info equivalente vive en Reports → ABC + Salud inventario.
   const productStats = useMemo(
     () => buildProductSalesStats(products, sales, exchangeRate),
     [products, sales, exchangeRate]
   );
-  const slowMoverIds = useMemo(() => {
-    const set = new Set();
-    findSlowMovers(productStats, products).forEach(s => set.add(s.productId));
-    return set;
-  }, [productStats, products]);
-  const deadStockIds = useMemo(() => {
-    const set = new Set();
-    findDeadStock(productStats).forEach(s => set.add(s.productId));
-    return set;
-  }, [productStats]);
 
   // Group by Brand → Model (sorted alphabetically)
   const grouped = useMemo(() => {
@@ -162,24 +228,38 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
           boxShadow: "0 6px 20px rgba(0,0,0,0.2)",
         }}>{toast}</div>
       )}
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
+      {/* Header — stack en mobile, row en desktop */}
+      <div style={{
+        display: "flex",
+        flexDirection: isMobile ? "column" : "row",
+        justifyContent: "space-between",
+        alignItems: isMobile ? "stretch" : "center",
+        marginBottom: 16, gap: isMobile ? 12 : 12, flexWrap: "wrap",
+      }}>
         <div>
-          <h2 style={{ color: "#37352F", margin: 0, fontSize: 22 }}>Stock</h2>
-          <span style={{ color: "#8C8A82", fontSize: 13 }}>{totalWithStock} productos con stock · {totalInStock} unidades totales · {filtered.length} productos listados</span>
+          <h2 style={{ color: "#37352F", margin: 0, fontSize: isMobile ? 20 : 22 }}>Stock</h2>
+          <span style={{ color: "#8C8A82", fontSize: isMobile ? 12 : 13 }}>
+            {totalWithStock} con stock · {totalInStock} uds · {filtered.length} listados
+          </span>
         </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <SearchBar value={search} onChange={setSearch} placeholder="Buscar producto..." />
+        <div style={{
+          display: "flex", gap: isMobile ? 8 : 10, alignItems: "center",
+          flexWrap: "wrap",
+          width: isMobile ? "100%" : "auto",
+        }}>
+          <div style={{ flex: isMobile ? "1 1 100%" : "0 0 auto", minWidth: isMobile ? 0 : 200 }}>
+            <SearchBar value={search} onChange={setSearch} placeholder="Buscar producto..." />
+          </div>
           {quickEdit ? (
             <>
-              <Btn variant="success" onClick={saveQuickEdit}>✅ Guardar todo</Btn>
-              <Btn variant="secondary" onClick={cancelQuickEdit}>Cancelar</Btn>
+              <Btn variant="success" onClick={saveQuickEdit} style={{ flex: isMobile ? 1 : "0 0 auto", minHeight: 44 }}>✅ Guardar todo</Btn>
+              <Btn variant="secondary" onClick={cancelQuickEdit} style={{ flex: isMobile ? 1 : "0 0 auto", minHeight: 44 }}>Cancelar</Btn>
             </>
           ) : (
             <>
-              <Btn variant="secondary" onClick={startQuickEdit} style={{ padding: "10px 14px" }}>⚡ Edición rápida</Btn>
-              <Btn variant="secondary" onClick={() => setBulkImportOpen(true)} style={{ padding: "10px 14px" }}>📥 Importar CSV</Btn>
-              <Btn onClick={openNew}>+ Nuevo</Btn>
+              <Btn variant="secondary" onClick={startQuickEdit} style={{ padding: isMobile ? "10px 12px" : "10px 14px", minHeight: 44, flex: isMobile ? 1 : "0 0 auto", fontSize: isMobile ? 12 : 13 }}>⚡ {isMobile ? "Rápida" : "Edición rápida"}</Btn>
+              <Btn variant="secondary" onClick={() => setBulkImportOpen(true)} style={{ padding: isMobile ? "10px 12px" : "10px 14px", minHeight: 44, flex: isMobile ? 1 : "0 0 auto", fontSize: isMobile ? 12 : 13 }}>📥 {isMobile ? "CSV" : "Importar CSV"}</Btn>
+              <Btn onClick={openNew} style={{ minHeight: 44, flex: isMobile ? 1 : "0 0 auto" }}>+ Nuevo</Btn>
             </>
           )}
         </div>
@@ -262,23 +342,45 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
 
         return (
           <div key={key} style={{ marginBottom: 12 }}>
-            {/* Group Header */}
+            {/* Group Header — stack en mobile para no overflowear */}
             <div onClick={() => toggleCollapse(key)} style={{
-              background: "#FAFAF9", borderRadius: isCollapsed ? 12 : "12px 12px 0 0", padding: "14px 18px",
+              background: "#FAFAF9", borderRadius: isCollapsed ? 12 : "12px 12px 0 0",
+              padding: isMobile ? "12px 14px" : "14px 18px",
               border: `1px solid ${brandColor}33`, borderBottom: isCollapsed ? `1px solid ${brandColor}33` : "none",
-              cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center",
-              transition: "all 0.2s"
+              cursor: "pointer", display: "flex",
+              flexDirection: isMobile ? "column" : "row",
+              justifyContent: "space-between",
+              alignItems: isMobile ? "stretch" : "center",
+              gap: isMobile ? 8 : 0,
+              transition: "all 0.2s",
+              minHeight: isMobile ? 56 : "auto",
             }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ fontSize: 18, transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)", transition: "transform 0.2s", display: "inline-block" }}>▼</span>
+              <div style={{
+                display: "flex", alignItems: "center", gap: isMobile ? 8 : 12,
+                flexWrap: "wrap", flex: 1, minWidth: 0,
+              }}>
+                <span style={{ fontSize: isMobile ? 14 : 18, transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)", transition: "transform 0.2s", display: "inline-block", flexShrink: 0 }}>▼</span>
                 <Badge color={brandColor}>{group.brand}</Badge>
-                <span style={{ color: "#37352F", fontWeight: 700, fontSize: 15 }}>{group.model}</span>
-                <span style={{ color: "#8C8A82", fontSize: 13 }}>· {puffsFormatted} puffs</span>
-                <span style={{ color: "#8C8A82", fontSize: 13 }}>· {formatMoney(group.priceUSD, "USD")} / {formatMoney(Math.round(group.priceUSD * exchangeRate))}</span>
+                <span style={{ color: "#37352F", fontWeight: 700, fontSize: isMobile ? 14 : 15 }}>{group.model}</span>
+                <span style={{ color: "#8C8A82", fontSize: isMobile ? 11 : 13 }}>· {puffsFormatted} puffs</span>
+                {!isMobile && (
+                  <span style={{ color: "#8C8A82", fontSize: 13 }}>· {formatMoney(group.priceUSD, "USD")} / {formatMoney(Math.round(group.priceUSD * exchangeRate))}</span>
+                )}
               </div>
-              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                <span style={{ color: "#8C8A82", fontSize: 12 }}>{groupInStock}/{group.items.length} sabores</span>
-                <Badge color={groupStock > 0 ? "#00b894" : "#E03E3E"}>{groupStock} uds</Badge>
+              <div style={{
+                display: "flex", gap: isMobile ? 8 : 10, alignItems: "center",
+                justifyContent: isMobile ? "space-between" : "flex-end",
+                flexShrink: 0,
+              }}>
+                {isMobile && (
+                  <span style={{ color: "#8C8A82", fontSize: 11 }}>
+                    {formatMoney(group.priceUSD, "USD")} · {formatMoney(Math.round(group.priceUSD * exchangeRate))}
+                  </span>
+                )}
+                <div style={{ display: "flex", gap: isMobile ? 6 : 10, alignItems: "center" }}>
+                  <span style={{ color: "#8C8A82", fontSize: isMobile ? 11 : 12 }}>{groupInStock}/{group.items.length} sabores</span>
+                  <Badge color={groupStock > 0 ? "#00b894" : "#E03E3E"}>{groupStock} uds</Badge>
+                </div>
               </div>
             </div>
 
@@ -288,18 +390,45 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
                 background: "#FAFAF9", borderRadius: "0 0 12px 12px", border: `1px solid ${brandColor}22`,
                 borderTop: `1px solid ${brandColor}15`, overflow: "hidden"
               }}>
-                {group.items.map((p, i) => (
+                {group.items.map((p, i) => {
+                  const stat = productStats[p.id];
+                  const lc = stat ? classifyLifecycle(stat) : null;
+                  const margin = calcProductMargin(p);
+                  // expiryDays solo si tiene fecha
+                  let expiryBadge = null;
+                  if (p.expiryDate) {
+                    const days = Math.floor((new Date(p.expiryDate) - new Date()) / 86400000);
+                    if (days <= 60) {
+                      expiryBadge = {
+                        days,
+                        label: days < 0 ? "Vencido" : `Vence ${days}d`,
+                        bg: days < 0 ? T.redBg : days < 30 ? T.amberBg : T.surface2,
+                        color: days < 0 ? T.red : days < 30 ? T.amber : T.textMuted,
+                      };
+                    }
+                  }
+                  return (
                   <div key={p.id}
                     onClick={() => { if (!quickEdit) openEdit(p); }}
                     style={{
-                    display: "flex", alignItems: "center", justifyContent: "space-between",
-                    padding: "10px 18px", borderBottom: i < group.items.length - 1 ? "1px solid #F0EFEB" : "none",
-                    opacity: p.stock === 0 ? 0.4 : 1, transition: "opacity 0.2s, background 0.15s",
+                    display: "flex",
+                    flexDirection: isMobile ? "column" : "row",
+                    alignItems: isMobile ? "stretch" : "center",
+                    justifyContent: "space-between",
+                    gap: isMobile ? 8 : 0,
+                    padding: isMobile ? "12px 14px" : "10px 18px",
+                    borderBottom: i < group.items.length - 1 ? "1px solid #F0EFEB" : "none",
+                    opacity: p.stock === 0 ? 0.55 : 1, transition: "opacity 0.2s, background 0.15s",
                     cursor: quickEdit ? "default" : "pointer",
+                    minHeight: isMobile ? 48 : "auto",
                   }}
-                  onMouseEnter={e => { if (!quickEdit) e.currentTarget.style.background = "#F5F5F2"; }}
-                  onMouseLeave={e => { if (!quickEdit) e.currentTarget.style.background = "transparent"; }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
+                  onMouseEnter={e => { if (!quickEdit && !isMobile) e.currentTarget.style.background = "#F5F5F2"; }}
+                  onMouseLeave={e => { if (!quickEdit && !isMobile) e.currentTarget.style.background = "transparent"; }}>
+                    {/* Top row: dot + foto + sabor */}
+                    <div style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      flex: 1, minWidth: 0,
+                    }}>
                       <span style={{
                         width: 8, height: 8, borderRadius: "50%",
                         background: p.stock > 0 ? "#00b894" : "#E03E3E",
@@ -312,127 +441,88 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
                           onClick={e => { e.stopPropagation(); setLightboxUrl(p.photoUrl); }}
                           onError={e => { e.target.style.display = "none"; }}
                           style={{
-                            width: 28, height: 28, borderRadius: 4, objectFit: "cover",
+                            width: isMobile ? 32 : 28, height: isMobile ? 32 : 28,
+                            borderRadius: 4, objectFit: "cover",
                             border: `1px solid ${T.borderSoft}`, cursor: "zoom-in", flexShrink: 0,
                           }}
                         />
                       )}
                       <span style={{
                         color: p.stock > 0 ? "#37352F" : "#B1AFA7",
-                        fontSize: 14,
+                        fontSize: isMobile ? 15 : 14,
+                        fontWeight: isMobile ? 600 : 400,
                         textDecoration: p.stock === 0 ? "line-through" : "none",
+                        flex: 1, minWidth: 0,
+                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                       }}>{p.flavor}</span>
-                      {(p.tags || []).slice(0, 3).map(tag => (
-                        <span key={tag} style={{
-                          fontSize: 10, padding: "2px 6px", borderRadius: 8,
-                          background: `${T.primary}15`, color: T.primary, fontWeight: 600,
-                          flexShrink: 0,
-                        }}>#{tag}</span>
-                      ))}
-                      {p.expiryDate && (() => {
-                        const days = Math.floor((new Date(p.expiryDate) - new Date()) / 86400000);
-                        if (days > 60) return null;
-                        return (
-                          <span style={{
-                            fontSize: 10, padding: "2px 6px", borderRadius: 8,
-                            background: days < 0 ? T.redBg : days < 30 ? T.amberBg : T.surface2,
-                            color: days < 0 ? T.red : days < 30 ? T.amber : T.textMuted,
-                            fontWeight: 600, flexShrink: 0,
-                          }}>
-                            {days < 0 ? `Vencido` : `Vence ${days}d`}
-                          </span>
-                        );
-                      })()}
-                      {/* S15 — badges de inteligencia de producto */}
-                      {(() => {
-                        const stat = productStats[p.id];
-                        if (!stat) return null;
-                        const v = classifyVelocity(stat.velocity30dPerDay);
-                        const lc = classifyLifecycle(stat);
-                        const isSlow = slowMoverIds.has(p.id);
-                        const isDead = deadStockIds.has(p.id);
-                        const margin = calcProductMargin(p);
-                        return (
-                          <>
-                            {/* Velocity tier (15.1) — solo mostrar si hay stock o ventas */}
-                            {(p.stock > 0 || stat.totalQty > 0) && (
-                              <span title={`Velocidad: ${stat.velocity30dPerDay.toFixed(2)} uds/día (últ. 30d)`}
-                                style={{
-                                  fontSize: 10, padding: "2px 6px", borderRadius: 8,
-                                  background: `${v.color}18`, color: v.color, fontWeight: 600,
-                                  flexShrink: 0, border: `1px solid ${v.color}33`,
-                                }}>
-                                {v.label}
-                              </span>
-                            )}
-                            {/* Slow mover (15.4) o Dead stock (15.6) — mutually exclusive, dead gana */}
-                            {isDead && (
-                              <span title={`Stock dormido: ${stat.daysSinceLastSale === Infinity ? "nunca vendido" : stat.daysSinceLastSale + " días sin venta"}`}
-                                style={{
-                                  fontSize: 10, padding: "2px 6px", borderRadius: 8,
-                                  background: T.redBg, color: T.red, fontWeight: 700,
-                                  flexShrink: 0, border: `1px solid ${T.redBorder}`,
-                                }}>💀 Dead</span>
-                            )}
-                            {!isDead && isSlow && (
-                              <span title={`${stat.daysSinceLastSale} días sin venta — considerar promo`}
-                                style={{
-                                  fontSize: 10, padding: "2px 6px", borderRadius: 8,
-                                  background: T.amberBg, color: T.amber, fontWeight: 600,
-                                  flexShrink: 0, border: `1px solid ${T.amberBorder}`,
-                                }}>🐌 Slow</span>
-                            )}
-                            {/* Lifecycle (15.9) — solo "new" para no inflar */}
-                            {lc.stage === "new" && (
-                              <span title="Producto creado hace <30 días"
-                                style={{
-                                  fontSize: 10, padding: "2px 6px", borderRadius: 8,
-                                  background: `${lc.color}18`, color: lc.color, fontWeight: 600,
-                                  flexShrink: 0, border: `1px solid ${lc.color}33`,
-                                }}>{lc.label}</span>
-                            )}
-                            {/* Margen (15.3) — visible si hay datos de costo */}
-                            {margin && margin.roiPct !== null && (
-                              <span title={`Margen ${margin.marginPct}% · ROI ${margin.roiPct}% · Cost ${formatMoney(p.costUSDT, "USDT")}`}
-                                style={{
-                                  fontSize: 10, padding: "2px 6px", borderRadius: 8,
-                                  background: margin.marginPct >= 50 ? T.greenBg : margin.marginPct >= 30 ? T.amberBg : T.redBg,
-                                  color: margin.marginPct >= 50 ? T.green : margin.marginPct >= 30 ? T.amber : T.red,
-                                  fontWeight: 600, flexShrink: 0,
-                                }}>
-                                m{margin.marginPct}%
-                              </span>
-                            )}
-                          </>
-                        );
-                      })()}
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      {quickEdit ? (
-                        <input type="number" min={0} value={quickStocks[p.id] ?? p.stock ?? 0}
-                          onChange={e => setQuickStocks(prev => ({ ...prev, [p.id]: Number(e.target.value) }))}
-                          style={{
-                            width: 60, padding: "4px 8px", background: (quickStocks[p.id] ?? p.stock) !== (p.stock || 0) ? "#EAECF9" : "#FAFAF9",
-                            border: `1px solid ${(quickStocks[p.id] ?? p.stock) !== (p.stock || 0) ? "#5E6AD2" : "#E8E7E3"}`,
-                            borderRadius: 6, color: "#37352F", fontSize: 14, fontWeight: 700, textAlign: "center"
-                          }} />
-                      ) : (
-                        <span style={{
-                          color: p.stock === 0 ? "#444" : p.stock <= 3 ? "#fdcb6e" : "#00b894",
-                          fontWeight: 700, fontSize: 15, minWidth: 30, textAlign: "right"
-                        }}>{p.stock}</span>
+                      {/* En desktop: badges inline a la derecha del sabor.
+                          En mobile: van abajo en su propia row con wrap. */}
+                      {!isMobile && (
+                        <ProductBadges
+                          product={p} stat={stat} margin={margin} lc={lc}
+                          expiryBadge={expiryBadge} isMobile={false}
+                        />
                       )}
-                      {!quickEdit && <>
-                        <button onClick={(e) => { e.stopPropagation(); openEdit(p); }}
-                          style={{ background: "none", border: "none", color: "#8C8A82", cursor: "pointer", fontSize: 14, padding: "2px 4px" }}
-                          title="Editar">✏️</button>
-                        <button onClick={(e) => { e.stopPropagation(); remove(p.id); }}
-                          style={{ background: "none", border: "none", color: "#8C8A82", cursor: "pointer", fontSize: 14, padding: "2px 4px" }}
-                          title="Eliminar">🗑️</button>
-                      </>}
+                    </div>
+                    {/* Mobile: badges en row separada con wrap */}
+                    {isMobile && (
+                      <ProductBadges
+                        product={p} stat={stat} margin={margin} lc={lc}
+                        expiryBadge={expiryBadge} isMobile={true}
+                      />
+                    )}
+                    <div style={{
+                      display: "flex", alignItems: "center", gap: isMobile ? 8 : 12,
+                      justifyContent: isMobile ? "space-between" : "flex-end",
+                      marginTop: isMobile ? 4 : 0,
+                    }}>
+                      {isMobile && !quickEdit && (
+                        <span style={{ fontSize: 11, color: "#8C8A82", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>Stock</span>
+                      )}
+                      <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 6 : 12 }}>
+                        {quickEdit ? (
+                          <input type="number" min={0} value={quickStocks[p.id] ?? p.stock ?? 0}
+                            onChange={e => setQuickStocks(prev => ({ ...prev, [p.id]: Number(e.target.value) }))}
+                            style={{
+                              width: isMobile ? 80 : 60,
+                              padding: isMobile ? "8px 10px" : "4px 8px",
+                              minHeight: isMobile ? 44 : "auto",
+                              background: (quickStocks[p.id] ?? p.stock) !== (p.stock || 0) ? "#EAECF9" : "#FAFAF9",
+                              border: `1px solid ${(quickStocks[p.id] ?? p.stock) !== (p.stock || 0) ? "#5E6AD2" : "#E8E7E3"}`,
+                              borderRadius: 6, color: "#37352F",
+                              fontSize: isMobile ? 16 : 14,
+                              fontWeight: 700, textAlign: "center",
+                            }} />
+                        ) : (
+                          <span style={{
+                            color: p.stock === 0 ? "#444" : p.stock <= 3 ? "#fdcb6e" : "#00b894",
+                            fontWeight: 700, fontSize: isMobile ? 17 : 15,
+                            minWidth: 30, textAlign: "right",
+                          }}>{p.stock}</span>
+                        )}
+                        {!quickEdit && <>
+                          <button onClick={(e) => { e.stopPropagation(); openEdit(p); }}
+                            style={{
+                              background: "none", border: "none", color: "#8C8A82", cursor: "pointer",
+                              fontSize: 16, padding: isMobile ? "8px 10px" : "2px 4px",
+                              minHeight: isMobile ? 44 : "auto", minWidth: isMobile ? 44 : "auto",
+                            }}
+                            title="Editar"
+                            aria-label={`Editar ${p.flavor}`}>✏️</button>
+                          <button onClick={(e) => { e.stopPropagation(); remove(p.id); }}
+                            style={{
+                              background: "none", border: "none", color: "#8C8A82", cursor: "pointer",
+                              fontSize: 16, padding: isMobile ? "8px 10px" : "2px 4px",
+                              minHeight: isMobile ? 44 : "auto", minWidth: isMobile ? 44 : "auto",
+                            }}
+                            title="Eliminar"
+                            aria-label={`Eliminar ${p.flavor}`}>🗑️</button>
+                        </>}
+                      </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -524,8 +614,10 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
                     }));
                   }}
                   style={{
-                    width: 100, padding: "6px 8px", borderRadius: 6,
-                    border: "1px solid #E8E7E3", fontSize: 13, fontFamily: "inherit",
+                    width: isMobile ? 110 : 100, padding: isMobile ? "8px 10px" : "6px 8px",
+                    borderRadius: 6, minHeight: isMobile ? 40 : "auto",
+                    border: "1px solid #E8E7E3",
+                    fontSize: isMobile ? 16 : 13, fontFamily: "inherit",
                     textAlign: "right",
                   }}
                 />
