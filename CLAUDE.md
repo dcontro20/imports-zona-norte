@@ -319,7 +319,7 @@ pregunta "qué viene después" o "qué hay en SXX", abrir ese doc.
 |---------|------|--------|
 | S14 | Bugs críticos + Precisión contable (16 ítems) | ✅ COMPLETA (2026-04-29) |
 | S15 | Inteligencia de Producto (16) | ✅ COMPLETA (2026-04-29, 15/16) |
-| S16 | Sistema de promos y pricing (19) | Pendiente |
+| S16 | Sistema de promos y pricing (19) | ✅ COMPLETA (2026-04-29, 14/19) |
 | S17 | Inteligencia de cliente avanzada (15) | Pendiente |
 | S18 | Marketing Hub interno — generadores output (16) | Pendiente |
 | S19 | Dashboards y métricas ejecutivas (15) | Pendiente |
@@ -384,6 +384,40 @@ Cambios estructurales:
 - Campo `costUSDT` añadido al form de Products + bulk import CSV
 - Nuevo `priceLog` pasado a Reports para análisis de elasticidad
 - App.jsx pasa `activeSales` a Products y Purchases para cálculos
+
+### ✅ S16 cerrada el 29/04/2026 — Sistema de promos y pricing
+
+**14/19 mejoras** (5 diferidos por bajo ROI vs alta complejidad).
+6 commits (`7148d45` → `3cc079f`).
+
+**Resultado:** sistema completo de promociones internas. Diego ahora puede:
+- Crear cupones formales con vigencia, max usos, audiencia (todos/VIP/cliente)
+- Definir bundles/combos con precio especial y ver ahorro automático
+- Aplicar pricing diferenciado por canal (WA, IG, ML, presencial, delivery)
+- Recibir descuentos sugeridos automáticamente por volumen, tier de cliente
+  y fidelización del mes (botón "Aplicar mejor descuento")
+- Ver candidatos a promo con razones (vencimiento, slow, dormido, última ud)
+- Simular 3 escenarios de liquidación por producto (conservador/moderado/agresivo)
+- Calcular descuento máximo manteniendo margen 30% o 20%
+- Recibir alertas Dashboard si hay productos con margen <15% (danger)
+- Ver matriz de sensibilidad: simulador "qué pasa si subo/bajo precio X%"
+- Trackear uso de cupones con ROI (revenue / descuento dado)
+
+Archivos nuevos:
+- `src/pricing.js` (17 funciones puras, 684 líneas)
+- `src/pricing.test.js` (49 tests, 183 totales en proyecto)
+- `src/components/Coupons.jsx` (Hub de Promos: cupones + bundles)
+
+Cambios estructurales:
+- Nueva colección Firestore `coupons` + `bundles`
+- Sales: campos couponCode, couponDiscount + integración usedCount auto
+- Clients: campo `tier` (regular/vip/diamante)
+- Products: schema priceByChannel para overrides por canal
+- Nav: nuevo item "🎟️ Promos" (ownerOnly)
+
+Diferidos: 16.12 (happy hour), 16.14 (recomendador, ya cubierto por
+elasticidad S15.12), 16.15 (cantidad-objetivo), 16.16 (A/B precios),
+16.17 (escasez automática). Documentados con justificación.
 
 ### 🏁 Big push 23-24 abril (docs/SESSION_2026-04-23_to_24_big_push.md)
 

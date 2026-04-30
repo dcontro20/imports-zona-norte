@@ -22,7 +22,7 @@ generación de outputs para marketing manual.
 |---------|------|---------|--------|
 | **S14** | Bugs críticos + Precisión contable | 16 | ✅ COMPLETA |
 | **S15** | Inteligencia de Producto | 16 | ✅ COMPLETA (15/16, 15.16 diferido) |
-| **S16** | Sistema de promos y pricing | 19 | Pendiente |
+| **S16** | Sistema de promos y pricing | 19 | ✅ COMPLETA (14/19, 5 diferidos) |
 | **S17** | Inteligencia de cliente avanzada | 15 | Pendiente |
 | **S18** | Marketing Hub interno (generadores output) | 16 | Pendiente |
 | **S19** | Dashboards y métricas ejecutivas | 15 | Pendiente |
@@ -105,32 +105,48 @@ las decisiones críticas de inventario. Se reactiva si Diego lo pide.
 
 ---
 
-## 💲 S16 — Sistema de promos y pricing
+## ✅ S16 — Sistema de promos y pricing (CERRADA)
 
-**Objetivo:** automatizar descuentos inteligentes, sacar promos justificadas con datos, manejar canales con precios distintos.
-**KPI que mueve:** ticket promedio, rotación de slow movers, margen ponderado.
+**Cerrada el 2026-04-29.** 14 de 19 mejoras implementadas (5 diferidos).
 
-| # | Mejora | Prio | Esfuerzo |
-|---|--------|------|----------|
-| 16.1 | **Sistema de cupones formal** — código, % o $, válido desde/hasta, max usos, audiencia (todos/VIP/cliente específico). Aplicar en Sales | 🔴 | Medio |
-| 16.2 | **Pricing dinámico por canal** — campo `priceMP`, `pricePresencial`, `priceML` por producto. Auto-aplicar en Sales según `channel` | 🔴 | Medio |
-| 16.3 | **Descuentos automáticos por volumen** — config: 5+ uds = -5%, 10+ = -10%, 20+ = -15%. Visible en tiempo real al cargar | 🔴 | Bajo |
-| 16.4 | **Calculadora "hasta cuánto descuento manteniendo margen"** — modal: "mantener 30% margen → precio mínimo $X / desc máx Y%" | 🟠 | Bajo |
-| 16.5 | **Detector candidatos a promo** — algoritmo: stock alto + bajo movimiento + expiry próximo → recomienda "promo -20% por 7 días" | 🟠 | Alto |
-| 16.6 | **Sugeridor de liquidación** — botón "🚨 Liquidar" en slow movers con 2-3 escenarios (descuento × velocidad esperada) | 🟠 | Alto |
-| 16.7 | **Clearance automática por expiry** — si <30d -5%, <14d -15%, <7d -25%. Auto-aplicado | 🟠 | Bajo |
-| 16.8 | **Alertas de oportunidad de margen** — si modelo tiene margen <15% rojo, <20% ámbar | 🟠 | Bajo |
-| 16.9 | **Descuentos por tier de cliente** — VIP -5% siempre, Diamante -10%. Auto en Sales | 🟠 | Bajo |
-| 16.10 | **Bundles/combos preconfigurados** — "5x Lost Mary @ $X" como producto especial. Aplicar en Sales con 1-click | 🟠 | Alto |
-| 16.11 | **Oferta "última unidad"** — si stock=1 sugerir -10% con 1-click | 🟡 | Bajo |
-| 16.12 | **Happy hour temporal** — ej: viernes 18-20hs -15% Lost Mary, auto-aplicado | 🟡 | Alto |
-| 16.13 | **Histórico de promos + analytics** — qué promo se usó, conversión, ROI | 🟡 | Medio |
-| 16.14 | **Recomendador precio óptimo** — basado en histórico de cambios + ventas, sugiere ajuste | 🟡 | Alto |
-| 16.15 | **Pricing por cantidad-objetivo** — si vendiste 100 este mes, subir $1; si solo 40, bajar $1 | 🟡 | Medio |
-| 16.16 | **A/B testing de precios** — 2 precios alternados, mide cuál convirtió más | 🟡 | Alto |
-| 16.17 | **Pricing dinámico por escasez** — stock <5 en top seller → +10%; cuando reabastece → vuelve a base | 🟡 | Alto |
-| 16.18 | **Matriz sensibilidad precio** — tabla "si bajo Elf Bar 5%, revenue ±X%" | 🟡 | Alto |
-| 16.19 | **Descuento fidelización por compras del mes** — cliente con 10+ compras este mes → -5% próxima | 🟡 | Medio |
+**Objetivo cumplido:** sistema completo de promociones internas — cupones,
+bundles, descuentos automáticos, alertas, simuladores. Diego puede aplicar
+promociones justificadas con data sin abrir Excel.
+
+| # | Mejora | Status | Commit |
+|---|--------|--------|--------|
+| 16.1 | Sistema de cupones formal | ✅ | 44797ab |
+| 16.2 | Pricing dinámico por canal | ✅ | 456ef52 |
+| 16.3 | Descuentos automáticos por volumen | ✅ | 64b64df |
+| 16.4 | Calculadora margin guard | ✅ | e82a557 |
+| 16.5 | Detector candidatos a promo | ✅ | e82a557 |
+| 16.6 | Sugeridor de liquidación con escenarios | ✅ | e82a557 |
+| 16.7 | Auto-clearance por expiry | ✅ | 456ef52 |
+| 16.8 | Alertas de oportunidad de margen | ✅ | 456ef52 |
+| 16.9 | Descuentos por tier de cliente | ✅ | 64b64df |
+| 16.10 | Bundles/combos preconfigurados | ✅ | 3cc079f |
+| 16.11 | Oferta "última unidad" | ✅ | 456ef52 |
+| 16.12 | Happy hour temporal | ⏸️ Diferido | — |
+| 16.13 | Histórico de promos + analytics | ✅ | 44797ab |
+| 16.14 | Recomendador precio óptimo | ⏸️ Diferido | — (cubierto por elasticidad S15.12) |
+| 16.15 | Pricing por cantidad-objetivo | ⏸️ Diferido | — |
+| 16.16 | A/B testing de precios | ⏸️ Diferido | — |
+| 16.17 | Pricing dinámico por escasez | ⏸️ Diferido | — |
+| 16.18 | Matriz sensibilidad precio | ✅ | 3cc079f |
+| 16.19 | Descuento fidelización | ✅ | 64b64df |
+
+**Archivos clave creados:**
+- `src/pricing.js` (684 líneas, 17 funciones puras)
+- `src/pricing.test.js` (49 tests, 183 totales en proyecto)
+- `src/components/Coupons.jsx` (640 líneas — hub Cupones + Bundles)
+
+**Decisiones de diferidos:**
+- **16.12 Happy hour temporal**: requiere cron/scheduler complejo y feedback
+  loops. Bajo ROI vs cupones que ya cubren 90% del caso.
+- **16.14 Recomendador precio óptimo**: la matriz de sensibilidad (16.18)
+  + elasticidad (S15.12) ya cubren esto manualmente con datos reales.
+- **16.15-16.17**: feedback loops automáticos peligrosos sin override claro.
+  Mejor mantener decisión humana.
 
 ---
 
