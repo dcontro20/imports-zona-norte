@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { Card, StatCard, Badge, Btn } from "./UI";
+import { Btn } from "./UI";
+import { useResponsive } from "../App.jsx";
 
 const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutos
 
@@ -10,50 +11,91 @@ const API_SOURCES = {
   cripto: "https://criptoya.com/api/usdt/ars",
 };
 
+// Exchanges preferidos de Diego — los que más usa o le interesan.
+// El order acá es el order en el que se muestran las cards.
+const PREFERRED_EXCHANGES = [
+  { key: "lemoncash", label: "Lemon", color: "#0064FF", emoji: "🍋" },
+  { key: "binance", label: "Binance", color: "#F0B90B", emoji: "🟡" },
+  { key: "ripio", label: "Ripio", color: "#7C3AED", emoji: "🟣" },
+  { key: "buenbit", label: "Buenbit", color: "#5E6AD2", emoji: "🟦" },
+  { key: "belo", label: "Belo", color: "#22C55E", emoji: "🟢" },
+  { key: "fiwind", label: "Fiwind", color: "#0EA5E9", emoji: "💨" },
+];
+
 const formatARS = (n) =>
   `$${Number(n || 0).toLocaleString("es-AR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
 const Arrow = ({ dir }) => (
   <span style={{ fontSize: 14, marginRight: 4 }}>
-    {dir === "up" ? "\u2191" : dir === "down" ? "\u2193" : "\u2192"}
+    {dir === "up" ? "↑" : dir === "down" ? "↓" : "→"}
   </span>
 );
 
-const SourceCard = ({ title, subtitle, buy, sell, spread, prev, color, updated }) => {
+const SourceCard = ({ title, subtitle, buy, sell, spread, prev, color, updated, isMobile }) => {
   const diff = prev ? sell - prev : 0;
   const dir = diff > 0 ? "up" : diff < 0 ? "down" : "same";
   const diffColor = dir === "up" ? "#E03E3E" : dir === "down" ? "#0F7B6C" : "#B1AFA7";
 
   return (
     <div style={{
-      background: "#FFFFFF", borderRadius: 14, padding: "18px 20px",
-      border: "1px solid #E8E7E3", flex: "1 1 220px", minWidth: 220,
+      background: "#FFFFFF", borderRadius: 14,
+      padding: isMobile ? "16px 16px" : "18px 20px",
+      border: "1px solid #E8E7E3",
+      flex: "1 1 220px",
+      minWidth: isMobile ? 0 : 220,
+      width: isMobile ? "100%" : "auto",
     }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <div>
-          <div style={{ fontWeight: 700, fontSize: 15, color: "#37352F" }}>{title}</div>
-          {subtitle && <div style={{ fontSize: 11, color: "#B1AFA7", marginTop: 1 }}>{subtitle}</div>}
+      <div style={{
+        display: "flex", justifyContent: "space-between", alignItems: "flex-start",
+        gap: 8, marginBottom: 12,
+      }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 700, fontSize: isMobile ? 14 : 15, color: "#37352F" }}>{title}</div>
+          {subtitle && (
+            <div style={{
+              fontSize: 11, color: "#B1AFA7", marginTop: 2,
+              overflow: "hidden", textOverflow: "ellipsis",
+              whiteSpace: isMobile ? "normal" : "nowrap",
+              lineHeight: 1.3,
+            }}>{subtitle}</div>
+          )}
         </div>
         {prev > 0 && (
-          <div style={{ display: "flex", alignItems: "center", color: diffColor, fontSize: 13, fontWeight: 600 }}>
+          <div style={{
+            display: "flex", alignItems: "center", color: diffColor,
+            fontSize: isMobile ? 11 : 13, fontWeight: 600,
+            flexShrink: 0, whiteSpace: "nowrap",
+          }}>
             <Arrow dir={dir} />
-            {diff !== 0 ? `${diff > 0 ? "+" : ""}${formatARS(diff)}` : "Sin cambio"}
+            {diff !== 0 ? `${diff > 0 ? "+" : ""}${formatARS(diff)}` : "—"}
           </div>
         )}
       </div>
-      <div style={{ display: "flex", gap: 16, marginBottom: 10 }}>
-        <div>
+      <div style={{
+        display: "flex", gap: isMobile ? 10 : 16, marginBottom: 8,
+        flexWrap: "wrap",
+      }}>
+        <div style={{ flex: "1 1 70px" }}>
           <div style={{ fontSize: 11, color: "#B1AFA7", fontWeight: 600, textTransform: "uppercase", marginBottom: 2 }}>Compra</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: color || "#37352F" }}>{formatARS(buy)}</div>
+          <div style={{
+            fontSize: isMobile ? 18 : 22, fontWeight: 800,
+            color: color || "#37352F", lineHeight: 1.1,
+          }}>{formatARS(buy)}</div>
         </div>
-        <div>
+        <div style={{ flex: "1 1 70px" }}>
           <div style={{ fontSize: 11, color: "#B1AFA7", fontWeight: 600, textTransform: "uppercase", marginBottom: 2 }}>Venta</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: color || "#37352F" }}>{formatARS(sell)}</div>
+          <div style={{
+            fontSize: isMobile ? 18 : 22, fontWeight: 800,
+            color: color || "#37352F", lineHeight: 1.1,
+          }}>{formatARS(sell)}</div>
         </div>
         {spread > 0 && (
-          <div>
+          <div style={{ flex: "1 1 60px" }}>
             <div style={{ fontSize: 11, color: "#B1AFA7", fontWeight: 600, textTransform: "uppercase", marginBottom: 2 }}>Spread</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: "#CB912F" }}>{spread.toFixed(1)}%</div>
+            <div style={{
+              fontSize: isMobile ? 18 : 22, fontWeight: 800,
+              color: "#CB912F", lineHeight: 1.1,
+            }}>{spread.toFixed(1)}%</div>
           </div>
         )}
       </div>
@@ -66,13 +108,83 @@ const SourceCard = ({ title, subtitle, buy, sell, spread, prev, color, updated }
   );
 };
 
+// Card para exchange preferido (Lemon, Binance, etc.)
+// Más compacta que SourceCard porque mostramos varias en grilla.
+const ExchangeCard = ({ label, emoji, color, ask, bid, isBest, isMobile, blueRef }) => {
+  const spread = ask > 0 ? ((bid - ask) / ask * 100) : 0;
+  // brecha vs blue: positivo = USDT más caro que blue, negativo = USDT más barato
+  const gapVsBlue = blueRef && ask > 0 ? ((ask - blueRef) / blueRef * 100) : null;
+
+  return (
+    <div style={{
+      background: "#FFFFFF", borderRadius: 12,
+      padding: isMobile ? "12px 14px" : "14px 16px",
+      border: `1px solid ${isBest ? color : "#E8E7E3"}`,
+      borderLeft: `3px solid ${color}`,
+      position: "relative",
+      minWidth: 0,
+    }}>
+      {isBest && (
+        <span style={{
+          position: "absolute", top: 8, right: 8,
+          background: "#0F7B6C", color: "#fff",
+          borderRadius: 6, padding: "2px 6px",
+          fontSize: 9, fontWeight: 800, letterSpacing: 0.5,
+        }}>MEJOR</span>
+      )}
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+        <span style={{ fontSize: 14 }}>{emoji}</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: "#37352F" }}>{label}</span>
+      </div>
+      {ask > 0 ? (
+        <>
+          <div style={{ display: "flex", gap: 12, marginBottom: 6 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 10, color: "#B1AFA7", fontWeight: 600, textTransform: "uppercase" }}>Compra</div>
+              <div style={{
+                fontSize: isMobile ? 15 : 17, fontWeight: 800,
+                color, lineHeight: 1.2,
+              }}>{formatARS(ask)}</div>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 10, color: "#B1AFA7", fontWeight: 600, textTransform: "uppercase" }}>Venta</div>
+              <div style={{
+                fontSize: isMobile ? 15 : 17, fontWeight: 800,
+                color: "#37352F", lineHeight: 1.2,
+              }}>{formatARS(bid)}</div>
+            </div>
+          </div>
+          <div style={{
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+            fontSize: 10, color: "#8C8A82",
+          }}>
+            <span>Spread {Math.abs(spread).toFixed(1)}%</span>
+            {gapVsBlue !== null && (
+              <span style={{
+                color: Math.abs(gapVsBlue) < 1 ? "#0F7B6C" : "#CB912F",
+                fontWeight: 600,
+              }}>
+                vs Blue {gapVsBlue > 0 ? "+" : ""}{gapVsBlue.toFixed(1)}%
+              </span>
+            )}
+          </div>
+        </>
+      ) : (
+        <div style={{ fontSize: 11, color: "#B1AFA7", padding: "6px 0" }}>Sin datos</div>
+      )}
+    </div>
+  );
+};
+
 export const ExchangeMonitor = ({ exchangeRate, setExchangeRate }) => {
+  const { isMobile } = useResponsive();
   const [data, setData] = useState({ blue: null, oficial: null, mep: null, cripto: null });
   const [prev, setPrev] = useState({ blue: 0, oficial: 0, mep: 0, cripto: 0 });
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState(null);
   const [error, setError] = useState(null);
   const [history, setHistory] = useState([]);
+  const [showAllExchanges, setShowAllExchanges] = useState(false);
 
   const fetchRates = useCallback(async () => {
     setLoading(true);
@@ -98,20 +210,24 @@ export const ExchangeMonitor = ({ exchangeRate, setExchangeRate }) => {
       }
       if (criptoRes.status === "fulfilled") {
         const c = criptoRes.value;
-        const exchanges = Object.entries(c).filter(([k]) => !["time", "ask", "bid", "totalAsk", "totalBid"].includes(k));
+        const skipKeys = ["time", "ask", "bid", "totalAsk", "totalBid"];
+        const exchanges = Object.entries(c).filter(([k]) => !skipKeys.includes(k));
         let bestBuy = Infinity, bestSell = 0;
         const exchangeList = [];
+        const exchangeMap = {};
         for (const [name, vals] of exchanges) {
           if (vals && typeof vals === "object" && vals.totalAsk && vals.totalBid) {
             if (vals.totalAsk < bestBuy) bestBuy = vals.totalAsk;
             if (vals.totalBid > bestSell) bestSell = vals.totalBid;
             exchangeList.push({ name, ask: vals.totalAsk, bid: vals.totalBid });
+            exchangeMap[name] = { ask: vals.totalAsk, bid: vals.totalBid };
           }
         }
         newData.cripto = {
           buy: bestBuy === Infinity ? 0 : bestBuy,
           sell: bestSell,
-          exchanges: exchangeList.sort((a, b) => a.ask - b.ask).slice(0, 6),
+          exchanges: exchangeList.sort((a, b) => a.ask - b.ask),
+          exchangeMap,
         };
       }
 
@@ -149,19 +265,30 @@ export const ExchangeMonitor = ({ exchangeRate, setExchangeRate }) => {
   const gapCriptoBlue = data.cripto && data.blue ? ((data.cripto.buy - data.blue.sell) / data.blue.sell * 100) : 0;
   const gapMepBlue = data.mep && data.blue ? ((data.blue.sell - data.mep.sell) / data.mep.sell * 100) : 0;
 
+  // Identificar cuál exchange tiene el mejor ask (para destacar "MEJOR")
+  const exchangesSorted = data.cripto?.exchanges || [];
+  const bestExchangeName = exchangesSorted[0]?.name;
+
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+      {/* Header — stack en mobile */}
+      <div style={{
+        display: "flex",
+        flexDirection: isMobile ? "column" : "row",
+        justifyContent: "space-between",
+        alignItems: isMobile ? "stretch" : "center",
+        gap: 12, marginBottom: 18,
+      }}>
         <div>
-          <h2 style={{ fontSize: 22, fontWeight: 800, color: "#37352F", margin: 0 }}>
+          <h2 style={{ fontSize: isMobile ? 20 : 22, fontWeight: 800, color: "#37352F", margin: 0 }}>
             Monitor de Cotizaciones
           </h2>
-          <p style={{ fontSize: 13, color: "#8C8A82", margin: "4px 0 0" }}>
-            {"Actualizaci\u00f3n autom\u00e1tica cada 5 minutos \u2014 Fuentes: DolarAPI + CriptoYa"}
+          <p style={{ fontSize: isMobile ? 12 : 13, color: "#8C8A82", margin: "4px 0 0" }}>
+            {"Actualización automática cada 5 minutos — DolarAPI + CriptoYa"}
           </p>
         </div>
-        <Btn onClick={fetchRates} disabled={loading}>
-          {loading ? "Actualizando..." : "\u21BB Actualizar ahora"}
+        <Btn onClick={fetchRates} disabled={loading} style={{ minHeight: 44, alignSelf: isMobile ? "stretch" : "auto" }}>
+          {loading ? "Actualizando..." : "↻ Actualizar ahora"}
         </Btn>
       </div>
 
@@ -171,160 +298,262 @@ export const ExchangeMonitor = ({ exchangeRate, setExchangeRate }) => {
         </div>
       )}
 
-      {/* Cards principales */}
-      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 20 }}>
+      {/* Cards principales — Blue, Oficial, MEP, USDT mejor precio */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fit, minmax(240px, 1fr))",
+        gap: isMobile ? 12 : 14,
+        marginBottom: 20,
+      }}>
         {data.blue && (
           <SourceCard
-            title={"D\u00f3lar Blue"}
-            subtitle="Mercado informal - Fuente: DolarAPI"
+            title={"Dólar Blue"}
+            subtitle="Mercado informal · DolarAPI"
             buy={data.blue.buy}
             sell={data.blue.sell}
             spread={blueSpread}
             prev={prev.blue}
             color="#5E6AD2"
             updated={lastUpdate}
+            isMobile={isMobile}
           />
         )}
         {data.oficial && (
           <SourceCard
-            title={"D\u00f3lar Oficial"}
-            subtitle={"Banco Naci\u00f3n - Tipo de cambio minorista"}
+            title={"Dólar Oficial"}
+            subtitle={"Banco Nación · minorista"}
             buy={data.oficial.buy}
             sell={data.oficial.sell}
             spread={0}
             prev={prev.oficial}
             color="#0F7B6C"
             updated={lastUpdate}
+            isMobile={isMobile}
           />
         )}
         {data.mep && (
           <SourceCard
-            title={"D\u00f3lar MEP / Bolsa"}
-            subtitle={"Mercado burs\u00e1til - Operaci\u00f3n con bonos"}
+            title={"Dólar MEP / Bolsa"}
+            subtitle={"Mercado bursátil · bonos"}
             buy={data.mep.buy}
             sell={data.mep.sell}
             spread={data.mep.buy > 0 ? ((data.mep.sell - data.mep.buy) / data.mep.buy * 100) : 0}
             prev={prev.mep}
             color="#2383E2"
             updated={lastUpdate}
+            isMobile={isMobile}
           />
         )}
         {data.cripto && (
           <SourceCard
             title="USDT Mejor Precio"
-            subtitle={"Mejor cotizaci\u00f3n entre exchanges - CriptoYa"}
+            subtitle={"Mejor cotización entre exchanges"}
             buy={data.cripto.buy}
             sell={data.cripto.sell}
             spread={data.cripto.buy > 0 ? ((data.cripto.sell - data.cripto.buy) / data.cripto.buy * 100) : 0}
             prev={prev.cripto}
             color="#CB912F"
             updated={lastUpdate}
+            isMobile={isMobile}
           />
         )}
       </div>
 
-      {/* Comparativa de brechas */}
-      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 20 }}>
-        <div style={{ background: "#FFFFFF", borderRadius: 14, padding: "16px 20px", border: "1px solid #E8E7E3", flex: "1 1 180px" }}>
-          <div style={{ fontSize: 12, color: "#B1AFA7", fontWeight: 600, marginBottom: 6 }}>BRECHA BLUE vs OFICIAL</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: gapBlueOficial > 30 ? "#E03E3E" : gapBlueOficial > 15 ? "#CB912F" : "#0F7B6C" }}>
+      {/* USDT por exchange — Lemon, Binance, Ripio, etc. */}
+      {data.cripto?.exchangeMap && (
+        <div style={{
+          background: "#FFFFFF", borderRadius: 14,
+          padding: isMobile ? "14px 14px" : "18px 20px",
+          border: "1px solid #E8E7E3", marginBottom: 20,
+        }}>
+          <div style={{
+            display: "flex", justifyContent: "space-between", alignItems: "flex-start",
+            gap: 8, marginBottom: 14, flexWrap: "wrap",
+          }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h3 style={{ fontSize: isMobile ? 14 : 15, fontWeight: 700, color: "#37352F", margin: "0 0 2px" }}>
+                💱 USDT/ARS por Exchange
+              </h3>
+              <p style={{ fontSize: 11, color: "#B1AFA7", margin: 0 }}>
+                Tus exchanges favoritos · precios con comisiones · CriptoYa
+              </p>
+            </div>
+            {exchangesSorted.length > PREFERRED_EXCHANGES.length && (
+              <button
+                onClick={() => setShowAllExchanges(s => !s)}
+                style={{
+                  background: "transparent", border: "1px solid #E8E7E3",
+                  borderRadius: 8, padding: "6px 10px",
+                  fontSize: 11, fontWeight: 600, color: "#5E6AD2",
+                  cursor: "pointer", fontFamily: "inherit",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {showAllExchanges ? "Ver favoritos" : `Ver todos (${exchangesSorted.length})`}
+              </button>
+            )}
+          </div>
+
+          {/* Grid de cards: 2 cols en mobile, auto en desktop */}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fill, minmax(220px, 1fr))",
+            gap: isMobile ? 8 : 12,
+            marginBottom: 8,
+          }}>
+            {PREFERRED_EXCHANGES.map(ex => {
+              const vals = data.cripto.exchangeMap[ex.key] || {};
+              return (
+                <ExchangeCard
+                  key={ex.key}
+                  label={ex.label}
+                  emoji={ex.emoji}
+                  color={ex.color}
+                  ask={vals.ask || 0}
+                  bid={vals.bid || 0}
+                  isBest={ex.key === bestExchangeName}
+                  isMobile={isMobile}
+                  blueRef={data.blue?.sell || 0}
+                />
+              );
+            })}
+          </div>
+
+          {/* Tabla expandible con todos los exchanges */}
+          {showAllExchanges && (
+            <div style={{ overflowX: "auto", marginTop: 14, paddingTop: 14, borderTop: "1px solid #F0EFEB" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: isMobile ? 11 : 13, minWidth: 480 }}>
+                <thead>
+                  <tr style={{ borderBottom: "2px solid #E8E7E3" }}>
+                    <th style={{ textAlign: "left", padding: isMobile ? "6px 8px" : "8px 12px", color: "#8C8A82", fontWeight: 600 }}>Exchange</th>
+                    <th style={{ textAlign: "right", padding: isMobile ? "6px 8px" : "8px 12px", color: "#8C8A82", fontWeight: 600 }}>Compra</th>
+                    <th style={{ textAlign: "right", padding: isMobile ? "6px 8px" : "8px 12px", color: "#8C8A82", fontWeight: 600 }}>Venta</th>
+                    <th style={{ textAlign: "right", padding: isMobile ? "6px 8px" : "8px 12px", color: "#8C8A82", fontWeight: 600 }}>Spread</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {exchangesSorted.map((ex, i) => {
+                    const isBest = i === 0;
+                    const sp = ex.bid > 0 ? ((ex.bid - ex.ask) / ex.ask * 100) : 0;
+                    return (
+                      <tr key={ex.name} style={{ borderBottom: "1px solid #F0EFEB", background: isBest ? "#DDEDEA" : "transparent" }}>
+                        <td style={{ padding: isMobile ? "8px" : "10px 12px", fontWeight: isBest ? 700 : 500, color: "#37352F", textTransform: "capitalize" }}>
+                          {isBest && "🥇 "}{ex.name}
+                        </td>
+                        <td style={{ padding: isMobile ? "8px" : "10px 12px", textAlign: "right", fontWeight: 600, color: isBest ? "#0F7B6C" : "#37352F" }}>
+                          {formatARS(ex.ask)}
+                        </td>
+                        <td style={{ padding: isMobile ? "8px" : "10px 12px", textAlign: "right", fontWeight: 600, color: "#37352F" }}>
+                          {formatARS(ex.bid)}
+                        </td>
+                        <td style={{ padding: isMobile ? "8px" : "10px 12px", textAlign: "right", color: "#8C8A82" }}>
+                          {Math.abs(sp).toFixed(1)}%
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Comparativa de brechas — grid responsive */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(auto-fit, minmax(180px, 1fr))",
+        gap: isMobile ? 10 : 14,
+        marginBottom: 20,
+      }}>
+        <div style={{
+          background: "#FFFFFF", borderRadius: 14,
+          padding: isMobile ? "14px 14px" : "16px 20px",
+          border: "1px solid #E8E7E3", minWidth: 0,
+        }}>
+          <div style={{ fontSize: isMobile ? 10 : 12, color: "#B1AFA7", fontWeight: 600, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.3 }}>Blue vs Oficial</div>
+          <div style={{
+            fontSize: isMobile ? 22 : 28, fontWeight: 800,
+            color: gapBlueOficial > 30 ? "#E03E3E" : gapBlueOficial > 15 ? "#CB912F" : "#0F7B6C",
+            lineHeight: 1.1,
+          }}>
             {gapBlueOficial.toFixed(1)}%
           </div>
-          <div style={{ fontSize: 11, color: "#B1AFA7", marginTop: 2 }}>{"Diferencia entre blue y oficial"}</div>
+          <div style={{ fontSize: 11, color: "#B1AFA7", marginTop: 4 }}>Brecha cambiaria</div>
         </div>
-        <div style={{ background: "#FFFFFF", borderRadius: 14, padding: "16px 20px", border: "1px solid #E8E7E3", flex: "1 1 180px" }}>
-          <div style={{ fontSize: 12, color: "#B1AFA7", fontWeight: 600, marginBottom: 6 }}>BRECHA BLUE vs MEP</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: Math.abs(gapMepBlue) < 3 ? "#0F7B6C" : "#CB912F" }}>
+        <div style={{
+          background: "#FFFFFF", borderRadius: 14,
+          padding: isMobile ? "14px 14px" : "16px 20px",
+          border: "1px solid #E8E7E3", minWidth: 0,
+        }}>
+          <div style={{ fontSize: isMobile ? 10 : 12, color: "#B1AFA7", fontWeight: 600, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.3 }}>Blue vs MEP</div>
+          <div style={{
+            fontSize: isMobile ? 22 : 28, fontWeight: 800,
+            color: Math.abs(gapMepBlue) < 3 ? "#0F7B6C" : "#CB912F",
+            lineHeight: 1.1,
+          }}>
             {gapMepBlue > 0 ? "+" : ""}{gapMepBlue.toFixed(1)}%
           </div>
-          <div style={{ fontSize: 11, color: "#B1AFA7", marginTop: 2 }}>{"Diferencia entre blue y MEP"}</div>
+          <div style={{ fontSize: 11, color: "#B1AFA7", marginTop: 4 }}>Brecha bursátil</div>
         </div>
-        <div style={{ background: "#FFFFFF", borderRadius: 14, padding: "16px 20px", border: "1px solid #E8E7E3", flex: "1 1 180px" }}>
-          <div style={{ fontSize: 12, color: "#B1AFA7", fontWeight: 600, marginBottom: 6 }}>BRECHA USDT vs BLUE</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: Math.abs(gapCriptoBlue) < 2 ? "#0F7B6C" : "#CB912F" }}>
+        <div style={{
+          background: "#FFFFFF", borderRadius: 14,
+          padding: isMobile ? "14px 14px" : "16px 20px",
+          border: "1px solid #E8E7E3", minWidth: 0,
+        }}>
+          <div style={{ fontSize: isMobile ? 10 : 12, color: "#B1AFA7", fontWeight: 600, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.3 }}>USDT vs Blue</div>
+          <div style={{
+            fontSize: isMobile ? 22 : 28, fontWeight: 800,
+            color: Math.abs(gapCriptoBlue) < 2 ? "#0F7B6C" : "#CB912F",
+            lineHeight: 1.1,
+          }}>
             {gapCriptoBlue > 0 ? "+" : ""}{gapCriptoBlue.toFixed(1)}%
           </div>
-          <div style={{ fontSize: 11, color: "#B1AFA7", marginTop: 2 }}>{"Diferencia entre USDT y blue"}</div>
+          <div style={{ fontSize: 11, color: "#B1AFA7", marginTop: 4 }}>Brecha cripto</div>
         </div>
-        <div style={{ background: "#FFFFFF", borderRadius: 14, padding: "16px 20px", border: "1px solid #E8E7E3", flex: "1 1 180px" }}>
-          <div style={{ fontSize: 12, color: "#B1AFA7", fontWeight: 600, marginBottom: 6 }}>TU TIPO DE CAMBIO</div>
+        <div style={{
+          background: "#FFFFFF", borderRadius: 14,
+          padding: isMobile ? "14px 14px" : "16px 20px",
+          border: "1px solid #5E6AD244", minWidth: 0,
+        }}>
+          <div style={{ fontSize: isMobile ? 10 : 12, color: "#5E6AD2", fontWeight: 700, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.3 }}>Tu tipo de cambio</div>
           {setExchangeRate ? (
-            <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-              <span style={{ fontSize: 28, fontWeight: 800, color: "#5E6AD2" }}>$</span>
-              <input type="number" value={exchangeRate || 0}
+            <div style={{ display: "flex", alignItems: "baseline", gap: 2 }}>
+              <span style={{ fontSize: isMobile ? 22 : 28, fontWeight: 800, color: "#5E6AD2", lineHeight: 1.1 }}>$</span>
+              <input
+                type="number"
+                value={exchangeRate || 0}
                 onChange={e => setExchangeRate(Number(e.target.value) || 0)}
                 style={{
-                  width: "100%", maxWidth: 130, padding: "2px 4px",
+                  width: "100%", minWidth: 0, padding: "2px 4px",
                   background: "transparent", border: "none", borderBottom: "2px solid #5E6AD2",
-                  color: "#5E6AD2", fontSize: 28, fontWeight: 800, fontFamily: "inherit", outline: "none",
-                }} />
+                  color: "#5E6AD2",
+                  fontSize: isMobile ? 22 : 28, fontWeight: 800,
+                  fontFamily: "inherit", outline: "none",
+                  lineHeight: 1.1,
+                }}
+              />
             </div>
           ) : (
-            <div style={{ fontSize: 28, fontWeight: 800, color: "#5E6AD2" }}>
+            <div style={{ fontSize: isMobile ? 22 : 28, fontWeight: 800, color: "#5E6AD2", lineHeight: 1.1 }}>
               {formatARS(exchangeRate || 0)}
             </div>
           )}
-          <div style={{ fontSize: 11, color: "#B1AFA7", marginTop: 2 }}>
-            {setExchangeRate ? "Editable — override manual" : "Configurado en Caja"}
+          <div style={{ fontSize: 11, color: "#B1AFA7", marginTop: 4 }}>
+            {setExchangeRate ? "Editable — override" : "Configurado en Caja"}
           </div>
         </div>
       </div>
 
-      {/* Tabla de exchanges USDT */}
-      {data.cripto?.exchanges?.length > 0 && (
-        <div style={{ background: "#FFFFFF", borderRadius: 14, padding: "18px 20px", border: "1px solid #E8E7E3", marginBottom: 20 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 700, color: "#37352F", margin: "0 0 4px" }}>
-            Comparativa USDT/ARS por Exchange
-          </h3>
-          <p style={{ fontSize: 12, color: "#B1AFA7", margin: "0 0 14px" }}>
-            {"Precios con comisiones incluidas \u2014 Fuente: CriptoYa"}
-          </p>
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-              <thead>
-                <tr style={{ borderBottom: "2px solid #E8E7E3" }}>
-                  <th style={{ textAlign: "left", padding: "8px 12px", color: "#8C8A82", fontWeight: 600 }}>Exchange</th>
-                  <th style={{ textAlign: "right", padding: "8px 12px", color: "#8C8A82", fontWeight: 600 }}>Compra (ask)</th>
-                  <th style={{ textAlign: "right", padding: "8px 12px", color: "#8C8A82", fontWeight: 600 }}>Venta (bid)</th>
-                  <th style={{ textAlign: "right", padding: "8px 12px", color: "#8C8A82", fontWeight: 600 }}>Spread</th>
-                  <th style={{ textAlign: "center", padding: "8px 12px", color: "#8C8A82", fontWeight: 600 }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.cripto.exchanges.map((ex, i) => {
-                  const isBest = i === 0;
-                  const sp = ex.bid > 0 ? ((ex.bid - ex.ask) / ex.ask * 100) : 0;
-                  return (
-                    <tr key={ex.name} style={{ borderBottom: "1px solid #E8E7E3", background: isBest ? "#DDEDEA" : "transparent" }}>
-                      <td style={{ padding: "10px 12px", fontWeight: isBest ? 700 : 500, color: "#37352F", textTransform: "capitalize" }}>
-                        {ex.name}
-                      </td>
-                      <td style={{ padding: "10px 12px", textAlign: "right", fontWeight: 600, color: isBest ? "#0F7B6C" : "#37352F" }}>
-                        {formatARS(ex.ask)}
-                      </td>
-                      <td style={{ padding: "10px 12px", textAlign: "right", fontWeight: 600, color: "#37352F" }}>
-                        {formatARS(ex.bid)}
-                      </td>
-                      <td style={{ padding: "10px 12px", textAlign: "right", color: "#8C8A82" }}>
-                        {Math.abs(sp).toFixed(1)}%
-                      </td>
-                      <td style={{ padding: "10px 12px", textAlign: "center" }}>
-                        {isBest && <span style={{ background: "#0F7B6C", color: "#fff", borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>MEJOR</span>}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
       {/* Mini historial */}
       {history.length > 1 && (
-        <div style={{ background: "#FFFFFF", borderRadius: 14, padding: "18px 20px", border: "1px solid #E8E7E3" }}>
-          <h3 style={{ fontSize: 15, fontWeight: 700, color: "#37352F", margin: "0 0 14px" }}>
-            {"Historial de esta sesi\u00f3n"}
+        <div style={{
+          background: "#FFFFFF", borderRadius: 14,
+          padding: isMobile ? "14px 14px" : "18px 20px",
+          border: "1px solid #E8E7E3",
+        }}>
+          <h3 style={{ fontSize: isMobile ? 14 : 15, fontWeight: 700, color: "#37352F", margin: "0 0 14px" }}>
+            {"Historial de esta sesión"}
           </h3>
           {history.length >= 2 && (() => {
             const blueValues = history.map(h => h.blue).filter(v => v > 0);
@@ -347,7 +576,7 @@ export const ExchangeMonitor = ({ exchangeRate, setExchangeRate }) => {
                 background: "#FAFAF9", borderRadius: 10, padding: 12, marginBottom: 10,
                 border: "1px solid #E8E7E3", overflowX: "auto",
               }}>
-                <svg viewBox={`0 0 ${w} ${hh}`} preserveAspectRatio="none" style={{ width: "100%", height: 120, display: "block" }}>
+                <svg viewBox={`0 0 ${w} ${hh}`} preserveAspectRatio="none" style={{ width: "100%", height: isMobile ? 90 : 120, display: "block" }}>
                   {bluePath && <path d={bluePath} stroke="#5E6AD2" strokeWidth="2" fill="none" />}
                   {criptoPath && <path d={criptoPath} stroke="#CB912F" strokeWidth="2" fill="none" strokeDasharray="4,2" />}
                   {history.map((entry, i) => (
@@ -356,7 +585,7 @@ export const ExchangeMonitor = ({ exchangeRate, setExchangeRate }) => {
                     </g>
                   ))}
                 </svg>
-                <div style={{ display: "flex", gap: 12, fontSize: 11, color: "#8C8A82", marginTop: 6 }}>
+                <div style={{ display: "flex", gap: 12, fontSize: 11, color: "#8C8A82", marginTop: 6, flexWrap: "wrap" }}>
                   <span><span style={{ display: "inline-block", width: 14, height: 2, background: "#5E6AD2", marginRight: 4, verticalAlign: "middle" }} />Blue ({formatARS(minBlue)} → {formatARS(maxBlue)})</span>
                   {criptoValues.length > 0 && <span><span style={{ display: "inline-block", width: 14, height: 2, background: "#CB912F", marginRight: 4, verticalAlign: "middle" }} />USDT ({formatARS(minCripto)} → {formatARS(maxCripto)})</span>}
                 </div>
@@ -366,13 +595,13 @@ export const ExchangeMonitor = ({ exchangeRate, setExchangeRate }) => {
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {history.map((h, i) => (
               <div key={i} style={{
-                background: "#FAFAF9", borderRadius: 8, padding: "6px 12px", fontSize: 12,
+                background: "#FAFAF9", borderRadius: 8, padding: "6px 10px", fontSize: 11,
                 border: "1px solid #E8E7E3",
               }}>
                 <span style={{ color: "#B1AFA7" }}>{new Date(h.time).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</span>
                 {" "}
-                <span style={{ fontWeight: 700, color: "#5E6AD2" }}>Blue: {formatARS(h.blue)}</span>
-                {h.cripto > 0 && <span style={{ fontWeight: 600, color: "#CB912F" }}> | USDT: {formatARS(h.cripto)}</span>}
+                <span style={{ fontWeight: 700, color: "#5E6AD2" }}>Blue {formatARS(h.blue)}</span>
+                {h.cripto > 0 && <span style={{ fontWeight: 600, color: "#CB912F" }}> · USDT {formatARS(h.cripto)}</span>}
               </div>
             ))}
           </div>
