@@ -109,10 +109,14 @@ const SourceCard = ({ title, subtitle, buy, sell, spread, prev, color, updated, 
 };
 
 // Card para exchange preferido (Lemon, Binance, etc.)
-// Más compacta que SourceCard porque mostramos varias en grilla.
+// Convención banco/casa de cambio (igual que Blue):
+//   Compra = bid = lo que el exchange paga al cliente (cuando vende USDT) → MENOR
+//   Venta  = ask = lo que el exchange cobra al cliente (cuando compra USDT) → MAYOR
+// Mostramos ask/bid SIN fees agregados — lo que ves dentro de la app del exchange.
 const ExchangeCard = ({ label, emoji, color, ask, bid, isBest, isMobile, blueRef }) => {
-  const spread = ask > 0 ? ((bid - ask) / ask * 100) : 0;
-  // brecha vs blue: positivo = USDT más caro que blue, negativo = USDT más barato
+  const spread = bid > 0 && ask > 0 ? ((ask - bid) / bid * 100) : 0;
+  // brecha vs blue: comparamos contra el ask (precio al que comprás USDT)
+  // positivo = USDT más caro que blue, negativo = USDT más barato
   const gapVsBlue = blueRef && ask > 0 ? ((ask - blueRef) / blueRef * 100) : null;
 
   return (
@@ -144,14 +148,14 @@ const ExchangeCard = ({ label, emoji, color, ask, bid, isBest, isMobile, blueRef
               <div style={{
                 fontSize: isMobile ? 15 : 17, fontWeight: 800,
                 color, lineHeight: 1.2,
-              }}>{formatARS(ask)}</div>
+              }}>{formatARS(bid)}</div>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 10, color: "#B1AFA7", fontWeight: 600, textTransform: "uppercase" }}>Venta</div>
               <div style={{
                 fontSize: isMobile ? 15 : 17, fontWeight: 800,
                 color: "#37352F", lineHeight: 1.2,
-              }}>{formatARS(bid)}</div>
+              }}>{formatARS(ask)}</div>
             </div>
           </div>
           <div style={{
@@ -212,20 +216,31 @@ export const ExchangeMonitor = ({ exchangeRate, setExchangeRate }) => {
         const c = criptoRes.value;
         const skipKeys = ["time", "ask", "bid", "totalAsk", "totalBid"];
         const exchanges = Object.entries(c).filter(([k]) => !skipKeys.includes(k));
-        let bestBuy = Infinity, bestSell = 0;
+        // Usamos ask/bid SIN fees adicionales — lo que ves dentro de la app
+        // del exchange (Lemon, Binance, etc). totalAsk/totalBid agregan fees
+        // de transferencia estimados que CriptoYa promedia y dan números
+        // distintos a los de la app real.
+        let bestAsk = Infinity, bestBid = 0;
+        let bestAskExchange = "", bestBidExchange = "";
         const exchangeList = [];
         const exchangeMap = {};
         for (const [name, vals] of exchanges) {
-          if (vals && typeof vals === "object" && vals.totalAsk && vals.totalBid) {
-            if (vals.totalAsk < bestBuy) bestBuy = vals.totalAsk;
-            if (vals.totalBid > bestSell) bestSell = vals.totalBid;
-            exchangeList.push({ name, ask: vals.totalAsk, bid: vals.totalBid });
-            exchangeMap[name] = { ask: vals.totalAsk, bid: vals.totalBid };
+          if (vals && typeof vals === "object" && vals.ask && vals.bid) {
+            if (vals.ask < bestAsk) { bestAsk = vals.ask; bestAskExchange = name; }
+            if (vals.bid > bestBid) { bestBid = vals.bid; bestBidExchange = name; }
+            exchangeList.push({ name, ask: vals.ask, bid: vals.bid });
+            exchangeMap[name] = { ask: vals.ask, bid: vals.bid };
           }
         }
+        // Convención banco/casa de cambio (igual que Blue/Oficial/MEP):
+        //   buy  = lo que el exchange paga al cliente (bid) = MENOR
+        //   sell = lo que el exchange cobra al cliente (ask) = MAYOR
+        // Así la card muestra Compra < Venta y es consistente con el Blue.
         newData.cripto = {
-          buy: bestBuy === Infinity ? 0 : bestBuy,
-          sell: bestSell,
+          buy: bestBid,                          // mejor bid = "Compra" más alta posible
+          sell: bestAsk === Infinity ? 0 : bestAsk, // mejor ask = "Venta" más baja posible
+          bestAskExchange,
+          bestBidExchange,
           exchanges: exchangeList.sort((a, b) => a.ask - b.ask),
           exchangeMap,
         };
@@ -262,7 +277,9 @@ export const ExchangeMonitor = ({ exchangeRate, setExchangeRate }) => {
 
   const blueSpread = data.blue ? ((data.blue.sell - data.blue.buy) / data.blue.buy * 100) : 0;
   const gapBlueOficial = data.blue && data.oficial ? ((data.blue.sell - data.oficial.sell) / data.oficial.sell * 100) : 0;
-  const gapCriptoBlue = data.cripto && data.blue ? ((data.cripto.buy - data.blue.sell) / data.blue.sell * 100) : 0;
+  // Comparamos venta con venta (lo que pagás por 1 USDT/USD en cada caso)
+  const gapCriptoBlue = data.cripto && data.blue && data.blue.sell > 0
+    ? ((data.cripto.sell - data.blue.sell) / data.blue.sell * 100) : 0;
   const gapMepBlue = data.mep && data.blue ? ((data.blue.sell - data.mep.sell) / data.mep.sell * 100) : 0;
 
   // Identificar cuál exchange tiene el mejor ask (para destacar "MEJOR")
@@ -347,10 +364,16 @@ export const ExchangeMonitor = ({ exchangeRate, setExchangeRate }) => {
         {data.cripto && (
           <SourceCard
             title="USDT Mejor Precio"
-            subtitle={"Mejor cotización entre exchanges"}
+            subtitle={
+              data.cripto.bestBidExchange && data.cripto.bestAskExchange
+                ? `Vendés en ${data.cripto.bestBidExchange} · Comprás en ${data.cripto.bestAskExchange}`
+                : "Mejor cotización entre exchanges"
+            }
             buy={data.cripto.buy}
             sell={data.cripto.sell}
-            spread={data.cripto.buy > 0 ? ((data.cripto.sell - data.cripto.buy) / data.cripto.buy * 100) : 0}
+            spread={data.cripto.buy > 0 && data.cripto.sell > data.cripto.buy
+              ? ((data.cripto.sell - data.cripto.buy) / data.cripto.buy * 100)
+              : 0}
             prev={prev.cripto}
             color="#CB912F"
             updated={lastUpdate}
@@ -419,7 +442,9 @@ export const ExchangeMonitor = ({ exchangeRate, setExchangeRate }) => {
             })}
           </div>
 
-          {/* Tabla expandible con todos los exchanges */}
+          {/* Tabla expandible con todos los exchanges.
+              Convención: "Compra" = bid (menor) · "Venta" = ask (mayor),
+              igual que las cards de Blue/Oficial/MEP. */}
           {showAllExchanges && (
             <div style={{ overflowX: "auto", marginTop: 14, paddingTop: 14, borderTop: "1px solid #F0EFEB" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: isMobile ? 11 : 13, minWidth: 480 }}>
@@ -434,17 +459,17 @@ export const ExchangeMonitor = ({ exchangeRate, setExchangeRate }) => {
                 <tbody>
                   {exchangesSorted.map((ex, i) => {
                     const isBest = i === 0;
-                    const sp = ex.bid > 0 ? ((ex.bid - ex.ask) / ex.ask * 100) : 0;
+                    const sp = ex.bid > 0 && ex.ask > 0 ? ((ex.ask - ex.bid) / ex.bid * 100) : 0;
                     return (
                       <tr key={ex.name} style={{ borderBottom: "1px solid #F0EFEB", background: isBest ? "#DDEDEA" : "transparent" }}>
                         <td style={{ padding: isMobile ? "8px" : "10px 12px", fontWeight: isBest ? 700 : 500, color: "#37352F", textTransform: "capitalize" }}>
                           {isBest && "🥇 "}{ex.name}
                         </td>
-                        <td style={{ padding: isMobile ? "8px" : "10px 12px", textAlign: "right", fontWeight: 600, color: isBest ? "#0F7B6C" : "#37352F" }}>
-                          {formatARS(ex.ask)}
-                        </td>
                         <td style={{ padding: isMobile ? "8px" : "10px 12px", textAlign: "right", fontWeight: 600, color: "#37352F" }}>
                           {formatARS(ex.bid)}
+                        </td>
+                        <td style={{ padding: isMobile ? "8px" : "10px 12px", textAlign: "right", fontWeight: 600, color: isBest ? "#0F7B6C" : "#37352F" }}>
+                          {formatARS(ex.ask)}
                         </td>
                         <td style={{ padding: isMobile ? "8px" : "10px 12px", textAlign: "right", color: "#8C8A82" }}>
                           {Math.abs(sp).toFixed(1)}%
