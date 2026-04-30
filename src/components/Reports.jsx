@@ -12,6 +12,10 @@ import {
   calcSellThroughRate,
   calcPriceElasticity,
 } from "../productIntelligence.js";
+import {
+  findPromoCandidates,
+  buildLiquidationScenarios,
+} from "../pricing.js";
 import { Card, Badge, Table } from "./UI.jsx";
 import { BRAND_COLORS, WITHDRAW_TYPES, FAILURE_REASONS, FAILURE_REASON_CATEGORY, isGarantia } from "../constants.js";
 import { useResponsive } from "../App.jsx";
@@ -127,6 +131,10 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
   const priceElasticity = useMemo(
     () => calcPriceElasticity(products, sales, priceLog),
     [products, sales, priceLog]
+  );
+  const promoCandidates = useMemo(
+    () => findPromoCandidates(products, productStats),
+    [products, productStats]
   );
 
   // Note: App.jsx already passes active* (filtered) data for most read-only components,
@@ -335,6 +343,31 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
           Dead stock = productos sin venta ≥90d con stock ≥1.
         </div>
       </Card>
+
+      {/* S16.5 + S16.6 — Detector candidatos a promo + Sugeridor liquidación */}
+      {promoCandidates.length > 0 && (
+        <Card style={{ marginBottom: 14 }}>
+          <h3 style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#37352F" }}>
+            🎯 Candidatos a promoción ({promoCandidates.length})
+          </h3>
+          <p style={{ margin: "0 0 14px", fontSize: 12, color: "#8C8A82" }}>
+            Productos con stock + razones para promocionar (vencimiento, lento, dormido, última unidad).
+            Click "Ver escenarios" para 3 niveles de descuento con su impacto.
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {promoCandidates.slice(0, 12).map(cand => (
+              <PromoCandidateRow
+                key={cand.product.id}
+                cand={cand}
+                stat={productStats[cand.product.id]}
+              />
+            ))}
+            {promoCandidates.length > 12 && (
+              <p style={{ fontSize: 11, color: "#8C8A82" }}>...y {promoCandidates.length - 12} candidatos más.</p>
+            )}
+          </div>
+        </Card>
+      )}
 
       {/* S15.2 — ABC Analysis (Pareto 80/20) */}
       <Card style={{ marginBottom: 14 }}>
@@ -1702,3 +1735,68 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
     </div>
   );
 };
+
+// S16.5 + S16.6 — Sub-componente con expand/collapse para mostrar escenarios
+// de liquidación de un candidato a promo.
+function PromoCandidateRow({ cand, stat }) {
+  const [expanded, setExpanded] = useState(false);
+  const scenarios = expanded ? buildLiquidationScenarios(cand.product, stat) : null;
+  return (
+    <div style={{ background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 8, overflow: "hidden" }}>
+      <button
+        onClick={() => setExpanded(e => !e)}
+        style={{
+          width: "100%", padding: "10px 14px", background: "transparent", border: "none",
+          display: "flex", alignItems: "center", gap: 10, cursor: "pointer", textAlign: "left",
+        }}
+      >
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#37352F" }}>
+            {cand.product.brand} {cand.product.model} {cand.product.flavor && `· ${cand.product.flavor}`}
+          </div>
+          <div style={{ fontSize: 11, color: "#8C8A82", marginTop: 2 }}>
+            Stock: {cand.stock} · {cand.reasons.join(" · ")}
+          </div>
+        </div>
+        <Badge color={cand.suggestedPct >= 25 ? "#E03E3E" : cand.suggestedPct >= 15 ? "#CB912F" : "#5E6AD2"}>
+          -{cand.suggestedPct}%
+        </Badge>
+        <span style={{ fontSize: 12, color: "#5E6AD2", fontWeight: 600 }}>
+          {expanded ? "▼" : "▶"} Ver escenarios
+        </span>
+      </button>
+      {expanded && scenarios && (
+        <div style={{ padding: 14, borderTop: "1px solid #E8E7E3", background: "#FFFFFF" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+            {[
+              { key: "conservative", label: "Conservador", color: "#0F7B6C" },
+              { key: "moderate", label: "Moderado", color: "#CB912F" },
+              { key: "aggressive", label: "Agresivo", color: "#E03E3E" },
+            ].map(s => {
+              const sc = scenarios[s.key];
+              return (
+                <div key={s.key} style={{
+                  padding: 10, background: `${s.color}10`, border: `1px solid ${s.color}33`,
+                  borderRadius: 8,
+                }}>
+                  <div style={{ fontSize: 10, color: s.color, fontWeight: 700, textTransform: "uppercase" }}>
+                    {s.label}
+                  </div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: s.color, fontFamily: "'Rubik', sans-serif" }}>
+                    -{sc.discountPct}%
+                  </div>
+                  <div style={{ fontSize: 10, color: "#37352F", marginTop: 6, lineHeight: 1.5 }}>
+                    Precio: <strong>${sc.newPrice}</strong> USD<br />
+                    Margen: <strong style={{ color: sc.newMarginPct < 0 ? "#E03E3E" : sc.newMarginPct < 20 ? "#CB912F" : "#0F7B6C" }}>{sc.newMarginPct}%</strong><br />
+                    Vende stock en: <strong>{sc.daysToSellOut !== null ? `${sc.daysToSellOut}d` : "—"}</strong><br />
+                    Profit total: <strong>${sc.totalProfit}</strong> USD
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

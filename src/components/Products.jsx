@@ -13,6 +13,7 @@ import {
   findDeadStock,
   classifyLifecycle,
 } from "../productIntelligence.js";
+import { calcMarginGuard } from "../pricing.js";
 
 // -- PRODUCTS / STOCK --
 
@@ -460,19 +461,32 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
           onChange={e => setForm(f => ({ ...f, costUSDT: e.target.value }))}
           placeholder="ej: 5.50"
         />
-        {/* Margen preview en vivo */}
+        {/* Margen preview en vivo + S16.4 calculadora margin guard */}
         {form.priceUSD > 0 && form.costUSDT > 0 && (() => {
           const margin = calcProductMargin({ priceUSD: Number(form.priceUSD), costUSDT: Number(form.costUSDT) });
           if (!margin) return null;
           const color = margin.marginPct >= 50 ? T.green : margin.marginPct >= 30 ? T.amber : T.red;
+          // S16.4 — Margin guard: muestra descuento máximo manteniendo 30% de margen
+          const guard30 = calcMarginGuard({ priceUSD: Number(form.priceUSD), costUSDT: Number(form.costUSDT) }, 30);
+          const guard20 = calcMarginGuard({ priceUSD: Number(form.priceUSD), costUSDT: Number(form.costUSDT) }, 20);
           return (
             <div style={{
               padding: "8px 12px", marginBottom: 12,
               background: `${color}15`, border: `1px solid ${color}33`, borderRadius: 8,
               fontSize: 12, color, fontWeight: 600,
             }}>
-              📊 Margen: <strong>{margin.marginPct}%</strong> · Ganancia/ud: ${margin.marginUSD} USD
-              {margin.roiPct !== null && <> · ROI: <strong>{margin.roiPct}%</strong></>}
+              <div>
+                📊 Margen actual: <strong>{margin.marginPct}%</strong> · Ganancia/ud: ${margin.marginUSD} USD
+                {margin.roiPct !== null && <> · ROI: <strong>{margin.roiPct}%</strong></>}
+              </div>
+              {guard30 && guard30.maxDiscountPct > 0 && (
+                <div style={{ marginTop: 4, fontSize: 11, opacity: 0.85 }}>
+                  💡 Descuento máximo manteniendo 30% margen: <strong>-{guard30.maxDiscountPct.toFixed(1)}%</strong> (precio mínimo ${guard30.minPrice})
+                  {guard20 && guard20.maxDiscountPct > guard30.maxDiscountPct && (
+                    <> · si bajás a 20% margen: <strong>-{guard20.maxDiscountPct.toFixed(1)}%</strong></>
+                  )}
+                </div>
+              )}
             </div>
           );
         })()}
