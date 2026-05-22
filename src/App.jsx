@@ -364,7 +364,7 @@ export default function App() {
       case "whatsapp": return <WhatsAppMessage products={activeProducts} />;
       case "stocklog": return <StockLog stockLog={stockLog} setStockLog={setStockLog} products={activeProducts} />;
       case "pricelog": return <PriceLog priceLog={priceLog} products={activeProducts} setProducts={setProducts} logPrice={logPrice} exchangeRate={exchangeRate} />;
-      case "partners": return <Partners partnerWithdrawals={partnerWithdrawals} setPartnerWithdrawals={setPartnerWithdrawals} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} />;
+      case "partners": return <Partners partnerWithdrawals={partnerWithdrawals} setPartnerWithdrawals={setPartnerWithdrawals} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} products={activeProducts} cashMovements={activeCashMovements} clients={clients} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} />;
       case "closures": return <MonthlyClosures monthlyClosures={monthlyClosures} setMonthlyClosures={setMonthlyClosures} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} products={activeProducts} exchangeRate={exchangeRate} logAudit={logAudit} />;
       case "export": return <ExportData
         products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses}
