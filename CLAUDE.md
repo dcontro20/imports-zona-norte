@@ -2,7 +2,7 @@
 
 ## Qué es este proyecto
 
-Sistema web de gestión completa para "Imports Zona Norte", un negocio de importación y reventa de vapes electrónicos operado por Diego Contró y su socio Gustavo desde zona norte de Buenos Aires. La app está deployada en Vercel y usa Firebase Firestore como base de datos en tiempo real para que ambos socios puedan operar simultáneamente desde cualquier dispositivo.
+Sistema web de gestión completa para "Imports Zona Norte", un negocio de importación y reventa de vapes electrónicos operado por Diego Contró desde zona norte de Buenos Aires. Diego es **100% dueño** del negocio (single-user app desde 2026-05-22 — ex-socio Gustavo dejó de ser parte). La app está deployada en Vercel y usa Firebase Firestore como base de datos en tiempo real para operar desde cualquier dispositivo.
 
 **URL de producción:** https://imports-zona-norte.vercel.app
 **Repositorio:** github.com/dcontro20/imports-zona-norte
@@ -66,7 +66,7 @@ imports-zona-norte/
         ├── CashBox.jsx             # Caja multi-moneda + cierre de caja diario + conciliación
         ├── Reports.jsx             # Reportes, márgenes, break-even, Inteligencia de Producto (S15), elasticidad
         ├── WhatsApp.jsx            # Mensaje de stock: modo Completo + modo Stories (corto)
-        ├── Partners.jsx            # División 50/50 Diego & Gustavo (usa calcs.js)
+        ├── Partners.jsx            # "Mi Cartera": patrimonio + ROI + rendimiento + retiros (Diego 100%)
         ├── Closures.jsx            # Cierres mensuales: foto financiera del mes + detector inconsistencias
         ├── Export.jsx              # Exportar CSVs + backup JSON + libro mayor contable
         ├── PriceLog.jsx            # Editor masivo de precios por modelo + historial
@@ -96,10 +96,9 @@ const firebaseConfig = {
 };
 ```
 
-**Reglas Firestore:** cerradas con roles (Diego owner / Gustavo manager) — ver `firestore.rules`.
-- Owner (`dcontro20@gmail.com`): acceso total
-- Manager (`dcontro20@hotmail.com`): lectura total + escritura en datos operativos; bloqueado de `partnerWithdrawals` y `monthlyClosures`
-- Anónimo / cualquier otra colección: denied
+**Reglas Firestore:** cerradas — solo Diego puede leer/escribir.
+- Owner (`dcontro20@gmail.com`): acceso total y único
+- Cualquier otro email autenticado o anónimo: denied
 - Deploy: `firebase deploy --only firestore:rules`
 
 **Auth:** Firebase Auth email/password. Setup documentado en `docs/FIREBASE_AUTH_SETUP.md`. Usuarios creados con `scripts/create-users.mjs`.
@@ -190,10 +189,17 @@ La API de dolarapi.com solo actualiza el exchangeRate si Firestore no mandó uno
 - 3 tipos: consumo propio, garantías, canjes
 - Descuenta stock, calcula valor estimado perdido
 
-### Socios (Partners)
-- Usa `calcPartnerBalances()` de calcs.js (testeado)
-- Normaliza todas las monedas a ARS antes de calcular
-- División 50/50 automática con historial de retiros
+### Mi Cartera (Partners)
+- Dashboard personal de Diego (100% dueño). Reemplazó el módulo "Socios" tras la salida de Gustavo.
+- **Patrimonio total**: cash ARS + USDT@rate + USD@rate + stock a costo (donut de composición)
+- **ROI del período**: ganancia neta / capital invertido (compras + stock actual)
+- **Rendimiento mensual**: bar chart 12 meses (revenue + ganancia operativa)
+- **Evolución patrimonio**: línea acumulada con gradiente
+- **3 cards**: lo que me llevé / capital trabajando / podés retirar (70% del balance)
+- **Saldos por cuenta**: 5 cuentas (mpDiego, lemonPesos, lemonUSDT, usdCash, pesosCash) reusando `calcAccountBalance`
+- **Saldos clientes**: deudas + créditos pendientes
+- **Modal retiro/aporte** con toggle y hint contextual
+- Usa `calcPartnerBalances()` y `calcMonthSummary()` de calcs.js (mismo path, simplificado para single-user)
 
 ### Cierres mensuales
 - Foto financiera del mes: ingresos, costos, gastos, merma, ganancia neta
@@ -244,9 +250,15 @@ La API de dolarapi.com solo actualiza el exchangeRate si Firestore no mandó uno
 - Papelera muestra items borrados con opción de restaurar
 
 ### Login
-- Firebase Auth con email/password (no más sessionStorage password trick)
-- Diego (owner) y Gustavo (manager) tienen roles diferenciados en reglas Firestore
+- Firebase Auth con email/password — Diego es único usuario (owner).
 - Setup en `docs/FIREBASE_AUTH_SETUP.md`; scripts en `scripts/create-users.mjs`
+
+### Single-user (post 2026-05-22)
+- Gustavo dejó de ser socio. Diego es 100% dueño.
+- Todos los conceptos de "splits 50/50", roles owner/manager y dual partner se eliminaron.
+- `calcPartnerBalances` mantiene la firma pero `halfProfit === netProfitComun` y los campos `gustavo*` quedan en 0 por compat con consumers (Dashboard, Reports, Closures).
+- Las cuentas MP Gustavo / mpGustavo, WITHDRAW_PERSONS["Gustavo"], el filtro "Por socio" del libro de caja, las cards "Socios del mes" del Dashboard, los breakdowns Diego/Gustavo en Withdrawals/Reports — todos eliminados.
+- Existe `scripts/migrate-remove-gustavo.mjs` con modos `--dry-run` y `--apply` por si hubiera data histórica que reasignar (en la corrida del 2026-05-22 detectó 0 registros).
 
 ---
 
@@ -471,6 +483,55 @@ profit (S14.6), `setState(prev =>)` en todos los setters críticos.
   "Ver todos (N)" expande la tabla completa de CriptoYa.
 - `becf1bc` Fix bid/ask invertidos en cotizaciones USDT + usar precio sin
   fees (ahora coincide con lo que Lemon muestra a Diego en la app).
+
+### 🚪 Salida de Gustavo + rediseño "Mi Cartera" (22/05/2026)
+
+Gustavo dejó de ser socio. Diego es ahora **único dueño 100%**. Refactor en 4 fases:
+
+**Fase 1 — Migración data Firestore** (`scripts/migrate-remove-gustavo.mjs`):
+Script con modos dry-run + --apply para reasignar `createdBy`/`person`/`mpAccount`
+de "Gustavo" → "Diego". Corrido en dry-run contra prod: 0 registros afectados
+(Gustavo nunca llegó a usar el sistema). El script queda para auditoría.
+
+**Fase 2 — Limpieza backend** (`ce0ad2e`):
+- `constants/enums.js`: MP_ACCOUNTS y WITHDRAW_PERSONS solo Diego
+- `calcs.js`: VALID_PARTNERS=["Diego"], `calcPartnerBalances` ya no hace split.
+  Diego se queda con todo. Campos `gustavo*` mantenidos en 0 por compat.
+- `firebase.js`: USER_PROFILES solo Diego. isOwner/canDelete siempre true.
+- `firestore.rules`: eliminado `isManager()`. Solo `dcontro20@gmail.com` permitido.
+- `App.jsx`: eliminados flags `ownerOnly` de NAV_ITEMS. "Socios" → "Mi Cartera" 💼.
+- `useFirebaseSync.js`: detector concurrent edit dice "otra sesión" en vez de "otro socio".
+- Tests refactorizados: 182/182 pasando (antes 183, eliminé "acepta Gustavo").
+
+**Fase 3 — Limpieza UI** (`d2b664b`):
+- `cash/shared.js`: removido mpGustavo de ACCOUNTS, ACCOUNT_METHOD_MAP, INITIAL_BALANCES.
+- `cash/MovementForm.jsx`: removido filtro "Por socio" del libro mayor.
+- `Sales.jsx`, `QuickSale.jsx`: resolveAccount simplificado (MP siempre va a mpDiego).
+- `Withdrawals.jsx`: removidos StatCard Gustavo, breakdown Diego/Gustavo,
+  filtro person + select pills.
+- `Dashboard.jsx`: removida card "Socios del mes". Alert consumo alto sin split.
+- `Reports.jsx`: KPIs del mes 4→3 cols. Card "Gustavo" reemplazada por "Mi consumo".
+
+**Fase 4 — Rediseño Partners → Mi Cartera** (`0909ae8`):
+Reescritura completa del módulo Partners.jsx (392→646 líneas) como dashboard
+financiero personal de Diego. Contenido:
+- Header "💼 Mi Cartera" + period selector (YTD / 12m / Todo)
+- **Patrimonio total** (hero con donut): cash ARS + USDT@rate + USD@rate + stock a costo.
+  Composición visual con %. Stock a precio venta y potencial.
+- **Saldos por cuenta**: grid de las 5 cuentas con balance ARS-equivalente.
+- **ROI del período**: ganancia / capital invertido. Side-by-side con desglose
+  (revenue − costos − gastos − mermas − consumo = neto).
+- **Rendimiento mensual**: bar chart 12m con revenue + ganancia.
+- **Evolución patrimonio**: línea acumulada de ganancia operativa con gradiente.
+- **3 cards resumen**: lo que me llevé / capital trabajando / podés retirar
+  (70% del balance, deja 30% como capital de trabajo).
+- **Saldos clientes**: deudas + créditos pendientes (visible si hay).
+- **Histórico**: tabla retiros + aportes, filtra `_historicalArchived` (futuro-proof).
+- **Modal**: toggle retiro/aporte con hint contextual.
+
+App.jsx pasa `products`, `cashMovements`, `clients` al componente para que
+calcule patrimonio. Reusa `calcAccountBalance` y `calcMonthSummary` ya
+existentes para mantener fuente única de verdad.
 
 ### 🏁 Big push 23-24 abril (docs/SESSION_2026-04-23_to_24_big_push.md)
 
