@@ -17,18 +17,17 @@ import { fileURLToPath } from "url";
 const PROJECT_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const BACKUP_DIR = join(PROJECT_ROOT, "backups");
 
-const INITIAL_BALANCES = { lemonPesos: 273646.62, lemonUSDT: 40.12, mpDiego: 0, mpGustavo: 0, usdCash: 0, pesosCash: 120000 };
-const ACCOUNTS = ["mpDiego", "mpGustavo", "lemonPesos", "lemonUSDT", "usdCash", "pesosCash"];
+const INITIAL_BALANCES = { lemonPesos: 273646.62, lemonUSDT: 40.12, mpDiego: 0, usdCash: 0, pesosCash: 120000 };
+const ACCOUNTS = ["mpDiego", "lemonPesos", "lemonUSDT", "usdCash", "pesosCash"];
 
 const accountMatch = {
   mpDiego: p => p.method === "Mercado Pago" && p.mpAccount === "MP Diego",
-  mpGustavo: p => p.method === "Mercado Pago" && p.mpAccount === "MP Gustavo",
   lemonPesos: p => p.method === "Lemon",
   lemonUSDT: p => p.method === "USDT",
   usdCash: p => p.method === "USD Cash",
   pesosCash: p => p.method === "Pesos Cash",
 };
-const payToAcct = (m, mp) => m === "Mercado Pago" ? (mp === "MP Gustavo" ? "mpGustavo" : "mpDiego") :
+const payToAcct = (m) => m === "Mercado Pago" ? "mpDiego" :
   m === "Lemon" ? "lemonPesos" : m === "USDT" ? "lemonUSDT" : m === "USD Cash" ? "usdCash" : m === "Pesos Cash" ? "pesosCash" : "";
 
 function loadLatestBackup() {
@@ -49,7 +48,7 @@ function calcBalance(accountId, sales, purchases, cashMovements) {
     });
     sales.forEach(s => {
       if (s.changeAmount > 0 && s.changeMethod && s.changeMethod !== "credit") {
-        const acct = payToAcct(s.changeMethod, s.changeMpAccount);
+        const acct = payToAcct(s.changeMethod);
         if (acct === accountId) bal -= Number(s.changeAmount) || 0;
       }
     });
@@ -142,7 +141,7 @@ function audit() {
     const pays = s.payments?.length ? s.payments : [{ method: s.paymentMethod, mpAccount: s.mpAccount, amount: s.total }];
     pays.forEach(p => {
       if (!p.method || !Number(p.amount)) return;
-      const acct = payToAcct(p.method, p.mpAccount);
+      const acct = payToAcct(p.method);
       if (!acct) {
         salesNoIncome++;
         report("WARN", `Venta ${s.id} (${s.clientName}) tiene payment con método "${p.method}" no mapeable a cuenta`, "");

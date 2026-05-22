@@ -92,8 +92,7 @@ class ErrorBoundary extends Component {
 // ============================================
 // MAIN APP
 // ============================================
-// Nav items con nivel de acceso por rol.
-//   ownerOnly: true → solo Diego lo ve; Gustavo ni siquiera ve el link
+// Diego es único usuario — ya no hay flags por rol.
 const NAV_ITEMS = [
   { key: "dashboard", label: "Dashboard", icon: "📊" },
   { key: "products", label: "Stock", icon: "📦" },
@@ -106,14 +105,14 @@ const NAV_ITEMS = [
   { key: "whatsapp", label: "WhatsApp", icon: "📲" },
   { key: "stocklog", label: "Historial", icon: "📋" },
   { key: "pricelog", label: "Precios", icon: "💲" },
-  { key: "coupons", label: "Promos", icon: "🎟️", ownerOnly: true },
-  { key: "partners", label: "Socios", icon: "🤝", ownerOnly: true },
-  { key: "closures", label: "Cierres", icon: "📅", ownerOnly: true },
-  { key: "export", label: "Exportar", icon: "📥", ownerOnly: true },
+  { key: "coupons", label: "Promos", icon: "🎟️" },
+  { key: "partners", label: "Mi Cartera", icon: "💼" },
+  { key: "closures", label: "Cierres", icon: "📅" },
+  { key: "export", label: "Exportar", icon: "📥" },
   { key: "reports", label: "Reportes", icon: "📈" },
   { key: "exchange", label: "Cotizaciones", icon: "💱" },
-  { key: "audit", label: "Auditoría", icon: "🔍", ownerOnly: true },
-  { key: "trash", label: "Papelera", icon: "🗑️", ownerOnly: true },
+  { key: "audit", label: "Auditoría", icon: "🔍" },
+  { key: "trash", label: "Papelera", icon: "🗑️" },
 ];
 
 export default function App() {
@@ -179,7 +178,7 @@ export default function App() {
     return () => window.removeEventListener("izn:storage-quota-error", handler);
   }, []);
 
-  // Toast de concurrent edit (S14.2 — Diego y Gustavo escribiendo en simultáneo)
+  // Toast de concurrent edit (S14.2 — pestañas/dispositivos del mismo usuario)
   // Avisa que el dato puede haber sido sobrescrito por el otro socio.
   const [concurrentEditToast, setConcurrentEditToast] = useState(null);
   useEffect(() => {
@@ -347,12 +346,10 @@ export default function App() {
     );
   }
 
-  // Guard: si un manager entra a una ruta ownerOnly (URL directa o estado stale), fallback a dashboard
-  const isOwnerUser = currentUser?.role === "owner";
-  const ownerOnlyPages = NAV_ITEMS.filter(n => n.ownerOnly).map(n => n.key);
-  const effectivePage = ownerOnlyPages.includes(page) && !isOwnerUser ? "dashboard" : page;
-
-  const visibleNavItems = NAV_ITEMS.filter(item => !item.ownerOnly || isOwnerUser);
+  // Diego es único usuario — todas las páginas son accesibles.
+  const isOwnerUser = true;
+  const effectivePage = page;
+  const visibleNavItems = NAV_ITEMS;
 
   const renderPage = () => {
     switch (effectivePage) {
@@ -367,7 +364,7 @@ export default function App() {
       case "whatsapp": return <WhatsAppMessage products={activeProducts} />;
       case "stocklog": return <StockLog stockLog={stockLog} setStockLog={setStockLog} products={activeProducts} />;
       case "pricelog": return <PriceLog priceLog={priceLog} products={activeProducts} setProducts={setProducts} logPrice={logPrice} exchangeRate={exchangeRate} />;
-      case "partners": return <Partners partnerWithdrawals={partnerWithdrawals} setPartnerWithdrawals={setPartnerWithdrawals} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} />;
+      case "partners": return <Partners partnerWithdrawals={partnerWithdrawals} setPartnerWithdrawals={setPartnerWithdrawals} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} products={activeProducts} cashMovements={activeCashMovements} clients={clients} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} />;
       case "closures": return <MonthlyClosures monthlyClosures={monthlyClosures} setMonthlyClosures={setMonthlyClosures} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} products={activeProducts} exchangeRate={exchangeRate} logAudit={logAudit} />;
       case "export": return <ExportData
         products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses}
@@ -488,17 +485,14 @@ export default function App() {
                 Blue: <span style={{ color: "#37352F", fontWeight: 700 }}>${exchangeRate}</span>
               </div>
             )}
-            {/* Settings button (ownerOnly) */}
-            {isOwnerUser && (
-              <button onClick={() => setSettingsOpen(true)} aria-label="Configuración"
-                style={{
-                  background: "transparent", border: "1px solid #E8E7E3",
-                  borderRadius: 8, padding: isMobile ? "5px 8px" : "5px 10px",
-                  cursor: "pointer", color: "#8C8A82", fontSize: 14,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  flexShrink: 0, fontFamily: "inherit",
-                }}>⚙️</button>
-            )}
+            <button onClick={() => setSettingsOpen(true)} aria-label="Configuración"
+              style={{
+                background: "transparent", border: "1px solid #E8E7E3",
+                borderRadius: 8, padding: isMobile ? "5px 8px" : "5px 10px",
+                cursor: "pointer", color: "#8C8A82", fontSize: 14,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                flexShrink: 0, fontFamily: "inherit",
+              }}>⚙️</button>
             {/* User badge */}
             <div style={{
               display: "flex", alignItems: "center", gap: isMobile ? 4 : 6,

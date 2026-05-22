@@ -308,12 +308,6 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, c
     });
   }, [monthSales, productsById]);
 
-  // ---- socios ----
-  const diegoSales = monthSales.filter(s => s.createdBy === "Diego");
-  const gustavoSales = monthSales.filter(s => s.createdBy === "Gustavo");
-  const diegoRevenue = calcTotalRevenue(diegoSales, exchangeRate);
-  const gustavoRevenue = calcTotalRevenue(gustavoSales, exchangeRate);
-
   // ---- activity feed (sales + expenses + withdrawals, merged and sorted) ----
   const activityFeed = useMemo(() => {
     const items = [];
@@ -486,12 +480,10 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, c
     const prev3 = [1, 2, 3].map(i => consumoUSDInMonth(i).reduce((s, w) => s + wCost(w), 0));
     const avgPrev3 = prev3.reduce((s, x) => s + x, 0) / 3;
     if (avgPrev3 > 0 && currentTotal > avgPrev3 * 1.5) {
-      const diegoUSD = currentConsumo.filter(w => w.person === "Diego").reduce((s, w) => s + wCost(w), 0);
-      const gusUSD = currentConsumo.filter(w => w.person === "Gustavo").reduce((s, w) => s + wCost(w), 0);
       list.push({
         t: "warning",
         msg: "Consumo propio inusualmente alto este mes",
-        detail: `Diego ${formatMoney(diegoUSD, "USD")} · Gustavo ${formatMoney(gusUSD, "USD")} (prom. anterior ${formatMoney(avgPrev3, "USD")})`,
+        detail: `${formatMoney(currentTotal, "USD")} (prom. anterior ${formatMoney(avgPrev3, "USD")})`,
       });
     }
 
@@ -751,29 +743,6 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, c
         gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
         gap: 16, marginBottom: 16,
       }}>
-        {/* Socios */}
-        <PCard>
-          <SectionLabel icon="🤝">Socios del mes</SectionLabel>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            {[
-              { name: "Diego", count: diegoSales.length, rev: diegoRevenue, accent: T.primary },
-              { name: "Gustavo", count: gustavoSales.length, rev: gustavoRevenue, accent: T.green },
-            ].map(s => (
-              <div key={s.name} style={{
-                padding: "16px 12px", borderRadius: 12,
-                background: `${s.accent}10`, border: `1px solid ${s.accent}30`,
-                textAlign: "center",
-              }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.5 }}>{s.name}</div>
-                <div style={{ fontSize: 28, fontWeight: 800, color: s.accent, fontFamily: T.fontDisplay, letterSpacing: "-0.02em", marginTop: 4 }}>
-                  {s.count}
-                </div>
-                <div style={{ fontSize: 12, color: T.textSub, marginTop: 2 }}>{formatMoney(s.rev)}</div>
-              </div>
-            ))}
-          </div>
-        </PCard>
-
         {/* Brand donut */}
         <PCard>
           <SectionLabel icon="📊">Ventas por marca</SectionLabel>

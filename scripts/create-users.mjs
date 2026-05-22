@@ -18,7 +18,6 @@ const auth = getAuth(app);
 
 const users = [
   { email: "dcontro20@gmail.com", password: "Poncharelo20!" },
-  { email: "dcontro20@hotmail.com", password: "Gus2026!" },
 ];
 
 for (const u of users) {

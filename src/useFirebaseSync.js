@@ -79,7 +79,7 @@ export function useFirebaseSync() {
   const lastFirestoreData = useRef({});
   // lastWriteAt[key] = timestamp ms del último smartSave hacia Firestore.
   // Se compara contra el momento en que llega un onSnapshot con data distinta:
-  // si la diferencia es < 3s, hay alta chance de concurrent edit con el otro socio.
+  // si la diferencia es < 3s, hay alta chance de concurrent edit (otra pestaña o dispositivo).
   const lastWriteAt = useRef({});
   const initialLoadDone = useRef({});
   const firestoreReady = useRef(false);
@@ -149,13 +149,13 @@ export function useFirebaseSync() {
           const serialized = JSON.stringify(data);
           // Detector de concurrent edit: si el contenido nuevo es distinto al que
           // teníamos como lastFirestoreData Y nosotros escribimos hace <3s, es
-          // probable que el otro socio haya escrito en paralelo y nuestro write
+          // probable que otra pestaña/dispositivo haya escrito en paralelo y nuestro write
           // perdió contra el suyo (o viceversa).
           const prev = lastFirestoreData.current[key];
           const lastWrite = lastWriteAt.current[key] || 0;
           const recentlyWrote = (Date.now() - lastWrite) < 3000;
           if (prev !== undefined && prev !== serialized && recentlyWrote && initialLoadDone.current[key]) {
-            console.warn(`[SYNC] Concurrent edit detectado en "${key}" — otro socio escribió en paralelo`);
+            console.warn(`[SYNC] Concurrent edit detectado en "${key}" — otra sesión escribió en paralelo`);
             try {
               window.dispatchEvent(new CustomEvent("izn:concurrent-edit", {
                 detail: { key, at: new Date().toISOString() },

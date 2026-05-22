@@ -2,7 +2,7 @@
 
 ## Qué es este proyecto
 
-Sistema web de gestión completa para "Imports Zona Norte", un negocio de importación y reventa de vapes electrónicos operado por Diego Contró y su socio Gustavo desde zona norte de Buenos Aires. La app está deployada en Vercel y usa Firebase Firestore como base de datos en tiempo real para que ambos socios puedan operar simultáneamente desde cualquier dispositivo.
+Sistema web de gestión completa para "Imports Zona Norte", un negocio de importación y reventa de vapes electrónicos operado por Diego Contró desde zona norte de Buenos Aires. Diego es **100% dueño** del negocio (single-user app desde 2026-05-22 — ex-socio Gustavo dejó de ser parte). La app está deployada en Vercel y usa Firebase Firestore como base de datos en tiempo real para operar desde cualquier dispositivo.
 
 **URL de producción:** https://imports-zona-norte.vercel.app
 **Repositorio:** github.com/dcontro20/imports-zona-norte
@@ -15,7 +15,7 @@ Sistema web de gestión completa para "Imports Zona Norte", un negocio de import
 - **Frontend:** React 18 con Vite 5
 - **Base de datos:** Firebase Cloud Firestore (proyecto `imports-zona-norte`, región `southamerica-east1`)
 - **Hosting:** Vercel (deploy automático desde GitHub)
-- **Testing:** Vitest (23 tests de cálculos financieros)
+- **Testing:** Vitest (183 tests puros: calcs.js, pricing.js, productIntelligence.js)
 - **Estilo:** CSS-in-JS inline (no hay framework CSS externo). Tokens centralizados en `src/theme.js`.
 - **Diseño:** tema oscuro profesional (#0F172A fondo, #1E293B cards, #334155 bordes), acentos violeta (#6366f1), verde (#22C55E), rojo (#EF4444), ámbar (#F59E0B). Tipografía Rubik + Nunito Sans.
 - **API externa:** dolarapi.com para cotización blue venta automática
@@ -31,36 +31,54 @@ imports-zona-norte/
 ├── vite.config.js          # Plugin React + manual chunks (firebase, react separados)
 ├── .gitignore
 └── src/
-    ├── main.jsx            # ReactDOM.createRoot
-    ├── App.jsx             # Layout, nav, login, routing, ErrorBoundary, QuickSale FAB
-    ├── useFirebaseSync.js  # Custom hook: toda la lógica de sync Firebase ↔ localStorage
-    ├── AppContext.js        # React Context: currentUser, exchangeRate, logAudit, logStock
-    ├── firebase.js         # Config Firebase + helpers saveToFirestore/subscribeToFirestore
-    ├── constants.js        # DEFAULT_PRODUCTS (catálogo ~240 productos), BRANDS, CATEGORIES
-    ├── helpers.js          # loadData, uid, formatMoney, formatDate
-    ├── calcs.js            # Funciones puras de cálculo financiero (testeadas)
-    ├── calcs.test.js       # 23 tests unitarios (vitest)
+    ├── main.jsx                    # ReactDOM.createRoot
+    ├── App.jsx                     # Layout, nav, login, routing, ErrorBoundary, FABs (QuickSale + QuickWithdrawal)
+    ├── useFirebaseSync.js          # Custom hook: toda la lógica de sync Firebase ↔ localStorage
+    ├── useSettings.js              # Hook que consume settings.js y re-renderiza on change
+    ├── AppContext.js               # React Context: currentUser, exchangeRate, logAudit, logStock
+    ├── firebase.js                 # Config Firebase + helpers saveToFirestore/subscribeToFirestore + Auth
+    ├── constants.js                # Re-export agregador (BRANDS, CHANNELS, DEFAULT_PRODUCTS, etc.)
+    ├── constants/                  # Constantes del dominio modularizadas
+    │   ├── brands.js               # BRANDS + BRAND_COLORS
+    │   ├── enums.js                # CHANNELS, PAYMENT_METHODS, MP_ACCOUNTS, WITHDRAW_PERSONS
+    │   ├── products.js             # DEFAULT_PRODUCTS (~240 sabores pre-cargados)
+    │   └── warranty.js             # FAILURE_REASONS + helper isGarantia
+    ├── helpers.js                  # uid, formatMoney, formatDate, loadData (sin saveData — ver anti-loop)
+    ├── settings.js                 # Settings configurables (thresholds) en localStorage + DEFAULT_SETTINGS
+    ├── theme.js                    # Tokens T (surfaces/text/status), AVATAR_PALETTE, pickAvatarColor
+    ├── calcs.js                    # Funciones puras de cálculo financiero (calcMonthSummary, calcPartnerBalances, etc.)
+    ├── calcs.test.js               # 96 tests financieros
+    ├── productIntelligence.js      # S15: 15 funciones puras (ABC, turnover, cross-sell, elasticidad)
+    ├── productIntelligence.test.js # 38 tests
+    ├── pricing.js                  # S16: 17 funciones puras (cupones, bundles, descuentos por volumen/tier)
+    ├── pricing.test.js             # 49 tests
     └── components/
-        ├── UI.jsx           # Card, Badge, Btn, StatCard, Modal, Input, Select, Table, SearchBar
-        ├── Dashboard.jsx    # KPIs, alertas inteligentes, balance cuentas, top productos
-        ├── Products.jsx     # CRUD productos: marca, modelo, sabor, puffs, stock, precio USD/ARS
-        ├── Sales.jsx        # Ventas: cascading picker, pago mixto, deudas, precio custom, repetir
-        ├── QuickSale.jsx    # Venta rápida mobile: buscar → qty → pagar → listo (FAB flotante)
-        ├── Purchases.jsx    # Importaciones: proveedor, estados, costos USDT
-        ├── Clients.jsx      # Clientes: nombre, teléfono, Instagram, balance, historial
-        ├── Expenses.jsx     # Gastos por categoría
-        ├── Withdrawals.jsx  # Consumo propio (mermas): Diego/Gustavo, descuenta stock
-        ├── CashBox.jsx      # Caja multi-moneda + cierre de caja diario
-        ├── Reports.jsx      # Reportes, márgenes, punto de equilibrio (break-even)
-        ├── WhatsApp.jsx     # Mensaje de stock: modo Completo + modo Stories (corto)
-        ├── Partners.jsx     # División 50/50 Diego & Gustavo (usa calcs.js)
-        ├── Closures.jsx     # Cierres mensuales: foto financiera del mes
-        ├── Export.jsx       # Exportar CSVs + backup JSON
-        ├── PriceLog.jsx     # Editor masivo de precios por modelo + historial
-        ├── StockLog.jsx     # Log de movimientos de stock (entradas, salidas, ajustes)
-        ├── ExchangeMonitor.jsx # Monitor cotizaciones: Blue, Oficial, MEP, USDT en tiempo real
-        ├── AuditLog.jsx     # Registro de auditoría (acciones por usuario)
-        └── Trash.jsx        # Papelera: soft-delete, restaurar, limpieza automática 30 días
+        ├── UI.jsx                  # Card, Badge, Btn, StatCard, Modal, Input, Select, Table, SearchBar, FormRow
+        ├── Dashboard.jsx           # KPIs, alertas inteligentes, balance cuentas, top productos
+        ├── Products.jsx            # CRUD productos (con costUSDT, badges S15, default filter "Con stock")
+        ├── Sales.jsx               # Ventas: cascading picker, pago mixto, deudas, precio custom, repetir, cupones
+        ├── QuickSale.jsx           # Venta rápida mobile: buscar → qty → pagar → listo (FAB flotante)
+        ├── QuickWithdrawal.jsx     # Merma rápida mobile: 2 toques desde FAB (consumo propio)
+        ├── Purchases.jsx           # Importaciones: proveedor, estados, costos USDT, tracking lotes
+        ├── Clients.jsx             # Clientes: cards con avatar, contact chips, historial sparkline, tier VIP
+        ├── Expenses.jsx            # Gastos por categoría
+        ├── Withdrawals.jsx         # Consumo propio (mermas): Diego/Gustavo, descuenta stock, guard mes cerrado
+        ├── CashBox.jsx             # Caja multi-moneda + cierre de caja diario + conciliación
+        ├── Reports.jsx             # Reportes, márgenes, break-even, Inteligencia de Producto (S15), elasticidad
+        ├── WhatsApp.jsx            # Mensaje de stock: modo Completo + modo Stories (corto)
+        ├── Partners.jsx            # "Mi Cartera": patrimonio + ROI + rendimiento + retiros (Diego 100%)
+        ├── Closures.jsx            # Cierres mensuales: foto financiera del mes + detector inconsistencias
+        ├── Export.jsx              # Exportar CSVs + backup JSON + libro mayor contable
+        ├── PriceLog.jsx            # Editor masivo de precios por modelo + historial
+        ├── StockLog.jsx            # Log de movimientos de stock (entradas, salidas, ajustes)
+        ├── ExchangeMonitor.jsx     # Cotizaciones (Blue/Oficial/MEP/USDT) + cards exchanges preferidos
+        ├── AuditLog.jsx            # Registro de auditoría (acciones por usuario)
+        ├── Coupons.jsx             # S16: Hub de promos — cupones formales + bundles/combos
+        ├── SettingsModal.jsx       # Configuración de thresholds (alertas, límites, recordatorios)
+        ├── Trash.jsx               # Papelera: soft-delete, restaurar (incl. cupón usedCount), purge 30d
+        ├── cash/                   # Modularización CashBox (MovementForm, shared helpers)
+        ├── clients/                # Modularización Clients (HistoryModal, primitives, helpers)
+        └── sales/                  # Modularización Sales (SaleCard)
 ```
 
 ---
@@ -78,15 +96,12 @@ const firebaseConfig = {
 };
 ```
 
-**Reglas Firestore:** (open access, sin autenticación)
-```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /{document=**} { allow read, write: if true; }
-  }
-}
-```
+**Reglas Firestore:** cerradas — solo Diego puede leer/escribir.
+- Owner (`dcontro20@gmail.com`): acceso total y único
+- Cualquier otro email autenticado o anónimo: denied
+- Deploy: `firebase deploy --only firestore:rules`
+
+**Auth:** Firebase Auth email/password. Setup documentado en `docs/FIREBASE_AUTH_SETUP.md`. Usuarios creados con `scripts/create-users.mjs`.
 
 **Colección principal:** `appData` — cada documento es una key (products, sales, purchases, clients, expenses, withdrawals, cashMovements, stockLog, priceLog, monthlyClosures, partnerWithdrawals, exchangeRate, auditLog). Cada doc tiene:
 - `data`: string JSON con el array/valor
@@ -174,10 +189,17 @@ La API de dolarapi.com solo actualiza el exchangeRate si Firestore no mandó uno
 - 3 tipos: consumo propio, garantías, canjes
 - Descuenta stock, calcula valor estimado perdido
 
-### Socios (Partners)
-- Usa `calcPartnerBalances()` de calcs.js (testeado)
-- Normaliza todas las monedas a ARS antes de calcular
-- División 50/50 automática con historial de retiros
+### Mi Cartera (Partners)
+- Dashboard personal de Diego (100% dueño). Reemplazó el módulo "Socios" tras la salida de Gustavo.
+- **Patrimonio total**: cash ARS + USDT@rate + USD@rate + stock a costo (donut de composición)
+- **ROI del período**: ganancia neta / capital invertido (compras + stock actual)
+- **Rendimiento mensual**: bar chart 12 meses (revenue + ganancia operativa)
+- **Evolución patrimonio**: línea acumulada con gradiente
+- **3 cards**: lo que me llevé / capital trabajando / podés retirar (70% del balance)
+- **Saldos por cuenta**: 5 cuentas (mpDiego, lemonPesos, lemonUSDT, usdCash, pesosCash) reusando `calcAccountBalance`
+- **Saldos clientes**: deudas + créditos pendientes
+- **Modal retiro/aporte** con toggle y hint contextual
+- Usa `calcPartnerBalances()` y `calcMonthSummary()` de calcs.js (mismo path, simplificado para single-user)
 
 ### Cierres mensuales
 - Foto financiera del mes: ingresos, costos, gastos, merma, ganancia neta
@@ -228,17 +250,23 @@ La API de dolarapi.com solo actualiza el exchangeRate si Firestore no mandó uno
 - Papelera muestra items borrados con opción de restaurar
 
 ### Login
-- Contraseña simple por socio (sessionStorage)
-- Diego: `Poncharelo20!`, Gustavo: `Gus2026!`
-- Sin Firebase Auth (reglas abiertas)
+- Firebase Auth con email/password — Diego es único usuario (owner).
+- Setup en `docs/FIREBASE_AUTH_SETUP.md`; scripts en `scripts/create-users.mjs`
+
+### Single-user (post 2026-05-22)
+- Gustavo dejó de ser socio. Diego es 100% dueño.
+- Todos los conceptos de "splits 50/50", roles owner/manager y dual partner se eliminaron.
+- `calcPartnerBalances` mantiene la firma pero `halfProfit === netProfitComun` y los campos `gustavo*` quedan en 0 por compat con consumers (Dashboard, Reports, Closures).
+- Las cuentas MP Gustavo / mpGustavo, WITHDRAW_PERSONS["Gustavo"], el filtro "Por socio" del libro de caja, las cards "Socios del mes" del Dashboard, los breakdowns Diego/Gustavo en Withdrawals/Reports — todos eliminados.
+- Existe `scripts/migrate-remove-gustavo.mjs` con modos `--dry-run` y `--apply` por si hubiera data histórica que reasignar (en la corrida del 2026-05-22 detectó 0 registros).
 
 ---
 
 ## Problemas conocidos pendientes
 
-1. **Reglas Firestore abiertas** — `allow read, write: if true`. Funciona pero no tiene seguridad. Idealmente agregar Firebase Auth con un login simple
-2. **Out of Memory potencial** — constants.js carga ~240 productos. Si el catálogo crece mucho, considerar paginación
-3. **Sin tests de componentes** — Solo hay tests de funciones puras (calcs.js). Los componentes React no tienen tests
+1. **Field-level Firestore writes (deuda técnica S14.3)** — El path actual hace full-doc replace por key en `appData`. Si Diego y Gustavo editan el mismo array simultáneamente, una escritura puede pisar a la otra. Mitigado con detección informativa (toast S14.2), pero el refactor a writes granulares está diferido a sprint dedicado.
+2. **Out of Memory potencial** — `constants/products.js` carga ~240 productos. Si el catálogo crece mucho, considerar paginación.
+3. **Sin tests de componentes** — Solo hay tests de funciones puras (183 tests en `calcs.test.js`, `pricing.test.js`, `productIntelligence.test.js`). Los componentes React no tienen tests.
 
 ---
 
@@ -256,13 +284,15 @@ La API de dolarapi.com solo actualiza el exchangeRate si Firestore no mandó uno
 
 ### Ya implementados (antes eran pendientes)
 - [x] Responsive mejorado para mobile (useResponsive hook, sidebar overlay, padding adaptivo)
-- [x] Venta rápida desde mobile (QuickSale.jsx con FAB)
+- [x] Venta rápida desde mobile (QuickSale.jsx con FAB) + Merma rápida (QuickWithdrawal.jsx)
 - [x] Alertas de reposición cuando un sabor popular se agota
 - [x] Proyección de stock por velocidad de venta (≤7 días)
 - [x] Registro de deudas (balance por cliente en Sales)
 - [x] Cierre de caja diario (CashBox.jsx)
 - [x] Plantillas de mensaje WhatsApp (Completo + Stories)
 - [x] Punto de equilibrio (Reports.jsx break-even)
+- [x] Backup automático programado (LaunchAgent diario 3:03 AM ART, ver `scripts/BACKUP_SETUP.md`)
+- [x] Settings configurables (thresholds de alertas) — SettingsModal.jsx + settings.js
 
 ---
 
@@ -282,7 +312,8 @@ La API de dolarapi.com solo actualiza el exchangeRate si Firestore no mandó uno
 - Fechas con `formatDate()` (DD/MM/YY)
 - Hook `useResponsive()` exportado desde App.jsx para breakpoints mobile/tablet/desktop
 - No hay router — navegación por variable `page` + renderPage()
-- Login por contraseña simple (sessionStorage)
+- Login con Firebase Auth email/password (`docs/FIREBASE_AUTH_SETUP.md`)
+- Settings configurables vía `useSettings()` hook (lee de localStorage, re-renderiza en `izn:settings-changed`)
 
 ---
 
@@ -305,7 +336,7 @@ A partir del 14/04/2026, GitHub está sincronizado y es la fuente de verdad del 
 
 ---
 
-## Estado del proyecto al 29/04/2026
+## Estado del proyecto al 22/05/2026
 
 ### 📋 Plan maestro de mejoras S14–S22
 
@@ -418,6 +449,89 @@ Cambios estructurales:
 Diferidos: 16.12 (happy hour), 16.14 (recomendador, ya cubierto por
 elasticidad S15.12), 16.15 (cantidad-objetivo), 16.16 (A/B precios),
 16.17 (escasez automática). Documentados con justificación.
+
+### 🩹 Polish post-S16 + auditoría sistémica (29/04/2026 noche → 22/05/2026)
+
+Después de cerrar S16, antes de entrar a S17, ronda corta de mobile polish
+y auditoría cruzada de bugs de integridad. **5 commits, 183/183 tests OK.**
+
+**Auditoría cross-module (`27158e1`) — 3 bugs reales encontrados:**
+1. **Cupón `usedCount` drift al editar/borrar venta** — solo se incrementaba al
+   crear. Fix simétrico en Sales (`deleteSale` decrementa, edit detecta cambio
+   de código y ajusta delta) + Trash (`restore` y `bulkRestore` re-incrementan
+   al restaurar). App.jsx pasa `coupons` + `setCoupons` a Trash.
+2. **Withdrawals sin guard de mes cerrado** — Sales/Purchases/Expenses ya
+   tenían el guard S14.5, pero mermas no. Como las mermas son COGS y afectan
+   `calcMonthSummary`, podían modificar un mes cerrado sin confirmación.
+   Fix: `Withdrawals` ahora recibe `monthlyClosures` y pide confirm explícito
+   al editar/borrar items de mes cerrado.
+3. **Cupón usedCount al borrar venta** — variante del bug #1 en `deleteSale`.
+
+Validaciones positivas (sin bug): Sales→Stock simétrico, balance cliente
+con `reverseSaleBalanceDelta` puro, Purchases→Stock solo si verificado,
+CashBox vuelto-como-crédito no descuenta de caja, mermas separadas del net
+profit (S14.6), `setState(prev =>)` en todos los setters críticos.
+
+**Mobile-first polish:**
+- `8d898be` Products mobile-friendly + remover badges Slow/Dead (poco
+  accionables en lista; la info detallada vive en Reports → ABC + Salud).
+- `da123c3` Stock arranca filtrado por "Con stock" (Diego prefiere ver
+  disponible primero). Chip "Con stock" → "Todos" → "Sin stock".
+- `2617bdb` ExchangeMonitor mobile-friendly (CSS grid auto-fit, sin overflow
+  en 375px) + nuevo bloque "USDT/ARS por Exchange" con 6 exchanges curados
+  (Lemon, Binance, Ripio, Buenbit, Belo, Fiwind), badge "MEJOR" automático,
+  "Ver todos (N)" expande la tabla completa de CriptoYa.
+- `becf1bc` Fix bid/ask invertidos en cotizaciones USDT + usar precio sin
+  fees (ahora coincide con lo que Lemon muestra a Diego en la app).
+
+### 🚪 Salida de Gustavo + rediseño "Mi Cartera" (22/05/2026)
+
+Gustavo dejó de ser socio. Diego es ahora **único dueño 100%**. Refactor en 4 fases:
+
+**Fase 1 — Migración data Firestore** (`scripts/migrate-remove-gustavo.mjs`):
+Script con modos dry-run + --apply para reasignar `createdBy`/`person`/`mpAccount`
+de "Gustavo" → "Diego". Corrido en dry-run contra prod: 0 registros afectados
+(Gustavo nunca llegó a usar el sistema). El script queda para auditoría.
+
+**Fase 2 — Limpieza backend** (`ce0ad2e`):
+- `constants/enums.js`: MP_ACCOUNTS y WITHDRAW_PERSONS solo Diego
+- `calcs.js`: VALID_PARTNERS=["Diego"], `calcPartnerBalances` ya no hace split.
+  Diego se queda con todo. Campos `gustavo*` mantenidos en 0 por compat.
+- `firebase.js`: USER_PROFILES solo Diego. isOwner/canDelete siempre true.
+- `firestore.rules`: eliminado `isManager()`. Solo `dcontro20@gmail.com` permitido.
+- `App.jsx`: eliminados flags `ownerOnly` de NAV_ITEMS. "Socios" → "Mi Cartera" 💼.
+- `useFirebaseSync.js`: detector concurrent edit dice "otra sesión" en vez de "otro socio".
+- Tests refactorizados: 182/182 pasando (antes 183, eliminé "acepta Gustavo").
+
+**Fase 3 — Limpieza UI** (`d2b664b`):
+- `cash/shared.js`: removido mpGustavo de ACCOUNTS, ACCOUNT_METHOD_MAP, INITIAL_BALANCES.
+- `cash/MovementForm.jsx`: removido filtro "Por socio" del libro mayor.
+- `Sales.jsx`, `QuickSale.jsx`: resolveAccount simplificado (MP siempre va a mpDiego).
+- `Withdrawals.jsx`: removidos StatCard Gustavo, breakdown Diego/Gustavo,
+  filtro person + select pills.
+- `Dashboard.jsx`: removida card "Socios del mes". Alert consumo alto sin split.
+- `Reports.jsx`: KPIs del mes 4→3 cols. Card "Gustavo" reemplazada por "Mi consumo".
+
+**Fase 4 — Rediseño Partners → Mi Cartera** (`0909ae8`):
+Reescritura completa del módulo Partners.jsx (392→646 líneas) como dashboard
+financiero personal de Diego. Contenido:
+- Header "💼 Mi Cartera" + period selector (YTD / 12m / Todo)
+- **Patrimonio total** (hero con donut): cash ARS + USDT@rate + USD@rate + stock a costo.
+  Composición visual con %. Stock a precio venta y potencial.
+- **Saldos por cuenta**: grid de las 5 cuentas con balance ARS-equivalente.
+- **ROI del período**: ganancia / capital invertido. Side-by-side con desglose
+  (revenue − costos − gastos − mermas − consumo = neto).
+- **Rendimiento mensual**: bar chart 12m con revenue + ganancia.
+- **Evolución patrimonio**: línea acumulada de ganancia operativa con gradiente.
+- **3 cards resumen**: lo que me llevé / capital trabajando / podés retirar
+  (70% del balance, deja 30% como capital de trabajo).
+- **Saldos clientes**: deudas + créditos pendientes (visible si hay).
+- **Histórico**: tabla retiros + aportes, filtra `_historicalArchived` (futuro-proof).
+- **Modal**: toggle retiro/aporte con hint contextual.
+
+App.jsx pasa `products`, `cashMovements`, `clients` al componente para que
+calcule patrimonio. Reusa `calcAccountBalance` y `calcMonthSummary` ya
+existentes para mantener fuente única de verdad.
 
 ### 🏁 Big push 23-24 abril (docs/SESSION_2026-04-23_to_24_big_push.md)
 
