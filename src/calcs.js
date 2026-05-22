@@ -52,10 +52,11 @@ export function calcTotalExpenses(expenses) {
 export const CONSUMO_PERSONAL_TYPE = "Consumo propio";
 
 /**
- * Socios válidos del negocio. Se usa para validar withdrawals de consumo personal
- * y evitar que se pierdan silenciosamente por typos en el campo person.
+ * Personas válidas para registrar consumo personal. Diego es el único dueño
+ * 100% del negocio — esta lista existe solo para validar el campo `person`
+ * en withdrawals y evitar typos.
  */
-export const VALID_PARTNERS = ["Diego", "Gustavo"];
+export const VALID_PARTNERS = ["Diego"];
 
 export function isValidPartner(person) {
   return VALID_PARTNERS.includes(person);
@@ -93,10 +94,10 @@ export function calcMermasComunesARS(withdrawals, exchangeRate) {
 }
 
 /**
- * Suma del costo de consumo PERSONAL de un socio (Diego o Gustavo).
- * Lo que ese socio se fumó/usó individualmente. Devuelve ARS.
+ * Suma del costo de consumo PERSONAL de Diego (único dueño).
+ * Lo que él se fumó/usó individualmente. Devuelve ARS.
  *
- * Si person no es un socio válido (typo, ej "Diegoo"), retorna 0.
+ * Si person no es válido (typo, ej "Diegoo"), retorna 0.
  * Adicionalmente, si hay withdrawals con person inválido en consumo personal,
  * se loguea warning para que se detecte y arregle el dato.
  */
@@ -135,22 +136,16 @@ export function calcNetProfit(sales, purchases, expenses, withdrawals, exchangeR
 }
 
 /**
- * Calculate partner balances con reparto JUSTO entre socios.
+ * Calcula el balance del dueño (Diego, 100%).
  *
- * El consumo personal de cada socio se imputa 100% a su saldo individual,
- * no al pozo común. Las mermas comunes (garantías, regalos) sí afectan al
- * pozo común y se reparten 50/50.
+ * Desde la salida de Gustavo, no hay split — Diego se queda con todo.
+ * Se mantiene la firma y los nombres de los campos para no romper consumers
+ * (Dashboard, Reports, Closures), pero los campos `gustavo*` y `halfProfit`
+ * quedan como compat: `halfProfit === netProfitComun` y los `gustavo*` son 0.
  *
- * Pozo común:
+ * Pozo del dueño:
  *   netProfitComun = revenue - costs - expenses - mermasComunes
- *   halfProfit = netProfitComun / 2  (lo que le toca a cada socio)
- *
- * Por socio:
- *   diegoBalance   = halfProfit - consumoPersonalDiego   - retirosDiego
- *   gustavoBalance = halfProfit - consumoPersonalGustavo - retirosGustavo
- *
- * Devuelve también `netProfit` (incluye consumo personal) por compat con
- * Dashboard/Reports que muestran la ganancia total del negocio.
+ *   diegoBalance   = netProfitComun - consumoPersonalDiego - retirosDiego
  */
 export function calcPartnerBalances(sales, purchases, expenses, withdrawals, partnerWithdrawals, exchangeRate) {
   const revenue = calcTotalRevenue(sales, exchangeRate);
@@ -158,48 +153,41 @@ export function calcPartnerBalances(sales, purchases, expenses, withdrawals, par
   const expensesTotal = calcTotalExpenses(expenses);
   const mermasComunes = calcMermasComunesARS(withdrawals, exchangeRate);
   const consumoDiego = calcConsumoPersonalARS(withdrawals, "Diego", exchangeRate);
-  const consumoGustavo = calcConsumoPersonalARS(withdrawals, "Gustavo", exchangeRate);
 
   const netProfitComun = revenue - costs - expensesTotal - mermasComunes;
-  const netProfit = netProfitComun - consumoDiego - consumoGustavo; // ganancia neta TOTAL
-  const halfProfit = netProfitComun / 2;
+  const netProfit = netProfitComun - consumoDiego;
 
   const rateForWithdrawals = safeRate(exchangeRate);
-  const calcWithdrawalTotal = (person) =>
-    partnerWithdrawals
-      .filter(w => !w.isDeleted && w.person === person)
-      .reduce((sum, w) => {
-        if (w.currency === "USD" || w.currency === "USDT") return sum + w.amount * rateForWithdrawals;
-        return sum + w.amount;
-      }, 0);
-
-  const diegoTotal = calcWithdrawalTotal("Diego");
-  const gustavoTotal = calcWithdrawalTotal("Gustavo");
-  const totalWithdrawn = diegoTotal + gustavoTotal;
+  const diegoTotal = (partnerWithdrawals || [])
+    .filter(w => !w.isDeleted && w.person === "Diego")
+    .reduce((sum, w) => {
+      if (w.currency === "USD" || w.currency === "USDT") return sum + w.amount * rateForWithdrawals;
+      return sum + w.amount;
+    }, 0);
 
   return {
-    // Pozo común
+    // Pozo del dueño
     revenue,
     costs,
     expensesTotal,
     mermasComunes,
     netProfitComun,
-    halfProfit,
+    halfProfit: netProfitComun, // compat: ya no hay split, Diego se lleva todo
 
-    // Por socio
+    // Diego
     consumoDiego,
-    consumoGustavo,
-    diegoTotal,           // retiros en plata
-    gustavoTotal,
-    totalWithdrawn,
+    diegoTotal,
+    diegoBalance: netProfitComun - consumoDiego - diegoTotal,
 
-    // Saldos: lo que le toca a cada uno - su consumo personal - sus retiros
-    diegoBalance: halfProfit - consumoDiego - diegoTotal,
-    gustavoBalance: halfProfit - consumoGustavo - gustavoTotal,
+    // Compat (ex-Gustavo, ahora siempre 0)
+    consumoGustavo: 0,
+    gustavoTotal: 0,
+    gustavoBalance: 0,
+    totalWithdrawn: diegoTotal,
 
     // Compat con código existente
     netProfit,
-    profitRemaining: netProfitComun - totalWithdrawn,
+    profitRemaining: netProfitComun - diegoTotal,
   };
 }
 
@@ -341,7 +329,7 @@ export function validateWithdrawalForm(form, products = [], sales = [], clients 
   if (!form.productId) return "Seleccioná un producto";
   const prod = products.find(p => p.id === form.productId);
   if (!prod) return "El producto seleccionado no existe";
-  if (!form.person) return "Indicá quién (Diego o Gustavo)";
+  if (!form.person) return "Indicá quién consumió (Diego)";
   if (!form.withdrawType) return "Indicá el tipo de merma";
   const qty = Number(form.qty);
   if (!qty || qty <= 0) return "La cantidad debe ser mayor a 0";
@@ -486,12 +474,11 @@ function filterByMonth(items, month, dateField = "date") {
  *
  * Definiciones contables (alineadas con calcPartnerBalances):
  *   - mermasComunes  = consumo NO personal (garantías, regalos, canjes, etc)
- *   - consumoPersonal = sumado por socio, NO afecta el pozo común
+ *   - consumoPersonalDiego = lo que Diego se fumó, NO afecta el pozo operativo
  *   - netProfitOperativo = revenue - costs - expenses - mermasComunes
- *       (es lo que se reparte 50/50 — coincide con netProfitComun de Partners)
- *   - netProfitTotal = netProfitOperativo - consumoPersonalDiego - consumoPersonalGustavo
- *       (ganancia total del negocio descontando incluso lo que los socios
- *        consumieron personalmente — útil para reportes de eficiencia)
+ *       (ganancia operativa, alineada con netProfitComun de calcPartnerBalances)
+ *   - netProfitTotal = netProfitOperativo - consumoPersonalDiego
+ *       (ganancia total descontando lo que Diego consumió personalmente)
  *
  * @param {string} month — "YYYY-MM"
  * @param {object} ctx — { sales, purchases, expenses, withdrawals, products, exchangeRate }
@@ -538,23 +525,19 @@ export function calcMonthSummary(month, ctx) {
   const consumoDiegoUSD = monthWithdrawals
     .filter(w => w.withdrawType === CONSUMO_PERSONAL_TYPE && w.person === "Diego")
     .reduce((s, w) => s + Number(w.costRealUSD || w.costEstimateUSD || 0), 0);
-  const consumoGustavoUSD = monthWithdrawals
-    .filter(w => w.withdrawType === CONSUMO_PERSONAL_TYPE && w.person === "Gustavo")
-    .reduce((s, w) => s + Number(w.costRealUSD || w.costEstimateUSD || 0), 0);
 
   const rate = safeRate(exchangeRate);
   const mermasComunesARS = Math.round(mermasComunesUSD * rate);
   const consumoDiegoARS = Math.round(consumoDiegoUSD * rate);
-  const consumoGustavoARS = Math.round(consumoGustavoUSD * rate);
-  const consumoPersonalARS = consumoDiegoARS + consumoGustavoARS;
-  const totalConsumoUSD = mermasComunesUSD + consumoDiegoUSD + consumoGustavoUSD;
+  const consumoPersonalARS = consumoDiegoARS;
+  const totalConsumoUSD = mermasComunesUSD + consumoDiegoUSD;
   const totalConsumoARS = mermasComunesARS + consumoPersonalARS;
   const totalConsumoUnits = monthWithdrawals.reduce((s, w) => s + (Number(w.qty) || 0), 0);
 
-  // ---- Ganancia (definiciones consistentes con Partners) ----
-  // OPERATIVO: lo que va al pozo común (50/50). NO incluye consumo personal.
+  // ---- Ganancia ----
+  // OPERATIVO: revenue - costs - expenses - mermas comunes. No incluye consumo personal.
   const netProfitOperativo = totalRevenue - totalCostARS - totalExpensesARS - mermasComunesARS;
-  // TOTAL: ganancia neta del negocio descontando todo (incluyendo consumo personal).
+  // TOTAL: descontando además el consumo personal de Diego.
   const netProfitTotal = netProfitOperativo - consumoPersonalARS;
   const marginPctOperativo = totalRevenue > 0
     ? Math.round((netProfitOperativo / totalRevenue) * 100)
@@ -594,16 +577,16 @@ export function calcMonthSummary(month, ctx) {
     mermasComunesARS,
     consumoDiegoUSD,
     consumoDiegoARS,
-    consumoGustavoUSD,
-    consumoGustavoARS,
+    consumoGustavoUSD: 0,   // compat: ex-socio
+    consumoGustavoARS: 0,   // compat: ex-socio
     consumoPersonalARS,
     totalConsumoUSD,
     totalConsumoARS,
     totalConsumoUnits,
 
     // Ganancia (dos vistas)
-    netProfitOperativo,    // lo que se reparte 50/50 — alineado con Partners.netProfitComun
-    netProfitTotal,        // ganancia descontando consumo personal
+    netProfitOperativo,    // alineado con calcPartnerBalances.netProfitComun
+    netProfitTotal,        // ganancia descontando consumo personal de Diego
     marginPctOperativo,
     marginPctTotal,
 

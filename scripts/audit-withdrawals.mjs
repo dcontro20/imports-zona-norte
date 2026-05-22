@@ -10,7 +10,7 @@
 //   4. Posibles duplicados en últimos 30 días (mismo productId+qty+person+type en 5min)
 //   5. Withdrawals sin costRealUSD (datos viejos pre-migración)
 //   6. Total de stock perdido por mes (qty + USD)
-//   7. Reparto de consumo personal por socio
+//   7. Consumo personal acumulado de Diego
 //   8. Garantías legacy sin failedProductId (info, datos pre-rework warranty)
 //   9. failedProductId apuntando a producto inexistente (ERROR)
 //  10. Tasa de falla por modelo en últimos 90 días (>3% con count>=2 = WARN)
@@ -167,15 +167,13 @@ function audit() {
   console.log();
 
   // ============================================
-  // 7. Reparto consumo personal por socio
+  // 7. Consumo personal acumulado de Diego
   // ============================================
-  console.log("=== 7. CONSUMO PERSONAL ACUMULADO por socio ===");
-  ["Diego", "Gustavo"].forEach(person => {
-    const wPers = activeW.filter(w => w.person === person && w.withdrawType === "Consumo propio");
-    const qty = wPers.reduce((s, w) => s + (w.qty || 0), 0);
-    const usd = wPers.reduce((s, w) => s + wCost(w), 0);
-    console.log(`  ${person.padEnd(8)} ${String(qty).padStart(4)} uds consumidas  · $${usd.toFixed(2)} USD`);
-  });
+  console.log("=== 7. CONSUMO PERSONAL ACUMULADO (Diego) ===");
+  const wDiego = activeW.filter(w => w.person === "Diego" && w.withdrawType === "Consumo propio");
+  const qtyDiego = wDiego.reduce((s, w) => s + (w.qty || 0), 0);
+  const usdDiego = wDiego.reduce((s, w) => s + wCost(w), 0);
+  console.log(`  Diego    ${String(qtyDiego).padStart(4)} uds consumidas  · $${usdDiego.toFixed(2)} USD`);
   console.log();
 
   // ============================================
