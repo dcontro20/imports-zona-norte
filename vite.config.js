@@ -9,6 +9,10 @@ export default defineConfig({
         manualChunks: {
           firebase: ['firebase/app', 'firebase/firestore'],
           react: ['react', 'react-dom'],
+          // Chunks pesados que solo se necesitan en SupplierMonitor (lazy)
+          xlsx: ['xlsx'],
+          pdfjs: ['pdfjs-dist'],
+          pdf: ['jspdf'],
         }
       }
     }

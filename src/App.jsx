@@ -52,6 +52,7 @@ const Trash = lazy(() => import("./components/Trash.jsx").then(m => ({ default: 
 const SettingsModal = lazy(() => import("./components/SettingsModal.jsx").then(m => ({ default: m.SettingsModal })));
 const QuickSale = lazy(() => import("./components/QuickSale.jsx").then(m => ({ default: m.QuickSale })));
 const QuickWithdrawal = lazy(() => import("./components/QuickWithdrawal.jsx").then(m => ({ default: m.QuickWithdrawal })));
+const SupplierMonitor = lazy(() => import("./components/SupplierMonitor.jsx").then(m => ({ default: m.SupplierMonitor })));
 
 const LoadingSpinner = () => (
   <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "40px 16px" }}>
@@ -98,6 +99,7 @@ const NAV_ITEMS = [
   { key: "products", label: "Stock", icon: "📦" },
   { key: "sales", label: "Ventas", icon: "🛒" },
   { key: "purchases", label: "Compras", icon: "🚚" },
+  { key: "supplier-monitor", label: "Proveedores", icon: "📋" },
   { key: "clients", label: "Clientes", icon: "👥" },
   { key: "expenses", label: "Gastos", icon: "💸" },
   { key: "withdrawals", label: "Mermas", icon: "📉" },
@@ -357,6 +359,7 @@ export default function App() {
       case "products": return <Products products={products} setProducts={setProducts} priceLog={priceLog} sales={activeSales} />;
       case "sales": return <Sales sales={sales} setSales={setSales} products={products} setProducts={setProducts} logStock={logStock} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} clients={clients} setClients={setClients} cashMovements={cashMovements} setCashMovements={setCashMovements} monthlyClosures={monthlyClosures} coupons={coupons} setCoupons={setCoupons} />;
       case "purchases": return <Purchases purchases={purchases} setPurchases={setPurchases} products={products} setProducts={setProducts} exchangeRate={exchangeRate} logStock={logStock} currentUser={currentUser} logAudit={logAudit} monthlyClosures={monthlyClosures} sales={activeSales} />;
+      case "supplier-monitor": return <SupplierMonitor products={products} setProducts={setProducts} purchases={purchases} setPurchases={setPurchases} sales={activeSales} exchangeRate={exchangeRate} logStock={logStock} currentUser={currentUser} logAudit={logAudit} />;
       case "clients": return <Clients clients={clients} setClients={setClients} sales={activeSales} products={activeProducts} withdrawals={activeWithdrawals} />;
       case "expenses": return <Expenses expenses={expenses} setExpenses={setExpenses} currentUser={currentUser} exchangeRate={exchangeRate} logAudit={logAudit} monthlyClosures={monthlyClosures} />;
       case "withdrawals": return <Withdrawals withdrawals={withdrawals} setWithdrawals={setWithdrawals} products={products} setProducts={setProducts} sales={activeSales} clients={clients} monthlyClosures={monthlyClosures} logStock={logStock} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} />;
