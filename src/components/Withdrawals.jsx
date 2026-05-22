@@ -24,7 +24,6 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
   const [confirmingDup, setConfirmingDup] = useState(null); // { mov, minutes }
   const [submitting, setSubmitting] = useState(false);
   // Filtros del listado
-  const [filterPerson, setFilterPerson] = useState(""); // "", "Diego", "Gustavo"
   const [filterType, setFilterType] = useState("");     // "", tipo
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
@@ -412,7 +411,6 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
   }, [active]);
   const [showMermasReport, setShowMermasReport] = useState(false);
   const totalMine = active.filter(w => w.person === "Diego").reduce((s, w) => s + w.qty, 0);
-  const totalBro = active.filter(w => w.person === "Gustavo").reduce((s, w) => s + w.qty, 0);
   const totalCostUSD = active.reduce((s, w) => s + Number(w.costRealUSD || w.costEstimateUSD || 0), 0);
   const totalConsumo = active.filter(w => !w.withdrawType || w.withdrawType === "Consumo propio").reduce((s, w) => s + w.qty, 0);
   const totalGarantia = active.filter(w => isGarantia(w.withdrawType)).reduce((s, w) => s + w.qty, 0);
@@ -507,8 +505,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
 
       {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit, minmax(140px, 1fr))", gap: isMobile ? 8 : 14, marginBottom: 20 }}>
-        <StatCard label="Diego" value={`${totalMine} uds`} icon="💜" color="#5E6AD2" />
-        <StatCard label="Gustavo" value={`${totalBro} uds`} icon="💙" color="#00b894" />
+        <StatCard label="Mías (Diego)" value={`${totalMine} uds`} icon="💜" color="#5E6AD2" />
         <StatCard label="Consumo" value={`${totalConsumo}`} icon="🚬" color="#e17055" />
         <StatCard label="Garantías" value={`${totalGarantia}`} icon="🔄" color="#fdcb6e" />
         <StatCard label="Regalos" value={`${totalRegalo}`} icon="🎁" color="#00cec9" />
@@ -558,14 +555,10 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
       {activeTab === "consumo" && (() => {
         const consumo = active.filter(w => !w.withdrawType || w.withdrawType === "Consumo propio");
         const diegoC = consumo.filter(w => w.person === "Diego");
-        const gustavoC = consumo.filter(w => w.person === "Gustavo");
         const diegoQty = diegoC.reduce((s, w) => s + (w.qty || 0), 0);
-        const gustavoQty = gustavoC.reduce((s, w) => s + (w.qty || 0), 0);
         const diegoUSD = diegoC.reduce((s, w) => s + (Number(w.costRealUSD || w.costEstimateUSD) || 0), 0);
-        const gustavoUSD = gustavoC.reduce((s, w) => s + (Number(w.costRealUSD || w.costEstimateUSD) || 0), 0);
-        const totalQty = diegoQty + gustavoQty;
-        const totalUSD = diegoUSD + gustavoUSD;
-        const maxQty = Math.max(diegoQty, gustavoQty, 1);
+        const totalQty = diegoQty;
+        const totalUSD = diegoUSD;
         return (
           <Card style={{ marginBottom: 12, background: "#FAFAF9" }}>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "auto 1fr", gap: 14 }}>
@@ -577,13 +570,12 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
               <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0 }}>
                 {[
                   { name: "Diego", qty: diegoQty, usd: diegoUSD, color: "#5E6AD2", icon: "💜" },
-                  { name: "Gustavo", qty: gustavoQty, usd: gustavoUSD, color: "#00b894", icon: "💙" },
                 ].map(p => (
                   <div key={p.name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span style={{ fontSize: 16 }}>{p.icon}</span>
                     <span style={{ fontSize: 13, fontWeight: 600, color: "#37352F", minWidth: 70 }}>{p.name}</span>
                     <div style={{ flex: 1, height: 18, background: "#F0EFEB", borderRadius: 4, overflow: "hidden", minWidth: 60 }}>
-                      <div style={{ width: `${(p.qty / maxQty) * 100}%`, height: "100%", background: p.color, borderRadius: 4, transition: "width 0.3s" }} />
+                      <div style={{ width: `${p.qty > 0 ? 100 : 0}%`, height: "100%", background: p.color, borderRadius: 4, transition: "width 0.3s" }} />
                     </div>
                     <span style={{ fontSize: 13, fontWeight: 700, color: p.color, minWidth: 40, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{p.qty}</span>
                     <span style={{ fontSize: 11, color: "#8C8A82", minWidth: 60, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{formatMoney(p.usd, "USD")}</span>
@@ -697,19 +689,6 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
       {/* Filtros del listado */}
       <Card style={{ marginBottom: 12 }}>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          {/* Persona */}
-          <div style={{ display: "inline-flex", background: "#FAFAF9", borderRadius: 8, padding: 3, border: "1px solid #E8E7E3" }}>
-            {["", "Diego", "Gustavo"].map(p => (
-              <button key={p || "all"} onClick={() => setFilterPerson(p)} style={{
-                padding: "5px 10px", fontSize: 12, fontWeight: 600, border: "none", borderRadius: 6,
-                background: filterPerson === p ? "#FFFFFF" : "transparent",
-                color: filterPerson === p ? "#37352F" : "#8C8A82",
-                boxShadow: filterPerson === p ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
-                cursor: "pointer", fontFamily: "inherit",
-              }}>{p || "Todos"}</button>
-            ))}
-          </div>
-
           {/* Tipo */}
           <select value={filterType} onChange={e => setFilterType(e.target.value)} style={{
             padding: "6px 10px", fontSize: 12, borderRadius: 7,
@@ -772,8 +751,8 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
             }} />
 
           {/* Limpiar */}
-          {(filterPerson || filterType || filterDateFrom || filterDateTo || filterProductSearch) && (
-            <button onClick={() => { setFilterPerson(""); setFilterType(""); setFilterDateFrom(""); setFilterDateTo(""); setFilterProductSearch(""); }}
+          {(filterType || filterDateFrom || filterDateTo || filterProductSearch) && (
+            <button onClick={() => { setFilterType(""); setFilterDateFrom(""); setFilterDateTo(""); setFilterProductSearch(""); }}
               style={{
                 background: "none", border: "none", color: "#8C8A82", fontSize: 12, fontWeight: 500,
                 cursor: "pointer", fontFamily: "inherit", padding: "5px 8px",
@@ -797,7 +776,6 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
 
           // Aplicar filtros dentro del scope del tab
           const filtered = tabScope.filter(w => {
-            if (filterPerson && w.person !== filterPerson) return false;
             if (filterType && w.withdrawType !== filterType) return false;
             const wDate = (w.date || "").slice(0, 10);
             if (filterDateFrom && wDate < filterDateFrom) return false;

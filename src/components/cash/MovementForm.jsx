@@ -363,7 +363,6 @@ const HistoryList = ({ ledger, isMobile, onDelete, confirmDel, currentExchangeRa
   const [accountFilter, setAccountFilter] = useState([]);
   const [typeFilter, setTypeFilter] = useState(""); // "", "income", "expense"
   const [kindFilter, setKindFilter] = useState(""); // "", sale, expense, purchase, movement
-  const [byFilter, setByFilter] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [minAmount, setMinAmount] = useState("");
@@ -377,7 +376,6 @@ const HistoryList = ({ ledger, isMobile, onDelete, confirmDel, currentExchangeRa
     if (accountFilter.length > 0) list = list.filter(e => accountFilter.includes(e.accountId));
     if (typeFilter) list = list.filter(e => e.type === typeFilter);
     if (kindFilter) list = list.filter(e => e.kind === kindFilter);
-    if (byFilter) list = list.filter(e => (e.createdBy || "").toLowerCase() === byFilter.toLowerCase());
     if (dateFrom) list = list.filter(e => (e.date || "").slice(0, 10) >= dateFrom);
     if (dateTo) list = list.filter(e => (e.date || "").slice(0, 10) <= dateTo);
     if (minAmount) list = list.filter(e => e.amount >= Number(minAmount));
@@ -387,14 +385,14 @@ const HistoryList = ({ ledger, isMobile, onDelete, confirmDel, currentExchangeRa
       list = list.filter(e => (e.description || "").toLowerCase().includes(q) || (e.category || "").toLowerCase().includes(q) || (e.account || "").toLowerCase().includes(q));
     }
     return list;
-  }, [ledger, accountFilter, typeFilter, kindFilter, byFilter, dateFrom, dateTo, minAmount, maxAmount, search]);
+  }, [ledger, accountFilter, typeFilter, kindFilter, dateFrom, dateTo, minAmount, maxAmount, search]);
 
   const toggleAccount = (id) => setAccountFilter(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   const clearFilters = () => {
-    setAccountFilter([]); setTypeFilter(""); setKindFilter(""); setByFilter("");
+    setAccountFilter([]); setTypeFilter(""); setKindFilter("");
     setDateFrom(""); setDateTo(""); setMinAmount(""); setMaxAmount(""); setSearch("");
   };
-  const hasFilters = accountFilter.length > 0 || typeFilter || kindFilter || byFilter || dateFrom || dateTo || minAmount || maxAmount || search;
+  const hasFilters = accountFilter.length > 0 || typeFilter || kindFilter || dateFrom || dateTo || minAmount || maxAmount || search;
 
   return (
     <div style={{
@@ -420,7 +418,7 @@ const HistoryList = ({ ledger, isMobile, onDelete, confirmDel, currentExchangeRa
           color: hasFilters ? T.primary : T.textSub,
           fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
         }}>
-          Filtros {hasFilters && `(${accountFilter.length + (typeFilter ? 1 : 0) + (kindFilter ? 1 : 0) + (byFilter ? 1 : 0) + (dateFrom || dateTo ? 1 : 0) + (minAmount || maxAmount ? 1 : 0)})`}
+          Filtros {hasFilters && `(${accountFilter.length + (typeFilter ? 1 : 0) + (kindFilter ? 1 : 0) + (dateFrom || dateTo ? 1 : 0) + (minAmount || maxAmount ? 1 : 0)})`}
         </button>
       </div>
 
@@ -471,14 +469,6 @@ const HistoryList = ({ ledger, isMobile, onDelete, confirmDel, currentExchangeRa
               <option value="">Todos</option>
               <option value="income">Ingresos</option>
               <option value="expense">Egresos</option>
-            </select>
-          </div>
-          <div>
-            <label style={lblStyle}>Por socio</label>
-            <select value={byFilter} onChange={e => setByFilter(e.target.value)} style={selectStyle()}>
-              <option value="">Cualquiera</option>
-              <option value="Diego">Diego</option>
-              <option value="Gustavo">Gustavo</option>
             </select>
           </div>
           <div>

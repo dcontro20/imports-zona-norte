@@ -7,14 +7,12 @@ export const INITIAL_BALANCES = {
   lemonPesos: 273646.62,
   lemonUSDT: 40.12,
   mpDiego: 0,
-  mpGustavo: 0,
   usdCash: 0,
   pesosCash: 120000,
 };
 
 export const ACCOUNTS = [
   { id: "mpDiego",    label: "MP Diego",     short: "MP Diego",   currency: "ARS",  icon: "💜", accent: "#8B5CF6", sub: "Mercado Pago" },
-  { id: "mpGustavo",  label: "MP Gustavo",   short: "MP Gustavo", currency: "ARS",  icon: "💙", accent: "#2383E2", sub: "Mercado Pago" },
   { id: "lemonPesos", label: "Lemon Pesos",  short: "Lemon $",    currency: "ARS",  icon: "🍋", accent: "#CB912F", sub: "Billetera Lemon" },
   { id: "lemonUSDT",  label: "Lemon USDT",   short: "Lemon ₮",    currency: "USDT", icon: "🪙", accent: "#16A34A", sub: "Crypto" },
   { id: "usdCash",    label: "USD Cash",     short: "USD",        currency: "USD",  icon: "💵", accent: "#0F7B6C", sub: "Efectivo físico" },
@@ -64,8 +62,8 @@ export const SUBMIT_DEBOUNCE_MS = 3000;
 
 // Traduce un método de pago (Sales.jsx) al accountId de caja correspondiente.
 // Devuelve "" si el método es desconocido — el caller debe guard contra eso.
-export function payMethodToAccountId(method, mpAccount) {
-  if (method === "Mercado Pago") return mpAccount === "MP Gustavo" ? "mpGustavo" : "mpDiego";
+export function payMethodToAccountId(method) {
+  if (method === "Mercado Pago") return "mpDiego";
   if (method === "Lemon") return "lemonPesos";
   if (method === "USDT") return "lemonUSDT";
   if (method === "USD Cash") return "usdCash";
@@ -76,8 +74,7 @@ export function payMethodToAccountId(method, mpAccount) {
 // Matchers: qué payment method corresponde a qué cuenta.
 // Usado por calcAccountBalance para sumar la porción de cada venta a la cuenta.
 export const ACCOUNT_METHOD_MAP = {
-  mpDiego: (p) => p.method === "Mercado Pago" && p.mpAccount === "MP Diego",
-  mpGustavo: (p) => p.method === "Mercado Pago" && p.mpAccount === "MP Gustavo",
+  mpDiego: (p) => p.method === "Mercado Pago",
   lemonPesos: (p) => p.method === "Lemon",
   lemonUSDT: (p) => p.method === "USDT",
   usdCash: (p) => p.method === "USD Cash",

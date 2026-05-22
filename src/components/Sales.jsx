@@ -31,8 +31,8 @@ const ACCOUNT_MAP = {
   "USD Cash": "usdCash",
   "USDT": "lemonUSDT",
 };
-const resolveAccount = (method, mpAccount) => {
-  if (method === "Mercado Pago") return mpAccount === "MP Diego" ? "mpDiego" : mpAccount === "MP Gustavo" ? "mpGustavo" : "";
+const resolveAccount = (method) => {
+  if (method === "Mercado Pago") return "mpDiego";
   return ACCOUNT_MAP[method] || "";
 };
 

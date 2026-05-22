@@ -181,7 +181,7 @@ export const ExportData = ({
 
   const exportCashMovements = () => {
     const headers = ["Fecha", "Tipo", "Desde", "Hacia", "Monto", "USDT", "Descripción"];
-    const ACCTS = { mpDiego: "MP Diego", mpGustavo: "MP Gustavo", lemonPesos: "Lemon Pesos", lemonUSDT: "Lemon USDT", usdCash: "USD Cash", pesosCash: "Pesos Cash" };
+    const ACCTS = { mpDiego: "MP Diego", lemonPesos: "Lemon Pesos", lemonUSDT: "Lemon USDT", usdCash: "USD Cash", pesosCash: "Pesos Cash" };
     const rows = (cashMovements || []).map(m => [formatDate(m.date), m.type, ACCTS[m.from] || m.from || "", ACCTS[m.to] || m.to || "", m.amount || 0, m.amountUSDT || "", m.description || ""]);
     download("movimientos_caja.csv", toCSV(headers, rows));
   };

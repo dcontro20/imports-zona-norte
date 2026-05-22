@@ -1072,8 +1072,8 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
           const stockUnits = products.reduce((s, p) => s + (p.stock || 0), 0);
           
           // Cash from INITIAL_BALANCES + sales - purchases - expenses
-          const IB = { lemonPesos: 273646.62, lemonUSDT: 40.12, mpDiego: 0, mpGustavo: 0, usdCash: 0, pesosCash: 0 };
-          const totalCashARS = IB.lemonPesos + IB.pesosCash + IB.mpDiego + IB.mpGustavo
+          const IB = { lemonPesos: 273646.62, lemonUSDT: 40.12, mpDiego: 0, usdCash: 0, pesosCash: 0 };
+          const totalCashARS = IB.lemonPesos + IB.pesosCash + IB.mpDiego
             + sales.filter(s => s.currency !== "USD" && s.paymentMethod !== "USDT").reduce((s, sale) => s + (sale.total || 0), 0)
             - expenses.reduce((s, e) => s + (e.amountARS || 0), 0)
             - purchases.reduce((s, p) => s + (p.paseroCostARS || 0) + (p.envioCostARS || 0), 0);
@@ -1169,8 +1169,6 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
           const totalARS = totalUSD * (exchangeRate || 0);
           const diegoQty = monthW.filter(w => w.person === "Diego").reduce((s, w) => s + (w.qty || 0), 0);
           const diegoUSD = monthW.filter(w => w.person === "Diego").reduce((s, w) => s + wCost(w), 0);
-          const gusQty = monthW.filter(w => w.person === "Gustavo").reduce((s, w) => s + (w.qty || 0), 0);
-          const gusUSD = monthW.filter(w => w.person === "Gustavo").reduce((s, w) => s + wCost(w), 0);
 
           // Por tipo (donut)
           const byType = WITHDRAW_TYPES.map(t => ({
@@ -1238,21 +1236,16 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
               )}
 
               {/* KPIs del mes */}
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 8, marginBottom: 14 }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)", gap: 8, marginBottom: 14 }}>
                 <div style={{ background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10, padding: "10px 12px" }}>
                   <div style={{ fontSize: 10, fontWeight: 700, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5 }}>Mes — total</div>
                   <div style={{ fontSize: 18, fontWeight: 800, color: "#37352F", marginTop: 2 }}>{totalQty} uds</div>
                   <div style={{ fontSize: 11, color: "#8C8A82", marginTop: 2 }}>{formatMoney(totalUSD, "USD")} · {formatMoney(Math.round(totalARS))}</div>
                 </div>
                 <div style={{ background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10, padding: "10px 12px" }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5 }}>Diego</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5 }}>Mi consumo</div>
                   <div style={{ fontSize: 18, fontWeight: 800, color: "#a855f7", marginTop: 2 }}>{diegoQty} uds</div>
                   <div style={{ fontSize: 11, color: "#8C8A82", marginTop: 2 }}>{formatMoney(diegoUSD, "USD")}</div>
-                </div>
-                <div style={{ background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10, padding: "10px 12px" }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5 }}>Gustavo</div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: "#00b894", marginTop: 2 }}>{gusQty} uds</div>
-                  <div style={{ fontSize: 11, color: "#8C8A82", marginTop: 2 }}>{formatMoney(gusUSD, "USD")}</div>
                 </div>
                 <div style={{ background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10, padding: "10px 12px" }}>
                   <div style={{ fontSize: 10, fontWeight: 700, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5 }}>Reclamable proveedor</div>
