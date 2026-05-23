@@ -1,70 +1,33 @@
 import { useState, useMemo } from "react";
 import { uid, formatMoney, formatDate } from "../helpers.js";
 import { isDateInClosedMonth } from "../calcs.js";
-import { buildProductSalesStats, suggestPurchaseQty } from "../productIntelligence.js";
-import { Modal, Card, Btn, Input, Select, Table, Badge, StatCard } from "./UI.jsx";
+import { Modal, Card, Btn, Input, Select, Badge, StatCard } from "./UI.jsx";
 import { BRAND_COLORS } from "../constants.js";
 import { useResponsive } from "../App.jsx";
+import {
+  PURCHASE_STATUSES,
+  aggregatePurchaseStats,
+  resolvePurchaseProfile,
+} from "./purchases/purchaseHelpers.js";
+import { activeProfiles } from "../lib/supplierProfiles.js";
+import { ListView } from "./purchases/ListView.jsx";
+import { KanbanBoard } from "./purchases/KanbanBoard.jsx";
 
-// -- PURCHASES --
-const PURCHASE_STATUSES = [
-  { value: "pedido", label: "📋 Pedido", color: "#6c5ce7" },
-  { value: "en_camino", label: "🚚 En camino", color: "#fdcb6e" },
-  { value: "recibido", label: "📦 Recibido", color: "#00cec9" },
-  { value: "verificado", label: "✅ Verificado", color: "#00b894" },
-];
-
+// Vacío del form para crear/editar un Pedido.
 const emptyPurchaseForm = () => ({
-  supplier: "", loteNumber: "", groups: [],
+  supplier: "", supplierProfileId: "", loteNumber: "", groups: [],
   supplierCommPercent: "", supplierCommUSDT: "",
   paseroPercent: "", paseroCostARS: "", envioCostARS: "",
   notes: "", date: new Date().toISOString().slice(0, 10), status: "pedido",
   invoiceUrl: "",
-  statusHistory: [], // [{ status, timestamp, note }]
+  statusHistory: [],
 });
 
-// Alertar atraso si una compra lleva más de N días en este estado
-const STATUS_DELAY_DAYS = { en_camino: 21, recibido: 7 };
-
-// Stepper visual de estados (Pedido → En camino → Recibido → Verificado)
-const PurchaseStepper = ({ status }) => {
-  const currentIdx = PURCHASE_STATUSES.findIndex(s => s.value === status);
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4, marginBottom: 2 }}>
-      {PURCHASE_STATUSES.map((s, i) => {
-        const isPast = i < currentIdx;
-        const isCurrent = i === currentIdx;
-        const isFuture = i > currentIdx;
-        return (
-          <div key={s.value} style={{ display: "flex", alignItems: "center", flex: 1, gap: 4 }}>
-            <div style={{
-              width: 16, height: 16, borderRadius: "50%", flexShrink: 0,
-              background: isPast ? s.color : isCurrent ? s.color : "#E5DAC2",
-              border: isCurrent ? `2px solid ${s.color}` : "none",
-              boxShadow: isCurrent ? `0 0 0 3px ${s.color}33` : "none",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 9, fontWeight: 800, color: "#fff",
-            }}>{isPast ? "✓" : ""}</div>
-            <span style={{
-              fontSize: 10, fontWeight: isCurrent ? 700 : 500,
-              color: isFuture ? "#9AA2B3" : isCurrent ? s.color : "#1E2B4A",
-              whiteSpace: "nowrap",
-            }}>{s.label.replace(/^\S+\s/, "")}</span>
-            {i < PURCHASE_STATUSES.length - 1 && (
-              <div style={{
-                flex: 1, height: 2,
-                background: isPast ? PURCHASE_STATUSES[i + 1].color : "#E5DAC2",
-                margin: "0 2px",
-              }} />
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-};
-
-export const Purchases = ({ purchases, setPurchases, products, setProducts, exchangeRate, logStock, currentUser, logAudit, monthlyClosures = [], sales = [] }) => {
+export const Purchases = ({
+  purchases, setPurchases, products, setProducts, exchangeRate, logStock,
+  currentUser, logAudit, monthlyClosures = [], sales = [],
+  supplierProfiles = [], setSupplierProfiles,
+}) => {
   const { isMobile } = useResponsive();
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -73,26 +36,25 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
   const [costsForm, setCostsForm] = useState({ supplierCommPercent: "", supplierCommUSDT: "", paseroPercent: "", paseroCostARS: "", envioCostARS: "" });
   const [form, setForm] = useState(emptyPurchaseForm());
   const [verifyNote, setVerifyNote] = useState("");
-  const [showSupplierStats, setShowSupplierStats] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
-  // S15.7 — Sugeridor de qty a pedir Paraguay
-  const [showQtySuggestions, setShowQtySuggestions] = useState(false);
-  const [leadTimeDays, setLeadTimeDays] = useState(30);
-  const [coverDays, setCoverDays] = useState(30);
-  const productStats = useMemo(
-    () => buildProductSalesStats(products, sales, exchangeRate),
-    [products, sales, exchangeRate]
-  );
-  const purchaseSuggestions = useMemo(
-    () => suggestPurchaseQty(productStats, { leadTimeDays, coverDays, safetyDays: 7 }),
-    [productStats, leadTimeDays, coverDays]
-  );
-  const suggestionsWithDemand = useMemo(
-    () => purchaseSuggestions.filter(s => s.suggestedQty > 0),
-    [purchaseSuggestions]
-  );
+  // Vista: list | kanban (auto-fuerza list en mobile)
+  const [view, setView] = useState("list");
+  // Filtro por status (null = todos)
+  const [statusFilter, setStatusFilter] = useState(null);
 
-  // Get unique models from products
+  const profiles = useMemo(() => activeProfiles(supplierProfiles), [supplierProfiles]);
+
+  // Stats globales (KPIs del header)
+  const stats = useMemo(() => aggregatePurchaseStats(purchases), [purchases]);
+
+  // Lista filtrada que vamos a pasar a ListView / KanbanBoard
+  const filteredPurchases = useMemo(() => {
+    const active = (purchases || []).filter(p => p && !p.isDeleted);
+    return statusFilter ? active.filter(p => p.status === statusFilter) : active;
+  }, [purchases, statusFilter]);
+
+  // Modelos únicos del catálogo (para el modal nuevo/edit)
   const modelOptions = useMemo(() => {
     const map = {};
     products.forEach(p => {
@@ -103,10 +65,12 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
   }, [products]);
 
   const getFlavorsForModel = (brand, model) => {
-    return products.filter(p => p.brand === brand && p.model === model).map(p => ({ id: p.id, name: p.flavor })).sort((a, b) => a.name.localeCompare(b.name));
+    return products.filter(p => p.brand === brand && p.model === model)
+      .map(p => ({ id: p.id, name: p.flavor }))
+      .sort((a, b) => a.name.localeCompare(b.name));
   };
 
-  // Group helpers
+  // ----- Form group helpers -----
   const addGroup = () => setForm(f => ({ ...f, groups: [...f.groups, { brand: "", model: "", puffs: "", modelKey: "", unitCostUSDT: "", flavors: [] }] }));
   const removeGroup = (gi) => setForm(f => ({ ...f, groups: f.groups.filter((_, i) => i !== gi) }));
   const updateGroup = (gi, field, val) => setForm(f => ({
@@ -119,7 +83,6 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
       return { ...g, [field]: val };
     })
   }));
-
   const addFlavor = (gi) => setForm(f => ({
     ...f, groups: f.groups.map((g, i) => i === gi ? { ...g, flavors: [...g.flavors, { name: "", qty: 1, productId: null, isNew: false }] } : g)
   }));
@@ -140,19 +103,48 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
     })
   }));
 
-  // Calculations
+  // ----- Cálculos vivos del form -----
   const allItems = form.groups.flatMap(g => g.flavors.map(fl => ({ ...fl, unitCostUSDT: g.unitCostUSDT, brand: g.brand, model: g.model, puffs: g.puffs })));
   const totalItems = allItems.reduce((s, i) => s + (Number(i.qty) || 0), 0);
   const productsUSDT = allItems.reduce((s, i) => s + (Number(i.unitCostUSDT) || 0) * (Number(i.qty) || 0), 0);
-  const supplierCommUSDT = form.supplierCommPercent ? Math.round(productsUSDT * (Number(form.supplierCommPercent) / 100) * 100) / 100 : (Number(form.supplierCommUSDT) || 0);
+  const supplierCommUSDT = form.supplierCommPercent
+    ? Math.round(productsUSDT * (Number(form.supplierCommPercent) / 100) * 100) / 100
+    : (Number(form.supplierCommUSDT) || 0);
   const totalUSDTwithComm = productsUSDT + supplierCommUSDT;
-  const paseroARS = form.paseroPercent ? Math.round(totalUSDTwithComm * exchangeRate * (Number(form.paseroPercent) / 100)) : (Number(form.paseroCostARS) || 0);
+  const paseroARS = form.paseroPercent
+    ? Math.round(totalUSDTwithComm * exchangeRate * (Number(form.paseroPercent) / 100))
+    : (Number(form.paseroCostARS) || 0);
   const envioARS = Number(form.envioCostARS) || 0;
   const totalCostARS = Math.round(totalUSDTwithComm * exchangeRate) + paseroARS + envioARS;
 
-  const openNew = () => { setForm(emptyPurchaseForm()); setEditing(null); setModal(true); };
+  // ----- Picker proveedor: al elegir perfil, autocompleta costos defaults -----
+  const handleProfileChange = (profileId) => {
+    setForm(f => {
+      if (!profileId) {
+        return { ...f, supplierProfileId: "", supplier: "" };
+      }
+      const profile = profiles.find(p => p.id === profileId);
+      if (!profile) return f;
+      return {
+        ...f,
+        supplierProfileId: profileId,
+        supplier: profile.name,
+        // Autocompletar solo si el form todavía no tiene valores
+        supplierCommPercent: f.supplierCommPercent || (profile.defaultSupplierCommPercent || "").toString(),
+        paseroPercent: f.paseroPercent || (profile.defaultPaseroPercent || "").toString(),
+        envioCostARS: f.envioCostARS || (profile.defaultEnvioCostARS ? profile.defaultEnvioCostARS.toString() : ""),
+      };
+    });
+  };
+
+  // ----- Acciones principales -----
+  const openNew = () => {
+    setForm(emptyPurchaseForm());
+    setEditing(null);
+    setModal(true);
+  };
+
   const openEdit = (p) => {
-    // S14.5 — guard mes cerrado
     if (isDateInClosedMonth(monthlyClosures, p.date)) {
       const proceed = confirm(
         `⚠️ Esta compra es de un mes YA CERRADO (${(p.date || "").slice(0, 7)}).\n\n` +
@@ -173,8 +165,25 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
       });
       groups = Object.values(gmap);
     }
-    setForm({ supplier: p.supplier || "", loteNumber: p.loteNumber || "", groups, paseroPercent: p.paseroPercent || "", paseroCostARS: p.paseroCostARS || "", envioCostARS: p.envioCostARS || "", notes: p.notes || "", date: p.date ? p.date.slice(0, 10) : new Date().toISOString().slice(0, 10), status: p.status || "pedido" });
-    setEditing(p.id); setModal(true);
+    const matchedProfile = resolvePurchaseProfile(p, profiles);
+    setForm({
+      ...emptyPurchaseForm(),
+      supplier: p.supplier || "",
+      supplierProfileId: matchedProfile?.id || "",
+      loteNumber: p.loteNumber || "",
+      groups,
+      supplierCommPercent: p.supplierCommPercent || "",
+      supplierCommUSDT: p.supplierCommUSDT || "",
+      paseroPercent: p.paseroPercent || "",
+      paseroCostARS: p.paseroCostARS || "",
+      envioCostARS: p.envioCostARS || "",
+      notes: p.notes || "",
+      date: p.date ? p.date.slice(0, 10) : new Date().toISOString().slice(0, 10),
+      status: p.status || "pedido",
+      invoiceUrl: p.invoiceUrl || "",
+    });
+    setEditing(p.id);
+    setModal(true);
   };
 
   const save = () => {
@@ -187,19 +196,40 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
         if (fl.isNew && fl.name) {
           pid = uid();
           const ref = products.find(p => p.brand === g.brand && p.model === g.model);
-          newProducts.push({ id: pid, brand: g.brand, model: g.model, flavor: fl.name, puffs: g.puffs, priceUSD: ref?.priceUSD || 0, priceARS: Math.round((ref?.priceUSD || 0) * exchangeRate), stock: 0 });
+          newProducts.push({
+            id: pid, brand: g.brand, model: g.model, flavor: fl.name, puffs: g.puffs,
+            priceUSD: ref?.priceUSD || 0,
+            priceARS: Math.round((ref?.priceUSD || 0) * exchangeRate),
+            stock: 0,
+          });
         }
         if (pid) finalItems.push({ productId: pid, qty: Number(fl.qty) || 1, unitCostUSDT: g.unitCostUSDT });
       });
     });
     if (newProducts.length > 0) setProducts(prev => [...prev, ...newProducts]);
-    const purchaseData = { ...form, items: finalItems, totalUSDT: productsUSDT, supplierCommUSDT, totalUSDTpaid: totalUSDTwithComm, paseroCostARS: paseroARS, envioCostARS: envioARS, totalCostARS, totalItems, createdBy: currentUser?.name || "" };
+
+    const purchaseData = {
+      ...form, items: finalItems,
+      totalUSDT: productsUSDT, supplierCommUSDT, totalUSDTpaid: totalUSDTwithComm,
+      paseroCostARS: paseroARS, envioCostARS: envioARS, totalCostARS,
+      totalItems, createdBy: currentUser?.name || "",
+    };
     if (editing) {
       setPurchases(prev => prev.map(p => p.id === editing ? { ...purchaseData, id: editing } : p));
       if (logAudit) logAudit("update", "purchase", editing, `Editó compra: ${form.supplier} · ${totalItems} items`);
     } else {
       const newId = uid();
-      setPurchases(prev => [{ ...purchaseData, id: newId }, ...prev]);
+      const newPurchase = {
+        ...purchaseData,
+        id: newId,
+        statusHistory: [{
+          status: "pedido",
+          timestamp: new Date().toISOString(),
+          note: "",
+          user: currentUser?.name || "?",
+        }],
+      };
+      setPurchases(prev => [newPurchase, ...prev]);
       if (logAudit) logAudit("create", "purchase", newId, `Creó compra: ${form.supplier} · ${totalItems} items · ${productsUSDT} USDT`);
     }
     setModal(false); setEditing(null); setForm(emptyPurchaseForm());
@@ -209,7 +239,17 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
     setPurchases(prev => prev.map(p => {
       if (p.id !== purchaseId) return p;
       if (newStatus === "verificado" && p.status !== "verificado") {
-        (p.items || []).forEach(item => { if (item.productId) { setProducts(pr => pr.map(prod => prod.id === item.productId ? { ...prod, stock: (prod.stock || 0) + Number(item.qty) } : prod)); logStock({ productId: item.productId, type: "compra", qty: Number(item.qty), reason: `Pedido verificado - ${p.supplier || ""}`, refId: p.id }); } });
+        (p.items || []).forEach(item => {
+          if (item.productId) {
+            setProducts(pr => pr.map(prod => prod.id === item.productId
+              ? { ...prod, stock: (prod.stock || 0) + Number(item.qty) }
+              : prod));
+            logStock({
+              productId: item.productId, type: "compra", qty: Number(item.qty),
+              reason: `Pedido verificado - ${p.supplier || ""}`, refId: p.id,
+            });
+          }
+        });
       }
       const history = [...(p.statusHistory || []), {
         status: newStatus,
@@ -222,8 +262,6 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
     setVerifyModal(null);
   };
 
-  const [confirmDelete, setConfirmDelete] = useState(null);
-
   const deletePurchase = (purchase) => {
     if (confirmDelete !== purchase.id && isDateInClosedMonth(monthlyClosures, purchase.date)) {
       const proceed = confirm(
@@ -232,56 +270,58 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
       if (!proceed) return;
     }
     if (confirmDelete !== purchase.id) { setConfirmDelete(purchase.id); return; }
-    if (purchase.status === "verificado") { (purchase.items || []).forEach(item => { setProducts(prev => prev.map(p => p.id === item.productId ? { ...p, stock: Math.max(0, (p.stock || 0) - Number(item.qty)) } : p)); }); }
-    setPurchases(prev => prev.map(p => p.id === purchase.id ? { ...p, isDeleted: true, deletedAt: new Date().toISOString(), deletedBy: currentUser?.name || "?" } : p));
+    if (purchase.status === "verificado") {
+      (purchase.items || []).forEach(item => {
+        setProducts(prev => prev.map(p => p.id === item.productId
+          ? { ...p, stock: Math.max(0, (p.stock || 0) - Number(item.qty)) }
+          : p));
+      });
+    }
+    setPurchases(prev => prev.map(p => p.id === purchase.id
+      ? { ...p, isDeleted: true, deletedAt: new Date().toISOString(), deletedBy: currentUser?.name || "?" }
+      : p));
     if (logAudit) logAudit("delete", "purchase", purchase.id, `Eliminó compra: ${purchase.supplier || ""} · ${purchase.totalItems || 0} items`);
     setConfirmDelete(null);
   };
 
-  const getStatusBadge = (s) => { const st = PURCHASE_STATUSES.find(x => x.value === s) || PURCHASE_STATUSES[0]; return <Badge color={st.color}>{st.label}</Badge>; };
-  const getNextStatus = (s) => { const i = PURCHASE_STATUSES.findIndex(x => x.value === s); return i < PURCHASE_STATUSES.length - 1 ? PURCHASE_STATUSES[i + 1] : null; };
-
-  // Detecta si una compra está atrasada en su estado actual
-  const getDelayInfo = (purchase) => {
-    if (!purchase || purchase.status === "verificado") return null;
-    const limit = STATUS_DELAY_DAYS[purchase.status];
-    if (!limit) return null;
-    const lastChange = (purchase.statusHistory || []).slice().reverse().find(h => h.status === purchase.status);
-    const since = lastChange?.timestamp || purchase.date;
-    const days = Math.floor((Date.now() - new Date(since).getTime()) / 86400000);
-    return days > limit ? { days, limit } : null;
+  const openCosts = (purchase) => {
+    setCostsForm({
+      supplierCommPercent: purchase.supplierCommPercent || "",
+      supplierCommUSDT: purchase.supplierCommUSDT || "",
+      paseroPercent: purchase.paseroPercent || "",
+      paseroCostARS: purchase.paseroCostARS || "",
+      envioCostARS: purchase.envioCostARS || "",
+    });
+    setCostsModal(purchase.id);
   };
 
-  // Stats por proveedor: count, USDT total, lead time promedio (pedido→recibido)
-  const supplierStats = useMemo(() => {
-    const map = {};
-    purchases.filter(p => !p.isDeleted).forEach(p => {
-      const sup = p.supplier || "Sin proveedor";
-      if (!map[sup]) map[sup] = { name: sup, count: 0, totalUSDT: 0, totalARS: 0, leadTimes: [], pending: 0 };
-      map[sup].count += 1;
-      map[sup].totalUSDT += Number(p.totalUSDT) || 0;
-      map[sup].totalARS += Number(p.totalCostARS) || 0;
-      if (p.status !== "verificado") map[sup].pending += 1;
-      // Lead time: timestamp de pedido → de recibido
-      const hist = p.statusHistory || [];
-      const orderedAt = hist.find(h => h.status === "pedido")?.timestamp || p.date;
-      const receivedAt = hist.find(h => h.status === "recibido")?.timestamp;
-      if (orderedAt && receivedAt) {
-        const days = (new Date(receivedAt) - new Date(orderedAt)) / 86400000;
-        if (days >= 0 && days < 365) map[sup].leadTimes.push(days);
-      }
-    });
-    return Object.values(map)
-      .map(s => ({
-        ...s,
-        avgLeadTime: s.leadTimes.length > 0
-          ? Math.round(s.leadTimes.reduce((a, b) => a + b, 0) / s.leadTimes.length)
-          : null,
-      }))
-      .sort((a, b) => b.totalUSDT - a.totalUSDT);
-  }, [purchases]);
+  const saveCosts = () => {
+    const purchase = purchases.find(p => p.id === costsModal);
+    if (!purchase) return;
+    const prodUSDT = purchase.totalUSDT || 0;
+    const suppComm = costsForm.supplierCommPercent
+      ? Math.round(prodUSDT * (Number(costsForm.supplierCommPercent) / 100) * 100) / 100
+      : (Number(costsForm.supplierCommUSDT) || 0);
+    const totalPaid = prodUSDT + suppComm;
+    const pasero = costsForm.paseroPercent
+      ? Math.round(totalPaid * exchangeRate * (Number(costsForm.paseroPercent) / 100))
+      : (Number(costsForm.paseroCostARS) || 0);
+    const envio = Number(costsForm.envioCostARS) || 0;
+    const totalCost = Math.round(totalPaid * exchangeRate) + pasero + envio;
+    setPurchases(prev => prev.map(p => p.id === costsModal ? {
+      ...p,
+      supplierCommPercent: costsForm.supplierCommPercent,
+      supplierCommUSDT: suppComm,
+      totalUSDTpaid: totalPaid,
+      paseroPercent: costsForm.paseroPercent,
+      paseroCostARS: pasero,
+      envioCostARS: envio,
+      totalCostARS: totalCost,
+    } : p));
+    setCostsModal(null);
+  };
 
-  // Calcula margen real promedio de una compra verificada
+  // Calcula margen real (modal verify)
   const calcRealMargin = (purchase) => {
     if (!purchase || !purchase.totalCostARS || !purchase.items?.length) return null;
     const totalUnits = purchase.items.reduce((s, i) => s + (Number(i.qty) || 0), 0);
@@ -296,298 +336,144 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
     const marginPct = expectedRevenueARS > 0 ? (profit / expectedRevenueARS) * 100 : 0;
     return { costPerUnitARS, expectedRevenueARS, profit, marginPct };
   };
+
   const verifyPurchase = purchases.find(p => p.id === verifyModal);
-
-  const openCosts = (purchase) => {
-    setCostsForm({ supplierCommPercent: purchase.supplierCommPercent || "", supplierCommUSDT: purchase.supplierCommUSDT || "", paseroPercent: purchase.paseroPercent || "", paseroCostARS: purchase.paseroCostARS || "", envioCostARS: purchase.envioCostARS || "" });
-    setCostsModal(purchase.id);
-  };
-
-  const saveCosts = () => {
-    const purchase = purchases.find(p => p.id === costsModal);
-    if (!purchase) return;
-    const prodUSDT = purchase.totalUSDT || 0;
-    const suppComm = costsForm.supplierCommPercent ? Math.round(prodUSDT * (Number(costsForm.supplierCommPercent) / 100) * 100) / 100 : (Number(costsForm.supplierCommUSDT) || 0);
-    const totalPaid = prodUSDT + suppComm;
-    const pasero = costsForm.paseroPercent ? Math.round(totalPaid * exchangeRate * (Number(costsForm.paseroPercent) / 100)) : (Number(costsForm.paseroCostARS) || 0);
-    const envio = Number(costsForm.envioCostARS) || 0;
-    const totalCost = Math.round(totalPaid * exchangeRate) + pasero + envio;
-    setPurchases(prev => prev.map(p => p.id === costsModal ? { ...p, supplierCommPercent: costsForm.supplierCommPercent, supplierCommUSDT: suppComm, totalUSDTpaid: totalPaid, paseroPercent: costsForm.paseroPercent, paseroCostARS: pasero, envioCostARS: envio, totalCostARS: totalCost } : p));
-    setCostsModal(null);
-  };
-
   const costsPurchase = purchases.find(p => p.id === costsModal);
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
-        <h2 style={{ color: "#1E2B4A", margin: 0, fontSize: 22 }}>Compras / Importaciones ({purchases.length})</h2>
-        <Btn onClick={openNew}>+ Nuevo Pedido</Btn>
-      </div>
-
-      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 20 }}>
-        {PURCHASE_STATUSES.map(s => <StatCard key={s.value} label={s.label} value={purchases.filter(p => !p.isDeleted && p.status === s.value).length} color={s.color} />)}
-      </div>
-
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12, gap: 8, flexWrap: "wrap" }}>
-        <button onClick={() => setShowQtySuggestions(s => !s)} style={{
-          padding: "8px 14px", borderRadius: 8, border: "1px solid #E5DAC2",
-          background: showQtySuggestions ? "#0F7B6C15" : "transparent",
-          color: showQtySuggestions ? "#0F7B6C" : "#1E2B4A",
-          fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-        }}>
-          {showQtySuggestions ? "▼" : "▶"} 🎯 Sugerir qty próxima compra ({suggestionsWithDemand.length})
-        </button>
-        <button onClick={() => setShowSupplierStats(s => !s)} style={{
-          padding: "8px 14px", borderRadius: 8, border: "1px solid #E5DAC2",
-          background: showSupplierStats ? "#1E2B4A15" : "transparent",
-          color: showSupplierStats ? "#1E2B4A" : "#1E2B4A",
-          fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
-        }}>
-          {showSupplierStats ? "▼" : "▶"} 📊 Stats por proveedor ({supplierStats.length})
-        </button>
-      </div>
-
-      {/* S15.7 — Sugeridor qty Paraguay */}
-      {showQtySuggestions && (
-        <Card style={{ marginBottom: 16 }}>
-          <h3 style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#1E2B4A" }}>
-            🎯 Sugerencias de qty para próxima compra Paraguay
-          </h3>
-          <p style={{ margin: "0 0 14px", fontSize: 12, color: "#6B7794" }}>
-            Basado en velocity últimos 30d × (lead time + cover + safety). Ajustá los parámetros si tu lead time real es distinto.
+      {/* Header con título + nuevo */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 12, flexWrap: "wrap" }}>
+        <div>
+          <h2 style={{ color: "#1E2B4A", margin: 0, fontSize: isMobile ? 22 : 26, fontWeight: 800, letterSpacing: "-0.4px" }}>
+            🚚 Compras / Importaciones
+          </h2>
+          <p style={{ color: "#6B7794", fontSize: 12, margin: "4px 0 0" }}>
+            {stats.totalPending} pedidos en curso · {formatMoney(stats.totalUSDTinTransit, "USDT")} en tránsito
           </p>
-          <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 14, alignItems: "center" }}>
-            <label style={{ fontSize: 12, color: "#1E2B4A", fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
-              Lead time (días):
-              <input
-                type="number" min={1} max={120}
-                value={leadTimeDays}
-                onChange={e => setLeadTimeDays(Math.max(1, Number(e.target.value) || 30))}
-                style={{ width: 70, padding: "5px 8px", borderRadius: 6, border: "1px solid #E5DAC2", fontSize: 13, textAlign: "right" }}
-              />
-            </label>
-            <label style={{ fontSize: 12, color: "#1E2B4A", fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
-              Cover (días):
-              <input
-                type="number" min={1} max={180}
-                value={coverDays}
-                onChange={e => setCoverDays(Math.max(1, Number(e.target.value) || 30))}
-                style={{ width: 70, padding: "5px 8px", borderRadius: 6, border: "1px solid #E5DAC2", fontSize: 13, textAlign: "right" }}
-              />
-            </label>
-            <span style={{ fontSize: 11, color: "#6B7794" }}>
-              + 7d safety = horizonte total <strong>{leadTimeDays + coverDays + 7}d</strong>
-            </span>
-          </div>
-          {suggestionsWithDemand.length === 0 ? (
-            <p style={{ color: "#9AA2B3", fontSize: 12, padding: 14 }}>
-              No hay productos con demanda activa que necesiten reposición.
-            </p>
-          ) : (
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-                <thead>
-                  <tr>
-                    {["Producto", "Velocity", "Stock actual", "Target", "Sugerir pedir", "Cobertura"].map(h => (
-                      <th key={h} style={{ textAlign: "left", padding: "6px 8px", fontSize: 10, color: "#6B7794", textTransform: "uppercase", borderBottom: "1px solid #E5DAC2" }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {suggestionsWithDemand.slice(0, 30).map(s => {
-                    const daysOfStock = s.velocity30dPerDay > 0 ? Math.floor(s.stockActual / s.velocity30dPerDay) : Infinity;
-                    return (
-                      <tr key={s.productId}>
-                        <td style={{ padding: "6px 8px", color: "#1E2B4A", borderBottom: "1px solid #EFE5CE", fontWeight: 600 }}>
-                          {s.product.brand} {s.product.model} {s.product.flavor && `· ${s.product.flavor}`}
-                        </td>
-                        <td style={{ padding: "6px 8px", color: "#3A4868", borderBottom: "1px solid #EFE5CE" }}>
-                          {s.velocity30dPerDay} <span style={{ fontSize: 10, color: "#6B7794" }}>uds/día</span>
-                        </td>
-                        <td style={{ padding: "6px 8px", color: s.stockActual === 0 ? "#E03E3E" : "#3A4868", borderBottom: "1px solid #EFE5CE", fontWeight: s.stockActual === 0 ? 700 : 500 }}>
-                          {s.stockActual} uds
-                        </td>
-                        <td style={{ padding: "6px 8px", color: "#3A4868", borderBottom: "1px solid #EFE5CE" }}>{s.target} uds</td>
-                        <td style={{ padding: "6px 8px", borderBottom: "1px solid #EFE5CE" }}>
-                          <Badge color="#0F7B6C">{s.suggestedQty} uds</Badge>
-                        </td>
-                        <td style={{ padding: "6px 8px", color: daysOfStock < 14 ? "#E03E3E" : daysOfStock < 30 ? "#CB912F" : "#0F7B6C", borderBottom: "1px solid #EFE5CE", fontWeight: 600 }}>
-                          {daysOfStock === Infinity ? "—" : `${daysOfStock}d`}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-              {suggestionsWithDemand.length > 30 && (
-                <p style={{ marginTop: 8, fontSize: 11, color: "#6B7794" }}>...y {suggestionsWithDemand.length - 30} productos más con demanda.</p>
-              )}
-              <div style={{ marginTop: 14, padding: 10, background: "#F8F2E7", borderRadius: 8, fontSize: 12, color: "#1E2B4A" }}>
-                <strong>Total sugerido a pedir:</strong> {suggestionsWithDemand.reduce((s, x) => s + x.suggestedQty, 0)} unidades
-                {(() => {
-                  const totalUSD = suggestionsWithDemand.reduce((s, x) => s + x.suggestedQty * (Number(x.product.costUSDT) || 0), 0);
-                  if (totalUSD > 0) return <> · valor estimado al costo: <strong>{formatMoney(totalUSD, "USD")}</strong></>;
-                  return null;
-                })()}
+        </div>
+        <Btn onClick={openNew}>➕ Nuevo Pedido</Btn>
+      </div>
+
+      {/* KPIs por status */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+        {PURCHASE_STATUSES.map(s => (
+          <button
+            key={s.value}
+            onClick={() => setStatusFilter(statusFilter === s.value ? null : s.value)}
+            style={{
+              background: "transparent", border: "none", padding: 0,
+              cursor: "pointer", flex: "1 1 140px",
+              opacity: statusFilter && statusFilter !== s.value ? 0.5 : 1,
+              transition: "opacity 0.15s, transform 0.05s",
+            }}
+            onMouseDown={e => e.currentTarget.style.transform = "scale(0.98)"}
+            onMouseUp={e => e.currentTarget.style.transform = "scale(1)"}
+            onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+          >
+            <div style={{
+              background: "#FFFFFF",
+              border: `1px solid ${statusFilter === s.value ? s.color : "#E5DAC2"}`,
+              borderRadius: 12, padding: "12px 14px",
+              borderTop: `3px solid ${s.color}`,
+              textAlign: "left",
+              boxShadow: statusFilter === s.value ? `0 4px 12px ${s.color}33` : "0 1px 3px rgba(30,43,74,0.05)",
+            }}>
+              <div style={{
+                fontSize: 10, color: "#6B7794", fontWeight: 700,
+                textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 4,
+              }}>{s.emoji} {s.label}</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: s.color, lineHeight: 1 }}>
+                {stats.byStatus[s.value] || 0}
               </div>
             </div>
-          )}
-        </Card>
-      )}
+          </button>
+        ))}
+      </div>
 
-      {showSupplierStats && supplierStats.length > 0 && (
-        <Card style={{ marginBottom: 16 }}>
-          <h3 style={{ margin: "0 0 14px", fontSize: 14, fontWeight: 700, color: "#1E2B4A" }}>
-            🏭 Histórico por proveedor (lead time + volumen)
-          </h3>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
-            {supplierStats.map(s => (
-              <div key={s.name} style={{
-                padding: 14, background: "#F8F2E7",
-                border: "1px solid #E5DAC2", borderRadius: 10,
-              }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <strong style={{ fontSize: 13, color: "#1E2B4A" }}>{s.name}</strong>
-                  {s.pending > 0 && (
-                    <span style={{
-                      fontSize: 10, padding: "2px 6px", borderRadius: 4,
-                      background: "#FEF6E4", color: "#A65800", fontWeight: 700,
-                    }}>{s.pending} pend.</span>
-                  )}
-                </div>
-                <div style={{ fontSize: 11, color: "#6B7794", marginBottom: 4 }}>
-                  {s.count} pedido{s.count !== 1 ? "s" : ""} · {formatMoney(s.totalUSDT, "USDT")}
-                </div>
-                <div style={{ fontSize: 11, color: "#6B7794", marginBottom: 8 }}>
-                  Total ARS: {formatMoney(s.totalARS)}
-                </div>
-                <div style={{
-                  padding: "6px 10px",
-                  background: s.avgLeadTime !== null ? "#E8F5E9" : "#EFE5CE",
-                  borderRadius: 6, fontSize: 11, fontWeight: 600,
-                  color: s.avgLeadTime !== null ? "#0F7B6C" : "#6B7794",
-                  textAlign: "center",
-                }}>
-                  ⏱️ Lead time: {s.avgLeadTime !== null ? `${s.avgLeadTime} días promedio` : "Sin datos"}
-                </div>
+      {/* Overdue alert */}
+      {stats.overdueCount > 0 && (
+        <Card style={{ marginBottom: 12, background: "#F7DEDE", border: "1px solid #E5A8A8" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 22 }}>⚠️</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "#B83232" }}>
+                {stats.overdueCount} pedido{stats.overdueCount > 1 ? "s" : ""} muy atrasado{stats.overdueCount > 1 ? "s" : ""}
               </div>
-            ))}
+              <div style={{ fontSize: 11, color: "#6B7794", marginTop: 2 }}>
+                Llevan más del doble del límite en su estado actual. Revisalos para destrabar.
+              </div>
+            </div>
           </div>
         </Card>
       )}
 
-      <Card>
-        {isMobile ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {purchases.filter(p => !p.isDeleted).length === 0 ? (
-              <p style={{ color: "#9AA2B3", fontSize: 13, textAlign: "center", padding: "24px 0", margin: 0 }}>No hay pedidos registrados</p>
-            ) : (
-              purchases.filter(p => !p.isDeleted).map(r => {
-                const next = getNextStatus(r.status);
-                const hasCosts = r.paseroCostARS && r.envioCostARS;
-                const totalUnits = r.totalItems || (r.items || []).reduce((s, i) => s + (Number(i.qty) || 0), 0);
-                const costLabel = hasCosts ? formatMoney(r.totalCostARS) : "Costos incompletos";
-                return (
-                  <div key={r.id} onClick={() => openEdit(r)} style={{
-                    background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 12,
-                    padding: 14, cursor: "pointer", display: "flex", flexDirection: "column", gap: 8,
-                  }}>
-                    {/* Row 1: supplier + status */}
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: "#1E2B4A", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {r.supplier || "Sin proveedor"}
-                        {r.loteNumber && <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 500, color: "#6B7794" }}>· {r.loteNumber}</span>}
-                      </div>
-                      {getStatusBadge(r.status)}
-                    </div>
-                    {/* Status stepper visual */}
-                    <PurchaseStepper status={r.status} />
-                    {/* Delay alert */}
-                    {(() => {
-                      const delay = getDelayInfo(r);
-                      if (!delay) return null;
-                      return (
-                        <div style={{
-                          padding: "6px 10px", background: "#FEF6E4", border: "1px solid #F59E0B55",
-                          borderRadius: 6, fontSize: 11, color: "#A65800", fontWeight: 600,
-                          display: "flex", alignItems: "center", gap: 6,
-                        }}>
-                          ⚠️ Atrasado: {delay.days} días en "{r.status.replace("_", " ")}" (límite {delay.limit}d)
-                        </div>
-                      );
-                    })()}
-                    {/* Invoice thumbnail */}
-                    {r.invoiceUrl && (
-                      <a href={r.invoiceUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-                        style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, color: "#1E2B4A", textDecoration: "none" }}
-                      >
-                        🧾 Ver invoice
-                      </a>
-                    )}
-                    {/* Row 2: fecha + unidades + costo */}
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12, color: "#6B7794" }}>
-                      <span>{formatDate(r.date)}</span>
-                      <span><strong style={{ color: "#1E2B4A" }}>{totalUnits}</strong> uds</span>
-                      <span style={{ color: hasCosts ? "#0F7B6C" : "#CB912F", fontWeight: 700 }}>{costLabel}</span>
-                    </div>
-                    {/* Row 3: USDT breakdown (compacto) */}
-                    <div style={{ fontSize: 11, color: "#9AA2B3", display: "flex", gap: 10, flexWrap: "wrap" }}>
-                      <span>Vapes: {formatMoney(r.totalUSDT, "USDT")}</span>
-                      {r.supplierCommUSDT > 0 && <span>Com: {formatMoney(r.supplierCommUSDT, "USDT")}</span>}
-                      <span>Pasero: {r.paseroCostARS ? formatMoney(r.paseroCostARS) : "—"}</span>
-                      <span>Envío: {r.envioCostARS ? formatMoney(r.envioCostARS) : "—"}</span>
-                    </div>
-                    {/* Row 4: acciones */}
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 2 }}>
-                      {!hasCosts && <button onClick={e => { e.stopPropagation(); openCosts(r); }} style={{ flex: 1, minWidth: 100, minHeight: 36, background: "#FDECC8", border: "1px solid #CB912F55", color: "#CB912F", padding: "7px 10px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>$ Costos</button>}
-                      {next && <button onClick={e => { e.stopPropagation(); next.value === "verificado" ? setVerifyModal(r.id) : updateStatus(r.id, next.value); }} style={{ flex: 1, minWidth: 100, minHeight: 36, background: `${next.color}22`, border: `1px solid ${next.color}55`, color: next.color, padding: "7px 10px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>{next.value === "verificado" ? "Verificar" : "Avanzar"}</button>}
-                      {confirmDelete === r.id
-                        ? <button onClick={e => { e.stopPropagation(); deletePurchase(r); }} style={{ minHeight: 36, background: "#F7D7D6", border: "1px solid #E03E3E55", color: "#E03E3E", padding: "7px 12px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}>Confirmar</button>
-                        : <button onClick={e => { e.stopPropagation(); deletePurchase(r); }} style={{ minHeight: 36, background: "none", border: "1px solid #F7D7D6", color: "#E03E3E", padding: "7px 12px", borderRadius: 8, cursor: "pointer", fontSize: 14, fontFamily: "inherit" }}>🗑️</button>
-                      }
-                    </div>
-                  </div>
-                );
-              })
+      {/* Toolbar: view toggle + filter chip */}
+      {!isMobile && (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 10, flexWrap: "wrap" }}>
+          <div style={{ fontSize: 12, color: "#6B7794" }}>
+            {filteredPurchases.length} {filteredPurchases.length === 1 ? "pedido" : "pedidos"}
+            {statusFilter && (
+              <button
+                onClick={() => setStatusFilter(null)}
+                style={{
+                  marginLeft: 8, padding: "2px 8px", background: "#E8EBF2",
+                  border: "1px solid #C5CADE", borderRadius: 6, cursor: "pointer",
+                  fontSize: 11, fontWeight: 600, color: "#1E2B4A", fontFamily: "inherit",
+                }}
+              >Filtro: {PURCHASE_STATUSES.find(s => s.value === statusFilter)?.label} ✕</button>
             )}
           </div>
-        ) : (
-        <Table columns={[
-          { key: "date", label: "Fecha", render: r => formatDate(r.date) },
-          { key: "supplier", label: "Proveedor", render: r => (
-            <div>
-              <div>{r.supplier || "—"}</div>
-              {r.loteNumber && <div style={{ fontSize: 10, color: "#6B7794" }}>{r.loteNumber}</div>}
-            </div>
-          )},
-          { key: "items", label: "Uds", render: r => <Badge color="#1E2B4A">{r.totalItems || (r.items||[]).reduce((s,i) => s + (Number(i.qty)||0), 0)}</Badge> },
-          { key: "status", label: "Estado", render: r => getStatusBadge(r.status) },
-          { key: "totalUSDT", label: "Vapes", render: r => formatMoney(r.totalUSDT, "USDT") },
-          { key: "supplierComm", label: "Com. prov.", render: r => r.supplierCommUSDT ? formatMoney(r.supplierCommUSDT, "USDT") : "—" },
-          { key: "totalPaid", label: "USDT total", render: r => formatMoney(r.totalUSDTpaid || r.totalUSDT, "USDT") },
-          { key: "pasero", label: "Pasero", render: r => r.paseroCostARS ? formatMoney(r.paseroCostARS) : <span style={{ color: "#fdcb6e55", fontSize: 11 }}>pendiente</span> },
-          { key: "envio", label: "Envío", render: r => r.envioCostARS ? formatMoney(r.envioCostARS) : <span style={{ color: "#fdcb6e55", fontSize: 11 }}>pendiente</span> },
-          { key: "costoTotal", label: "Costo total", render: r => {
-            const hasCosts = r.paseroCostARS && r.envioCostARS;
-            return hasCosts ? formatMoney(r.totalCostARS) : <span style={{ color: "#6B7794", fontSize: 11 }}>incompleto</span>;
-          }},
-          { key: "actions", label: "", render: r => {
-            const next = getNextStatus(r.status);
-            const hasCosts = r.paseroCostARS && r.envioCostARS;
-            return (<div style={{ display: "flex", gap: 4 }}>
-              {!hasCosts && <button onClick={e => { e.stopPropagation(); openCosts(r); }} style={{ background: "#fdcb6e22", border: "1px solid #fdcb6e55", color: "#fdcb6e", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>$ Costos</button>}
-              {next && <button onClick={e => { e.stopPropagation(); next.value === "verificado" ? setVerifyModal(r.id) : updateStatus(r.id, next.value); }} style={{ background: `${next.color}22`, border: `1px solid ${next.color}55`, color: next.color, padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>{next.value === "verificado" ? "Verificar" : "Avanzar"}</button>}
-              <button onClick={e => { e.stopPropagation(); openEdit(r); }} style={{ background: "none", border: "none", color: "#1E2B4A", cursor: "pointer", fontSize: 14 }}>✏️</button>
-              {confirmDelete === r.id
-                ? <button onClick={e => { e.stopPropagation(); deletePurchase(r); }} style={{ background: "#F7D7D6", border: "1px solid #E03E3E55", color: "#E03E3E", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Confirmar</button>
-                : <button onClick={e => { e.stopPropagation(); deletePurchase(r); }} style={{ background: "none", border: "none", color: "#E03E3E", cursor: "pointer", fontSize: 14 }}>👑️</button>
-              }
-            </div>);
-          }},
-        ]} data={purchases.filter(p => !p.isDeleted)} emptyMsg="No hay pedidos registrados" />
-        )}
-      </Card>
+          <div style={{ display: "flex", gap: 4, padding: 3, background: "#F1E9D6", borderRadius: 10 }}>
+            {[
+              { key: "list", label: "📃 Lista" },
+              { key: "kanban", label: "🗂 Kanban" },
+            ].map(v => (
+              <button
+                key={v.key}
+                onClick={() => setView(v.key)}
+                style={{
+                  padding: "6px 14px", border: "none", borderRadius: 8,
+                  background: view === v.key ? "#FFFFFF" : "transparent",
+                  color: view === v.key ? "#1E2B4A" : "#6B7794",
+                  fontSize: 12, fontWeight: 700, cursor: "pointer",
+                  fontFamily: "inherit",
+                  boxShadow: view === v.key ? "0 1px 3px rgba(30,43,74,0.08)" : "none",
+                }}
+              >{v.label}</button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Content: List or Kanban */}
+      {(isMobile || view === "list") ? (
+        <ListView
+          purchases={filteredPurchases}
+          supplierProfiles={supplierProfiles}
+          products={products}
+          exchangeRate={exchangeRate}
+          onOpenEdit={openEdit}
+          onAdvance={(id, status) => updateStatus(id, status)}
+          onVerify={setVerifyModal}
+          onOpenCosts={openCosts}
+          onDelete={deletePurchase}
+          confirmDeleteId={confirmDelete}
+        />
+      ) : (
+        <KanbanBoard
+          purchases={filteredPurchases}
+          supplierProfiles={supplierProfiles}
+          products={products}
+          exchangeRate={exchangeRate}
+          onOpenEdit={openEdit}
+          onAdvance={(id, status) => updateStatus(id, status)}
+          onVerify={setVerifyModal}
+          onOpenCosts={openCosts}
+          onDelete={deletePurchase}
+          confirmDeleteId={confirmDelete}
+        />
+      )}
 
       {/* New/Edit Modal */}
       <Modal open={modal} onClose={() => { setModal(false); setEditing(null); }} title={editing ? "Editar Pedido" : "Nuevo Pedido"}>
@@ -596,12 +482,42 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
             <Input label="Fecha" type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
           </div>
           <div style={{ flex: 1 }}>
-            <Input label="Proveedor" placeholder="Nombre..." value={form.supplier} onChange={e => setForm(f => ({ ...f, supplier: e.target.value }))} />
+            {/* Picker de perfiles + opción manual */}
+            <label style={{ display: "block", fontSize: 11, color: "#6B7794", marginBottom: 6, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Proveedor</label>
+            {profiles.length > 0 ? (
+              <select
+                value={form.supplierProfileId}
+                onChange={e => handleProfileChange(e.target.value)}
+                style={{
+                  width: "100%", padding: isMobile ? "12px 14px" : "10px 12px",
+                  minHeight: isMobile ? 44 : 38,
+                  background: "#FFFFFF", border: "1px solid #E5DAC2",
+                  borderRadius: 10, color: "#1E2B4A",
+                  fontSize: isMobile ? 16 : 14, outline: "none", boxSizing: "border-box",
+                  fontFamily: "inherit", marginBottom: 8,
+                }}
+              >
+                <option value="">— Elegir proveedor —</option>
+                {profiles.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}{p.country ? ` (${p.country})` : ""}</option>
+                ))}
+              </select>
+            ) : null}
+            <Input
+              placeholder={profiles.length > 0 ? "O escribilo a mano..." : "Nombre del proveedor..."}
+              value={form.supplier}
+              onChange={e => setForm(f => ({ ...f, supplier: e.target.value, supplierProfileId: "" }))}
+            />
+            {form.supplierProfileId && (
+              <div style={{ fontSize: 11, color: "#0F6B5C", marginTop: -8, marginBottom: 10, fontWeight: 600 }}>
+                ✨ Costos defaults precargados del perfil
+              </div>
+            )}
           </div>
         </div>
         <div style={{ display: "flex", gap: 10, flexDirection: isMobile ? "column" : "row" }}>
           <div style={{ flex: 1 }}>
-            <Input label="N° de lote (opcional)" placeholder="ej: LOTE-042 / Paraguay-abr26" value={form.loteNumber} onChange={e => setForm(f => ({ ...f, loteNumber: e.target.value }))} />
+            <Input label="N° de lote (opcional)" placeholder="ej: LOTE-042" value={form.loteNumber} onChange={e => setForm(f => ({ ...f, loteNumber: e.target.value }))} />
           </div>
         </div>
 
@@ -613,7 +529,7 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
             <div key={gi} style={{ background: "#F8F2E7", border: `1px solid ${bc}33`, borderRadius: 12, padding: 14, marginBottom: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <span style={{ color: bc, fontSize: 13, fontWeight: 700 }}>{group.brand ? `${group.brand} ${group.model}` : "Seleccioná modelo"}</span>
-                <button onClick={() => removeGroup(gi)} style={{ background: "none", border: "none", color: "#E03E3E", cursor: "pointer", fontSize: 16 }}>✕</button>
+                <button onClick={() => removeGroup(gi)} style={{ background: "none", border: "none", color: "#B83232", cursor: "pointer", fontSize: 16 }}>✕</button>
               </div>
               <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
                 <div style={{ flex: 2 }}>
@@ -632,7 +548,7 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
                       : <Select options={[...availFlavors.map(f => ({ value: f.id, label: f.name })), { value: "__new__", label: "➕ Sabor nuevo..." }]} value={fl.productId || ""} onChange={e => updateFlavor(gi, fi, "productId", e.target.value)} />}
                     </div>
                     <div style={{ flex: 0.4 }}><Input type="number" placeholder="Cant" value={fl.qty} min={1} onChange={e => updateFlavor(gi, fi, "qty", Number(e.target.value))} /></div>
-                    <button onClick={() => removeFlavor(gi, fi)} style={{ background: "none", border: "none", color: "#E03E3E", cursor: "pointer", fontSize: 16, marginBottom: 14 }}>✕</button>
+                    <button onClick={() => removeFlavor(gi, fi)} style={{ background: "none", border: "none", color: "#B83232", cursor: "pointer", fontSize: 16, marginBottom: 14 }}>✕</button>
                   </div>
                 ))}
                 <button onClick={() => addFlavor(gi)} style={{ background: "none", border: `1px dashed ${bc}44`, color: bc, padding: "5px 12px", borderRadius: 8, cursor: "pointer", fontSize: 11, width: "100%" }}>+ Agregar sabor</button>
@@ -648,7 +564,7 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
 
         {/* Costs */}
         <div style={{ background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 10, padding: 14, marginBottom: 14 }}>
-          <label style={{ display: "block", fontSize: 12, color: "#E03E3E", marginBottom: 10, fontWeight: 700, textTransform: "uppercase" }}>💰 Costos extra</label>
+          <label style={{ display: "block", fontSize: 12, color: "#B83232", marginBottom: 10, fontWeight: 700, textTransform: "uppercase" }}>💰 Costos extra</label>
 
           <label style={{ display: "block", fontSize: 11, color: "#6B7794", marginBottom: 6, fontWeight: 600, textTransform: "uppercase" }}>Comisión proveedor (USDT)</label>
           <div style={{ display: "flex", gap: 10, marginBottom: 4, flexDirection: isMobile ? "column" : "row" }}>
@@ -659,7 +575,7 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
               <Input label="O monto fijo (USDT)" type="number" placeholder="ej: 6" value={form.supplierCommPercent ? "" : form.supplierCommUSDT} onChange={e => setForm(f => ({ ...f, supplierCommUSDT: e.target.value, supplierCommPercent: "" }))} />
             </div>
           </div>
-          {supplierCommUSDT > 0 && <div style={{ color: "#26de81", fontSize: 12, marginBottom: 10 }}>
+          {supplierCommUSDT > 0 && <div style={{ color: "#0F6B5C", fontSize: 12, marginBottom: 10 }}>
             Comisión: {formatMoney(supplierCommUSDT, "USDT")} · Total a transferir: {formatMoney(totalUSDTwithComm, "USDT")}
             {form.supplierCommPercent ? ` (${form.supplierCommPercent}% de ${formatMoney(productsUSDT, "USDT")})` : ""}
           </div>}
@@ -674,7 +590,7 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
                 <Input label="O monto fijo ($)" type="number" value={form.paseroPercent ? "" : form.paseroCostARS} onChange={e => setForm(f => ({ ...f, paseroCostARS: e.target.value, paseroPercent: "" }))} />
               </div>
             </div>
-            {paseroARS > 0 && <div style={{ color: "#fdcb6e", fontSize: 12, marginBottom: 8 }}>Pasero: {formatMoney(paseroARS)}</div>}
+            {paseroARS > 0 && <div style={{ color: "#B07A1F", fontSize: 12, marginBottom: 8 }}>Pasero: {formatMoney(paseroARS)}</div>}
             <Input label="Envío Vía Cargo ($)" type="number" placeholder="ej: 15000" value={form.envioCostARS} onChange={e => setForm(f => ({ ...f, envioCostARS: e.target.value }))} />
           </div>
         </div>
@@ -687,17 +603,17 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
           </div>
           {supplierCommUSDT > 0 && <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
             <span style={{ color: "#6B7794", fontSize: 13 }}>Comisión proveedor</span>
-            <span style={{ color: "#26de81" }}>{formatMoney(supplierCommUSDT, "USDT")}</span>
+            <span style={{ color: "#0F6B5C" }}>{formatMoney(supplierCommUSDT, "USDT")}</span>
           </div>}
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, paddingTop: supplierCommUSDT > 0 ? 4 : 0, borderTop: supplierCommUSDT > 0 ? "1px solid #EFE5CE" : "none" }}>
             <span style={{ color: "#6B7794", fontSize: 13, fontWeight: supplierCommUSDT > 0 ? 600 : 400 }}>Total USDT transferido</span>
             <span style={{ color: "#3A4868", fontWeight: 600 }}>{formatMoney(totalUSDTwithComm, "USDT")} · ~{formatMoney(Math.round(totalUSDTwithComm * exchangeRate))}</span>
           </div>
-          {paseroARS > 0 && <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}><span style={{ color: "#6B7794", fontSize: 13 }}>Pasero</span><span style={{ color: "#fdcb6e" }}>{formatMoney(paseroARS)}</span></div>}
-          {envioARS > 0 && <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}><span style={{ color: "#6B7794", fontSize: 13 }}>Envío</span><span style={{ color: "#fdcb6e" }}>{formatMoney(envioARS)}</span></div>}
+          {paseroARS > 0 && <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}><span style={{ color: "#6B7794", fontSize: 13 }}>Pasero</span><span style={{ color: "#B07A1F" }}>{formatMoney(paseroARS)}</span></div>}
+          {envioARS > 0 && <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}><span style={{ color: "#6B7794", fontSize: 13 }}>Envío</span><span style={{ color: "#B07A1F" }}>{formatMoney(envioARS)}</span></div>}
           <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #E5DAC2", paddingTop: 8, marginTop: 4 }}>
             <span style={{ color: "#1E2B4A", fontSize: 15, fontWeight: 700 }}>Costo total</span>
-            <span style={{ color: "#E03E3E", fontSize: 18, fontWeight: 800 }}>{formatMoney(totalCostARS)}</span>
+            <span style={{ color: "#B83232", fontSize: 18, fontWeight: 800 }}>{formatMoney(totalCostARS)}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
             <span style={{ color: "#6B7794", fontSize: 12 }}>Costo por unidad</span>
@@ -723,21 +639,21 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
         {verifyPurchase && (<div>
           <div style={{ color: "#6B7794", fontSize: 13, marginBottom: 16 }}>Pedido de <strong style={{ color: "#1E2B4A" }}>{verifyPurchase.supplier}</strong> del {formatDate(verifyPurchase.date)}</div>
           <div style={{ background: "#F8F2E7", borderRadius: 10, padding: 14, marginBottom: 16 }}>
-            <label style={{ display: "block", fontSize: 12, color: "#00b894", marginBottom: 10, fontWeight: 700, textTransform: "uppercase" }}>Verificá que recibiste:</label>
+            <label style={{ display: "block", fontSize: 12, color: "#0F6B5C", marginBottom: 10, fontWeight: 700, textTransform: "uppercase" }}>Verificá que recibiste:</label>
             {(verifyPurchase.items || []).map((item, i) => {
               const prod = products.find(p => p.id === item.productId);
               return (<div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #EFE5CE" }}>
                 <span style={{ color: "#3A4868", fontSize: 14 }}>{prod ? `${prod.brand} ${prod.model} - ${prod.flavor}` : "?"}</span>
-                <Badge color="#00b894">x{item.qty}</Badge>
+                <Badge color="#0F6B5C">x{item.qty}</Badge>
               </div>);
             })}
             <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10 }}>
               <span style={{ color: "#1E2B4A", fontWeight: 700 }}>Total</span>
-              <span style={{ color: "#00b894", fontWeight: 700 }}>{(verifyPurchase.items||[]).reduce((s,i) => s + Number(i.qty), 0)} uds</span>
+              <span style={{ color: "#0F6B5C", fontWeight: 700 }}>{(verifyPurchase.items||[]).reduce((s,i) => s + Number(i.qty), 0)} uds</span>
             </div>
           </div>
-          <div style={{ background: "#00b89415", border: "1px solid #00b89433", borderRadius: 10, padding: "10px 14px", marginBottom: 16 }}>
-            <span style={{ color: "#00b894", fontSize: 13 }}>⚠️ Al confirmar, se suma todo al stock.</span>
+          <div style={{ background: "#D9E8E4", border: "1px solid #A8C8BE", borderRadius: 10, padding: "10px 14px", marginBottom: 16 }}>
+            <span style={{ color: "#0F6B5C", fontSize: 13 }}>⚠️ Al confirmar, se suma todo al stock.</span>
           </div>
           {(() => {
             const margin = calcRealMargin(verifyPurchase);
@@ -745,12 +661,12 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
             const positive = margin.profit > 0;
             return (
               <div style={{
-                background: positive ? "#E8F5E9" : "#FEE9E7",
-                border: `1px solid ${positive ? "#22C55E55" : "#EF444455"}`,
+                background: positive ? "#D9E8E4" : "#F7DEDE",
+                border: `1px solid ${positive ? "#A8C8BE" : "#E5A8A8"}`,
                 borderRadius: 10, padding: 14, marginBottom: 14,
               }}>
                 <div style={{
-                  fontSize: 12, fontWeight: 700, color: positive ? "#0F7B6C" : "#E03E3E",
+                  fontSize: 12, fontWeight: 700, color: positive ? "#0F6B5C" : "#B83232",
                   textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8,
                 }}>📊 Margen real proyectado</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 12 }}>
@@ -764,11 +680,11 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
                   </div>
                   <div>
                     <div style={{ color: "#6B7794" }}>Ganancia bruta</div>
-                    <div style={{ fontWeight: 700, color: positive ? "#0F7B6C" : "#E03E3E" }}>{formatMoney(margin.profit)}</div>
+                    <div style={{ fontWeight: 700, color: positive ? "#0F6B5C" : "#B83232" }}>{formatMoney(margin.profit)}</div>
                   </div>
                   <div>
                     <div style={{ color: "#6B7794" }}>Margen</div>
-                    <div style={{ fontWeight: 700, color: positive ? "#0F7B6C" : "#E03E3E" }}>
+                    <div style={{ fontWeight: 700, color: positive ? "#0F6B5C" : "#B83232" }}>
                       {margin.marginPct.toFixed(1)}%
                     </div>
                   </div>
@@ -792,31 +708,31 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
       {/* Quick Costs Modal */}
       <Modal open={!!costsModal} onClose={() => setCostsModal(null)} title="💰 Cargar Costos del Pedido">
         {costsPurchase && (<div>
-          <div style={{ color: "#8888aa", fontSize: 13, marginBottom: 12 }}>
-            Pedido de <strong style={{ color: "#e0e0ff" }}>{costsPurchase.supplier}</strong> del {formatDate(costsPurchase.date)} · {formatMoney(costsPurchase.totalUSDT, "USDT")} en vapes
+          <div style={{ color: "#6B7794", fontSize: 13, marginBottom: 12 }}>
+            Pedido de <strong style={{ color: "#1E2B4A" }}>{costsPurchase.supplier}</strong> del {formatDate(costsPurchase.date)} · {formatMoney(costsPurchase.totalUSDT, "USDT")} en vapes
           </div>
 
-          <label style={{ display: "block", fontSize: 11, color: "#26de81", marginBottom: 6, fontWeight: 600, textTransform: "uppercase" }}>Comisión proveedor (USDT)</label>
+          <label style={{ display: "block", fontSize: 11, color: "#0F6B5C", marginBottom: 6, fontWeight: 600, textTransform: "uppercase" }}>Comisión proveedor (USDT)</label>
           <div style={{ display: "flex", gap: 12 }}>
             <Input label="% del total" type="number" placeholder="ej: 1" value={costsForm.supplierCommPercent} onChange={e => setCostsForm(f => ({ ...f, supplierCommPercent: e.target.value, supplierCommUSDT: "" }))} />
             <Input label="O monto fijo (USDT)" type="number" placeholder="ej: 6" value={costsForm.supplierCommPercent ? "" : costsForm.supplierCommUSDT} onChange={e => setCostsForm(f => ({ ...f, supplierCommUSDT: e.target.value, supplierCommPercent: "" }))} />
           </div>
           {(costsForm.supplierCommPercent || costsForm.supplierCommUSDT) ? (
-            <div style={{ color: "#26de81", fontSize: 12, marginBottom: 10 }}>
+            <div style={{ color: "#0F6B5C", fontSize: 12, marginBottom: 10 }}>
               Comisión: {formatMoney(costsForm.supplierCommPercent ? Math.round((costsPurchase.totalUSDT || 0) * (Number(costsForm.supplierCommPercent) / 100) * 100) / 100 : Number(costsForm.supplierCommUSDT), "USDT")}
               {costsForm.supplierCommPercent ? ` (${costsForm.supplierCommPercent}% de ${formatMoney(costsPurchase.totalUSDT, "USDT")})` : ""}
               {" · Total transferido: "}{formatMoney((costsPurchase.totalUSDT || 0) + (costsForm.supplierCommPercent ? Math.round((costsPurchase.totalUSDT || 0) * (Number(costsForm.supplierCommPercent) / 100) * 100) / 100 : Number(costsForm.supplierCommUSDT) || 0), "USDT")}
             </div>
           ) : null}
 
-          <div style={{ borderTop: "1px solid #2a2a4a", paddingTop: 10, marginTop: 6 }}>
-            <label style={{ display: "block", fontSize: 11, color: "#fdcb6e", marginBottom: 6, fontWeight: 600, textTransform: "uppercase" }}>Pasero + Envío (Pesos)</label>
+          <div style={{ borderTop: "1px solid #EFE5CE", paddingTop: 10, marginTop: 6 }}>
+            <label style={{ display: "block", fontSize: 11, color: "#B07A1F", marginBottom: 6, fontWeight: 600, textTransform: "uppercase" }}>Pasero + Envío (Pesos)</label>
             <div style={{ display: "flex", gap: 12 }}>
               <Input label="Pasero (%)" type="number" placeholder="ej: 5" value={costsForm.paseroPercent} onChange={e => setCostsForm(f => ({ ...f, paseroPercent: e.target.value, paseroCostARS: "" }))} />
               <Input label="O monto fijo ($)" type="number" placeholder="ej: 50000" value={costsForm.paseroPercent ? "" : costsForm.paseroCostARS} onChange={e => setCostsForm(f => ({ ...f, paseroCostARS: e.target.value, paseroPercent: "" }))} />
             </div>
             {(costsForm.paseroPercent || costsForm.paseroCostARS) ? (
-              <div style={{ color: "#fdcb6e", fontSize: 12, marginBottom: 8 }}>
+              <div style={{ color: "#B07A1F", fontSize: 12, marginBottom: 8 }}>
                 Pasero: {formatMoney(costsForm.paseroPercent ? Math.round(((costsPurchase.totalUSDT || 0) + (costsForm.supplierCommPercent ? (costsPurchase.totalUSDT || 0) * Number(costsForm.supplierCommPercent) / 100 : Number(costsForm.supplierCommUSDT) || 0)) * exchangeRate * (Number(costsForm.paseroPercent) / 100)) : Number(costsForm.paseroCostARS))}
               </div>
             ) : null}
