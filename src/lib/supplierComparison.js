@@ -39,7 +39,7 @@ export function buildComparisonMatrix(lists, productCatalog = []) {
   const suppliers = inputs.map(l => ({
     supplierId: l.supplierId || l.supplierName || "?",
     supplierName: l.supplierName || "Sin nombre",
-    color: l.color || "#5E6AD2",
+    color: l.color || "#1E2B4A",
   }));
 
   // Agrupar items por productId (los matcheados). Para los items sin

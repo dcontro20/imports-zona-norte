@@ -25,17 +25,19 @@
 
 import { normalize } from "./fuzzyMatch.js";
 
-// Palette de colores para identificar proveedores visualmente. Pastel.
+// Palette de colores para identificar proveedores visualmente.
+// NO usamos navy (#1E2B4A) — ese es el color del brand.
+// Elegidos para máxima discriminación entre proveedores y armonía con cream+navy.
 export const SUPPLIER_COLORS = [
-  "#5E6AD2", // indigo
-  "#0F7B6C", // green
-  "#CB912F", // amber
-  "#6940A5", // purple
-  "#2383E2", // blue
-  "#E255A1", // pink
-  "#E03E3E", // red
-  "#0EA5E9", // sky
-  "#F97316", // orange
+  "#0F6B5C", // teal profundo
+  "#B07A1F", // gold/amber cálido
+  "#5B3592", // purple
+  "#1F5DB8", // blue medio
+  "#C73E8F", // pink magenta
+  "#B83232", // red ladrillo
+  "#0EA5E9", // sky bright
+  "#F97316", // orange brillante
+  "#7C3AED", // violet
 ];
 
 // Asigna color determinístico al perfil basado en su nombre. Mismo nombre =

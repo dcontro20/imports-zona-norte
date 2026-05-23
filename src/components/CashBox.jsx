@@ -567,12 +567,12 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
 
       {/* ========== FORECAST 30 DAYS ========== */}
       <div style={{
-        background: forecast30d.goingNegative ? "#FEE9E7" : "#FAFAF9",
-        border: `1px solid ${forecast30d.goingNegative ? "#EF444455" : "#E8E7E3"}`,
+        background: forecast30d.goingNegative ? "#FEE9E7" : "#F8F2E7",
+        border: `1px solid ${forecast30d.goingNegative ? "#EF444455" : "#E5DAC2"}`,
         borderRadius: 12, padding: 16, marginBottom: 18,
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-          <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#37352F", textTransform: "uppercase", letterSpacing: 0.5 }}>
+          <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#1E2B4A", textTransform: "uppercase", letterSpacing: 0.5 }}>
             🔮 Forecast 30 días
           </h3>
           {forecast30d.goingNegative && forecast30d.negativeIn !== null && (
@@ -584,11 +584,11 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
         </div>
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 10 }}>
           <div>
-            <div style={{ fontSize: 10, color: "#8C8A82", textTransform: "uppercase", fontWeight: 700 }}>ARS hoy</div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: "#37352F" }}>{formatMoney(forecast30d.totalARSNow)}</div>
+            <div style={{ fontSize: 10, color: "#6B7794", textTransform: "uppercase", fontWeight: 700 }}>ARS hoy</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: "#1E2B4A" }}>{formatMoney(forecast30d.totalARSNow)}</div>
           </div>
           <div>
-            <div style={{ fontSize: 10, color: "#8C8A82", textTransform: "uppercase", fontWeight: 700 }}>ARS estim. en 30d</div>
+            <div style={{ fontSize: 10, color: "#6B7794", textTransform: "uppercase", fontWeight: 700 }}>ARS estim. en 30d</div>
             <div style={{
               fontSize: 16, fontWeight: 800,
               color: forecast30d.totalARS30 < 0 ? "#E03E3E" : forecast30d.totalARS30 < forecast30d.totalARSNow ? "#CB912F" : "#0F7B6C",
@@ -603,7 +603,7 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
             <div style={{ fontSize: 14, fontWeight: 700, color: "#E03E3E" }}>{formatMoney(forecast30d.dailyExpenseARS)}</div>
           </div>
         </div>
-        <div style={{ marginTop: 8, fontSize: 11, color: "#8C8A82", lineHeight: 1.4 }}>
+        <div style={{ marginTop: 8, fontSize: 11, color: "#6B7794", lineHeight: 1.4 }}>
           Estimación lineal basada en flujo último mes. No incluye eventos puntuales (compras grandes, etc).
         </div>
       </div>

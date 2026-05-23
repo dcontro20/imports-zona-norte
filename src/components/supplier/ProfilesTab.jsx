@@ -71,7 +71,7 @@ export function ProfilesTab({
     <div>
       {/* KPIs */}
       <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
-        <StatCard label="Proveedores activos" value={globalStats.profileCount} color="#5E6AD2" icon="🏭" />
+        <StatCard label="Proveedores activos" value={globalStats.profileCount} color="#1E2B4A" icon="🏭" />
         <StatCard
           label="Total comprado"
           value={`USDT ${globalStats.totalUSDT.toLocaleString("es-AR", { maximumFractionDigits: 0 })}`}
@@ -79,7 +79,7 @@ export function ProfilesTab({
           color="#0F7B6C"
           icon="💰"
         />
-        <StatCard label="Pedidos totales" value={globalStats.totalOrders} color="#555247" icon="📦" />
+        <StatCard label="Pedidos totales" value={globalStats.totalOrders} color="#3A4868" icon="📦" />
         {globalStats.pending > 0 && (
           <StatCard label="Pendientes" value={globalStats.pending} color="#CB912F" icon="⏳" />
         )}
@@ -90,7 +90,7 @@ export function ProfilesTab({
         display: "flex", justifyContent: "space-between", alignItems: "center",
         marginBottom: 12, gap: 10, flexWrap: "wrap",
       }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: "#37352F" }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: "#1E2B4A" }}>
           {profiles.length === 0 ? "Sin proveedores todavía" : `${profiles.length} proveedores`}
         </div>
         <Btn onClick={openNew}>➕ Nuevo proveedor</Btn>
@@ -98,9 +98,9 @@ export function ProfilesTab({
 
       {profiles.length === 0 ? (
         <Card>
-          <div style={{ textAlign: "center", padding: isMobile ? 24 : 48, color: "#8C8A82" }}>
+          <div style={{ textAlign: "center", padding: isMobile ? 24 : 48, color: "#6B7794" }}>
             <div style={{ fontSize: isMobile ? 48 : 64, marginBottom: 12 }}>🏭</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: "#37352F", marginBottom: 6 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "#1E2B4A", marginBottom: 6 }}>
               Empezá creando un proveedor
             </div>
             <div style={{ fontSize: 13, maxWidth: 500, margin: "0 auto 16px" }}>

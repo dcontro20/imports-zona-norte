@@ -23,7 +23,7 @@ export function SupplierProfileCard({
 
   if (!profile) return null;
 
-  const color = profile.color || "#5E6AD2";
+  const color = profile.color || "#1E2B4A";
 
   if (variant === "compact") {
     return <SupplierBadge name={profile.name} color={color} size="sm" onClick={onClick} />;
@@ -39,7 +39,7 @@ export function SupplierProfileCard({
         background: "#FFFFFF",
         borderRadius: isMobile ? 12 : 14,
         padding: isMobile ? 14 : 18,
-        border: selected ? `2px solid ${color}` : `1px solid #E8E7E3`,
+        border: selected ? `2px solid ${color}` : `1px solid #E5DAC2`,
         boxShadow: selected ? `0 4px 16px ${color}33` : "0 1px 3px rgba(15,15,15,0.04)",
         cursor: onClick ? "pointer" : "default",
         transition: "all 0.18s",
@@ -57,12 +57,12 @@ export function SupplierProfileCard({
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginTop: 4, marginBottom: 12 }}>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{
-            fontSize: isMobile ? 16 : 18, fontWeight: 700, color: "#37352F",
+            fontSize: isMobile ? 16 : 18, fontWeight: 700, color: "#1E2B4A",
             letterSpacing: "-0.2px", lineHeight: 1.2,
             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
           }}>{profile.name}</div>
           {profile.country && (
-            <div style={{ fontSize: 11, color: "#8C8A82", marginTop: 2 }}>
+            <div style={{ fontSize: 11, color: "#6B7794", marginTop: 2 }}>
               {profile.country}
               {profile.contactName ? ` · ${profile.contactName}` : ""}
             </div>
@@ -74,7 +74,7 @@ export function SupplierProfileCard({
             aria-label="Editar"
             style={{
               width: 28, height: 28, padding: 0, background: "transparent",
-              border: "1px solid #E8E7E3", borderRadius: 6, color: "#8C8A82",
+              border: "1px solid #E5DAC2", borderRadius: 6, color: "#6B7794",
               cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: 13, fontFamily: "inherit", flexShrink: 0,
             }}
@@ -105,13 +105,13 @@ export function SupplierProfileCard({
           label="Lead time"
           value={stats?.avgLeadTime != null ? `${stats.avgLeadTime}d` : `${profile.defaultLeadDays}d*`}
           sub={stats?.avgLeadTime != null ? "promedio real" : "estimado"}
-          color="#555247"
+          color="#3A4868"
         />
         <StatMini
           label="Listas"
           value={stats?.listCount || 0}
           sub={lastDate ? formatDate(lastDate) : "—"}
-          color="#555247"
+          color="#3A4868"
         />
       </div>
 
@@ -119,14 +119,14 @@ export function SupplierProfileCard({
       <div style={{
         display: "flex", justifyContent: "space-between", alignItems: "flex-end",
         paddingTop: 10,
-        borderTop: "1px solid #F0EFEB",
+        borderTop: "1px solid #EFE5CE",
       }}>
         <div>
-          <div style={{ fontSize: 10, color: "#8C8A82", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 }}>Total comprado</div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: "#37352F", letterSpacing: "-0.3px" }}>
+          <div style={{ fontSize: 10, color: "#6B7794", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 }}>Total comprado</div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: "#1E2B4A", letterSpacing: "-0.3px" }}>
             USDT {(stats?.totalUSDT || 0).toLocaleString("es-AR", { maximumFractionDigits: 0 })}
           </div>
-          <div style={{ fontSize: 11, color: "#8C8A82", marginTop: 1 }}>
+          <div style={{ fontSize: 11, color: "#6B7794", marginTop: 1 }}>
             {formatMoney(stats?.totalARS || 0)} · {stats?.totalUnits || 0}u
           </div>
         </div>
@@ -136,15 +136,15 @@ export function SupplierProfileCard({
   );
 }
 
-function StatMini({ label, value, sub, color = "#5E6AD2" }) {
+function StatMini({ label, value, sub, color = "#1E2B4A" }) {
   return (
     <div style={{
       padding: "8px 10px",
-      background: "#FAFAF9", borderRadius: 8, border: "1px solid #F0EFEB",
+      background: "#F8F2E7", borderRadius: 8, border: "1px solid #EFE5CE",
       minWidth: 0,
     }}>
       <div style={{
-        fontSize: 9, color: "#8C8A82", fontWeight: 700, textTransform: "uppercase",
+        fontSize: 9, color: "#6B7794", fontWeight: 700, textTransform: "uppercase",
         letterSpacing: 0.4, marginBottom: 2,
       }}>{label}</div>
       <div style={{
@@ -153,7 +153,7 @@ function StatMini({ label, value, sub, color = "#5E6AD2" }) {
       }}>{value}</div>
       {sub && (
         <div style={{
-          fontSize: 10, color: "#8C8A82", marginTop: 2,
+          fontSize: 10, color: "#6B7794", marginTop: 2,
           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
         }}>{sub}</div>
       )}

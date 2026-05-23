@@ -43,8 +43,8 @@ export function ItemRow({
 
   return (
     <div style={{
-      background: selected ? "#EEF0FC" : "#FFFFFF",
-      border: `1px solid ${selected ? "#5E6AD2" : isCritical ? "#F2D59A" : "#E8E7E3"}`,
+      background: selected ? "#E8EBF2" : "#FFFFFF",
+      border: `1px solid ${selected ? "#1E2B4A" : isCritical ? "#F2D59A" : "#E5DAC2"}`,
       borderRadius: 12,
       padding: isMobile ? 12 : 14,
       marginBottom: 10,
@@ -67,7 +67,7 @@ export function ItemRow({
           checked={selected}
           onChange={() => onToggle(index)}
           style={{
-            marginTop: 2, width: 20, height: 20, accentColor: "#5E6AD2",
+            marginTop: 2, width: 20, height: 20, accentColor: "#1E2B4A",
             cursor: "pointer", flexShrink: 0,
           }}
         />
@@ -76,9 +76,9 @@ export function ItemRow({
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
             {fromAlias ? (
               <span style={{
-                fontSize: 10, fontWeight: 800, color: "#5E6AD2",
+                fontSize: 10, fontWeight: 800, color: "#1E2B4A",
                 padding: "2px 8px", borderRadius: 6,
-                background: "#EEF0FC", border: "1px solid #C5CAEC",
+                background: "#E8EBF2", border: "1px solid #C5CAEC",
               }}>🧠 Aprendido</span>
             ) : (
               <span style={{
@@ -88,10 +88,10 @@ export function ItemRow({
               }}>{meta.emoji} {meta.label}</span>
             )}
             {matchedProduct ? (
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#37352F" }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#1E2B4A" }}>
                 {matchedProduct.brand} {matchedProduct.model} · {matchedProduct.flavor}
                 {matchedProduct.puffs && (
-                  <span style={{ fontSize: 11, color: "#8C8A82", fontWeight: 500, marginLeft: 6 }}>
+                  <span style={{ fontSize: 11, color: "#6B7794", fontWeight: 500, marginLeft: 6 }}>
                     {matchedProduct.puffs}p
                   </span>
                 )}
@@ -105,11 +105,11 @@ export function ItemRow({
 
           {/* Línea 2: matches alternativos (medium) */}
           {item.confidence === "medium" && !fromAlias && item.topMatches?.length > 1 && (
-            <div style={{ fontSize: 11, color: "#8C8A82", marginBottom: 6 }}>
+            <div style={{ fontSize: 11, color: "#6B7794", marginBottom: 6 }}>
               <button
                 onClick={() => setShowAlts(s => !s)}
                 style={{
-                  background: "none", border: "none", color: "#5E6AD2", padding: 0,
+                  background: "none", border: "none", color: "#1E2B4A", padding: 0,
                   fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
                 }}
               >
@@ -122,14 +122,14 @@ export function ItemRow({
                       key={i}
                       onClick={() => { onAcceptAlt(index, m); setShowAlts(false); }}
                       style={{
-                        background: "#FFFFFF", border: "1px dashed #B1AFA7", color: "#37352F",
+                        background: "#FFFFFF", border: "1px dashed #9AA2B3", color: "#1E2B4A",
                         padding: "4px 10px", borderRadius: 6, fontSize: 11, cursor: "pointer",
                         fontFamily: "inherit",
                       }}
                       title={`Cambiar al match: ${m.product.flavor} (${Math.round(m.score * 100)}%)`}
                     >
                       {m.product.model} · {m.product.flavor}
-                      <span style={{ marginLeft: 6, color: "#8C8A82", fontWeight: 700 }}>
+                      <span style={{ marginLeft: 6, color: "#6B7794", fontWeight: 700 }}>
                         {Math.round(m.score * 100)}%
                       </span>
                     </button>
@@ -140,7 +140,7 @@ export function ItemRow({
           )}
 
           {isNew && (
-            <div style={{ fontSize: 11, color: "#8C8A82", marginBottom: 6 }}>
+            <div style={{ fontSize: 11, color: "#6B7794", marginBottom: 6 }}>
               No está en tu catálogo · <button
                 onClick={() => onAddNew(index)}
                 style={{
@@ -206,7 +206,7 @@ export function ItemRow({
                 label="⭐ Sugerencia"
                 value={`Pedir ${suggested}u`}
                 icon=""
-                valueColor="#5E6AD2"
+                valueColor="#1E2B4A"
                 bold
               />
             )}
@@ -216,17 +216,17 @@ export function ItemRow({
           {selected && (
             <div style={{
               display: "flex", alignItems: "center", gap: 10, marginTop: 12,
-              paddingTop: 12, borderTop: "1px solid #F0EFEB",
+              paddingTop: 12, borderTop: "1px solid #EFE5CE",
               flexWrap: "wrap",
             }}>
-              <label style={{ fontSize: 10, color: "#8C8A82", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>Pedir:</label>
+              <label style={{ fontSize: 10, color: "#6B7794", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>Pedir:</label>
               <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 <button
                   type="button"
                   onClick={() => onQtyChange(index, Math.max(0, (qty || 0) - 1))}
                   style={{
-                    width: 32, height: 32, padding: 0, background: "#FAFAF9", border: "1px solid #E8E7E3",
-                    borderRadius: 8, cursor: "pointer", color: "#37352F", fontSize: 16, fontFamily: "inherit",
+                    width: 32, height: 32, padding: 0, background: "#F8F2E7", border: "1px solid #E5DAC2",
+                    borderRadius: 8, cursor: "pointer", color: "#1E2B4A", fontSize: 16, fontFamily: "inherit",
                   }}
                 >−</button>
                 <input
@@ -235,17 +235,17 @@ export function ItemRow({
                   value={qty}
                   onChange={e => onQtyChange(index, Math.max(0, Number(e.target.value) || 0))}
                   style={{
-                    width: 70, padding: "6px 10px", border: "1px solid #E8E7E3", borderRadius: 8,
+                    width: 70, padding: "6px 10px", border: "1px solid #E5DAC2", borderRadius: 8,
                     fontSize: 15, fontFamily: "inherit", textAlign: "center", outline: "none",
-                    background: "#FFFFFF", color: "#37352F", fontWeight: 700,
+                    background: "#FFFFFF", color: "#1E2B4A", fontWeight: 700,
                   }}
                 />
                 <button
                   type="button"
                   onClick={() => onQtyChange(index, (qty || 0) + 1)}
                   style={{
-                    width: 32, height: 32, padding: 0, background: "#FAFAF9", border: "1px solid #E8E7E3",
-                    borderRadius: 8, cursor: "pointer", color: "#37352F", fontSize: 16, fontFamily: "inherit",
+                    width: 32, height: 32, padding: 0, background: "#F8F2E7", border: "1px solid #E5DAC2",
+                    borderRadius: 8, cursor: "pointer", color: "#1E2B4A", fontSize: 16, fontFamily: "inherit",
                   }}
                 >+</button>
               </div>
@@ -266,17 +266,17 @@ export function ItemRow({
   );
 }
 
-function Chip({ label, value, icon, valueColor = "#37352F", bold = false, trailing }) {
+function Chip({ label, value, icon, valueColor = "#1E2B4A", bold = false, trailing }) {
   return (
     <div style={{
       display: "inline-flex", alignItems: "center", gap: 4,
       padding: "3px 10px",
-      background: "#FAFAF9", border: "1px solid #F0EFEB", borderRadius: 999,
-      fontSize: 11, color: "#555247",
+      background: "#F8F2E7", border: "1px solid #EFE5CE", borderRadius: 999,
+      fontSize: 11, color: "#3A4868",
       whiteSpace: "nowrap",
     }}>
       {icon && <span style={{ fontSize: 11 }}>{icon}</span>}
-      <span style={{ color: "#8C8A82", fontWeight: 500 }}>{label}:</span>
+      <span style={{ color: "#6B7794", fontWeight: 500 }}>{label}:</span>
       <span style={{ color: valueColor, fontWeight: bold ? 800 : 700 }}>{value}</span>
       {trailing}
     </div>

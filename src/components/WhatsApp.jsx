@@ -180,23 +180,23 @@ export const WhatsAppMessage = ({ products }) => {
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
-        <h2 style={{ color: "#37352F", margin: 0, fontSize: 22 }}>📲 Mensaje WhatsApp</h2>
+        <h2 style={{ color: "#1E2B4A", margin: 0, fontSize: 22 }}>📲 Mensaje WhatsApp</h2>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <div style={{ display: "flex", gap: 4, background: "#E8E7E3", borderRadius: 8, padding: 3 }}>
+          <div style={{ display: "flex", gap: 4, background: "#E5DAC2", borderRadius: 8, padding: 3 }}>
             <button onClick={() => setMode("full")} style={{
               padding: "5px 12px", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer",
-              background: mode === "full" ? "#FFFFFF" : "transparent", color: mode === "full" ? "#25d366" : "#8C8A82",
+              background: mode === "full" ? "#FFFFFF" : "transparent", color: mode === "full" ? "#25d366" : "#6B7794",
               boxShadow: mode === "full" ? "0 1px 3px rgba(0,0,0,0.08)" : "none"
             }}>Completo</button>
             <button onClick={() => setMode("short")} style={{
               padding: "5px 12px", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer",
-              background: mode === "short" ? "#FFFFFF" : "transparent", color: mode === "short" ? "#e1306c" : "#8C8A82",
+              background: mode === "short" ? "#FFFFFF" : "transparent", color: mode === "short" ? "#e1306c" : "#6B7794",
               boxShadow: mode === "short" ? "0 1px 3px rgba(0,0,0,0.08)" : "none"
             }}>Stories</button>
           </div>
           <button onClick={saveCurrentAsTemplate} style={{
-            padding: "5px 10px", borderRadius: 6, border: "1px solid #5E6AD2",
-            background: "#5E6AD215", color: "#5E6AD2", fontSize: 11, fontWeight: 600,
+            padding: "5px 10px", borderRadius: 6, border: "1px solid #1E2B4A",
+            background: "#1E2B4A15", color: "#1E2B4A", fontSize: 11, fontWeight: 600,
             cursor: "pointer", fontFamily: "inherit",
           }} title="Guardar mensaje actual como template reutilizable">★ Guardar template</button>
           <Btn onClick={copyToClipboard} style={{ background: copied ? "linear-gradient(135deg, #00b894, #00cec9)" : "linear-gradient(135deg, #25d366, #128c7e)" }}>
@@ -211,11 +211,11 @@ export const WhatsAppMessage = ({ products }) => {
           const models = new Set();
           productsWithDynamicARS.filter(p => p.stock > 0).forEach(p => models.add(`${p.brand}-${p.model}`));
           return models.size;
-        })()} icon="📦" color="#5E6AD2" />
+        })()} icon="📦" color="#1E2B4A" />
         <StatCard label="Unidades disponibles" value={productsWithDynamicARS.reduce((s, p) => s + (p.stock || 0), 0)} icon="🔥" color="#fdcb6e" />
       </div>
 
-      <Card style={{ marginBottom: 14, background: "#FAFAF9", border: "1px solid #25d36644" }}>
+      <Card style={{ marginBottom: 14, background: "#F8F2E7", border: "1px solid #25d36644" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
           <span style={{ fontSize: 20 }}>💡</span>
           <span style={{ color: "#25d366", fontSize: 13, fontWeight: 600 }}>
@@ -226,7 +226,7 @@ export const WhatsAppMessage = ({ products }) => {
 
       {customTemplates.length > 0 && (
         <Card style={{ marginBottom: 14 }}>
-          <h4 style={{ margin: "0 0 10px", fontSize: 12, color: "#37352F", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
+          <h4 style={{ margin: "0 0 10px", fontSize: 12, color: "#1E2B4A", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
             ⭐ Templates guardados
           </h4>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -236,15 +236,15 @@ export const WhatsAppMessage = ({ products }) => {
                 <span key={t.id} style={{
                   display: "inline-flex", alignItems: "center", gap: 4,
                   padding: "5px 8px 5px 10px", borderRadius: 999,
-                  background: isActive ? "#EAECF9" : "#FAFAF9",
-                  border: `1px solid ${isActive ? "#5E6AD2" : "#E8E7E3"}`,
+                  background: isActive ? "#EAECF9" : "#F8F2E7",
+                  border: `1px solid ${isActive ? "#1E2B4A" : "#E5DAC2"}`,
                 }}>
                   <button onClick={() => { setActiveTemplateId(t.id); setMode("custom"); }} style={{
-                    background: "transparent", border: "none", color: isActive ? "#5E6AD2" : "#37352F",
+                    background: "transparent", border: "none", color: isActive ? "#1E2B4A" : "#1E2B4A",
                     cursor: "pointer", fontSize: 12, fontWeight: 600, padding: 0, fontFamily: "inherit",
                   }}>{t.name}</button>
                   <button onClick={() => deleteTemplate(t.id)} style={{
-                    background: "transparent", border: "none", color: "#8C8A82",
+                    background: "transparent", border: "none", color: "#6B7794",
                     cursor: "pointer", fontSize: 14, padding: "0 2px", lineHeight: 1,
                   }} aria-label="Eliminar template">×</button>
                 </span>
@@ -258,8 +258,8 @@ export const WhatsAppMessage = ({ products }) => {
               rows={8}
               style={{
                 width: "100%", marginTop: 10, padding: 10, borderRadius: 6,
-                border: "1px solid #E8E7E3", fontSize: 13, fontFamily: "monospace",
-                background: "#FFF", color: "#37352F", resize: "vertical", outline: "none",
+                border: "1px solid #E5DAC2", fontSize: 13, fontFamily: "monospace",
+                background: "#FFF", color: "#1E2B4A", resize: "vertical", outline: "none",
                 boxSizing: "border-box",
               }}
             />
@@ -268,7 +268,7 @@ export const WhatsAppMessage = ({ products }) => {
       )}
       <Card>
         <div style={{
-          whiteSpace: "pre-wrap", fontFamily: "monospace", fontSize: 13, color: "#555247",
+          whiteSpace: "pre-wrap", fontFamily: "monospace", fontSize: 13, color: "#3A4868",
           lineHeight: 1.7, maxHeight: 600, overflowY: "auto", padding: 8
         }}>
           {message.split("\n").map((line, i) => {
@@ -278,7 +278,7 @@ export const WhatsAppMessage = ({ products }) => {
             if (isBold) {
               const parts = line.split("*");
               return (
-                <div key={i} style={{ color: isHeader ? "#5E6AD2" : "#37352F" }}>
+                <div key={i} style={{ color: isHeader ? "#1E2B4A" : "#1E2B4A" }}>
                   {parts.map((part, j) => j % 2 === 1
                     ? <strong key={j}>{part}</strong>
                     : <span key={j}>{part}</span>

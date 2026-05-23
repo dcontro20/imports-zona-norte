@@ -49,7 +49,7 @@ export const Modal = ({ open, onClose, title, children }) => {
         width: "100%",
         maxHeight: isMobile ? "92vh" : "85vh",
         overflowY: "auto",
-        border: isMobile ? "none" : "1px solid #E8E7E3",
+        border: isMobile ? "none" : "1px solid #E5DAC2",
         boxShadow: "0 24px 48px rgba(15,15,15,0.14)",
         boxSizing: "border-box",
         position: "relative",
@@ -61,20 +61,20 @@ export const Modal = ({ open, onClose, title, children }) => {
         {/* Mobile drag handle */}
         {isMobile && (
           <div style={{
-            width: 40, height: 4, borderRadius: 2, background: "#E8E7E3",
+            width: 40, height: 4, borderRadius: 2, background: "#E5DAC2",
             margin: "0 auto 14px", flexShrink: 0,
           }} />
         )}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, gap: 10 }}>
           <h3 style={{
-            margin: 0, color: "#37352F",
+            margin: 0, color: "#1E2B4A",
             fontSize: isMobile ? 17 : 18, fontWeight: 700,
             flex: 1, minWidth: 0,
             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
           }}>{title}</h3>
           <button onClick={onClose} style={{
             width: 36, height: 36, borderRadius: 8, flexShrink: 0,
-            background: "transparent", border: "none", color: "#8C8A82",
+            background: "transparent", border: "none", color: "#6B7794",
             fontSize: 22, cursor: "pointer",
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>✕</button>
@@ -93,7 +93,7 @@ export const Modal = ({ open, onClose, title, children }) => {
             pointerEvents: "none",
             display: "flex", alignItems: "flex-end", justifyContent: "center",
             paddingBottom: 4,
-            fontSize: 16, color: "#8C8A82",
+            fontSize: 16, color: "#6B7794",
           }}>▾</div>
         )}
       </div>
@@ -108,7 +108,7 @@ export const Card = ({ children, style }) => {
       background: "#FFFFFF",
       borderRadius: isMobile ? 12 : 14,
       padding: isMobile ? "14px" : "20px",
-      border: "1px solid #E8E7E3",
+      border: "1px solid #E5DAC2",
       boxSizing: "border-box",
       ...style,
     }}>{children}</div>
@@ -119,8 +119,8 @@ export const Btn = ({ children, variant = "primary", ...props }) => {
   const { isMobile } = useResponsive();
 
   const styles = {
-    primary: { background: "#5E6AD2", color: "#fff" },
-    secondary: { background: "#F5F4F0", color: "#555247", border: "1px solid #E8E7E3" },
+    primary: { background: "#1E2B4A", color: "#fff" },
+    secondary: { background: "#F1E9D6", color: "#3A4868", border: "1px solid #E5DAC2" },
     danger: { background: "#FBE4E4", color: "#E03E3E", border: "1px solid #F1B8B6" },
     success: { background: "#DDEDEA", color: "#0F7B6C", border: "1px solid #B6D4CC" },
   };
@@ -143,7 +143,7 @@ export const Input = ({ label, ...props }) => {
     <div style={{ marginBottom: 14 }}>
       {label && (
         <label style={{
-          display: "block", fontSize: 11, color: "#8C8A82", marginBottom: 6,
+          display: "block", fontSize: 11, color: "#6B7794", marginBottom: 6,
           fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5,
         }}>{label}</label>
       )}
@@ -151,8 +151,8 @@ export const Input = ({ label, ...props }) => {
         width: "100%",
         padding: isMobile ? "12px 14px" : "10px 12px",
         minHeight: isMobile ? 44 : 38,
-        background: "#FAFAF9", border: "1px solid #E8E7E3",
-        borderRadius: 10, color: "#37352F",
+        background: "#F8F2E7", border: "1px solid #E5DAC2",
+        borderRadius: 10, color: "#1E2B4A",
         fontSize: isMobile ? 16 : 14,  // 16 en mobile previene zoom de iOS
         outline: "none", boxSizing: "border-box",
         fontFamily: "inherit",
@@ -168,7 +168,7 @@ export const Select = ({ label, options, ...props }) => {
     <div style={{ marginBottom: 14 }}>
       {label && (
         <label style={{
-          display: "block", fontSize: 11, color: "#8C8A82", marginBottom: 6,
+          display: "block", fontSize: 11, color: "#6B7794", marginBottom: 6,
           fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5,
         }}>{label}</label>
       )}
@@ -176,8 +176,8 @@ export const Select = ({ label, options, ...props }) => {
         width: "100%",
         padding: isMobile ? "12px 14px" : "10px 12px",
         minHeight: isMobile ? 44 : 38,
-        background: "#FAFAF9", border: "1px solid #E8E7E3",
-        borderRadius: 10, color: "#37352F",
+        background: "#F8F2E7", border: "1px solid #E5DAC2",
+        borderRadius: 10, color: "#1E2B4A",
         fontSize: isMobile ? 16 : 14,
         outline: "none", boxSizing: "border-box",
         fontFamily: "inherit",
@@ -201,7 +201,7 @@ export const Table = ({ columns, data, onRowClick, emptyMsg = "Sin datos", mobil
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {data.length === 0 ? (
-          <div style={{ padding: 32, textAlign: "center", color: "#B1AFA7", fontSize: 14 }}>{emptyMsg}</div>
+          <div style={{ padding: 32, textAlign: "center", color: "#9AA2B3", fontSize: 14 }}>{emptyMsg}</div>
         ) : (
           data.map((row, i) => (
             <div
@@ -209,10 +209,10 @@ export const Table = ({ columns, data, onRowClick, emptyMsg = "Sin datos", mobil
               onClick={() => onRowClick?.(row)}
               style={{
                 background: "#FFFFFF", borderRadius: 10, padding: "14px",
-                border: "1px solid #E8E7E3",
+                border: "1px solid #E5DAC2",
                 cursor: onRowClick ? "pointer" : "default",
                 transition: "background 0.15s",
-                WebkitTapHighlightColor: "rgba(94,106,210,0.1)",
+                WebkitTapHighlightColor: "rgba(30,43,74,0.1)",
                 boxSizing: "border-box",
               }}
             >
@@ -222,12 +222,12 @@ export const Table = ({ columns, data, onRowClick, emptyMsg = "Sin datos", mobil
                   justifyContent: "space-between", alignItems: "flex-start", gap: 10,
                 }}>
                   <div style={{
-                    fontSize: 11, color: "#8C8A82",
+                    fontSize: 11, color: "#6B7794",
                     textTransform: "uppercase", letterSpacing: 0.4,
                     fontWeight: 700, flexShrink: 0,
                   }}>{c.label}</div>
                   <div style={{
-                    fontSize: 13, color: "#37352F", textAlign: "right",
+                    fontSize: 13, color: "#1E2B4A", textAlign: "right",
                     flex: 1, minWidth: 0,
                     wordBreak: "break-word",
                   }}>{c.render ? c.render(row) : row[c.key]}</div>
@@ -248,9 +248,9 @@ export const Table = ({ columns, data, onRowClick, emptyMsg = "Sin datos", mobil
           <tr>
             {columns.map(c => (
               <th key={c.key} style={{
-                textAlign: "left", padding: "10px 12px", fontSize: 11, color: "#8C8A82",
+                textAlign: "left", padding: "10px 12px", fontSize: 11, color: "#6B7794",
                 textTransform: "uppercase", letterSpacing: 0.5,
-                borderBottom: "1px solid #E8E7E3", fontWeight: 700,
+                borderBottom: "1px solid #E5DAC2", fontWeight: 700,
                 whiteSpace: "nowrap",
               }}>{c.label}</th>
             ))}
@@ -258,16 +258,16 @@ export const Table = ({ columns, data, onRowClick, emptyMsg = "Sin datos", mobil
         </thead>
         <tbody>
           {data.length === 0 ? (
-            <tr><td colSpan={columns.length} style={{ padding: 32, textAlign: "center", color: "#B1AFA7" }}>{emptyMsg}</td></tr>
+            <tr><td colSpan={columns.length} style={{ padding: 32, textAlign: "center", color: "#9AA2B3" }}>{emptyMsg}</td></tr>
           ) : data.map((row, i) => (
             <tr key={row.id || i} onClick={() => onRowClick?.(row)} style={{
               cursor: onRowClick ? "pointer" : "default", transition: "background 0.15s",
-            }} onMouseEnter={e => e.currentTarget.style.background = "#FAFAF9"}
+            }} onMouseEnter={e => e.currentTarget.style.background = "#F8F2E7"}
                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
               {columns.map(c => (
                 <td key={c.key} style={{
-                  padding: "10px 12px", fontSize: 13, color: "#37352F",
-                  borderBottom: "1px solid #F0EFEB",
+                  padding: "10px 12px", fontSize: 13, color: "#1E2B4A",
+                  borderBottom: "1px solid #EFE5CE",
                 }}>{c.render ? c.render(row) : row[c.key]}</td>
               ))}
             </tr>
@@ -278,14 +278,14 @@ export const Table = ({ columns, data, onRowClick, emptyMsg = "Sin datos", mobil
   );
 };
 
-export const StatCard = ({ label, value, sub, color = "#5E6AD2", icon }) => {
+export const StatCard = ({ label, value, sub, color = "#1E2B4A", icon }) => {
   const { isMobile } = useResponsive();
   return (
     <Card style={{ flex: 1, minWidth: isMobile ? 100 : 150, overflow: "hidden" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{
-            fontSize: isMobile ? 10 : 12, color: "#8C8A82",
+            fontSize: isMobile ? 10 : 12, color: "#6B7794",
             textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6,
             fontWeight: 600,
             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
@@ -297,7 +297,7 @@ export const StatCard = ({ label, value, sub, color = "#5E6AD2", icon }) => {
           }}>{value}</div>
           {sub && (
             <div style={{
-              fontSize: isMobile ? 11 : 12, color: "#8C8A82", marginTop: 6,
+              fontSize: isMobile ? 11 : 12, color: "#6B7794", marginTop: 6,
               overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
             }}>{sub}</div>
           )}
@@ -308,7 +308,7 @@ export const StatCard = ({ label, value, sub, color = "#5E6AD2", icon }) => {
   );
 };
 
-export const Badge = ({ children, color = "#5E6AD2" }) => (
+export const Badge = ({ children, color = "#1E2B4A" }) => (
   <span style={{
     background: `${color}22`, color, padding: "3px 10px", borderRadius: 20,
     fontSize: 11, fontWeight: 700, textTransform: "uppercase",
@@ -334,8 +334,8 @@ export const SearchBar = ({ value, onChange, placeholder = "Buscar...", debounce
     <input value={local} onChange={e => setLocal(e.target.value)} placeholder={placeholder} style={{
       padding: isMobile ? "12px 16px" : "10px 16px",
       minHeight: isMobile ? 44 : 40,
-      background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10,
-      color: "#37352F", fontSize: isMobile ? 16 : 14,
+      background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 10,
+      color: "#1E2B4A", fontSize: isMobile ? 16 : 14,
       outline: "none", width: "100%",
       maxWidth: isMobile ? "100%" : 300,
       boxSizing: "border-box", fontFamily: "inherit",

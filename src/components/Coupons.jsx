@@ -225,8 +225,8 @@ export const Coupons = ({
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 14 }}>
         <div>
-          <h2 style={{ color: "#37352F", margin: 0, fontSize: 22, fontWeight: 800 }}>Promociones</h2>
-          <p style={{ color: "#8C8A82", margin: "4px 0 0", fontSize: 13 }}>
+          <h2 style={{ color: "#1E2B4A", margin: 0, fontSize: 22, fontWeight: 800 }}>Promociones</h2>
+          <p style={{ color: "#6B7794", margin: "4px 0 0", fontSize: 13 }}>
             Cupones ({activeCoupons.length}) y bundles ({activeBundles.length})
           </p>
         </div>
@@ -238,7 +238,7 @@ export const Coupons = ({
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 18, borderBottom: "1px solid #E8E7E3" }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 18, borderBottom: "1px solid #E5DAC2" }}>
         {[
           { key: "coupons", label: "🎟️ Cupones", count: activeCoupons.length },
           { key: "bundles", label: "📦 Bundles", count: activeBundles.length },
@@ -248,9 +248,9 @@ export const Coupons = ({
             onClick={() => setTab(t.key)}
             style={{
               padding: "10px 16px", border: "none", background: "transparent",
-              color: tab === t.key ? "#5E6AD2" : "#8C8A82",
+              color: tab === t.key ? "#1E2B4A" : "#6B7794",
               fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
-              borderBottom: tab === t.key ? "2px solid #5E6AD2" : "2px solid transparent",
+              borderBottom: tab === t.key ? "2px solid #1E2B4A" : "2px solid transparent",
               marginBottom: -1,
             }}
           >
@@ -264,7 +264,7 @@ export const Coupons = ({
           {/* Lista de bundles */}
           <Card style={{ marginBottom: 14 }}>
             {activeBundles.length === 0 ? (
-              <div style={{ padding: 32, textAlign: "center", color: "#B1AFA7", fontSize: 13 }}>
+              <div style={{ padding: 32, textAlign: "center", color: "#9AA2B3", fontSize: 13 }}>
                 Aún no creaste bundles. Click en "Nuevo bundle" para armar combos con precio especial.
               </div>
             ) : (
@@ -274,14 +274,14 @@ export const Coupons = ({
                   const savings = retail - (b.specialPriceUSD || 0);
                   const savingsPct = retail > 0 ? Math.round((savings / retail) * 100) : 0;
                   return (
-                    <div key={b.id} style={{ background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 8, padding: 14 }}>
+                    <div key={b.id} style={{ background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 8, padding: 14 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 8 }}>
                         <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: "#37352F" }}>{b.name}</div>
-                          {b.description && <div style={{ fontSize: 12, color: "#8C8A82", marginTop: 2 }}>{b.description}</div>}
+                          <div style={{ fontSize: 14, fontWeight: 700, color: "#1E2B4A" }}>{b.name}</div>
+                          {b.description && <div style={{ fontSize: 12, color: "#6B7794", marginTop: 2 }}>{b.description}</div>}
                         </div>
                         <div style={{ display: "flex", gap: 6 }}>
-                          <button onClick={() => openEditBundle(b)} style={{ background: "none", border: "none", color: "#5E6AD2", cursor: "pointer", fontSize: 14 }}>✏️</button>
+                          <button onClick={() => openEditBundle(b)} style={{ background: "none", border: "none", color: "#1E2B4A", cursor: "pointer", fontSize: 14 }}>✏️</button>
                           {confirmDelBundle === b.id ? (
                             <button onClick={() => removeBundle(b.id)} style={{ background: "#F7D7D6", border: "1px solid #E03E3E55", color: "#E03E3E", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>¿Borrar?</button>
                           ) : (
@@ -289,19 +289,19 @@ export const Coupons = ({
                           )}
                         </div>
                       </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 10, paddingLeft: 8, borderLeft: "2px solid #E8E7E3" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 10, paddingLeft: 8, borderLeft: "2px solid #E5DAC2" }}>
                         {(b.items || []).map((it, i) => {
                           const p = (products || []).find(x => x.id === it.productId);
                           return (
-                            <div key={i} style={{ fontSize: 12, color: "#555247" }}>
+                            <div key={i} style={{ fontSize: 12, color: "#3A4868" }}>
                               {it.qty}× {p ? `${p.brand} ${p.model}${p.flavor ? ` · ${p.flavor}` : ""}` : "(producto eliminado)"}
                             </div>
                           );
                         })}
                       </div>
                       <div style={{ display: "flex", gap: 14, fontSize: 12, alignItems: "center", flexWrap: "wrap" }}>
-                        <span style={{ color: "#8C8A82" }}>
-                          Suelto: <s style={{ color: "#B1AFA7" }}>{formatMoney(retail, "USD")}</s>
+                        <span style={{ color: "#6B7794" }}>
+                          Suelto: <s style={{ color: "#9AA2B3" }}>{formatMoney(retail, "USD")}</s>
                         </span>
                         <span style={{ color: "#0F7B6C", fontWeight: 700, fontSize: 14 }}>
                           Bundle: {formatMoney(b.specialPriceUSD, "USD")}
@@ -323,7 +323,7 @@ export const Coupons = ({
       {/* Lista de cupones */}
       <Card style={{ marginBottom: 14 }}>
         {activeCoupons.length === 0 ? (
-          <div style={{ padding: 32, textAlign: "center", color: "#B1AFA7", fontSize: 13 }}>
+          <div style={{ padding: 32, textAlign: "center", color: "#9AA2B3", fontSize: 13 }}>
             Aún no creaste cupones. Click en "Nuevo cupón" para empezar.
           </div>
         ) : (
@@ -332,7 +332,7 @@ export const Coupons = ({
               <thead>
                 <tr>
                   {["Código", "Descripción", "Descuento", "Vigencia", "Audiencia", "Usos", "Estado", ""].map(h => (
-                    <th key={h} style={{ textAlign: "left", padding: "8px 10px", fontSize: 10, color: "#8C8A82", textTransform: "uppercase", borderBottom: "1px solid #E8E7E3", fontWeight: 700 }}>{h}</th>
+                    <th key={h} style={{ textAlign: "left", padding: "8px 10px", fontSize: 10, color: "#6B7794", textTransform: "uppercase", borderBottom: "1px solid #E5DAC2", fontWeight: 700 }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -341,27 +341,27 @@ export const Coupons = ({
                   const usesText = c.maxUses ? `${c.usedCount || 0}/${c.maxUses}` : `${c.usedCount || 0}`;
                   return (
                     <tr key={c.id}>
-                      <td style={{ padding: "8px 10px", fontFamily: "monospace", fontWeight: 700, color: "#5E6AD2", borderBottom: "1px solid #F0EFEB" }}>
+                      <td style={{ padding: "8px 10px", fontFamily: "monospace", fontWeight: 700, color: "#1E2B4A", borderBottom: "1px solid #EFE5CE" }}>
                         {c.code}
                       </td>
-                      <td style={{ padding: "8px 10px", color: "#555247", borderBottom: "1px solid #F0EFEB", maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis" }}>
-                        {c.description || <span style={{ color: "#B1AFA7" }}>—</span>}
+                      <td style={{ padding: "8px 10px", color: "#3A4868", borderBottom: "1px solid #EFE5CE", maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {c.description || <span style={{ color: "#9AA2B3" }}>—</span>}
                       </td>
-                      <td style={{ padding: "8px 10px", color: "#0F7B6C", fontWeight: 700, borderBottom: "1px solid #F0EFEB" }}>
+                      <td style={{ padding: "8px 10px", color: "#0F7B6C", fontWeight: 700, borderBottom: "1px solid #EFE5CE" }}>
                         {c.discountType === "percent" ? `${c.discountValue}%` : formatMoney(c.discountValue)}
                       </td>
-                      <td style={{ padding: "8px 10px", color: "#555247", borderBottom: "1px solid #F0EFEB", fontSize: 11 }}>
+                      <td style={{ padding: "8px 10px", color: "#3A4868", borderBottom: "1px solid #EFE5CE", fontSize: 11 }}>
                         {c.validFrom ? formatDate(c.validFrom) : "Ya"} → {c.validTo ? formatDate(c.validTo) : "Sin fin"}
                       </td>
-                      <td style={{ padding: "8px 10px", borderBottom: "1px solid #F0EFEB" }}>
-                        <Badge color={c.audience === "vip" ? "#CB912F" : c.audience === "specific" ? "#5E6AD2" : "#8C8A82"}>
+                      <td style={{ padding: "8px 10px", borderBottom: "1px solid #EFE5CE" }}>
+                        <Badge color={c.audience === "vip" ? "#CB912F" : c.audience === "specific" ? "#1E2B4A" : "#6B7794"}>
                           {c.audience === "all" ? "Todos" : c.audience === "vip" ? "VIP" : `${c.audienceClientIds.length} clientes`}
                         </Badge>
                       </td>
-                      <td style={{ padding: "8px 10px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{usesText}</td>
-                      <td style={{ padding: "8px 10px", borderBottom: "1px solid #F0EFEB" }}>{couponStatusBadge(c)}</td>
-                      <td style={{ padding: "8px 10px", borderBottom: "1px solid #F0EFEB", display: "flex", gap: 4 }}>
-                        <button onClick={() => openEdit(c)} style={{ background: "none", border: "none", color: "#5E6AD2", cursor: "pointer", fontSize: 14 }}>✏️</button>
+                      <td style={{ padding: "8px 10px", color: "#3A4868", borderBottom: "1px solid #EFE5CE" }}>{usesText}</td>
+                      <td style={{ padding: "8px 10px", borderBottom: "1px solid #EFE5CE" }}>{couponStatusBadge(c)}</td>
+                      <td style={{ padding: "8px 10px", borderBottom: "1px solid #EFE5CE", display: "flex", gap: 4 }}>
+                        <button onClick={() => openEdit(c)} style={{ background: "none", border: "none", color: "#1E2B4A", cursor: "pointer", fontSize: 14 }}>✏️</button>
                         {confirmDel === c.id ? (
                           <button onClick={() => remove(c.id)} style={{ background: "#F7D7D6", border: "1px solid #E03E3E55", color: "#E03E3E", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>¿Borrar?</button>
                         ) : (
@@ -380,7 +380,7 @@ export const Coupons = ({
       {/* S16.13 — Analytics de uso */}
       {promoHistory.length > 0 && (
         <Card>
-          <h3 style={{ margin: "0 0 14px", fontSize: 14, fontWeight: 700, color: "#37352F" }}>
+          <h3 style={{ margin: "0 0 14px", fontSize: 14, fontWeight: 700, color: "#1E2B4A" }}>
             📊 Uso de cupones (analytics)
           </h3>
           <div style={{ overflowX: "auto" }}>
@@ -388,7 +388,7 @@ export const Coupons = ({
               <thead>
                 <tr>
                   {["Código", "Veces usado", "Descuento total", "Revenue generado", "ROI promedio"].map(h => (
-                    <th key={h} style={{ textAlign: "left", padding: "8px 10px", fontSize: 10, color: "#8C8A82", textTransform: "uppercase", borderBottom: "1px solid #E8E7E3", fontWeight: 700 }}>{h}</th>
+                    <th key={h} style={{ textAlign: "left", padding: "8px 10px", fontSize: 10, color: "#6B7794", textTransform: "uppercase", borderBottom: "1px solid #E5DAC2", fontWeight: 700 }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -397,13 +397,13 @@ export const Coupons = ({
                   const ratio = h.totalDiscountARS > 0 ? (h.totalRevenueARS / h.totalDiscountARS).toFixed(1) : "—";
                   return (
                     <tr key={h.code}>
-                      <td style={{ padding: "8px 10px", fontFamily: "monospace", fontWeight: 700, color: "#5E6AD2", borderBottom: "1px solid #F0EFEB" }}>{h.code}</td>
-                      <td style={{ padding: "8px 10px", color: "#37352F", borderBottom: "1px solid #F0EFEB" }}>
-                        <Badge color={h.usedCount > 0 ? "#0F7B6C" : "#8C8A82"}>{h.usedCount}</Badge>
+                      <td style={{ padding: "8px 10px", fontFamily: "monospace", fontWeight: 700, color: "#1E2B4A", borderBottom: "1px solid #EFE5CE" }}>{h.code}</td>
+                      <td style={{ padding: "8px 10px", color: "#1E2B4A", borderBottom: "1px solid #EFE5CE" }}>
+                        <Badge color={h.usedCount > 0 ? "#0F7B6C" : "#6B7794"}>{h.usedCount}</Badge>
                       </td>
-                      <td style={{ padding: "8px 10px", color: "#E03E3E", borderBottom: "1px solid #F0EFEB" }}>{formatMoney(h.totalDiscountARS)}</td>
-                      <td style={{ padding: "8px 10px", color: "#0F7B6C", fontWeight: 700, borderBottom: "1px solid #F0EFEB" }}>{formatMoney(h.totalRevenueARS)}</td>
-                      <td style={{ padding: "8px 10px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>
+                      <td style={{ padding: "8px 10px", color: "#E03E3E", borderBottom: "1px solid #EFE5CE" }}>{formatMoney(h.totalDiscountARS)}</td>
+                      <td style={{ padding: "8px 10px", color: "#0F7B6C", fontWeight: 700, borderBottom: "1px solid #EFE5CE" }}>{formatMoney(h.totalRevenueARS)}</td>
+                      <td style={{ padding: "8px 10px", color: "#3A4868", borderBottom: "1px solid #EFE5CE" }}>
                         {ratio !== "—" ? `${ratio}x` : "—"}
                       </td>
                     </tr>
@@ -412,7 +412,7 @@ export const Coupons = ({
               </tbody>
             </table>
           </div>
-          <div style={{ marginTop: 8, fontSize: 11, color: "#8C8A82" }}>
+          <div style={{ marginTop: 8, fontSize: 11, color: "#6B7794" }}>
             ROI = Revenue generado / Descuento dado. Cuanto más alto, mejor (5x = por cada $1 de descuento, generaste $5 de revenue).
           </div>
         </Card>
@@ -480,8 +480,8 @@ export const Coupons = ({
           onChange={e => setForm(f => ({ ...f, audience: e.target.value }))}
         />
         {form.audience === "specific" && (
-          <div style={{ padding: 10, background: "#FAFAF9", borderRadius: 8, marginBottom: 10, maxHeight: 180, overflowY: "auto" }}>
-            <div style={{ fontSize: 11, color: "#8C8A82", marginBottom: 6, fontWeight: 700 }}>
+          <div style={{ padding: 10, background: "#F8F2E7", borderRadius: 8, marginBottom: 10, maxHeight: 180, overflowY: "auto" }}>
+            <div style={{ fontSize: 11, color: "#6B7794", marginBottom: 6, fontWeight: 700 }}>
               Seleccionar clientes ({form.audienceClientIds.length} elegidos):
             </div>
             {(clients || []).filter(c => !c.isDeleted).map(c => (
@@ -503,7 +503,7 @@ export const Coupons = ({
             ))}
           </div>
         )}
-        <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0", fontSize: 13, color: "#37352F", cursor: "pointer" }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0", fontSize: 13, color: "#1E2B4A", cursor: "pointer" }}>
           <input
             type="checkbox"
             checked={form.onlyFirstPurchase}
@@ -532,7 +532,7 @@ export const Coupons = ({
           placeholder="ej: Pack para clientes nuevos"
         />
         <div style={{ marginBottom: 10 }}>
-          <label style={{ display: "block", fontSize: 11, color: "#5E6AD2", marginBottom: 6, fontWeight: 700, textTransform: "uppercase" }}>Items del bundle</label>
+          <label style={{ display: "block", fontSize: 11, color: "#1E2B4A", marginBottom: 6, fontWeight: 700, textTransform: "uppercase" }}>Items del bundle</label>
           {bundleForm.items.map((it, i) => (
             <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center" }}>
               <select
@@ -540,7 +540,7 @@ export const Coupons = ({
                 onChange={e => setBundleForm(f => ({
                   ...f, items: f.items.map((x, j) => j === i ? { ...x, productId: e.target.value } : x),
                 }))}
-                style={{ flex: 1, padding: "6px 8px", borderRadius: 6, border: "1px solid #E8E7E3", fontSize: 12 }}
+                style={{ flex: 1, padding: "6px 8px", borderRadius: 6, border: "1px solid #E5DAC2", fontSize: 12 }}
               >
                 <option value="">Seleccionar producto…</option>
                 {(products || []).filter(p => !p.isDeleted).map(p => (
@@ -554,7 +554,7 @@ export const Coupons = ({
                 onChange={e => setBundleForm(f => ({
                   ...f, items: f.items.map((x, j) => j === i ? { ...x, qty: e.target.value } : x),
                 }))}
-                style={{ width: 70, padding: "6px 8px", borderRadius: 6, border: "1px solid #E8E7E3", fontSize: 12, textAlign: "center" }}
+                style={{ width: 70, padding: "6px 8px", borderRadius: 6, border: "1px solid #E5DAC2", fontSize: 12, textAlign: "center" }}
               />
               <button
                 onClick={() => setBundleForm(f => ({ ...f, items: f.items.filter((_, j) => j !== i) }))}
@@ -565,8 +565,8 @@ export const Coupons = ({
           <button
             onClick={() => setBundleForm(f => ({ ...f, items: [...f.items, { productId: "", qty: 1 }] }))}
             style={{
-              padding: "5px 10px", borderRadius: 6, border: "1px dashed #5E6AD2",
-              background: "transparent", color: "#5E6AD2", fontSize: 11, fontWeight: 600,
+              padding: "5px 10px", borderRadius: 6, border: "1px dashed #1E2B4A",
+              background: "transparent", color: "#1E2B4A", fontSize: 11, fontWeight: 600,
               cursor: "pointer", fontFamily: "inherit",
             }}
           >+ Agregar item</button>

@@ -237,9 +237,9 @@ export const ExportData = ({
   const totalRecords = products.length + sales.length + purchases.length + expenses.length + withdrawals.length + (cashMovements || []).length + (stockLog || []).length + (clients || []).length;
 
   const exports = [
-    { label: "Stock actual", sub: `${products.length} productos`, icon: "📦", color: "#5E6AD2", fn: exportStock },
+    { label: "Stock actual", sub: `${products.length} productos`, icon: "📦", color: "#1E2B4A", fn: exportStock },
     { label: "Ventas", sub: `${sales.length} registros`, icon: "🛒", color: "#00b894", fn: exportSales },
-    { label: "Compras", sub: `${purchases.length} pedidos`, icon: "🚚", color: "#5E6AD2", fn: exportPurchases },
+    { label: "Compras", sub: `${purchases.length} pedidos`, icon: "🚚", color: "#1E2B4A", fn: exportPurchases },
     { label: "Gastos", sub: `${expenses.length} registros`, icon: "💸", color: "#fdcb6e", fn: exportExpenses },
     { label: "Consumo propio", sub: `${withdrawals.length} retiros`, icon: "🚬", color: "#e17055", fn: exportWithdrawals },
     { label: "Mov. de caja", sub: `${(cashMovements || []).length} movimientos`, icon: "💱", color: "#00cec9", fn: exportCashMovements },
@@ -251,8 +251,8 @@ export const ExportData = ({
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h2 style={{ color: "#37352F", margin: 0, fontSize: 22 }}>Exportar y Respaldar</h2>
-          <span style={{ color: "#8C8A82", fontSize: 13 }}>Descargá backups completos o datos individuales en CSV</span>
+          <h2 style={{ color: "#1E2B4A", margin: 0, fontSize: 22 }}>Exportar y Respaldar</h2>
+          <span style={{ color: "#6B7794", fontSize: 13 }}>Descargá backups completos o datos individuales en CSV</span>
         </div>
       </div>
 
@@ -272,8 +272,8 @@ export const ExportData = ({
             {backupUrgent ? "🚨" : backupWarning ? "⚠️" : "🛡️"}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: isMobile ? 15 : 16, fontWeight: 700, color: "#37352F" }}>Backup Completo</div>
-            <div style={{ fontSize: 12, color: "#8C8A82", marginTop: 2 }}>
+            <div style={{ fontSize: isMobile ? 15 : 16, fontWeight: 700, color: "#1E2B4A" }}>Backup Completo</div>
+            <div style={{ fontSize: 12, color: "#6B7794", marginTop: 2 }}>
               {totalRecords.toLocaleString()} registros · {lastBackup ? `Último: ${timeSince(lastBackup)}` : "Nunca se hizo"}
             </div>
             {backupUrgent && <div style={{ fontSize: 11, color: "#E03E3E", fontWeight: 600, marginTop: 4 }}>Hacé backup al menos 1 vez por semana</div>}
@@ -289,17 +289,17 @@ export const ExportData = ({
           padding: "10px 12px",
           marginBottom: 12,
           fontSize: 12,
-          color: "#555247",
+          color: "#3A4868",
           display: "flex", gap: 8, alignItems: "flex-start",
         }}>
           <span style={{ fontSize: 16, flexShrink: 0 }}>☁️</span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <strong style={{ color: "#37352F" }}>Carpeta Drive:</strong>{" "}
+            <strong style={{ color: "#1E2B4A" }}>Carpeta Drive:</strong>{" "}
             <a href={DRIVE_BACKUP_FOLDER_URL} target="_blank" rel="noreferrer"
-              style={{ color: "#5E6AD2", textDecoration: "none", fontWeight: 600 }}>
+              style={{ color: "#1E2B4A", textDecoration: "none", fontWeight: 600 }}>
               Ver backups ↗
             </a>
-            <div style={{ marginTop: 3, fontSize: 11, color: "#8C8A82" }}>
+            <div style={{ marginTop: 3, fontSize: 11, color: "#6B7794" }}>
               El botón <b>Subir a Drive</b> descarga el JSON y abre la carpeta — arrastrás el archivo y listo.
             </div>
           </div>
@@ -311,7 +311,7 @@ export const ExportData = ({
           flexDirection: isMobile ? "column" : "row",
         }}>
           <Btn onClick={backupToDrive} style={{
-            background: driveOpened ? "#0F7B6C" : "#5E6AD2",
+            background: driveOpened ? "#0F7B6C" : "#1E2B4A",
             color: "#fff", fontSize: 14, padding: "12px 20px", flex: 1,
           }}>
             {driveOpened ? "✓ Descargado · Subilo a Drive" : "☁️ Subir a Drive"}
@@ -323,8 +323,8 @@ export const ExportData = ({
             🛡️ Sólo descargar
           </Btn>
           <Btn onClick={exportAll} style={{
-            background: exporting ? "#B1AFA7" : "#E8E7E3",
-            color: "#37352F", fontSize: 13, padding: "12px 16px",
+            background: exporting ? "#9AA2B3" : "#E5DAC2",
+            color: "#1E2B4A", fontSize: 13, padding: "12px 16px",
             flex: isMobile ? 1 : "0 0 auto",
           }}>
             {exporting ? "⏳ Exportando..." : "📥 Todo en CSV"}
@@ -343,9 +343,9 @@ export const ExportData = ({
               <span style={{ fontSize: 28 }}>{exp.icon}</span>
               <div>
                 <div style={{ color: exp.color, fontSize: 14, fontWeight: 700 }}>{exp.label}</div>
-                <div style={{ color: "#8C8A82", fontSize: 12 }}>{exp.sub}</div>
+                <div style={{ color: "#6B7794", fontSize: 12 }}>{exp.sub}</div>
               </div>
-              <span style={{ marginLeft: "auto", color: "#8C8A82", fontSize: 18 }}>⬇</span>
+              <span style={{ marginLeft: "auto", color: "#6B7794", fontSize: 18 }}>⬇</span>
             </div>
           </Card>
         ))}
@@ -353,21 +353,21 @@ export const ExportData = ({
 
       {/* Info cards */}
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 10 : 14 }}>
-        <Card style={{ background: "#FAFAF9", border: "1px solid #E8E7E3" }}>
+        <Card style={{ background: "#F8F2E7", border: "1px solid #E5DAC2" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 18 }}>🛡️</span>
             <div>
-              <div style={{ color: "#37352F", fontSize: 13, fontWeight: 600 }}>Backup JSON</div>
-              <span style={{ color: "#8C8A82", fontSize: 12 }}>Un solo archivo con TODA la información del sistema. Ideal para respaldo completo o migración. Se puede restaurar.</span>
+              <div style={{ color: "#1E2B4A", fontSize: 13, fontWeight: 600 }}>Backup JSON</div>
+              <span style={{ color: "#6B7794", fontSize: 12 }}>Un solo archivo con TODA la información del sistema. Ideal para respaldo completo o migración. Se puede restaurar.</span>
             </div>
           </div>
         </Card>
-        <Card style={{ background: "#FAFAF9", border: "1px solid #E8E7E3" }}>
+        <Card style={{ background: "#F8F2E7", border: "1px solid #E5DAC2" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 18 }}>📊</span>
             <div>
-              <div style={{ color: "#37352F", fontSize: 13, fontWeight: 600 }}>Archivos CSV</div>
-              <span style={{ color: "#8C8A82", fontSize: 12 }}>Archivos individuales compatibles con Excel y Google Sheets para análisis detallado de cada área.</span>
+              <div style={{ color: "#1E2B4A", fontSize: 13, fontWeight: 600 }}>Archivos CSV</div>
+              <span style={{ color: "#6B7794", fontSize: 12 }}>Archivos individuales compatibles con Excel y Google Sheets para análisis detallado de cada área.</span>
             </div>
           </div>
         </Card>
@@ -376,7 +376,7 @@ export const ExportData = ({
       {/* ===== RESTORE ===== */}
       <Card style={{ marginTop: 20, border: "1px solid #F1B8B6", background: "#FFFDFD" }}>
         <h4 style={{ color: "#E03E3E", margin: "0 0 6px", fontSize: 14, textTransform: "uppercase" }}>⚠️ Restore desde backup</h4>
-        <p style={{ color: "#8C8A82", fontSize: 12, margin: "0 0 14px" }}>
+        <p style={{ color: "#6B7794", fontSize: 12, margin: "0 0 14px" }}>
           Leé un archivo JSON de backup (el que descargás con "Hacer backup" o el cron automático).
           Va a <strong>reemplazar</strong> todos los datos actuales — hacé un backup antes si dudás.
         </p>
@@ -400,12 +400,12 @@ export const ExportData = ({
         )}
 
         {restorePreview && (
-          <div style={{ marginTop: 14, padding: "14px 16px", background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#37352F", marginBottom: 6 }}>
-              📋 Preview de <code style={{ background: "#EEF0FC", padding: "2px 6px", borderRadius: 4, fontSize: 12 }}>{restorePreview.filename}</code>
+          <div style={{ marginTop: 14, padding: "14px 16px", background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 10 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#1E2B4A", marginBottom: 6 }}>
+              📋 Preview de <code style={{ background: "#E8EBF2", padding: "2px 6px", borderRadius: 4, fontSize: 12 }}>{restorePreview.filename}</code>
             </div>
             {restorePreview.data._meta?.exportDate && (
-              <div style={{ fontSize: 11, color: "#8C8A82", marginBottom: 10 }}>
+              <div style={{ fontSize: 11, color: "#6B7794", marginBottom: 10 }}>
                 Exportado: {new Date(restorePreview.data._meta.exportDate).toLocaleString("es-AR")}
                 {restorePreview.data._meta.exchangeRate && ` · Blue al exportar: $${restorePreview.data._meta.exchangeRate}`}
               </div>
@@ -422,16 +422,16 @@ export const ExportData = ({
                 ["Cierres", restorePreview.data.monthlyClosures?.length],
                 ["Retiros", restorePreview.data.partnerWithdrawals?.length],
               ].map(([label, count]) => (
-                <div key={label} style={{ background: "#FFFFFF", border: "1px solid #E8E7E3", borderRadius: 6, padding: "6px 10px" }}>
-                  <div style={{ color: "#8C8A82", fontSize: 10, textTransform: "uppercase" }}>{label}</div>
-                  <div style={{ color: "#37352F", fontWeight: 700 }}>{count ?? 0}</div>
+                <div key={label} style={{ background: "#FFFFFF", border: "1px solid #E5DAC2", borderRadius: 6, padding: "6px 10px" }}>
+                  <div style={{ color: "#6B7794", fontSize: 10, textTransform: "uppercase" }}>{label}</div>
+                  <div style={{ color: "#1E2B4A", fontWeight: 700 }}>{count ?? 0}</div>
                 </div>
               ))}
             </div>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               <button onClick={() => setRestorePreview(null)} style={{
-                padding: "10px 16px", minHeight: 42, border: "1px solid #E8E7E3", borderRadius: 8,
-                background: "#FAFAF9", color: "#37352F", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                padding: "10px 16px", minHeight: 42, border: "1px solid #E5DAC2", borderRadius: 8,
+                background: "#F8F2E7", color: "#1E2B4A", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
               }}>Cancelar</button>
               <button onClick={applyRestore} style={{
                 padding: "10px 16px", minHeight: 42, border: "none", borderRadius: 8,

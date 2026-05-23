@@ -34,18 +34,18 @@ const TYPE_COLOR = {
 
 // -- REPORTS --
 const BarChart = ({ data, colorKey, valueKey, labelKey, maxBars = 10, suffix = "" }) => {
-  if (!data || data.length === 0) return <p style={{ color: "#B1AFA7", fontSize: 13 }}>Sin datos</p>;
+  if (!data || data.length === 0) return <p style={{ color: "#9AA2B3", fontSize: 13 }}>Sin datos</p>;
   const sorted = [...data].slice(0, maxBars);
   const maxVal = Math.max(...sorted.map(d => d[valueKey] || 0), 1);
   return (
     <div>
       {sorted.map((d, i) => (
         <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-          <span style={{ color: "#555247", fontSize: 12, minWidth: 60, maxWidth: 120, textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flexShrink: 0 }}>{d[labelKey]}</span>
-          <div style={{ flex: 1, background: "#F0EFEB", borderRadius: 6, height: 24, overflow: "hidden" }}>
+          <span style={{ color: "#3A4868", fontSize: 12, minWidth: 60, maxWidth: 120, textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flexShrink: 0 }}>{d[labelKey]}</span>
+          <div style={{ flex: 1, background: "#EFE5CE", borderRadius: 6, height: 24, overflow: "hidden" }}>
             <div style={{
               width: `${Math.max(2, (d[valueKey] / maxVal) * 100)}%`, height: "100%",
-              background: `linear-gradient(90deg, ${d[colorKey] || "#5E6AD2"}88, ${d[colorKey] || "#5E6AD2"})`,
+              background: `linear-gradient(90deg, ${d[colorKey] || "#1E2B4A"}88, ${d[colorKey] || "#1E2B4A"})`,
               borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "flex-end", paddingRight: 8, transition: "width 0.5s"
             }}>
               <span style={{ color: "#fff", fontSize: 11, fontWeight: 700 }}>{typeof d[valueKey] === "number" && d[valueKey] >= 1000 ? formatMoney(d[valueKey]) : d[valueKey]}{suffix}</span>
@@ -58,7 +58,7 @@ const BarChart = ({ data, colorKey, valueKey, labelKey, maxBars = 10, suffix = "
 };
 
 const DonutChart = ({ data, size = 160 }) => {
-  if (!data || data.length === 0) return <p style={{ color: "#B1AFA7", fontSize: 13 }}>Sin datos</p>;
+  if (!data || data.length === 0) return <p style={{ color: "#9AA2B3", fontSize: 13 }}>Sin datos</p>;
   const total = data.reduce((s, d) => s + d.value, 0);
   if (total === 0) return <p style={{ color: "#555", fontSize: 13 }}>Sin datos</p>;
   const r = size / 2 - 10;
@@ -82,15 +82,15 @@ const DonutChart = ({ data, size = 160 }) => {
     <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
       <svg width={size} height={size}>
         {slices.map((s, i) => <path key={i} d={s.path} fill={s.color} opacity={0.85} />)}
-        <text x={cx} y={cy - 6} textAnchor="middle" fill="#37352F" fontSize={18} fontWeight={800}>{total}</text>
-        <text x={cx} y={cy + 12} textAnchor="middle" fill="#8C8A82" fontSize={10}>unidades</text>
+        <text x={cx} y={cy - 6} textAnchor="middle" fill="#1E2B4A" fontSize={18} fontWeight={800}>{total}</text>
+        <text x={cx} y={cy + 12} textAnchor="middle" fill="#6B7794" fontSize={10}>unidades</text>
       </svg>
       <div>
         {slices.map((s, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
             <span style={{ width: 10, height: 10, borderRadius: 3, background: s.color, flexShrink: 0 }} />
-            <span style={{ color: "#555247", fontSize: 12 }}>{s.label}</span>
-            <span style={{ color: "#8C8A82", fontSize: 11 }}>{s.pct}%</span>
+            <span style={{ color: "#3A4868", fontSize: 12 }}>{s.label}</span>
+            <span style={{ color: "#6B7794", fontSize: 11 }}>{s.pct}%</span>
           </div>
         ))}
       </div>
@@ -217,11 +217,11 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
-        <h2 style={{ color: "#37352F", margin: 0, fontSize: 22 }}>Reportes</h2>
+        <h2 style={{ color: "#1E2B4A", margin: 0, fontSize: 22 }}>Reportes</h2>
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={() => window.print()} style={{
-            padding: "8px 14px", borderRadius: 8, border: "1px solid #E8E7E3",
-            background: "transparent", color: "#37352F", fontSize: 12, fontWeight: 600,
+            padding: "8px 14px", borderRadius: 8, border: "1px solid #E5DAC2",
+            background: "transparent", color: "#1E2B4A", fontSize: 12, fontWeight: 600,
             cursor: "pointer", fontFamily: "inherit",
           }} title="Imprimir o exportar a PDF">📄 Exportar PDF</button>
         </div>
@@ -257,20 +257,20 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
         const medalColors = ["#F59E0B", "#9CA3AF", "#CD7F32"];
         const Section = ({ title, items, getLabel, getValue }) => (
           <div style={{ flex: 1, minWidth: 220 }}>
-            <h4 style={{ color: "#8C8A82", margin: "0 0 8px", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>
+            <h4 style={{ color: "#6B7794", margin: "0 0 8px", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>
               {title}
             </h4>
             {items.length === 0 ? (
-              <p style={{ color: "#B1AFA7", fontSize: 12, margin: 0 }}>Sin datos</p>
+              <p style={{ color: "#9AA2B3", fontSize: 12, margin: 0 }}>Sin datos</p>
             ) : (
               items.map((it, i) => (
                 <div key={i} style={{
                   display: "flex", alignItems: "center", gap: 8, padding: "6px 0",
-                  borderBottom: i < items.length - 1 ? "1px solid #F0EFEB" : "none",
+                  borderBottom: i < items.length - 1 ? "1px solid #EFE5CE" : "none",
                 }}>
                   <span style={{ fontSize: 18 }}>{medals[i]}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, color: "#37352F", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <div style={{ fontSize: 13, color: "#1E2B4A", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {getLabel(it)}
                     </div>
                   </div>
@@ -285,7 +285,7 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
         );
         return (
           <Card style={{ marginBottom: 20 }}>
-            <h3 style={{ margin: "0 0 14px", fontSize: 14, fontWeight: 700, color: "#37352F" }}>
+            <h3 style={{ margin: "0 0 14px", fontSize: 14, fontWeight: 700, color: "#1E2B4A" }}>
               🏆 Top Performers (histórico)
             </h3>
             <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
@@ -320,26 +320,26 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
 
       {/* S15.14 — Salud de inventario */}
       <Card style={{ marginBottom: 14 }}>
-        <h3 style={{ margin: "0 0 14px", fontSize: 14, fontWeight: 700, color: "#37352F" }}>
+        <h3 style={{ margin: "0 0 14px", fontSize: 14, fontWeight: 700, color: "#1E2B4A" }}>
           📦 Salud del inventario
         </h3>
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit, minmax(150px, 1fr))", gap: 10 }}>
           {[
-            { label: "SKUs activos", value: inventoryHealth.skuCount, color: "#37352F" },
+            { label: "SKUs activos", value: inventoryHealth.skuCount, color: "#1E2B4A" },
             { label: "Con stock", value: `${inventoryHealth.productsWithStock}/${inventoryHealth.skuCount}`, sub: `${inventoryHealth.fillRatePct}% fill rate`, color: inventoryHealth.fillRatePct >= 70 ? "#0F7B6C" : "#CB912F" },
-            { label: "Unidades en stock", value: inventoryHealth.stockUnits, color: "#5E6AD2" },
-            { label: "Valor stock (USD)", value: formatMoney(inventoryHealth.stockValueUSD, "USD"), color: "#37352F" },
+            { label: "Unidades en stock", value: inventoryHealth.stockUnits, color: "#1E2B4A" },
+            { label: "Valor stock (USD)", value: formatMoney(inventoryHealth.stockValueUSD, "USD"), color: "#1E2B4A" },
             { label: "Turnover anual", value: inventoryHealth.turnoverAnnualized.toFixed(1) + "x", sub: inventoryHealth.dio !== null ? `DIO: ${inventoryHealth.dio} días` : "Sin compras 90d", color: inventoryHealth.turnoverAnnualized >= 4 ? "#0F7B6C" : "#CB912F" },
             { label: "Dead stock", value: `${inventoryHealth.deadStockCount} SKUs`, sub: `${inventoryHealth.deadStockPct}% del valor`, color: inventoryHealth.deadStockPct >= 20 ? "#E03E3E" : inventoryHealth.deadStockPct >= 10 ? "#CB912F" : "#0F7B6C" },
           ].map((kpi, i) => (
-            <div key={i} style={{ padding: 10, background: "#FAFAF9", borderRadius: 8, border: "1px solid #E8E7E3" }}>
-              <div style={{ fontSize: 10, color: "#8C8A82", textTransform: "uppercase", fontWeight: 700 }}>{kpi.label}</div>
+            <div key={i} style={{ padding: 10, background: "#F8F2E7", borderRadius: 8, border: "1px solid #E5DAC2" }}>
+              <div style={{ fontSize: 10, color: "#6B7794", textTransform: "uppercase", fontWeight: 700 }}>{kpi.label}</div>
               <div style={{ fontSize: 18, fontWeight: 800, color: kpi.color, fontFamily: "'Rubik', sans-serif" }}>{kpi.value}</div>
-              {kpi.sub && <div style={{ fontSize: 10, color: "#8C8A82", marginTop: 2 }}>{kpi.sub}</div>}
+              {kpi.sub && <div style={{ fontSize: 10, color: "#6B7794", marginTop: 2 }}>{kpi.sub}</div>}
             </div>
           ))}
         </div>
-        <div style={{ marginTop: 8, fontSize: 11, color: "#8C8A82", lineHeight: 1.4 }}>
+        <div style={{ marginTop: 8, fontSize: 11, color: "#6B7794", lineHeight: 1.4 }}>
           Turnover = COGS últ. 90d / valor inventario × (365/90). DIO = días en que rotás el stock.
           Dead stock = productos sin venta ≥90d con stock ≥1.
         </div>
@@ -348,10 +348,10 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
       {/* S16.5 + S16.6 — Detector candidatos a promo + Sugeridor liquidación */}
       {promoCandidates.length > 0 && (
         <Card style={{ marginBottom: 14 }}>
-          <h3 style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#37352F" }}>
+          <h3 style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#1E2B4A" }}>
             🎯 Candidatos a promoción ({promoCandidates.length})
           </h3>
-          <p style={{ margin: "0 0 14px", fontSize: 12, color: "#8C8A82" }}>
+          <p style={{ margin: "0 0 14px", fontSize: 12, color: "#6B7794" }}>
             Productos con stock + razones para promocionar (vencimiento, lento, dormido, última unidad).
             Click "Ver escenarios" para 3 niveles de descuento con su impacto.
           </p>
@@ -364,7 +364,7 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
               />
             ))}
             {promoCandidates.length > 12 && (
-              <p style={{ fontSize: 11, color: "#8C8A82" }}>...y {promoCandidates.length - 12} candidatos más.</p>
+              <p style={{ fontSize: 11, color: "#6B7794" }}>...y {promoCandidates.length - 12} candidatos más.</p>
             )}
           </div>
         </Card>
@@ -372,10 +372,10 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
 
       {/* S15.2 — ABC Analysis (Pareto 80/20) */}
       <Card style={{ marginBottom: 14 }}>
-        <h3 style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#37352F" }}>
+        <h3 style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#1E2B4A" }}>
           📊 ABC Analysis — Pareto 80/20
         </h3>
-        <p style={{ margin: "0 0 14px", fontSize: 12, color: "#8C8A82" }}>
+        <p style={{ margin: "0 0 14px", fontSize: 12, color: "#6B7794" }}>
           A = top productos que acumulan el 80% del revenue · B = siguientes 15% · C = el 5% restante
         </p>
         {(() => {
@@ -388,7 +388,7 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
                 {[
                   { label: "Clase A (top)", count: aSet.length, color: "#0F7B6C", bg: "#DDEDEA" },
                   { label: "Clase B (medio)", count: bSet.length, color: "#CB912F", bg: "#FEF6E4" },
-                  { label: "Clase C (bottom)", count: cSet.length, color: "#8C8A82", bg: "#F5F5F2" },
+                  { label: "Clase C (bottom)", count: cSet.length, color: "#6B7794", bg: "#F5F5F2" },
                 ].map((seg, i) => (
                   <div key={i} style={{ padding: 10, background: seg.bg, borderRadius: 8, textAlign: "center" }}>
                     <div style={{ fontSize: 11, color: seg.color, fontWeight: 700, textTransform: "uppercase" }}>{seg.label}</div>
@@ -402,33 +402,33 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
                   <thead>
                     <tr>
                       {["#", "Clase", "Producto", "Uds", "Revenue", "% del total", "Acumul."].map(h => (
-                        <th key={h} style={{ textAlign: "left", padding: "6px 8px", fontSize: 10, color: "#8C8A82", textTransform: "uppercase", borderBottom: "1px solid #E8E7E3" }}>{h}</th>
+                        <th key={h} style={{ textAlign: "left", padding: "6px 8px", fontSize: 10, color: "#6B7794", textTransform: "uppercase", borderBottom: "1px solid #E5DAC2" }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {abcAnalysis.slice(0, 20).map((row, i) => {
-                      const colors = { A: "#0F7B6C", B: "#CB912F", C: "#8C8A82" };
+                      const colors = { A: "#0F7B6C", B: "#CB912F", C: "#6B7794" };
                       return (
                         <tr key={row.productId}>
-                          <td style={{ padding: "5px 8px", color: "#8C8A82", borderBottom: "1px solid #F0EFEB" }}>{i + 1}</td>
-                          <td style={{ padding: "5px 8px", borderBottom: "1px solid #F0EFEB" }}>
+                          <td style={{ padding: "5px 8px", color: "#6B7794", borderBottom: "1px solid #EFE5CE" }}>{i + 1}</td>
+                          <td style={{ padding: "5px 8px", borderBottom: "1px solid #EFE5CE" }}>
                             <Badge color={colors[row.classification]}>{row.classification}</Badge>
                           </td>
-                          <td style={{ padding: "5px 8px", color: "#37352F", borderBottom: "1px solid #F0EFEB", fontWeight: 600 }}>
+                          <td style={{ padding: "5px 8px", color: "#1E2B4A", borderBottom: "1px solid #EFE5CE", fontWeight: 600 }}>
                             {row.product?.brand} {row.product?.model} {row.product?.flavor && `· ${row.product.flavor}`}
                           </td>
-                          <td style={{ padding: "5px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{row.totalQty}</td>
-                          <td style={{ padding: "5px 8px", color: "#37352F", borderBottom: "1px solid #F0EFEB", fontWeight: 600 }}>{formatMoney(row.totalRevenueARS)}</td>
-                          <td style={{ padding: "5px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{row.revenuePct.toFixed(1)}%</td>
-                          <td style={{ padding: "5px 8px", color: colors[row.classification], borderBottom: "1px solid #F0EFEB", fontWeight: 600 }}>{row.cumulativePct}%</td>
+                          <td style={{ padding: "5px 8px", color: "#3A4868", borderBottom: "1px solid #EFE5CE" }}>{row.totalQty}</td>
+                          <td style={{ padding: "5px 8px", color: "#1E2B4A", borderBottom: "1px solid #EFE5CE", fontWeight: 600 }}>{formatMoney(row.totalRevenueARS)}</td>
+                          <td style={{ padding: "5px 8px", color: "#3A4868", borderBottom: "1px solid #EFE5CE" }}>{row.revenuePct.toFixed(1)}%</td>
+                          <td style={{ padding: "5px 8px", color: colors[row.classification], borderBottom: "1px solid #EFE5CE", fontWeight: 600 }}>{row.cumulativePct}%</td>
                         </tr>
                       );
                     })}
                   </tbody>
                 </table>
                 {abcAnalysis.length > 20 && (
-                  <div style={{ marginTop: 8, fontSize: 11, color: "#8C8A82" }}>...y {abcAnalysis.length - 20} productos más.</div>
+                  <div style={{ marginTop: 8, fontSize: 11, color: "#6B7794" }}>...y {abcAnalysis.length - 20} productos más.</div>
                 )}
               </div>
             </>
@@ -438,7 +438,7 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
 
       {/* S15.5 — Comparativa rentabilidad por marca */}
       <Card style={{ marginBottom: 14 }}>
-        <h3 style={{ margin: "0 0 14px", fontSize: 14, fontWeight: 700, color: "#37352F" }}>
+        <h3 style={{ margin: "0 0 14px", fontSize: 14, fontWeight: 700, color: "#1E2B4A" }}>
           🏷️ Rentabilidad por marca
         </h3>
         <div style={{ overflowX: "auto" }}>
@@ -446,43 +446,43 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
             <thead>
               <tr>
                 {["Marca", "SKUs", "Con stock", "Uds vendidas", "Velocity 30d", "Revenue", "Margen prom.", "Stock USD"].map(h => (
-                  <th key={h} style={{ textAlign: "left", padding: "6px 8px", fontSize: 10, color: "#8C8A82", textTransform: "uppercase", borderBottom: "1px solid #E8E7E3" }}>{h}</th>
+                  <th key={h} style={{ textAlign: "left", padding: "6px 8px", fontSize: 10, color: "#6B7794", textTransform: "uppercase", borderBottom: "1px solid #E5DAC2" }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {brandPerformance.map(b => (
                 <tr key={b.brand}>
-                  <td style={{ padding: "6px 8px", color: BRAND_COLORS[b.brand] || "#37352F", fontWeight: 700, borderBottom: "1px solid #F0EFEB" }}>{b.brand}</td>
-                  <td style={{ padding: "6px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{b.skuCount}</td>
-                  <td style={{ padding: "6px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{b.productsWithStock}</td>
-                  <td style={{ padding: "6px 8px", color: "#37352F", borderBottom: "1px solid #F0EFEB", fontWeight: 600 }}>{b.totalQty}</td>
-                  <td style={{ padding: "6px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{b.velocity30dTotal}</td>
-                  <td style={{ padding: "6px 8px", color: "#0F7B6C", borderBottom: "1px solid #F0EFEB", fontWeight: 600 }}>{formatMoney(b.totalRevenueARS)}</td>
-                  <td style={{ padding: "6px 8px", borderBottom: "1px solid #F0EFEB" }}>
+                  <td style={{ padding: "6px 8px", color: BRAND_COLORS[b.brand] || "#1E2B4A", fontWeight: 700, borderBottom: "1px solid #EFE5CE" }}>{b.brand}</td>
+                  <td style={{ padding: "6px 8px", color: "#3A4868", borderBottom: "1px solid #EFE5CE" }}>{b.skuCount}</td>
+                  <td style={{ padding: "6px 8px", color: "#3A4868", borderBottom: "1px solid #EFE5CE" }}>{b.productsWithStock}</td>
+                  <td style={{ padding: "6px 8px", color: "#1E2B4A", borderBottom: "1px solid #EFE5CE", fontWeight: 600 }}>{b.totalQty}</td>
+                  <td style={{ padding: "6px 8px", color: "#3A4868", borderBottom: "1px solid #EFE5CE" }}>{b.velocity30dTotal}</td>
+                  <td style={{ padding: "6px 8px", color: "#0F7B6C", borderBottom: "1px solid #EFE5CE", fontWeight: 600 }}>{formatMoney(b.totalRevenueARS)}</td>
+                  <td style={{ padding: "6px 8px", borderBottom: "1px solid #EFE5CE" }}>
                     {b.avgMarginPct !== null ? (
                       <Badge color={b.avgMarginPct >= 50 ? "#0F7B6C" : b.avgMarginPct >= 30 ? "#CB912F" : "#E03E3E"}>{b.avgMarginPct}%</Badge>
                     ) : (
-                      <span style={{ color: "#B1AFA7", fontSize: 11 }}>—</span>
+                      <span style={{ color: "#9AA2B3", fontSize: 11 }}>—</span>
                     )}
                   </td>
-                  <td style={{ padding: "6px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{formatMoney(b.stockValueUSD, "USD")}</td>
+                  <td style={{ padding: "6px 8px", color: "#3A4868", borderBottom: "1px solid #EFE5CE" }}>{formatMoney(b.stockValueUSD, "USD")}</td>
                 </tr>
               ))}
             </tbody>
           </table>
           {brandPerformance.length === 0 && (
-            <p style={{ color: "#B1AFA7", fontSize: 12, padding: 14 }}>Sin datos para mostrar.</p>
+            <p style={{ color: "#9AA2B3", fontSize: 12, padding: 14 }}>Sin datos para mostrar.</p>
           )}
         </div>
       </Card>
 
       {/* S15.15 — ROI ranking por unidad × volumen */}
       <Card style={{ marginBottom: 14 }}>
-        <h3 style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#37352F" }}>
+        <h3 style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#1E2B4A" }}>
           💎 ROI ranking — qué te dio más ganancia $
         </h3>
-        <p style={{ margin: "0 0 14px", fontSize: 12, color: "#8C8A82" }}>
+        <p style={{ margin: "0 0 14px", fontSize: 12, color: "#6B7794" }}>
           Producto × ganancia/unidad × unidades vendidas. El "ROI ranking" combina alta margen + alto volumen — los que más plata te dieron en términos absolutos.
         </p>
         {(() => {
@@ -498,7 +498,7 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
             .sort((a, b) => b.totalProfit - a.totalProfit)
             .slice(0, 15);
           if (ranked.length === 0) {
-            return <p style={{ color: "#B1AFA7", fontSize: 12 }}>Cargá costUSDT en los productos para ver el ranking de ROI.</p>;
+            return <p style={{ color: "#9AA2B3", fontSize: 12 }}>Cargá costUSDT en los productos para ver el ranking de ROI.</p>;
           }
           return (
             <div style={{ overflowX: "auto" }}>
@@ -506,24 +506,24 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
                 <thead>
                   <tr>
                     {["#", "Producto", "Uds vend.", "$/ud", "Total $", "Margen", "ROI"].map(h => (
-                      <th key={h} style={{ textAlign: "left", padding: "6px 8px", fontSize: 10, color: "#8C8A82", textTransform: "uppercase", borderBottom: "1px solid #E8E7E3" }}>{h}</th>
+                      <th key={h} style={{ textAlign: "left", padding: "6px 8px", fontSize: 10, color: "#6B7794", textTransform: "uppercase", borderBottom: "1px solid #E5DAC2" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {ranked.map((r, i) => (
                     <tr key={r.productId}>
-                      <td style={{ padding: "5px 8px", color: i < 3 ? "#0F7B6C" : "#8C8A82", borderBottom: "1px solid #F0EFEB", fontWeight: 700 }}>{i + 1}</td>
-                      <td style={{ padding: "5px 8px", color: "#37352F", borderBottom: "1px solid #F0EFEB", fontWeight: 600 }}>
+                      <td style={{ padding: "5px 8px", color: i < 3 ? "#0F7B6C" : "#6B7794", borderBottom: "1px solid #EFE5CE", fontWeight: 700 }}>{i + 1}</td>
+                      <td style={{ padding: "5px 8px", color: "#1E2B4A", borderBottom: "1px solid #EFE5CE", fontWeight: 600 }}>
                         {r.product.brand} {r.product.model} {r.product.flavor && `· ${r.product.flavor}`}
                       </td>
-                      <td style={{ padding: "5px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{r.totalQty}</td>
-                      <td style={{ padding: "5px 8px", color: "#0F7B6C", borderBottom: "1px solid #F0EFEB", fontWeight: 600 }}>{formatMoney(r.profitPerUnit, "USD")}</td>
-                      <td style={{ padding: "5px 8px", color: "#0F7B6C", borderBottom: "1px solid #F0EFEB", fontWeight: 700 }}>{formatMoney(r.totalProfit, "USD")}</td>
-                      <td style={{ padding: "5px 8px", borderBottom: "1px solid #F0EFEB" }}>
+                      <td style={{ padding: "5px 8px", color: "#3A4868", borderBottom: "1px solid #EFE5CE" }}>{r.totalQty}</td>
+                      <td style={{ padding: "5px 8px", color: "#0F7B6C", borderBottom: "1px solid #EFE5CE", fontWeight: 600 }}>{formatMoney(r.profitPerUnit, "USD")}</td>
+                      <td style={{ padding: "5px 8px", color: "#0F7B6C", borderBottom: "1px solid #EFE5CE", fontWeight: 700 }}>{formatMoney(r.totalProfit, "USD")}</td>
+                      <td style={{ padding: "5px 8px", borderBottom: "1px solid #EFE5CE" }}>
                         <Badge color={r.marginPct >= 50 ? "#0F7B6C" : r.marginPct >= 30 ? "#CB912F" : "#E03E3E"}>{r.marginPct}%</Badge>
                       </td>
-                      <td style={{ padding: "5px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{r.roiPct !== null ? `${r.roiPct}%` : "—"}</td>
+                      <td style={{ padding: "5px 8px", color: "#3A4868", borderBottom: "1px solid #EFE5CE" }}>{r.roiPct !== null ? `${r.roiPct}%` : "—"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -535,10 +535,10 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
 
       {/* S15.10 — Cross-sell: matriz de co-ocurrencia */}
       <Card style={{ marginBottom: 14 }}>
-        <h3 style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#37352F" }}>
+        <h3 style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#1E2B4A" }}>
           🤝 Cross-sell — los que compran X también compran Y
         </h3>
-        <p style={{ margin: "0 0 14px", fontSize: 12, color: "#8C8A82" }}>
+        <p style={{ margin: "0 0 14px", fontSize: 12, color: "#6B7794" }}>
           Productos con mayor co-ocurrencia en ventas. Útil para sugerir combos y bundles. Top 10 productos.
         </p>
         {(() => {
@@ -554,22 +554,22 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
             .sort((a, b) => b.totalCo - a.totalCo)
             .slice(0, 10);
           if (ranked.length === 0) {
-            return <p style={{ color: "#B1AFA7", fontSize: 12 }}>Sin datos suficientes — necesitás ventas con 2+ productos.</p>;
+            return <p style={{ color: "#9AA2B3", fontSize: 12 }}>Sin datos suficientes — necesitás ventas con 2+ productos.</p>;
           }
           return (
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
               {ranked.map(r => (
-                <div key={r.productId} style={{ padding: 10, background: "#FAFAF9", borderRadius: 8, border: "1px solid #E8E7E3" }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: BRAND_COLORS[r.product.brand] || "#37352F", marginBottom: 6 }}>
+                <div key={r.productId} style={{ padding: 10, background: "#F8F2E7", borderRadius: 8, border: "1px solid #E5DAC2" }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: BRAND_COLORS[r.product.brand] || "#1E2B4A", marginBottom: 6 }}>
                     {r.product.brand} {r.product.model} {r.product.flavor && `· ${r.product.flavor}`}
                   </div>
-                  <div style={{ fontSize: 11, color: "#8C8A82", marginBottom: 6 }}>
+                  <div style={{ fontSize: 11, color: "#6B7794", marginBottom: 6 }}>
                     Suele ir junto con:
                   </div>
                   {r.partners.map((p, i) => (
                     <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: 12 }}>
-                      <span style={{ color: "#37352F", fontWeight: 500 }}>{p.productName}</span>
-                      <Badge color="#5E6AD2">{p.co}x</Badge>
+                      <span style={{ color: "#1E2B4A", fontWeight: 500 }}>{p.productName}</span>
+                      <Badge color="#1E2B4A">{p.co}x</Badge>
                     </div>
                   ))}
                 </div>
@@ -581,10 +581,10 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
 
       {/* S15.11 — Patrones por día de la semana */}
       <Card style={{ marginBottom: 14 }}>
-        <h3 style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#37352F" }}>
+        <h3 style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#1E2B4A" }}>
           📅 Patrones por día de semana
         </h3>
-        <p style={{ margin: "0 0 14px", fontSize: 12, color: "#8C8A82" }}>
+        <p style={{ margin: "0 0 14px", fontSize: 12, color: "#6B7794" }}>
           Unidades vendidas por día (últimos 90 días). Te dice qué días publicar promo.
         </p>
         {(() => {
@@ -592,23 +592,23 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
           const total = dowPattern.reduce((s, d) => s + d.qty, 0);
           const peak = dowPattern.reduce((m, d) => d.qty > m.qty ? d : m, dowPattern[0]);
           if (total === 0) {
-            return <p style={{ color: "#B1AFA7", fontSize: 12 }}>Sin ventas en los últimos 90 días.</p>;
+            return <p style={{ color: "#9AA2B3", fontSize: 12 }}>Sin ventas en los últimos 90 días.</p>;
           }
           return (
             <>
               <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 120, marginBottom: 12 }}>
                 {dowPattern.map(d => (
                   <div key={d.dow} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                    <div style={{ fontSize: 10, color: "#37352F", fontWeight: 600 }}>{d.qty}</div>
+                    <div style={{ fontSize: 10, color: "#1E2B4A", fontWeight: 600 }}>{d.qty}</div>
                     <div title={`${d.label}: ${d.qty} uds`} style={{
                       width: "100%",
                       height: `${(d.qty / max) * 90}%`,
                       minHeight: d.qty > 0 ? 4 : 1,
-                      background: d.dow === peak.dow ? "#0F7B6C" : "#5E6AD2",
+                      background: d.dow === peak.dow ? "#0F7B6C" : "#1E2B4A",
                       borderRadius: "4px 4px 0 0",
                       transition: "height .3s",
                     }} />
-                    <div style={{ fontSize: 11, color: d.dow === peak.dow ? "#0F7B6C" : "#8C8A82", fontWeight: d.dow === peak.dow ? 700 : 500 }}>
+                    <div style={{ fontSize: 11, color: d.dow === peak.dow ? "#0F7B6C" : "#6B7794", fontWeight: d.dow === peak.dow ? 700 : 500 }}>
                       {d.label}
                     </div>
                   </div>
@@ -626,10 +626,10 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
       {/* S15.13 — Sell-through rate por lote */}
       {sellThroughRates.length > 0 && (
         <Card style={{ marginBottom: 14 }}>
-          <h3 style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#37352F" }}>
+          <h3 style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#1E2B4A" }}>
             🚚 Sell-through rate por lote (compras verificadas)
           </h3>
-          <p style={{ margin: "0 0 14px", fontSize: 12, color: "#8C8A82" }}>
+          <p style={{ margin: "0 0 14px", fontSize: 12, color: "#6B7794" }}>
             Cuánto del stock comprado ya se vendió. Lotes con STR bajo y ya viejos = candidatos a promo/liquidación.
           </p>
           <div style={{ overflowX: "auto" }}>
@@ -637,22 +637,22 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
               <thead>
                 <tr>
                   {["Proveedor", "Fecha", "Lote", "Comprado", "Vendido", "STR", "Días en mercado"].map(h => (
-                    <th key={h} style={{ textAlign: "left", padding: "6px 8px", fontSize: 10, color: "#8C8A82", textTransform: "uppercase", borderBottom: "1px solid #E8E7E3" }}>{h}</th>
+                    <th key={h} style={{ textAlign: "left", padding: "6px 8px", fontSize: 10, color: "#6B7794", textTransform: "uppercase", borderBottom: "1px solid #E5DAC2" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {sellThroughRates.slice(0, 15).map(s => (
                   <tr key={s.purchaseId}>
-                    <td style={{ padding: "6px 8px", color: "#37352F", borderBottom: "1px solid #F0EFEB", fontWeight: 600 }}>{s.supplier}</td>
-                    <td style={{ padding: "6px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{formatDate(s.date)}</td>
-                    <td style={{ padding: "6px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{s.loteNumber || "—"}</td>
-                    <td style={{ padding: "6px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{s.totalQty}</td>
-                    <td style={{ padding: "6px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{s.totalSold}</td>
-                    <td style={{ padding: "6px 8px", borderBottom: "1px solid #F0EFEB" }}>
+                    <td style={{ padding: "6px 8px", color: "#1E2B4A", borderBottom: "1px solid #EFE5CE", fontWeight: 600 }}>{s.supplier}</td>
+                    <td style={{ padding: "6px 8px", color: "#3A4868", borderBottom: "1px solid #EFE5CE" }}>{formatDate(s.date)}</td>
+                    <td style={{ padding: "6px 8px", color: "#3A4868", borderBottom: "1px solid #EFE5CE" }}>{s.loteNumber || "—"}</td>
+                    <td style={{ padding: "6px 8px", color: "#3A4868", borderBottom: "1px solid #EFE5CE" }}>{s.totalQty}</td>
+                    <td style={{ padding: "6px 8px", color: "#3A4868", borderBottom: "1px solid #EFE5CE" }}>{s.totalSold}</td>
+                    <td style={{ padding: "6px 8px", borderBottom: "1px solid #EFE5CE" }}>
                       <Badge color={s.strPct >= 75 ? "#0F7B6C" : s.strPct >= 50 ? "#CB912F" : "#E03E3E"}>{s.strPct}%</Badge>
                     </td>
-                    <td style={{ padding: "6px 8px", color: s.daysSinceArrived >= 90 ? "#E03E3E" : "#555247", borderBottom: "1px solid #F0EFEB" }}>
+                    <td style={{ padding: "6px 8px", color: s.daysSinceArrived >= 90 ? "#E03E3E" : "#3A4868", borderBottom: "1px solid #EFE5CE" }}>
                       {s.daysSinceArrived}d
                     </td>
                   </tr>
@@ -666,10 +666,10 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
       {/* S15.12 — Análisis de elasticidad precio-demanda */}
       {priceElasticity.length > 0 && (
         <Card style={{ marginBottom: 14 }}>
-          <h3 style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#37352F" }}>
+          <h3 style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#1E2B4A" }}>
             ⚖️ Elasticidad precio-demanda
           </h3>
-          <p style={{ margin: "0 0 14px", fontSize: 12, color: "#8C8A82" }}>
+          <p style={{ margin: "0 0 14px", fontSize: 12, color: "#6B7794" }}>
             Cómo respondió la demanda a cambios de precio (ventana 30d antes/después).
             Elasticidad &lt; -1 = elástico (sensible al precio). Elasticidad entre -1 y 0 = inelástico.
             Direction "anomalous" = demanda y precio se mueven en mismo sentido (raro, revisar).
@@ -679,31 +679,31 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
               <thead>
                 <tr>
                   {["Producto", "Cambio precio", "Δ%", "Antes", "Después", "Δ% demanda", "Elasticidad", "Tipo"].map(h => (
-                    <th key={h} style={{ textAlign: "left", padding: "6px 8px", fontSize: 10, color: "#8C8A82", textTransform: "uppercase", borderBottom: "1px solid #E8E7E3" }}>{h}</th>
+                    <th key={h} style={{ textAlign: "left", padding: "6px 8px", fontSize: 10, color: "#6B7794", textTransform: "uppercase", borderBottom: "1px solid #E5DAC2" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {priceElasticity.slice(0, 15).map((e, i) => (
                   <tr key={i}>
-                    <td style={{ padding: "6px 8px", color: "#37352F", borderBottom: "1px solid #F0EFEB", fontWeight: 600 }}>
+                    <td style={{ padding: "6px 8px", color: "#1E2B4A", borderBottom: "1px solid #EFE5CE", fontWeight: 600 }}>
                       {e.product.brand} {e.product.model} {e.product.flavor && `· ${e.product.flavor}`}
                     </td>
-                    <td style={{ padding: "6px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>
+                    <td style={{ padding: "6px 8px", color: "#3A4868", borderBottom: "1px solid #EFE5CE" }}>
                       ${e.oldPrice} → ${e.newPrice}
                     </td>
-                    <td style={{ padding: "6px 8px", color: e.pricePctChange < 0 ? "#0F7B6C" : "#E03E3E", borderBottom: "1px solid #F0EFEB", fontWeight: 600 }}>
+                    <td style={{ padding: "6px 8px", color: e.pricePctChange < 0 ? "#0F7B6C" : "#E03E3E", borderBottom: "1px solid #EFE5CE", fontWeight: 600 }}>
                       {e.pricePctChange > 0 ? "+" : ""}{e.pricePctChange}%
                     </td>
-                    <td style={{ padding: "6px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{e.beforeQty} uds</td>
-                    <td style={{ padding: "6px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{e.afterQty} uds</td>
-                    <td style={{ padding: "6px 8px", color: e.demandPctChange > 0 ? "#0F7B6C" : "#E03E3E", borderBottom: "1px solid #F0EFEB", fontWeight: 600 }}>
+                    <td style={{ padding: "6px 8px", color: "#3A4868", borderBottom: "1px solid #EFE5CE" }}>{e.beforeQty} uds</td>
+                    <td style={{ padding: "6px 8px", color: "#3A4868", borderBottom: "1px solid #EFE5CE" }}>{e.afterQty} uds</td>
+                    <td style={{ padding: "6px 8px", color: e.demandPctChange > 0 ? "#0F7B6C" : "#E03E3E", borderBottom: "1px solid #EFE5CE", fontWeight: 600 }}>
                       {e.demandPctChange > 0 ? "+" : ""}{e.demandPctChange}%
                     </td>
-                    <td style={{ padding: "6px 8px", borderBottom: "1px solid #F0EFEB" }}>
-                      <Badge color={Math.abs(e.elasticity) > 1 ? "#5E6AD2" : "#8C8A82"}>{e.elasticity}</Badge>
+                    <td style={{ padding: "6px 8px", borderBottom: "1px solid #EFE5CE" }}>
+                      <Badge color={Math.abs(e.elasticity) > 1 ? "#1E2B4A" : "#6B7794"}>{e.elasticity}</Badge>
                     </td>
-                    <td style={{ padding: "6px 8px", borderBottom: "1px solid #F0EFEB" }}>
+                    <td style={{ padding: "6px 8px", borderBottom: "1px solid #EFE5CE" }}>
                       <Badge color={e.direction === "normal" ? "#0F7B6C" : "#E03E3E"}>
                         {e.category === "elastic" ? "Elástico" : "Inelástico"}
                         {e.direction === "anomalous" && " ⚠️"}
@@ -720,10 +720,10 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
       {/* S16.18 — Matriz de sensibilidad de precio */}
       {priceElasticity.length > 0 && (
         <Card style={{ marginBottom: 14 }}>
-          <h3 style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#37352F" }}>
+          <h3 style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#1E2B4A" }}>
             🎚️ Matriz de sensibilidad — simulador "qué pasa si subo/bajo precio"
           </h3>
-          <p style={{ margin: "0 0 14px", fontSize: 12, color: "#8C8A82" }}>
+          <p style={{ margin: "0 0 14px", fontSize: 12, color: "#6B7794" }}>
             Top 5 productos con datos de elasticidad. Para cada uno, simula el impacto en revenue
             y margen al cambiar el precio. Verde = revenue mejora; rojo = revenue empeora.
           </p>
@@ -731,10 +731,10 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
             {priceElasticity.slice(0, 5).map(e => {
               const matrix = calcPriceSensitivityMatrix(e.product, e.elasticity);
               return (
-                <div key={`${e.productId}-${e.date}`} style={{ background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 8, padding: 12 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#37352F", marginBottom: 8 }}>
+                <div key={`${e.productId}-${e.date}`} style={{ background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 8, padding: 12 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#1E2B4A", marginBottom: 8 }}>
                     {e.product.brand} {e.product.model} {e.product.flavor && `· ${e.product.flavor}`}
-                    <span style={{ marginLeft: 10, fontSize: 11, color: "#8C8A82", fontWeight: 500 }}>
+                    <span style={{ marginLeft: 10, fontSize: 11, color: "#6B7794", fontWeight: 500 }}>
                       Elasticidad medida: {e.elasticity}
                     </span>
                   </div>
@@ -743,7 +743,7 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
                       <thead>
                         <tr>
                           {["Δ% precio", "Precio nuevo", "Δ% demanda", "Δ% revenue", "Margen nuevo"].map(h => (
-                            <th key={h} style={{ textAlign: "left", padding: "4px 8px", fontSize: 10, color: "#8C8A82", fontWeight: 700 }}>{h}</th>
+                            <th key={h} style={{ textAlign: "left", padding: "4px 8px", fontSize: 10, color: "#6B7794", fontWeight: 700 }}>{h}</th>
                           ))}
                         </tr>
                       </thead>
@@ -752,10 +752,10 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
                           const isCurrent = row.pricePct === 0;
                           return (
                             <tr key={i} style={{ background: isCurrent ? "#EAECF9" : "transparent" }}>
-                              <td style={{ padding: "4px 8px", fontWeight: row.pricePct < 0 ? 700 : row.pricePct > 0 ? 700 : 400, color: row.pricePct < 0 ? "#0F7B6C" : row.pricePct > 0 ? "#E03E3E" : "#37352F" }}>
+                              <td style={{ padding: "4px 8px", fontWeight: row.pricePct < 0 ? 700 : row.pricePct > 0 ? 700 : 400, color: row.pricePct < 0 ? "#0F7B6C" : row.pricePct > 0 ? "#E03E3E" : "#1E2B4A" }}>
                                 {row.pricePct > 0 ? "+" : ""}{row.pricePct}%
                               </td>
-                              <td style={{ padding: "4px 8px", color: "#37352F" }}>${row.newPrice}</td>
+                              <td style={{ padding: "4px 8px", color: "#1E2B4A" }}>${row.newPrice}</td>
                               <td style={{ padding: "4px 8px", color: row.demandPct > 0 ? "#0F7B6C" : "#E03E3E" }}>
                                 {row.demandPct > 0 ? "+" : ""}{row.demandPct}%
                               </td>
@@ -793,12 +793,12 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
             const discounts = sales.filter(s => !s.isDeleted && mFilter(s.date)).reduce((sum, s) => sum + (s.discountAmount || 0), 0);
             const consumed = (withdrawals || []).filter(w => !w.isDeleted && mFilter(w.date)).reduce((sum, w) => sum + w.qty, 0);
             return (<>
-              <div><span style={{ color: "#8C8A82", fontSize: 12 }}>Ingresos</span><div style={{ color: "#00b894", fontSize: 20, fontWeight: 700 }}>{formatMoney(rev)}</div></div>
-              <div><span style={{ color: "#8C8A82", fontSize: 12 }}>Costos</span><div style={{ color: "#E03E3E", fontSize: 20, fontWeight: 700 }}>{formatMoney(cost)}</div></div>
-              <div><span style={{ color: "#8C8A82", fontSize: 12 }}>Gastos</span><div style={{ color: "#fdcb6e", fontSize: 20, fontWeight: 700 }}>{formatMoney(exp)}</div></div>
-              <div><span style={{ color: "#8C8A82", fontSize: 12 }}>Descuentos</span><div style={{ color: "#fdcb6e", fontSize: 20, fontWeight: 700 }}>{formatMoney(discounts)}</div></div>
-              <div><span style={{ color: "#8C8A82", fontSize: 12 }}>Consumo</span><div style={{ color: "#e17055", fontSize: 20, fontWeight: 700 }}>{consumed} uds</div></div>
-              <div><span style={{ color: "#8C8A82", fontSize: 12 }}>Ganancia est.</span><div style={{ color: "#5E6AD2", fontSize: 20, fontWeight: 700 }}>{formatMoney(rev - cost - exp)}</div></div>
+              <div><span style={{ color: "#6B7794", fontSize: 12 }}>Ingresos</span><div style={{ color: "#00b894", fontSize: 20, fontWeight: 700 }}>{formatMoney(rev)}</div></div>
+              <div><span style={{ color: "#6B7794", fontSize: 12 }}>Costos</span><div style={{ color: "#E03E3E", fontSize: 20, fontWeight: 700 }}>{formatMoney(cost)}</div></div>
+              <div><span style={{ color: "#6B7794", fontSize: 12 }}>Gastos</span><div style={{ color: "#fdcb6e", fontSize: 20, fontWeight: 700 }}>{formatMoney(exp)}</div></div>
+              <div><span style={{ color: "#6B7794", fontSize: 12 }}>Descuentos</span><div style={{ color: "#fdcb6e", fontSize: 20, fontWeight: 700 }}>{formatMoney(discounts)}</div></div>
+              <div><span style={{ color: "#6B7794", fontSize: 12 }}>Consumo</span><div style={{ color: "#e17055", fontSize: 20, fontWeight: 700 }}>{consumed} uds</div></div>
+              <div><span style={{ color: "#6B7794", fontSize: 12 }}>Ganancia est.</span><div style={{ color: "#1E2B4A", fontSize: 20, fontWeight: 700 }}>{formatMoney(rev - cost - exp)}</div></div>
             </>);
           })()}
         </div>
@@ -806,7 +806,7 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
 
       {/* Break-even analysis */}
       <Card style={{ marginBottom: 14 }}>
-        <h4 style={{ color: "#5E6AD2", margin: "0 0 14px", fontSize: 14, textTransform: "uppercase" }}>Punto de equilibrio</h4>
+        <h4 style={{ color: "#1E2B4A", margin: "0 0 14px", fontSize: 14, textTransform: "uppercase" }}>Punto de equilibrio</h4>
         {(() => {
           const thisMonth = new Date().getMonth();
           const thisYear = new Date().getFullYear();
@@ -827,18 +827,18 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
           return (
             <div>
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fill, minmax(140px, 1fr))", gap: isMobile ? 8 : 12, marginBottom: 14 }}>
-                <div><span style={{ color: "#8C8A82", fontSize: 12 }}>Gastos fijos mes</span><div style={{ color: "#E03E3E", fontSize: 18, fontWeight: 700 }}>{formatMoney(fixedCosts)}</div></div>
-                <div><span style={{ color: "#8C8A82", fontSize: 12 }}>Precio prom/ud</span><div style={{ color: "#37352F", fontSize: 18, fontWeight: 700 }}>{formatMoney(avgPricePerUnit)}</div></div>
-                <div><span style={{ color: "#8C8A82", fontSize: 12 }}>Costo prom/ud</span><div style={{ color: "#fdcb6e", fontSize: 18, fontWeight: 700 }}>{formatMoney(avgCostPerUnit)}</div></div>
-                <div><span style={{ color: "#8C8A82", fontSize: 12 }}>Margen/ud</span><div style={{ color: "#0F7B6C", fontSize: 18, fontWeight: 700 }}>{formatMoney(marginPerUnit)}</div></div>
+                <div><span style={{ color: "#6B7794", fontSize: 12 }}>Gastos fijos mes</span><div style={{ color: "#E03E3E", fontSize: 18, fontWeight: 700 }}>{formatMoney(fixedCosts)}</div></div>
+                <div><span style={{ color: "#6B7794", fontSize: 12 }}>Precio prom/ud</span><div style={{ color: "#1E2B4A", fontSize: 18, fontWeight: 700 }}>{formatMoney(avgPricePerUnit)}</div></div>
+                <div><span style={{ color: "#6B7794", fontSize: 12 }}>Costo prom/ud</span><div style={{ color: "#fdcb6e", fontSize: 18, fontWeight: 700 }}>{formatMoney(avgCostPerUnit)}</div></div>
+                <div><span style={{ color: "#6B7794", fontSize: 12 }}>Margen/ud</span><div style={{ color: "#0F7B6C", fontSize: 18, fontWeight: 700 }}>{formatMoney(marginPerUnit)}</div></div>
               </div>
               <div style={{ marginBottom: 8 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#555247", marginBottom: 4 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#3A4868", marginBottom: 4 }}>
                   <span>Vendiste <b>{totalUnits}</b> uds este mes</span>
                   <span>Necesitás <b>{breakEvenUnits}</b> para cubrir gastos</span>
                 </div>
-                <div style={{ height: 10, background: "#E8E7E3", borderRadius: 5, overflow: "hidden" }}>
-                  <div style={{ width: `${progress}%`, height: "100%", background: reached ? "#0F7B6C" : "#5E6AD2", borderRadius: 5, transition: "width 0.5s" }} />
+                <div style={{ height: 10, background: "#E5DAC2", borderRadius: 5, overflow: "hidden" }}>
+                  <div style={{ width: `${progress}%`, height: "100%", background: reached ? "#0F7B6C" : "#1E2B4A", borderRadius: 5, transition: "width 0.5s" }} />
                 </div>
               </div>
               <div style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: reached ? "#0F7B6C" : "#CB912F" }}>
@@ -922,21 +922,21 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
                 <thead>
                   <tr>
                     {["Marca", "Modelo", "Costo prom. USDT", "Costo total/ud ARS", "Precio venta ARS", "Margen/ud", "Margen %", "ROI %"].map(h => (
-                      <th key={h} style={{ textAlign: "left", padding: "8px 10px", fontSize: 11, color: "#8C8A82", textTransform: "uppercase", borderBottom: "1px solid #E8E7E3", fontWeight: 700 }}>{h}</th>
+                      <th key={h} style={{ textAlign: "left", padding: "8px 10px", fontSize: 11, color: "#6B7794", textTransform: "uppercase", borderBottom: "1px solid #E5DAC2", fontWeight: 700 }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {margins.map((m, i) => (
                     <tr key={i}>
-                      <td style={{ padding: "8px 10px", fontSize: 13, color: "#555247", borderBottom: "1px solid #F0EFEB" }}><Badge color={BRAND_COLORS[m.brand] || "#5E6AD2"}>{m.brand}</Badge></td>
-                      <td style={{ padding: "8px 10px", fontSize: 13, color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{m.model}</td>
-                      <td style={{ padding: "8px 10px", fontSize: 13, color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{formatMoney(m.avgCostUSDT, "USDT")}</td>
-                      <td style={{ padding: "8px 10px", fontSize: 13, color: "#E03E3E", borderBottom: "1px solid #F0EFEB", fontWeight: 600 }}>{formatMoney(m.totalCostARS)}</td>
-                      <td style={{ padding: "8px 10px", fontSize: 13, color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{formatMoney(m.salePriceARS)}</td>
-                      <td style={{ padding: "8px 10px", fontSize: 13, borderBottom: "1px solid #F0EFEB", fontWeight: 700, color: m.marginARS >= 0 ? "#00b894" : "#E03E3E" }}>{formatMoney(m.marginARS)}</td>
-                      <td style={{ padding: "8px 10px", borderBottom: "1px solid #F0EFEB" }}><Badge color={m.marginPct >= 50 ? "#00b894" : m.marginPct >= 30 ? "#fdcb6e" : "#E03E3E"}>{m.marginPct}%</Badge></td>
-                      <td style={{ padding: "8px 10px", borderBottom: "1px solid #F0EFEB" }}><Badge color={m.roiPct >= 100 ? "#00b894" : m.roiPct >= 50 ? "#fdcb6e" : "#E03E3E"}>{m.roiPct}%</Badge></td>
+                      <td style={{ padding: "8px 10px", fontSize: 13, color: "#3A4868", borderBottom: "1px solid #EFE5CE" }}><Badge color={BRAND_COLORS[m.brand] || "#1E2B4A"}>{m.brand}</Badge></td>
+                      <td style={{ padding: "8px 10px", fontSize: 13, color: "#3A4868", borderBottom: "1px solid #EFE5CE" }}>{m.model}</td>
+                      <td style={{ padding: "8px 10px", fontSize: 13, color: "#3A4868", borderBottom: "1px solid #EFE5CE" }}>{formatMoney(m.avgCostUSDT, "USDT")}</td>
+                      <td style={{ padding: "8px 10px", fontSize: 13, color: "#E03E3E", borderBottom: "1px solid #EFE5CE", fontWeight: 600 }}>{formatMoney(m.totalCostARS)}</td>
+                      <td style={{ padding: "8px 10px", fontSize: 13, color: "#3A4868", borderBottom: "1px solid #EFE5CE" }}>{formatMoney(m.salePriceARS)}</td>
+                      <td style={{ padding: "8px 10px", fontSize: 13, borderBottom: "1px solid #EFE5CE", fontWeight: 700, color: m.marginARS >= 0 ? "#00b894" : "#E03E3E" }}>{formatMoney(m.marginARS)}</td>
+                      <td style={{ padding: "8px 10px", borderBottom: "1px solid #EFE5CE" }}><Badge color={m.marginPct >= 50 ? "#00b894" : m.marginPct >= 30 ? "#fdcb6e" : "#E03E3E"}>{m.marginPct}%</Badge></td>
+                      <td style={{ padding: "8px 10px", borderBottom: "1px solid #EFE5CE" }}><Badge color={m.roiPct >= 100 ? "#00b894" : m.roiPct >= 50 ? "#fdcb6e" : "#E03E3E"}>{m.roiPct}%</Badge></td>
                     </tr>
                   ))}
                 </tbody>
@@ -1004,13 +1004,13 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
 
           return (
             <>
-              <p style={{ color: "#8C8A82", fontSize: 12, margin: "0 0 14px" }}>
+              <p style={{ color: "#6B7794", fontSize: 12, margin: "0 0 14px" }}>
                 Margen = revenue − costo real (USDT pagado + comisión + pasero + envío prorrateados). Ordenado por revenue descendente.
               </p>
               <div style={{ overflow: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                   <thead>
-                    <tr style={{ textAlign: "left", color: "#8C8A82", borderBottom: "1px solid #E8E7E3" }}>
+                    <tr style={{ textAlign: "left", color: "#6B7794", borderBottom: "1px solid #E5DAC2" }}>
                       <th style={{ padding: "8px 10px", fontWeight: 600 }}>Marca</th>
                       <th style={{ padding: "8px 10px", fontWeight: 600, textAlign: "right" }}>Uds</th>
                       <th style={{ padding: "8px 10px", fontWeight: 600, textAlign: "right" }}>Revenue</th>
@@ -1023,11 +1023,11 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
                   </thead>
                   <tbody>
                     {rows.map(r => (
-                      <tr key={r.brand} style={{ borderBottom: "1px solid #F0EFEB" }}>
-                        <td style={{ padding: "8px 10px", color: "#37352F", fontWeight: 700 }}>{r.brand}</td>
-                        <td style={{ padding: "8px 10px", color: "#8C8A82", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{r.units}</td>
-                        <td style={{ padding: "8px 10px", color: "#37352F", fontWeight: 700, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{formatMoney(r.revenueUSD, "USD")}</td>
-                        <td style={{ padding: "8px 10px", color: "#8C8A82", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{formatMoney(r.costUSD, "USD")}</td>
+                      <tr key={r.brand} style={{ borderBottom: "1px solid #EFE5CE" }}>
+                        <td style={{ padding: "8px 10px", color: "#1E2B4A", fontWeight: 700 }}>{r.brand}</td>
+                        <td style={{ padding: "8px 10px", color: "#6B7794", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{r.units}</td>
+                        <td style={{ padding: "8px 10px", color: "#1E2B4A", fontWeight: 700, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{formatMoney(r.revenueUSD, "USD")}</td>
+                        <td style={{ padding: "8px 10px", color: "#6B7794", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{formatMoney(r.costUSD, "USD")}</td>
                         <td style={{ padding: "8px 10px", color: r.margin >= 0 ? "#0F7B6C" : "#E03E3E", fontWeight: 700, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{formatMoney(r.margin, "USD")}</td>
                         <td style={{ padding: "8px 10px", textAlign: "right" }}>
                           <span style={{
@@ -1036,8 +1036,8 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
                             color: r.pct >= 50 ? "#0F7B6C" : r.pct >= 30 ? "#CB912F" : "#E03E3E",
                           }}>{r.pct.toFixed(0)}%</span>
                         </td>
-                        <td style={{ padding: "8px 10px", color: "#8C8A82", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{formatMoney(r.avgTicket, "USD")}</td>
-                        <td style={{ padding: "8px 10px", color: "#8C8A82", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{totalRevenueUSD > 0 ? Math.round(r.revenueUSD / totalRevenueUSD * 100) : 0}%</td>
+                        <td style={{ padding: "8px 10px", color: "#6B7794", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{formatMoney(r.avgTicket, "USD")}</td>
+                        <td style={{ padding: "8px 10px", color: "#6B7794", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{totalRevenueUSD > 0 ? Math.round(r.revenueUSD / totalRevenueUSD * 100) : 0}%</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1054,10 +1054,10 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
       {/* Monthly evolution */}
       {monthlySales.length > 0 && (
         <Card>
-          <h4 style={{ color: "#5E6AD2", margin: "0 0 14px", fontSize: 14, textTransform: "uppercase" }}>📈 Evolución Mensual</h4>
-          <BarChart data={monthlySales.map(m => ({ label: m.label, value: m.count, color: "#5E6AD2" }))} labelKey="label" valueKey="value" colorKey="color" suffix=" ventas" />
-          <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #F0EFEB" }}>
-            <span style={{ color: "#8C8A82", fontSize: 12, textTransform: "uppercase" }}>Ingresos mensuales</span>
+          <h4 style={{ color: "#1E2B4A", margin: "0 0 14px", fontSize: 14, textTransform: "uppercase" }}>📈 Evolución Mensual</h4>
+          <BarChart data={monthlySales.map(m => ({ label: m.label, value: m.count, color: "#1E2B4A" }))} labelKey="label" valueKey="value" colorKey="color" suffix=" ventas" />
+          <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #EFE5CE" }}>
+            <span style={{ color: "#6B7794", fontSize: 12, textTransform: "uppercase" }}>Ingresos mensuales</span>
             <BarChart data={monthlySales.map(m => ({ label: m.label, value: Math.round(m.revenue), color: "#00b894" }))} labelKey="label" valueKey="value" colorKey="color" />
           </div>
         </Card>
@@ -1098,47 +1098,47 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 12 : 20 }}>
               <div>
                 <div style={{ color: "#00b894", fontSize: 13, fontWeight: 700, marginBottom: 10, textTransform: "uppercase" }}>Activos</div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #F0EFEB" }}>
-                  <span style={{ color: "#8C8A82", fontSize: 13 }}>Stock en mercadería ({stockUnits} uds)</span>
-                  <span style={{ color: "#37352F", fontWeight: 600 }}>{formatMoney(stockValue)}</span>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #EFE5CE" }}>
+                  <span style={{ color: "#6B7794", fontSize: 13 }}>Stock en mercadería ({stockUnits} uds)</span>
+                  <span style={{ color: "#1E2B4A", fontWeight: 600 }}>{formatMoney(stockValue)}</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #F0EFEB" }}>
-                  <span style={{ color: "#8C8A82", fontSize: 13 }}>Efectivo ARS</span>
-                  <span style={{ color: "#37352F", fontWeight: 600 }}>{formatMoney(Math.max(0, totalCashARS))}</span>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #EFE5CE" }}>
+                  <span style={{ color: "#6B7794", fontSize: 13 }}>Efectivo ARS</span>
+                  <span style={{ color: "#1E2B4A", fontWeight: 600 }}>{formatMoney(Math.max(0, totalCashARS))}</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #F0EFEB" }}>
-                  <span style={{ color: "#8C8A82", fontSize: 13 }}>USDT</span>
-                  <span style={{ color: "#37352F", fontWeight: 600 }}>{formatMoney(Math.max(0, totalCashUSDT), "USDT")} (~{formatMoney(Math.max(0, totalCashUSDT) * exchangeRate)})</span>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #EFE5CE" }}>
+                  <span style={{ color: "#6B7794", fontSize: 13 }}>USDT</span>
+                  <span style={{ color: "#1E2B4A", fontWeight: 600 }}>{formatMoney(Math.max(0, totalCashUSDT), "USDT")} (~{formatMoney(Math.max(0, totalCashUSDT) * exchangeRate)})</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #F0EFEB" }}>
-                  <span style={{ color: "#8C8A82", fontSize: 13 }}>USD Cash</span>
-                  <span style={{ color: "#37352F", fontWeight: 600 }}>{formatMoney(totalCashUSD, "USD")} (~{formatMoney(totalCashUSD * exchangeRate)})</span>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #EFE5CE" }}>
+                  <span style={{ color: "#6B7794", fontSize: 13 }}>USD Cash</span>
+                  <span style={{ color: "#1E2B4A", fontWeight: 600 }}>{formatMoney(totalCashUSD, "USD")} (~{formatMoney(totalCashUSD * exchangeRate)})</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderTop: "2px solid #E8E7E3", marginTop: 6 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderTop: "2px solid #E5DAC2", marginTop: 6 }}>
                   <span style={{ color: "#00b894", fontSize: 15, fontWeight: 700 }}>Total Activos (est.)</span>
                   <span style={{ color: "#00b894", fontSize: 18, fontWeight: 800 }}>{formatMoney(totalAssets)}</span>
                 </div>
               </div>
               <div>
-                <div style={{ color: "#5E6AD2", fontSize: 13, fontWeight: 700, marginBottom: 10, textTransform: "uppercase" }}>Resultados acumulados</div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #F0EFEB" }}>
-                  <span style={{ color: "#8C8A82", fontSize: 13 }}>Ingresos por ventas</span>
+                <div style={{ color: "#1E2B4A", fontSize: 13, fontWeight: 700, marginBottom: 10, textTransform: "uppercase" }}>Resultados acumulados</div>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #EFE5CE" }}>
+                  <span style={{ color: "#6B7794", fontSize: 13 }}>Ingresos por ventas</span>
                   <span style={{ color: "#00b894", fontWeight: 600 }}>{formatMoney(totalRevenue)}</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #F0EFEB" }}>
-                  <span style={{ color: "#8C8A82", fontSize: 13 }}>Costo mercadería</span>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #EFE5CE" }}>
+                  <span style={{ color: "#6B7794", fontSize: 13 }}>Costo mercadería</span>
                   <span style={{ color: "#E03E3E", fontWeight: 600 }}>-{formatMoney(totalCosts)}</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #F0EFEB" }}>
-                  <span style={{ color: "#8C8A82", fontSize: 13 }}>Gastos operativos</span>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #EFE5CE" }}>
+                  <span style={{ color: "#6B7794", fontSize: 13 }}>Gastos operativos</span>
                   <span style={{ color: "#E03E3E", fontWeight: 600 }}>-{formatMoney(totalExpenses)}</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #F0EFEB" }}>
-                  <span style={{ color: "#8C8A82", fontSize: 13 }}>Consumo propio (merma)</span>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid #EFE5CE" }}>
+                  <span style={{ color: "#6B7794", fontSize: 13 }}>Consumo propio (merma)</span>
                   <span style={{ color: "#e17055", fontWeight: 600 }}>-{formatMoney(consumoValue)}</span>
                 </div>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderTop: "2px solid #E8E7E3", marginTop: 6 }}>
-                  <span style={{ color: "#5E6AD2", fontSize: 15, fontWeight: 700 }}>Resultado neto</span>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderTop: "2px solid #E5DAC2", marginTop: 6 }}>
+                  <span style={{ color: "#1E2B4A", fontSize: 15, fontWeight: 700 }}>Resultado neto</span>
                   <span style={{ color: totalRevenue - totalCosts - totalExpenses - consumoValue >= 0 ? "#00b894" : "#E03E3E", fontSize: 18, fontWeight: 800 }}>
                     {formatMoney(totalRevenue - totalCosts - totalExpenses - consumoValue)}
                   </span>
@@ -1175,7 +1175,7 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
             label: t,
             qty: monthW.filter(w => w.withdrawType === t).reduce((s, w) => s + (w.qty || 0), 0),
             usd: monthW.filter(w => w.withdrawType === t).reduce((s, w) => s + wCost(w), 0),
-            color: TYPE_COLOR[t] || "#8C8A82",
+            color: TYPE_COLOR[t] || "#6B7794",
           })).filter(x => x.qty > 0);
           const totalForDonut = byType.reduce((s, x) => s + x.qty, 0) || 1;
 
@@ -1201,7 +1201,7 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
             const stack = WITHDRAW_TYPES.map(t => ({
               type: t,
               qty: wMes.filter(w => w.withdrawType === t).reduce((s, w) => s + (w.qty || 0), 0),
-              color: TYPE_COLOR[t] || "#8C8A82",
+              color: TYPE_COLOR[t] || "#6B7794",
             }));
             last6.push({
               label: d.toLocaleDateString("es-AR", { month: "short" }),
@@ -1237,26 +1237,26 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
 
               {/* KPIs del mes */}
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)", gap: 8, marginBottom: 14 }}>
-                <div style={{ background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10, padding: "10px 12px" }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5 }}>Mes — total</div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: "#37352F", marginTop: 2 }}>{totalQty} uds</div>
-                  <div style={{ fontSize: 11, color: "#8C8A82", marginTop: 2 }}>{formatMoney(totalUSD, "USD")} · {formatMoney(Math.round(totalARS))}</div>
+                <div style={{ background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 10, padding: "10px 12px" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#6B7794", textTransform: "uppercase", letterSpacing: 0.5 }}>Mes — total</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: "#1E2B4A", marginTop: 2 }}>{totalQty} uds</div>
+                  <div style={{ fontSize: 11, color: "#6B7794", marginTop: 2 }}>{formatMoney(totalUSD, "USD")} · {formatMoney(Math.round(totalARS))}</div>
                 </div>
-                <div style={{ background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10, padding: "10px 12px" }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5 }}>Mi consumo</div>
+                <div style={{ background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 10, padding: "10px 12px" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#6B7794", textTransform: "uppercase", letterSpacing: 0.5 }}>Mi consumo</div>
                   <div style={{ fontSize: 18, fontWeight: 800, color: "#a855f7", marginTop: 2 }}>{diegoQty} uds</div>
-                  <div style={{ fontSize: 11, color: "#8C8A82", marginTop: 2 }}>{formatMoney(diegoUSD, "USD")}</div>
+                  <div style={{ fontSize: 11, color: "#6B7794", marginTop: 2 }}>{formatMoney(diegoUSD, "USD")}</div>
                 </div>
-                <div style={{ background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10, padding: "10px 12px" }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5 }}>Reclamable proveedor</div>
+                <div style={{ background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 10, padding: "10px 12px" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#6B7794", textTransform: "uppercase", letterSpacing: 0.5 }}>Reclamable proveedor</div>
                   <div style={{ fontSize: 18, fontWeight: 800, color: "#CB912F", marginTop: 2 }}>{reclamablesQty} uds</div>
-                  <div style={{ fontSize: 11, color: "#8C8A82", marginTop: 2 }}>{formatMoney(reclamablesUSD, "USD")} pedido próximo</div>
+                  <div style={{ fontSize: 11, color: "#6B7794", marginTop: 2 }}>{formatMoney(reclamablesUSD, "USD")} pedido próximo</div>
                 </div>
               </div>
 
               {/* Donut por tipo + leyenda */}
               {byType.length > 0 && (
-                <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: 16, alignItems: "center", marginBottom: 16, padding: 12, background: "#FAFAF9", borderRadius: 10, border: "1px solid #E8E7E3" }}>
+                <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: 16, alignItems: "center", marginBottom: 16, padding: 12, background: "#F8F2E7", borderRadius: 10, border: "1px solid #E5DAC2" }}>
                   {/* SVG donut */}
                   <svg width={120} height={120} viewBox="0 0 120 120" style={{ flexShrink: 0 }}>
                     {(() => {
@@ -1275,17 +1275,17 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
                         );
                       });
                     })()}
-                    <text x={60} y={58} textAnchor="middle" fontSize={20} fontWeight="800" fill="#37352F">{totalForDonut}</text>
-                    <text x={60} y={74} textAnchor="middle" fontSize={10} fill="#8C8A82">uds totales</text>
+                    <text x={60} y={58} textAnchor="middle" fontSize={20} fontWeight="800" fill="#1E2B4A">{totalForDonut}</text>
+                    <text x={60} y={74} textAnchor="middle" fontSize={10} fill="#6B7794">uds totales</text>
                   </svg>
                   {/* Leyenda */}
                   <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 6 }}>
                     {byType.map(seg => (
                       <div key={seg.label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ width: 12, height: 12, borderRadius: 3, background: seg.color, flexShrink: 0 }} />
-                        <span style={{ fontSize: 12, color: "#37352F", flex: 1, minWidth: 0 }}>{seg.label}</span>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: "#37352F", fontVariantNumeric: "tabular-nums" }}>{seg.qty} uds</span>
-                        <span style={{ fontSize: 11, color: "#8C8A82", fontVariantNumeric: "tabular-nums", minWidth: 60, textAlign: "right" }}>{formatMoney(seg.usd, "USD")}</span>
+                        <span style={{ fontSize: 12, color: "#1E2B4A", flex: 1, minWidth: 0 }}>{seg.label}</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "#1E2B4A", fontVariantNumeric: "tabular-nums" }}>{seg.qty} uds</span>
+                        <span style={{ fontSize: 11, color: "#6B7794", fontVariantNumeric: "tabular-nums", minWidth: 60, textAlign: "right" }}>{formatMoney(seg.usd, "USD")}</span>
                       </div>
                     ))}
                   </div>
@@ -1295,18 +1295,18 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
               {/* Top 5 productos */}
               {top5.length > 0 && (
                 <div style={{ marginBottom: 16 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#6B7794", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>
                     Top 5 productos más merma'dos (histórico)
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     {top5.map(([name, v], i) => (
                       <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontSize: 12, color: "#555247", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
-                        <div style={{ width: isMobile ? 120 : 200, height: 18, background: "#F0EFEB", borderRadius: 4, overflow: "hidden" }}>
+                        <span style={{ fontSize: 12, color: "#3A4868", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
+                        <div style={{ width: isMobile ? 120 : 200, height: 18, background: "#EFE5CE", borderRadius: 4, overflow: "hidden" }}>
                           <div style={{ width: `${(v.qty / topMaxQty) * 100}%`, height: "100%", background: "linear-gradient(90deg, #e17055aa, #e17055)", borderRadius: 4 }} />
                         </div>
                         <span style={{ fontSize: 12, fontWeight: 700, color: "#E03E3E", minWidth: 40, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{v.qty}</span>
-                        <span style={{ fontSize: 11, color: "#8C8A82", minWidth: 70, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{formatMoney(v.usd, "USD")}</span>
+                        <span style={{ fontSize: 11, color: "#6B7794", minWidth: 70, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{formatMoney(v.usd, "USD")}</span>
                       </div>
                     ))}
                   </div>
@@ -1315,10 +1315,10 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
 
               {/* Tendencia 6 meses */}
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#6B7794", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>
                   Tendencia últimos 6 meses (uds, stacked por tipo)
                 </div>
-                <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 120, padding: "6px 0", borderBottom: "1px solid #E8E7E3" }}>
+                <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 120, padding: "6px 0", borderBottom: "1px solid #E5DAC2" }}>
                   {last6.map((m, i) => (
                     <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, height: "100%" }}>
                       <div style={{ flex: 1, width: "100%", display: "flex", flexDirection: "column-reverse", justifyContent: "flex-start" }}>
@@ -1331,8 +1331,8 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
                           }} title={`${seg.type}: ${seg.qty} uds`} />
                         ))}
                       </div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: "#37352F", fontVariantNumeric: "tabular-nums" }}>{m.total}</div>
-                      <div style={{ fontSize: 10, color: "#8C8A82", textTransform: "capitalize" }}>{m.label.replace(".", "")}</div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: "#1E2B4A", fontVariantNumeric: "tabular-nums" }}>{m.total}</div>
+                      <div style={{ fontSize: 10, color: "#6B7794", textTransform: "capitalize" }}>{m.label.replace(".", "")}</div>
                     </div>
                   ))}
                 </div>
@@ -1354,7 +1354,7 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
           const garantias = allW.filter(w => isGarantia(w.withdrawType));
           if (garantias.length === 0) {
             return (
-              <div style={{ textAlign: "center", padding: 24, color: "#8C8A82", fontSize: 13 }}>
+              <div style={{ textAlign: "center", padding: 24, color: "#6B7794", fontSize: 13 }}>
                 Aún no hay cambios por garantía registrados — los KPIs de calidad
                 van a aparecer acá cuando empieces a cargarlos.
               </div>
@@ -1400,7 +1400,7 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
           const totalReasons = reasonEntries.reduce((s, [, n]) => s + n, 0);
           const reasonCatColor = {
             electrico: "#E03E3E", liquido: "#2383E2",
-            fisico: "#CB912F", envio: "#6940A5", otro: "#8C8A82",
+            fisico: "#CB912F", envio: "#6940A5", otro: "#6B7794",
           };
 
           // 5.3 % reclamables al proveedor
@@ -1430,18 +1430,18 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
               {/* KPI: % reclamables al proveedor */}
               <div style={{
                 padding: "12px 14px", borderRadius: 10, marginBottom: 14,
-                background: pctReclamables > 15 ? "#FDECC8" : "#FAFAF9",
-                border: `1px solid ${pctReclamables > 15 ? "#F2D59A" : "#E8E7E3"}`,
+                background: pctReclamables > 15 ? "#FDECC8" : "#F8F2E7",
+                border: `1px solid ${pctReclamables > 15 ? "#F2D59A" : "#E5DAC2"}`,
                 display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
               }}>
-                <div style={{ fontSize: 24, fontWeight: 800, color: pctReclamables > 15 ? "#CB912F" : "#37352F" }}>
+                <div style={{ fontSize: 24, fontWeight: 800, color: pctReclamables > 15 ? "#CB912F" : "#1E2B4A" }}>
                   {pctReclamables.toFixed(0)}%
                 </div>
                 <div style={{ flex: 1, minWidth: 200 }}>
-                  <div style={{ fontSize: 13, color: "#37352F", fontWeight: 600 }}>
+                  <div style={{ fontSize: 13, color: "#1E2B4A", fontWeight: 600 }}>
                     de cambios fueron por daño de envío desde Paraguay
                   </div>
-                  <div style={{ fontSize: 11, color: "#8C8A82", marginTop: 2 }}>
+                  <div style={{ fontSize: 11, color: "#6B7794", marginTop: 2 }}>
                     {reclamables.length} reclamables sobre {garantias.length} cambios totales
                     {pctReclamables > 15 && " · Hablá con el pasero/proveedor sobre el empacado"}
                   </div>
@@ -1451,22 +1451,22 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
               {/* Top 5 modelos con más fallas */}
               {top5Failed.length > 0 && (
                 <div style={{ marginBottom: 16 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#6B7794", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>
                     Top 5 modelos con más fallas
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     {top5Failed.map((m, i) => (
                       <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontSize: 12, color: "#555247", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.key}</span>
-                        <div style={{ width: isMobile ? 90 : 180, height: 18, background: "#F0EFEB", borderRadius: 4, overflow: "hidden" }}>
+                        <span style={{ fontSize: 12, color: "#3A4868", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.key}</span>
+                        <div style={{ width: isMobile ? 90 : 180, height: 18, background: "#EFE5CE", borderRadius: 4, overflow: "hidden" }}>
                           <div style={{ width: `${(m.qty / maxFailureQty) * 100}%`, height: "100%", background: `linear-gradient(90deg, #CB912Faa, #CB912F)`, borderRadius: 4 }} />
                         </div>
                         <span style={{ fontSize: 12, fontWeight: 700, color: "#CB912F", minWidth: 32, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{m.qty}</span>
                         {m.ventas > 0 && (
                           <span style={{
                             fontSize: 10, fontWeight: 700, padding: "2px 6px", borderRadius: 4,
-                            background: m.tasa > 3 ? "#FBE4E4" : "#F0EFEB",
-                            color: m.tasa > 3 ? "#E03E3E" : "#8C8A82",
+                            background: m.tasa > 3 ? "#FBE4E4" : "#EFE5CE",
+                            color: m.tasa > 3 ? "#E03E3E" : "#6B7794",
                             minWidth: 50, textAlign: "center",
                             fontVariantNumeric: "tabular-nums",
                           }} title={`${m.qty} fallas sobre ${m.ventas} ventas`}>
@@ -1476,7 +1476,7 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
                       </div>
                     ))}
                   </div>
-                  <div style={{ fontSize: 10, color: "#8C8A82", marginTop: 6, fontStyle: "italic" }}>
+                  <div style={{ fontSize: 10, color: "#6B7794", marginTop: 6, fontStyle: "italic" }}>
                     Chip rojo: tasa de falla &gt; 3% (cambios / ventas del mismo modelo)
                   </div>
                 </div>
@@ -1486,8 +1486,8 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
               <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14 }}>
                 {/* Donut razones */}
                 {reasonEntries.length > 0 && (
-                  <div style={{ padding: 12, background: "#FAFAF9", borderRadius: 10, border: "1px solid #E8E7E3" }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>
+                  <div style={{ padding: 12, background: "#F8F2E7", borderRadius: 10, border: "1px solid #E5DAC2" }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#6B7794", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>
                       Razones de falla
                     </div>
                     <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
@@ -1508,8 +1508,8 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
                               transform={`rotate(-90 ${cx} ${cy})`} />;
                           });
                         })()}
-                        <text x={50} y={50} textAnchor="middle" fontSize={18} fontWeight="800" fill="#37352F">{totalReasons}</text>
-                        <text x={50} y={63} textAnchor="middle" fontSize={9} fill="#8C8A82">con razón</text>
+                        <text x={50} y={50} textAnchor="middle" fontSize={18} fontWeight="800" fill="#1E2B4A">{totalReasons}</text>
+                        <text x={50} y={63} textAnchor="middle" fontSize={9} fill="#6B7794">con razón</text>
                       </svg>
                       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 4 }}>
                         {reasonEntries.slice(0, 5).map(([reason, n]) => {
@@ -1518,8 +1518,8 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
                           return (
                             <div key={reason} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11 }}>
                               <span style={{ width: 8, height: 8, borderRadius: 2, background: color, flexShrink: 0 }} />
-                              <span style={{ color: "#555247", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{reason}</span>
-                              <span style={{ fontWeight: 700, color: "#37352F", fontVariantNumeric: "tabular-nums" }}>{n}</span>
+                              <span style={{ color: "#3A4868", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{reason}</span>
+                              <span style={{ fontWeight: 700, color: "#1E2B4A", fontVariantNumeric: "tabular-nums" }}>{n}</span>
                             </div>
                           );
                         })}
@@ -1529,8 +1529,8 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
                 )}
 
                 {/* Evolución mensual */}
-                <div style={{ padding: 12, background: "#FAFAF9", borderRadius: 10, border: "1px solid #E8E7E3" }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>
+                <div style={{ padding: 12, background: "#F8F2E7", borderRadius: 10, border: "1px solid #E5DAC2" }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#6B7794", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>
                     Garantías últimos 6 meses
                   </div>
                   <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 80, paddingBottom: 4 }}>
@@ -1545,8 +1545,8 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
                             opacity: m.count > 0 ? 1 : 0.3,
                           }} title={`${m.count} cambios`} />
                         </div>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: "#37352F", fontVariantNumeric: "tabular-nums" }}>{m.count}</div>
-                        <div style={{ fontSize: 9, color: "#8C8A82", textTransform: "capitalize" }}>{m.label.replace(".", "")}</div>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: "#1E2B4A", fontVariantNumeric: "tabular-nums" }}>{m.count}</div>
+                        <div style={{ fontSize: 9, color: "#6B7794", textTransform: "capitalize" }}>{m.label.replace(".", "")}</div>
                       </div>
                     ))}
                   </div>
@@ -1559,7 +1559,7 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
 
       {/* ===== PROYECCIÓN DE INVENTARIO ===== */}
       <Card style={{ marginBottom: 14 }}>
-        <h4 style={{ color: "#5E6AD2", margin: "0 0 14px", fontSize: 14, textTransform: "uppercase" }}>
+        <h4 style={{ color: "#1E2B4A", margin: "0 0 14px", fontSize: 14, textTransform: "uppercase" }}>
           📈 Proyección de inventario
         </h4>
         {(() => {
@@ -1600,15 +1600,15 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
 
           return (
             <>
-              <p style={{ color: "#8C8A82", fontSize: 12, margin: "0 0 14px" }}>
+              <p style={{ color: "#6B7794", fontSize: 12, margin: "0 0 14px" }}>
                 Velocidad = unidades vendidas en últimos 30 días ÷ 30. Ordenado por días restantes ascendente.
                 {soonOut > 0 && <span style={{ color: "#E03E3E", fontWeight: 700 }}> · {soonOut} se agota{soonOut > 1 ? "n" : ""} en ≤7 días</span>}
-                {stale > 0 && <span style={{ color: "#8C8A82" }}> · {stale} sin ventas 30d</span>}
+                {stale > 0 && <span style={{ color: "#6B7794" }}> · {stale} sin ventas 30d</span>}
               </p>
               <div style={{ overflow: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                   <thead>
-                    <tr style={{ textAlign: "left", color: "#8C8A82", borderBottom: "1px solid #E8E7E3" }}>
+                    <tr style={{ textAlign: "left", color: "#6B7794", borderBottom: "1px solid #E5DAC2" }}>
                       <th style={{ padding: "8px 10px", fontWeight: 600 }}>Producto</th>
                       <th style={{ padding: "8px 10px", fontWeight: 600, textAlign: "right" }}>Stock</th>
                       <th style={{ padding: "8px 10px", fontWeight: 600, textAlign: "right" }}>Vendidos 30d</th>
@@ -1619,26 +1619,26 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
                   </thead>
                   <tbody>
                     {rows.slice(0, 25).map(r => {
-                      const color = r.daysLeft === Infinity ? "#8C8A82"
+                      const color = r.daysLeft === Infinity ? "#6B7794"
                         : r.daysLeft <= 7 ? "#E03E3E"
                         : r.daysLeft <= 14 ? "#CB912F"
-                        : r.daysLeft <= 30 ? "#5E6AD2"
+                        : r.daysLeft <= 30 ? "#1E2B4A"
                         : "#0F7B6C";
                       return (
-                        <tr key={r.id} style={{ borderBottom: "1px solid #F0EFEB" }}>
-                          <td style={{ padding: "8px 10px", color: "#37352F", fontWeight: 600 }}>
+                        <tr key={r.id} style={{ borderBottom: "1px solid #EFE5CE" }}>
+                          <td style={{ padding: "8px 10px", color: "#1E2B4A", fontWeight: 600 }}>
                             {r.brand} {r.model}
-                            <span style={{ color: "#8C8A82", fontWeight: 400 }}> · {r.flavor}</span>
+                            <span style={{ color: "#6B7794", fontWeight: 400 }}> · {r.flavor}</span>
                           </td>
-                          <td style={{ padding: "8px 10px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#37352F", fontWeight: 700 }}>{r.stock}</td>
-                          <td style={{ padding: "8px 10px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#8C8A82" }}>{r.sold30}</td>
-                          <td style={{ padding: "8px 10px", textAlign: "right", color: "#8C8A82", fontSize: 11 }}>{r.velocityLabel}</td>
+                          <td style={{ padding: "8px 10px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#1E2B4A", fontWeight: 700 }}>{r.stock}</td>
+                          <td style={{ padding: "8px 10px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#6B7794" }}>{r.sold30}</td>
+                          <td style={{ padding: "8px 10px", textAlign: "right", color: "#6B7794", fontSize: 11 }}>{r.velocityLabel}</td>
                           <td style={{ padding: "8px 10px", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
                             <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: 11, fontWeight: 700, background: `${color}18`, color }}>
                               {r.daysLeft === Infinity ? "—" : `${r.daysLeft}d`}
                             </span>
                           </td>
-                          <td style={{ padding: "8px 10px", color: "#8C8A82", fontSize: 11 }}>
+                          <td style={{ padding: "8px 10px", color: "#6B7794", fontSize: 11 }}>
                             {r.depletion ? formatDate(r.depletion) : "—"}
                           </td>
                         </tr>
@@ -1647,7 +1647,7 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
                   </tbody>
                 </table>
                 {rows.length > 25 && (
-                  <p style={{ fontSize: 11, color: "#B1AFA7", margin: "10px 0 0", textAlign: "center" }}>
+                  <p style={{ fontSize: 11, color: "#9AA2B3", margin: "10px 0 0", textAlign: "center" }}>
                     Mostrando 25 de {rows.length} productos con stock
                   </p>
                 )}
@@ -1708,12 +1708,12 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
           const tierColors = {
             A: { bg: "#DDEDEA", border: "#0F7B6C", text: "#0F7B6C" },
             B: { bg: "#FDECC8", border: "#CB912F", text: "#CB912F" },
-            C: { bg: "#EEF0FC", border: "#5E6AD2", text: "#5E6AD2" },
+            C: { bg: "#E8EBF2", border: "#1E2B4A", text: "#1E2B4A" },
           };
 
           return (
             <>
-              <p style={{ color: "#8C8A82", fontSize: 12, margin: "0 0 14px" }}>
+              <p style={{ color: "#6B7794", fontSize: 12, margin: "0 0 14px" }}>
                 Segmentación Pareto: <strong>A</strong> = top que aporta 80% del revenue · <strong>B</strong> = siguiente 15% · <strong>C</strong> = el 5% restante.
               </p>
 
@@ -1728,8 +1728,8 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
                       background: col.bg, border: `1px solid ${col.border}55`,
                     }}>
                       <div style={{ fontSize: 11, color: col.text, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Tier {t}</div>
-                      <div style={{ fontSize: 18, fontWeight: 800, color: "#37352F", marginTop: 2 }}>{stats.count}</div>
-                      <div style={{ fontSize: 11, color: "#8C8A82", marginTop: 2 }}>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: "#1E2B4A", marginTop: 2 }}>{stats.count}</div>
+                      <div style={{ fontSize: 11, color: "#6B7794", marginTop: 2 }}>
                         {formatMoney(stats.revenue)} ({totalRevenue > 0 ? Math.round(stats.revenue / totalRevenue * 100) : 0}%)
                       </div>
                     </div>
@@ -1741,7 +1741,7 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
               <div style={{ overflow: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
                   <thead>
-                    <tr style={{ textAlign: "left", color: "#8C8A82", borderBottom: "1px solid #E8E7E3" }}>
+                    <tr style={{ textAlign: "left", color: "#6B7794", borderBottom: "1px solid #E5DAC2" }}>
                       <th style={{ padding: "8px 10px", fontWeight: 600 }}>#</th>
                       <th style={{ padding: "8px 10px", fontWeight: 600 }}>Cliente</th>
                       <th style={{ padding: "8px 10px", fontWeight: 600 }}>Tier</th>
@@ -1755,11 +1755,11 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
                     {ranked.slice(0, 20).map((c, i) => {
                       const col = tierColors[c.tier];
                       return (
-                        <tr key={c.id} style={{ borderBottom: "1px solid #F0EFEB" }}>
-                          <td style={{ padding: "8px 10px", color: "#B1AFA7", fontVariantNumeric: "tabular-nums" }}>{i + 1}</td>
-                          <td style={{ padding: "8px 10px", color: "#37352F", fontWeight: 600 }}>
+                        <tr key={c.id} style={{ borderBottom: "1px solid #EFE5CE" }}>
+                          <td style={{ padding: "8px 10px", color: "#9AA2B3", fontVariantNumeric: "tabular-nums" }}>{i + 1}</td>
+                          <td style={{ padding: "8px 10px", color: "#1E2B4A", fontWeight: 600 }}>
                             {c.name}
-                            {c.zone && <span style={{ color: "#B1AFA7", fontWeight: 400, marginLeft: 6 }}>· {c.zone}</span>}
+                            {c.zone && <span style={{ color: "#9AA2B3", fontWeight: 400, marginLeft: 6 }}>· {c.zone}</span>}
                           </td>
                           <td style={{ padding: "8px 10px" }}>
                             <span style={{
@@ -1767,17 +1767,17 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
                               background: col.bg, color: col.text, border: `1px solid ${col.border}55`,
                             }}>{c.tier}</span>
                           </td>
-                          <td style={{ padding: "8px 10px", color: "#37352F", fontWeight: 700, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{formatMoney(c.revenue)}</td>
-                          <td style={{ padding: "8px 10px", color: "#8C8A82", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{c.pctOfTotal.toFixed(1)}%</td>
-                          <td style={{ padding: "8px 10px", color: "#8C8A82", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{c.count}</td>
-                          <td style={{ padding: "8px 10px", color: "#8C8A82" }}>{formatDate(c.lastDate)}</td>
+                          <td style={{ padding: "8px 10px", color: "#1E2B4A", fontWeight: 700, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{formatMoney(c.revenue)}</td>
+                          <td style={{ padding: "8px 10px", color: "#6B7794", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{c.pctOfTotal.toFixed(1)}%</td>
+                          <td style={{ padding: "8px 10px", color: "#6B7794", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{c.count}</td>
+                          <td style={{ padding: "8px 10px", color: "#6B7794" }}>{formatDate(c.lastDate)}</td>
                         </tr>
                       );
                     })}
                   </tbody>
                 </table>
                 {ranked.length > 20 && (
-                  <p style={{ fontSize: 11, color: "#B1AFA7", margin: "10px 0 0", textAlign: "center" }}>
+                  <p style={{ fontSize: 11, color: "#9AA2B3", margin: "10px 0 0", textAlign: "center" }}>
                     Mostrando top 20 de {ranked.length} clientes con compras
                   </p>
                 )}
@@ -1797,7 +1797,7 @@ function PromoCandidateRow({ cand, stat }) {
   const [expanded, setExpanded] = useState(false);
   const scenarios = expanded ? buildLiquidationScenarios(cand.product, stat) : null;
   return (
-    <div style={{ background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 8, overflow: "hidden" }}>
+    <div style={{ background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 8, overflow: "hidden" }}>
       <button
         onClick={() => setExpanded(e => !e)}
         style={{
@@ -1806,22 +1806,22 @@ function PromoCandidateRow({ cand, stat }) {
         }}
       >
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#37352F" }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#1E2B4A" }}>
             {cand.product.brand} {cand.product.model} {cand.product.flavor && `· ${cand.product.flavor}`}
           </div>
-          <div style={{ fontSize: 11, color: "#8C8A82", marginTop: 2 }}>
+          <div style={{ fontSize: 11, color: "#6B7794", marginTop: 2 }}>
             Stock: {cand.stock} · {cand.reasons.join(" · ")}
           </div>
         </div>
-        <Badge color={cand.suggestedPct >= 25 ? "#E03E3E" : cand.suggestedPct >= 15 ? "#CB912F" : "#5E6AD2"}>
+        <Badge color={cand.suggestedPct >= 25 ? "#E03E3E" : cand.suggestedPct >= 15 ? "#CB912F" : "#1E2B4A"}>
           -{cand.suggestedPct}%
         </Badge>
-        <span style={{ fontSize: 12, color: "#5E6AD2", fontWeight: 600 }}>
+        <span style={{ fontSize: 12, color: "#1E2B4A", fontWeight: 600 }}>
           {expanded ? "▼" : "▶"} Ver escenarios
         </span>
       </button>
       {expanded && scenarios && (
-        <div style={{ padding: 14, borderTop: "1px solid #E8E7E3", background: "#FFFFFF" }}>
+        <div style={{ padding: 14, borderTop: "1px solid #E5DAC2", background: "#FFFFFF" }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
             {[
               { key: "conservative", label: "Conservador", color: "#0F7B6C" },
@@ -1840,7 +1840,7 @@ function PromoCandidateRow({ cand, stat }) {
                   <div style={{ fontSize: 18, fontWeight: 800, color: s.color, fontFamily: "'Rubik', sans-serif" }}>
                     -{sc.discountPct}%
                   </div>
-                  <div style={{ fontSize: 10, color: "#37352F", marginTop: 6, lineHeight: 1.5 }}>
+                  <div style={{ fontSize: 10, color: "#1E2B4A", marginTop: 6, lineHeight: 1.5 }}>
                     Precio: <strong>${sc.newPrice}</strong> USD<br />
                     Margen: <strong style={{ color: sc.newMarginPct < 0 ? "#E03E3E" : sc.newMarginPct < 20 ? "#CB912F" : "#0F7B6C" }}>{sc.newMarginPct}%</strong><br />
                     Vende stock en: <strong>{sc.daysToSellOut !== null ? `${sc.daysToSellOut}d` : "—"}</strong><br />

@@ -541,7 +541,7 @@ export function ProcessTab({
       {/* Si no hay perfil activo, mostrar selector */}
       {!activeProfile && profiles.length > 0 && (
         <Card style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#37352F", marginBottom: 10 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#1E2B4A", marginBottom: 10 }}>
             👋 Elegí el proveedor para esta lista
           </div>
           <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(${isMobile ? "240px" : "280px"}, 1fr))`, gap: 10 }}>
@@ -555,7 +555,7 @@ export function ProcessTab({
             <button
               onClick={() => setCreateProfileOpen(true)}
               style={{
-                background: "transparent", border: "1px dashed #5E6AD2", color: "#5E6AD2",
+                background: "transparent", border: "1px dashed #1E2B4A", color: "#1E2B4A",
                 padding: "10px 20px", borderRadius: 10, fontSize: 13, fontWeight: 600,
                 cursor: "pointer", fontFamily: "inherit",
               }}
@@ -568,10 +568,10 @@ export function ProcessTab({
         <Card>
           <div style={{ textAlign: "center", padding: isMobile ? 24 : 40 }}>
             <div style={{ fontSize: isMobile ? 48 : 64, marginBottom: 12 }}>🏭</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: "#37352F", marginBottom: 6 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "#1E2B4A", marginBottom: 6 }}>
               Empezá creando tu primer proveedor
             </div>
-            <div style={{ fontSize: 13, color: "#8C8A82", maxWidth: 480, margin: "0 auto 16px" }}>
+            <div style={{ fontSize: 13, color: "#6B7794", maxWidth: 480, margin: "0 auto 16px" }}>
               Cada proveedor guarda sus costos típicos (comisión, pasero, envío), contacto y un diccionario que el sistema va aprendiendo lista tras lista.
             </div>
             <Btn onClick={() => setCreateProfileOpen(true)}>➕ Crear proveedor</Btn>
@@ -586,14 +586,14 @@ export function ProcessTab({
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <SupplierBadge name={activeProfile.name} color={activeProfile.color} />
-                <span style={{ fontSize: 11, color: "#8C8A82" }}>
+                <span style={{ fontSize: 11, color: "#6B7794" }}>
                   Lead {activeProfile.defaultLeadDays}d · Comisión {activeProfile.defaultSupplierCommPercent}% · Pasero {activeProfile.defaultPaseroPercent}%
                 </span>
               </div>
               <button
                 onClick={() => setActiveProfileId("")}
                 style={{
-                  background: "transparent", border: "1px solid #E8E7E3", color: "#555247",
+                  background: "transparent", border: "1px solid #E5DAC2", color: "#3A4868",
                   padding: "5px 10px", borderRadius: 8, fontSize: 11, cursor: "pointer",
                   fontWeight: 600, fontFamily: "inherit",
                 }}
@@ -615,9 +615,9 @@ export function ProcessTab({
                   style={{
                     flex: isMobile ? "1 1 40%" : "0 0 auto",
                     padding: "10px 16px",
-                    background: mode === m.key ? "#5E6AD2" : "transparent",
-                    color: mode === m.key ? "#FFFFFF" : "#555247",
-                    border: `1px solid ${mode === m.key ? "#5E6AD2" : "#E8E7E3"}`,
+                    background: mode === m.key ? "#1E2B4A" : "transparent",
+                    color: mode === m.key ? "#FFFFFF" : "#3A4868",
+                    border: `1px solid ${mode === m.key ? "#1E2B4A" : "#E5DAC2"}`,
                     borderRadius: 10, fontSize: 13, fontWeight: 600,
                     cursor: "pointer", fontFamily: "inherit",
                   }}
@@ -651,15 +651,15 @@ export function ProcessTab({
                   }}
                   style={{
                     padding: isMobile ? "20px 14px" : "32px 20px",
-                    background: "#F5F4F0", border: "2px dashed #B1AFA7",
+                    background: "#F1E9D6", border: "2px dashed #9AA2B3",
                     borderRadius: 12, textAlign: "center", cursor: "pointer",
                   }}
                 >
                   <div style={{ fontSize: isMobile ? 28 : 36, marginBottom: 6 }}>📁</div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: "#555247" }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "#3A4868" }}>
                     {fileName ? fileName : `Click o arrastrá ${mode === "spreadsheet" ? ".xlsx/.csv" : ".pdf"}`}
                   </div>
-                  <div style={{ fontSize: 12, color: "#8C8A82", marginTop: 4 }}>
+                  <div style={{ fontSize: 12, color: "#6B7794", marginTop: 4 }}>
                     El sistema aplica el diccionario aprendido de {activeProfile.name} automáticamente
                   </div>
                 </div>
@@ -674,14 +674,14 @@ export function ProcessTab({
                   placeholder={`Pegá la lista de ${activeProfile.name}...\n\n- Elfbar TE Açai Banana x20 $18\n- Lost Mary BM6000 Cherry Cola (15u) $14`}
                   style={{
                     width: "100%", minHeight: isMobile ? 140 : 180,
-                    padding: 14, background: "#FAFAF9", border: "1px solid #E8E7E3",
-                    borderRadius: 10, color: "#37352F", fontSize: 14,
+                    padding: 14, background: "#F8F2E7", border: "1px solid #E5DAC2",
+                    borderRadius: 10, color: "#1E2B4A", fontSize: 14,
                     outline: "none", boxSizing: "border-box",
                     fontFamily: "'SF Mono', Monaco, monospace", resize: "vertical",
                   }}
                 />
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10, gap: 10, flexWrap: "wrap" }}>
-                  <div style={{ fontSize: 11, color: "#8C8A82", flex: 1, minWidth: 200 }}>
+                  <div style={{ fontSize: 11, color: "#6B7794", flex: 1, minWidth: 200 }}>
                     💡 Si está muy desordenado, usá Claude para convertirlo a CSV y pegalo acá
                   </div>
                   <Btn onClick={handleProcessText} disabled={processing || !rawText.trim()}>
@@ -696,7 +696,7 @@ export function ProcessTab({
           {processing && (
             <Card>
               <div style={{ textAlign: "center", padding: 20 }}>
-                <span style={{ color: "#5E6AD2", fontSize: 14, fontWeight: 600 }}>Procesando...</span>
+                <span style={{ color: "#1E2B4A", fontSize: 14, fontWeight: 600 }}>Procesando...</span>
               </div>
             </Card>
           )}
@@ -705,9 +705,9 @@ export function ProcessTab({
             <>
               {/* Stats summary */}
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
-                <StatCard label="Items" value={parsedItems.length} color="#5E6AD2" icon="📦" />
+                <StatCard label="Items" value={parsedItems.length} color="#1E2B4A" icon="📦" />
                 {parsedItems.filter(i => i.fromAlias).length > 0 && (
-                  <StatCard label="🧠 Aprendidos" value={parsedItems.filter(i => i.fromAlias).length} color="#5E6AD2" />
+                  <StatCard label="🧠 Aprendidos" value={parsedItems.filter(i => i.fromAlias).length} color="#1E2B4A" />
                 )}
                 <StatCard label="🟢 OK" value={parsedItems.filter(i => i.confidence === "high" && !i.fromAlias).length} color="#0F7B6C" />
                 <StatCard label="🟡 Revisar" value={parsedItems.filter(i => i.confidence === "medium").length} color="#CB912F" />
@@ -723,7 +723,7 @@ export function ProcessTab({
                       onChange={e => setFilterText(e.target.value)}
                       placeholder="🔍 Buscar..."
                       style={{
-                        padding: "8px 12px", background: "#FAFAF9", border: "1px solid #E8E7E3",
+                        padding: "8px 12px", background: "#F8F2E7", border: "1px solid #E5DAC2",
                         borderRadius: 8, fontSize: 13, outline: "none", fontFamily: "inherit",
                         minWidth: 160,
                       }}
@@ -732,7 +732,7 @@ export function ProcessTab({
                       value={filterConfidence}
                       onChange={e => setFilterConfidence(e.target.value)}
                       style={{
-                        padding: "8px 12px", background: "#FAFAF9", border: "1px solid #E8E7E3",
+                        padding: "8px 12px", background: "#F8F2E7", border: "1px solid #E5DAC2",
                         borderRadius: 8, fontSize: 13, outline: "none", fontFamily: "inherit",
                       }}
                     >
@@ -742,12 +742,12 @@ export function ProcessTab({
                       <option value="medium">🟡 Revisar</option>
                       <option value="low">🔴 Nuevos</option>
                     </select>
-                    <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#555247", cursor: "pointer" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#3A4868", cursor: "pointer" }}>
                       <input
                         type="checkbox"
                         checked={filterOnlyWithSuggestion}
                         onChange={e => setFilterOnlyWithSuggestion(e.target.checked)}
-                        style={{ accentColor: "#5E6AD2" }}
+                        style={{ accentColor: "#1E2B4A" }}
                       />
                       Solo con sugerencia ⭐
                     </label>
@@ -765,7 +765,7 @@ export function ProcessTab({
                         });
                         setSelectedIndices(auto);
                       }}
-                      style={btn("#5E6AD2")}
+                      style={btn("#1E2B4A")}
                     >⭐ Sugeridos</button>
                     <button onClick={() => setSelectedIndices(new Set(filteredItems.map(i => i._idx)))} style={btn()}>Todos</button>
                     <button onClick={() => setSelectedIndices(new Set())} style={btn()}>Ninguno</button>
@@ -818,20 +818,20 @@ export function ProcessTab({
                 }}>
                   <div style={{ marginBottom: 12, display: "flex", gap: 16, flexWrap: "wrap" }}>
                     <div>
-                      <div style={{ fontSize: 10, color: "#8C8A82", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>Items</div>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: "#37352F" }}>{selectedRows.length}</div>
+                      <div style={{ fontSize: 10, color: "#6B7794", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>Items</div>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: "#1E2B4A" }}>{selectedRows.length}</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: 10, color: "#8C8A82", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>Unidades</div>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: "#37352F" }}>{totals.totalUnits}</div>
+                      <div style={{ fontSize: 10, color: "#6B7794", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>Unidades</div>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: "#1E2B4A" }}>{totals.totalUnits}</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: 10, color: "#8C8A82", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>Costo</div>
-                      <div style={{ fontSize: 20, fontWeight: 800, color: "#37352F" }}>USD {totals.totalUSD.toFixed(0)}</div>
+                      <div style={{ fontSize: 10, color: "#6B7794", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>Costo</div>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: "#1E2B4A" }}>USD {totals.totalUSD.toFixed(0)}</div>
                     </div>
                     {totals.totalMargin > 0 && (
                       <div>
-                        <div style={{ fontSize: 10, color: "#8C8A82", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>Ganancia proyectada</div>
+                        <div style={{ fontSize: 10, color: "#6B7794", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>Ganancia proyectada</div>
                         <div style={{ fontSize: 20, fontWeight: 800, color: "#0F7B6C" }}>USD {totals.totalMargin.toFixed(0)}</div>
                       </div>
                     )}
@@ -877,8 +877,8 @@ export function ProcessTab({
   );
 }
 
-const btn = (color = "#555247") => ({
-  background: "transparent", border: "1px solid #E8E7E3", color,
+const btn = (color = "#3A4868") => ({
+  background: "transparent", border: "1px solid #E5DAC2", color,
   padding: "6px 10px", borderRadius: 8, fontSize: 12, cursor: "pointer",
   fontWeight: 600, fontFamily: "inherit",
 });

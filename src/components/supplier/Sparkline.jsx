@@ -1,6 +1,6 @@
 // Sparkline mínimo, sin deps. Render SVG con polyline + fill area.
 // Usado en cards de proveedor para mostrar 6m de gasto.
-export function Sparkline({ data = [], width = 80, height = 28, color = "#5E6AD2", showDot = true }) {
+export function Sparkline({ data = [], width = 80, height = 28, color = "#1E2B4A", showDot = true }) {
   if (!data || data.length === 0) {
     return <div style={{ width, height, opacity: 0.2 }} />;
   }
@@ -38,7 +38,7 @@ export function Sparkline({ data = [], width = 80, height = 28, color = "#5E6AD2
 }
 
 // Pill colorido con punto a la izquierda (badge de proveedor)
-export function SupplierBadge({ name, color = "#5E6AD2", size = "md", onClick }) {
+export function SupplierBadge({ name, color = "#1E2B4A", size = "md", onClick }) {
   const compact = size === "sm";
   return (
     <span

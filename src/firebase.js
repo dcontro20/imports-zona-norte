@@ -35,11 +35,11 @@ export const onAuthChange = (callback) => onAuthStateChanged(auth, callback);
 // User mapping: Firebase Auth UID → app user profile
 // Diego es el único dueño 100% del negocio (single-user app).
 const USER_PROFILES = {
-  "dcontro20@gmail.com": { name: "Diego", color: "#5E6AD2", icon: "💜", role: "owner" },
+  "dcontro20@gmail.com": { name: "Diego", color: "#1E2B4A", icon: "💜", role: "owner" },
 };
 export const getUserProfile = (firebaseUser) => {
   if (!firebaseUser) return null;
-  const profile = USER_PROFILES[firebaseUser.email] || { name: firebaseUser.email, color: "#5E6AD2", icon: "👤", role: "owner" };
+  const profile = USER_PROFILES[firebaseUser.email] || { name: firebaseUser.email, color: "#1E2B4A", icon: "👤", role: "owner" };
   return { ...profile, email: firebaseUser.email, uid: firebaseUser.uid };
 };
 

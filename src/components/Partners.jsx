@@ -43,7 +43,7 @@ const Donut = ({ segments, size = 120 }) => {
   const c = 2 * Math.PI * radius;
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ flexShrink: 0 }}>
-      <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#F0EFEB" strokeWidth="14" />
+      <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#EFE5CE" strokeWidth="14" />
       {segments.map((seg, i) => {
         const len = (Math.max(0, seg.value) / total) * c;
         const el = (

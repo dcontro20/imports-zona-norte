@@ -142,7 +142,7 @@ export function classifyVelocity(velocity30dPerDay) {
   if (v >= 1) return { tier: "hot", label: "🔥 Top mover", color: "#E03E3E" };
   if (v >= 0.3) return { tier: "warm", label: "✓ Activo", color: "#0F7B6C" };
   if (v > 0) return { tier: "cold", label: "🐢 Lento", color: "#CB912F" };
-  return { tier: "frozen", label: "❄️ Sin venta 30d", color: "#8C8A82" };
+  return { tier: "frozen", label: "❄️ Sin venta 30d", color: "#6B7794" };
 }
 
 /**
@@ -404,13 +404,13 @@ export function classifyLifecycle(stat, now = new Date()) {
   if (referenceDate) {
     const daysSinceCreated = (nowMs - new Date(referenceDate).getTime()) / MS_PER_DAY;
     if (daysSinceCreated < 30 && stat.totalQty > 0) {
-      return { stage: "new", label: "🆕 Nuevo", color: "#5E6AD2" };
+      return { stage: "new", label: "🆕 Nuevo", color: "#1E2B4A" };
     }
   }
 
   // "Dead": sin ventas hace ≥60d
   if (stat.daysSinceLastSale >= 60) {
-    return { stage: "dead", label: "💀 Sin movimiento", color: "#8C8A82" };
+    return { stage: "dead", label: "💀 Sin movimiento", color: "#6B7794" };
   }
 
   // Comparar velocity proyectada vs 30d

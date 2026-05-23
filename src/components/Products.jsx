@@ -224,7 +224,7 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
       {toast && (
         <div style={{
           position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
-          background: "#37352F", color: "#FFFFFF", padding: "12px 20px", borderRadius: 10,
+          background: "#1E2B4A", color: "#FFFFFF", padding: "12px 20px", borderRadius: 10,
           fontSize: 13, fontWeight: 600, zIndex: 1001,
           boxShadow: "0 6px 20px rgba(0,0,0,0.2)",
         }}>{toast}</div>
@@ -238,8 +238,8 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
         marginBottom: 16, gap: isMobile ? 12 : 12, flexWrap: "wrap",
       }}>
         <div>
-          <h2 style={{ color: "#37352F", margin: 0, fontSize: isMobile ? 20 : 22 }}>Stock</h2>
-          <span style={{ color: "#8C8A82", fontSize: isMobile ? 12 : 13 }}>
+          <h2 style={{ color: "#1E2B4A", margin: 0, fontSize: isMobile ? 20 : 22 }}>Stock</h2>
+          <span style={{ color: "#6B7794", fontSize: isMobile ? 12 : 13 }}>
             {totalWithStock} con stock · {totalInStock} uds · {filtered.length} listados
           </span>
         </div>
@@ -276,20 +276,20 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
         {["", ...BRANDS].map(b => (
           <button key={b} onClick={() => setBrandFilter(b)} style={{
             padding: "8px 14px", borderRadius: 20, minHeight: 36, flexShrink: 0,
-            border: "1px solid " + (brandFilter === b ? (BRAND_COLORS[b] || "#5E6AD2") : "#E8E7E3"),
-            background: brandFilter === b ? (BRAND_COLORS[b] || "#5E6AD2") + "22" : "transparent",
-            color: brandFilter === b ? (BRAND_COLORS[b] || "#5E6AD2") : "#8C8A82",
+            border: "1px solid " + (brandFilter === b ? (BRAND_COLORS[b] || "#1E2B4A") : "#E5DAC2"),
+            background: brandFilter === b ? (BRAND_COLORS[b] || "#1E2B4A") + "22" : "transparent",
+            color: brandFilter === b ? (BRAND_COLORS[b] || "#1E2B4A") : "#6B7794",
             cursor: "pointer", fontSize: 12, fontWeight: 600,
             fontFamily: "inherit", whiteSpace: "nowrap",
           }}>{b || "Todas"}</button>
         ))}
-        <span style={{ color: "#E8E7E3", margin: "0 4px", flexShrink: 0 }}>|</span>
+        <span style={{ color: "#E5DAC2", margin: "0 4px", flexShrink: 0 }}>|</span>
         {[["instock", "Con stock"], ["all", "Todos"], ["nostock", "Sin stock"]].map(([val, label]) => (
           <button key={val} onClick={() => setStockFilter(val)} style={{
             padding: "8px 14px", borderRadius: 20, minHeight: 36, flexShrink: 0,
-            border: "1px solid " + (stockFilter === val ? "#00b894" : "#E8E7E3"),
+            border: "1px solid " + (stockFilter === val ? "#00b894" : "#E5DAC2"),
             background: stockFilter === val ? "#00b89422" : "transparent",
-            color: stockFilter === val ? "#00b894" : "#8C8A82",
+            color: stockFilter === val ? "#00b894" : "#6B7794",
             cursor: "pointer", fontSize: 12, fontWeight: 600,
             fontFamily: "inherit", whiteSpace: "nowrap",
           }}>{label}</button>
@@ -320,10 +320,10 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
 
       {/* Quick edit banner */}
       {quickEdit && (
-        <Card style={{ marginBottom: 14, background: "#5E6AD211", border: "1px solid #5E6AD244" }}>
+        <Card style={{ marginBottom: 14, background: "#1E2B4A11", border: "1px solid #1E2B4A44" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ fontSize: 18 }}>⚡</span>
-            <span style={{ color: "#5E6AD2", fontSize: 13, fontWeight: 600 }}>
+            <span style={{ color: "#1E2B4A", fontSize: 13, fontWeight: 600 }}>
               Modo edición rápida — Cambiá las cantidades directo y dale "Guardar todo". Los campos modificados se resaltan en violeta.
             </span>
           </div>
@@ -332,20 +332,20 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
 
       {/* Grouped Cards */}
       {grouped.length === 0 ? (
-        <Card><p style={{ color: "#B1AFA7", textAlign: "center", padding: 20 }}>No hay productos que coincidan con los filtros.</p></Card>
+        <Card><p style={{ color: "#9AA2B3", textAlign: "center", padding: 20 }}>No hay productos que coincidan con los filtros.</p></Card>
       ) : grouped.map(group => {
         const key = `${group.brand}-${group.model}`;
         const isCollapsed = collapsed[key];
         const groupStock = group.items.reduce((s, p) => s + (p.stock || 0), 0);
         const groupInStock = group.items.filter(p => p.stock > 0).length;
-        const brandColor = BRAND_COLORS[group.brand] || "#5E6AD2";
+        const brandColor = BRAND_COLORS[group.brand] || "#1E2B4A";
         const puffsFormatted = Number(group.puffs).toLocaleString("es-AR");
 
         return (
           <div key={key} style={{ marginBottom: 12 }}>
             {/* Group Header — stack en mobile para no overflowear */}
             <div onClick={() => toggleCollapse(key)} style={{
-              background: "#FAFAF9", borderRadius: isCollapsed ? 12 : "12px 12px 0 0",
+              background: "#F8F2E7", borderRadius: isCollapsed ? 12 : "12px 12px 0 0",
               padding: isMobile ? "12px 14px" : "14px 18px",
               border: `1px solid ${brandColor}33`, borderBottom: isCollapsed ? `1px solid ${brandColor}33` : "none",
               cursor: "pointer", display: "flex",
@@ -362,10 +362,10 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
               }}>
                 <span style={{ fontSize: isMobile ? 14 : 18, transform: isCollapsed ? "rotate(-90deg)" : "rotate(0deg)", transition: "transform 0.2s", display: "inline-block", flexShrink: 0 }}>▼</span>
                 <Badge color={brandColor}>{group.brand}</Badge>
-                <span style={{ color: "#37352F", fontWeight: 700, fontSize: isMobile ? 14 : 15 }}>{group.model}</span>
-                <span style={{ color: "#8C8A82", fontSize: isMobile ? 11 : 13 }}>· {puffsFormatted} puffs</span>
+                <span style={{ color: "#1E2B4A", fontWeight: 700, fontSize: isMobile ? 14 : 15 }}>{group.model}</span>
+                <span style={{ color: "#6B7794", fontSize: isMobile ? 11 : 13 }}>· {puffsFormatted} puffs</span>
                 {!isMobile && (
-                  <span style={{ color: "#8C8A82", fontSize: 13 }}>· {formatMoney(group.priceUSD, "USD")} / {formatMoney(Math.round(group.priceUSD * exchangeRate))}</span>
+                  <span style={{ color: "#6B7794", fontSize: 13 }}>· {formatMoney(group.priceUSD, "USD")} / {formatMoney(Math.round(group.priceUSD * exchangeRate))}</span>
                 )}
               </div>
               <div style={{
@@ -374,12 +374,12 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
                 flexShrink: 0,
               }}>
                 {isMobile && (
-                  <span style={{ color: "#8C8A82", fontSize: 11 }}>
+                  <span style={{ color: "#6B7794", fontSize: 11 }}>
                     {formatMoney(group.priceUSD, "USD")} · {formatMoney(Math.round(group.priceUSD * exchangeRate))}
                   </span>
                 )}
                 <div style={{ display: "flex", gap: isMobile ? 6 : 10, alignItems: "center" }}>
-                  <span style={{ color: "#8C8A82", fontSize: isMobile ? 11 : 12 }}>{groupInStock}/{group.items.length} sabores</span>
+                  <span style={{ color: "#6B7794", fontSize: isMobile ? 11 : 12 }}>{groupInStock}/{group.items.length} sabores</span>
                   <Badge color={groupStock > 0 ? "#00b894" : "#E03E3E"}>{groupStock} uds</Badge>
                 </div>
               </div>
@@ -388,7 +388,7 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
             {/* Flavors List */}
             {!isCollapsed && (
               <div style={{
-                background: "#FAFAF9", borderRadius: "0 0 12px 12px", border: `1px solid ${brandColor}22`,
+                background: "#F8F2E7", borderRadius: "0 0 12px 12px", border: `1px solid ${brandColor}22`,
                 borderTop: `1px solid ${brandColor}15`, overflow: "hidden"
               }}>
                 {group.items.map((p, i) => {
@@ -418,7 +418,7 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
                     justifyContent: "space-between",
                     gap: isMobile ? 8 : 0,
                     padding: isMobile ? "12px 14px" : "10px 18px",
-                    borderBottom: i < group.items.length - 1 ? "1px solid #F0EFEB" : "none",
+                    borderBottom: i < group.items.length - 1 ? "1px solid #EFE5CE" : "none",
                     opacity: p.stock === 0 ? 0.55 : 1, transition: "opacity 0.2s, background 0.15s",
                     cursor: quickEdit ? "default" : "pointer",
                     minHeight: isMobile ? 48 : "auto",
@@ -449,7 +449,7 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
                         />
                       )}
                       <span style={{
-                        color: p.stock > 0 ? "#37352F" : "#B1AFA7",
+                        color: p.stock > 0 ? "#1E2B4A" : "#9AA2B3",
                         fontSize: isMobile ? 15 : 14,
                         fontWeight: isMobile ? 600 : 400,
                         textDecoration: p.stock === 0 ? "line-through" : "none",
@@ -478,7 +478,7 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
                       marginTop: isMobile ? 4 : 0,
                     }}>
                       {isMobile && !quickEdit && (
-                        <span style={{ fontSize: 11, color: "#8C8A82", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>Stock</span>
+                        <span style={{ fontSize: 11, color: "#6B7794", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>Stock</span>
                       )}
                       <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 6 : 12 }}>
                         {quickEdit ? (
@@ -488,9 +488,9 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
                               width: isMobile ? 80 : 60,
                               padding: isMobile ? "8px 10px" : "4px 8px",
                               minHeight: isMobile ? 44 : "auto",
-                              background: (quickStocks[p.id] ?? p.stock) !== (p.stock || 0) ? "#EAECF9" : "#FAFAF9",
-                              border: `1px solid ${(quickStocks[p.id] ?? p.stock) !== (p.stock || 0) ? "#5E6AD2" : "#E8E7E3"}`,
-                              borderRadius: 6, color: "#37352F",
+                              background: (quickStocks[p.id] ?? p.stock) !== (p.stock || 0) ? "#EAECF9" : "#F8F2E7",
+                              border: `1px solid ${(quickStocks[p.id] ?? p.stock) !== (p.stock || 0) ? "#1E2B4A" : "#E5DAC2"}`,
+                              borderRadius: 6, color: "#1E2B4A",
                               fontSize: isMobile ? 16 : 14,
                               fontWeight: 700, textAlign: "center",
                             }} />
@@ -504,7 +504,7 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
                         {!quickEdit && <>
                           <button onClick={(e) => { e.stopPropagation(); openEdit(p); }}
                             style={{
-                              background: "none", border: "none", color: "#8C8A82", cursor: "pointer",
+                              background: "none", border: "none", color: "#6B7794", cursor: "pointer",
                               fontSize: 16, padding: isMobile ? "8px 10px" : "2px 4px",
                               minHeight: isMobile ? 44 : "auto", minWidth: isMobile ? 44 : "auto",
                             }}
@@ -512,7 +512,7 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
                             aria-label={`Editar ${p.flavor}`}>✏️</button>
                           <button onClick={(e) => { e.stopPropagation(); remove(p.id); }}
                             style={{
-                              background: "none", border: "none", color: "#8C8A82", cursor: "pointer",
+                              background: "none", border: "none", color: "#6B7794", cursor: "pointer",
                               fontSize: 16, padding: isMobile ? "8px 10px" : "2px 4px",
                               minHeight: isMobile ? 44 : "auto", minWidth: isMobile ? 44 : "auto",
                             }}
@@ -586,10 +586,10 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
 
         {/* S16.2 — Pricing por canal (override opcional) */}
         <details style={{ marginBottom: 12 }}>
-          <summary style={{ cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#5E6AD2", padding: "6px 0" }}>
+          <summary style={{ cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#1E2B4A", padding: "6px 0" }}>
             🛒 Precios por canal (override opcional, en USD)
           </summary>
-          <div style={{ paddingTop: 8, paddingLeft: 12, borderLeft: "2px solid #E8E7E3", display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
+          <div style={{ paddingTop: 8, paddingLeft: 12, borderLeft: "2px solid #E5DAC2", display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
             {[
               { key: "whatsapp", label: "WhatsApp" },
               { key: "instagram", label: "Instagram" },
@@ -598,7 +598,7 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
               { key: "mercadolibre", label: "MercadoLibre" },
             ].map(ch => (
               <div key={ch.key} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <label style={{ fontSize: 11, color: "#8C8A82", flex: 1, fontWeight: 600 }}>{ch.label}</label>
+                <label style={{ fontSize: 11, color: "#6B7794", flex: 1, fontWeight: 600 }}>{ch.label}</label>
                 <input
                   type="number"
                   step="0.01"
@@ -617,7 +617,7 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
                   style={{
                     width: isMobile ? 110 : 100, padding: isMobile ? "8px 10px" : "6px 8px",
                     borderRadius: 6, minHeight: isMobile ? 40 : "auto",
-                    border: "1px solid #E8E7E3",
+                    border: "1px solid #E5DAC2",
                     fontSize: isMobile ? 16 : 13, fontFamily: "inherit",
                     textAlign: "right",
                   }}
@@ -625,7 +625,7 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
               </div>
             ))}
           </div>
-          <p style={{ fontSize: 11, color: "#8C8A82", marginTop: 6, paddingLeft: 12 }}>
+          <p style={{ fontSize: 11, color: "#6B7794", marginTop: 6, paddingLeft: 12 }}>
             Vacío = usa precio default. Sirve para cargar fee de MercadoLibre o descuento presencial.
           </p>
         </details>

@@ -5,14 +5,14 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#FAFAF9",
-  "theme_color": "#5E6AD2",
+  "background_color": "#F8F2E7",
+  "theme_color": "#1E2B4A",
   "orientation": "portrait",
   "categories": ["business", "productivity"],
   "lang": "es-AR",
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%235E6AD2'/%3E%3Ctext x='50%25' y='55%25' text-anchor='middle' dominant-baseline='middle' font-size='320' font-family='system-ui'%3E💨%3C/text%3E%3C/svg%3E",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%23F8F2E7'/%3E%3Cg transform='translate(110,80) scale(2.92)'%3E%3Cpath d='M50 5 L88 17 L88 47 C88 70 72 86 50 95 C28 86 12 70 12 47 L12 17 Z' stroke='%231E2B4A' stroke-width='6' stroke-linejoin='round' fill='none'/%3E%3Ccircle cx='50' cy='56' r='22' stroke='%231E2B4A' stroke-width='3' fill='none'/%3E%3Crect x='42' y='32' width='16' height='42' rx='3' fill='%23F8F2E7' stroke='%231E2B4A' stroke-width='3'/%3E%3Crect x='45' y='22' width='10' height='10' rx='2' fill='%231E2B4A'/%3E%3C/g%3E%3C/svg%3E",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any"

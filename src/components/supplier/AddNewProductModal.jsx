@@ -43,16 +43,16 @@ export function AddNewProductModal({ open, item, onClose, onSave, exchangeRate }
 
   return (
     <Modal open={open} onClose={onClose} title="➕ Agregar producto al catálogo">
-      <p style={{ color: "#8C8A82", fontSize: 13, marginTop: 0, marginBottom: 16 }}>
+      <p style={{ color: "#6B7794", fontSize: 13, marginTop: 0, marginBottom: 16 }}>
         Te precargamos los datos detectados del proveedor. Revisá y confirmá.
       </p>
       <div>
-        <label style={{ fontSize: 11, color: "#8C8A82", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Marca</label>
+        <label style={{ fontSize: 11, color: "#6B7794", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Marca</label>
         <select value={brand} onChange={e => setBrand(e.target.value)}
           style={{
             width: "100%", padding: "12px 14px", marginTop: 6, marginBottom: 12,
-            background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10,
-            color: "#37352F", fontSize: 16, outline: "none", boxSizing: "border-box",
+            background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 10,
+            color: "#1E2B4A", fontSize: 16, outline: "none", boxSizing: "border-box",
             fontFamily: "inherit",
           }}>
           <option value="">— Elegir marca —</option>

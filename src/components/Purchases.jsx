@@ -39,7 +39,7 @@ const PurchaseStepper = ({ status }) => {
           <div key={s.value} style={{ display: "flex", alignItems: "center", flex: 1, gap: 4 }}>
             <div style={{
               width: 16, height: 16, borderRadius: "50%", flexShrink: 0,
-              background: isPast ? s.color : isCurrent ? s.color : "#E8E7E3",
+              background: isPast ? s.color : isCurrent ? s.color : "#E5DAC2",
               border: isCurrent ? `2px solid ${s.color}` : "none",
               boxShadow: isCurrent ? `0 0 0 3px ${s.color}33` : "none",
               display: "flex", alignItems: "center", justifyContent: "center",
@@ -47,13 +47,13 @@ const PurchaseStepper = ({ status }) => {
             }}>{isPast ? "✓" : ""}</div>
             <span style={{
               fontSize: 10, fontWeight: isCurrent ? 700 : 500,
-              color: isFuture ? "#B1AFA7" : isCurrent ? s.color : "#37352F",
+              color: isFuture ? "#9AA2B3" : isCurrent ? s.color : "#1E2B4A",
               whiteSpace: "nowrap",
             }}>{s.label.replace(/^\S+\s/, "")}</span>
             {i < PURCHASE_STATUSES.length - 1 && (
               <div style={{
                 flex: 1, height: 2,
-                background: isPast ? PURCHASE_STATUSES[i + 1].color : "#E8E7E3",
+                background: isPast ? PURCHASE_STATUSES[i + 1].color : "#E5DAC2",
                 margin: "0 2px",
               }} />
             )}
@@ -321,7 +321,7 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
-        <h2 style={{ color: "#37352F", margin: 0, fontSize: 22 }}>Compras / Importaciones ({purchases.length})</h2>
+        <h2 style={{ color: "#1E2B4A", margin: 0, fontSize: 22 }}>Compras / Importaciones ({purchases.length})</h2>
         <Btn onClick={openNew}>+ Nuevo Pedido</Btn>
       </div>
 
@@ -331,17 +331,17 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
 
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12, gap: 8, flexWrap: "wrap" }}>
         <button onClick={() => setShowQtySuggestions(s => !s)} style={{
-          padding: "8px 14px", borderRadius: 8, border: "1px solid #E8E7E3",
+          padding: "8px 14px", borderRadius: 8, border: "1px solid #E5DAC2",
           background: showQtySuggestions ? "#0F7B6C15" : "transparent",
-          color: showQtySuggestions ? "#0F7B6C" : "#37352F",
+          color: showQtySuggestions ? "#0F7B6C" : "#1E2B4A",
           fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
         }}>
           {showQtySuggestions ? "▼" : "▶"} 🎯 Sugerir qty próxima compra ({suggestionsWithDemand.length})
         </button>
         <button onClick={() => setShowSupplierStats(s => !s)} style={{
-          padding: "8px 14px", borderRadius: 8, border: "1px solid #E8E7E3",
-          background: showSupplierStats ? "#5E6AD215" : "transparent",
-          color: showSupplierStats ? "#5E6AD2" : "#37352F",
+          padding: "8px 14px", borderRadius: 8, border: "1px solid #E5DAC2",
+          background: showSupplierStats ? "#1E2B4A15" : "transparent",
+          color: showSupplierStats ? "#1E2B4A" : "#1E2B4A",
           fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
         }}>
           {showSupplierStats ? "▼" : "▶"} 📊 Stats por proveedor ({supplierStats.length})
@@ -351,37 +351,37 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
       {/* S15.7 — Sugeridor qty Paraguay */}
       {showQtySuggestions && (
         <Card style={{ marginBottom: 16 }}>
-          <h3 style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#37352F" }}>
+          <h3 style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 700, color: "#1E2B4A" }}>
             🎯 Sugerencias de qty para próxima compra Paraguay
           </h3>
-          <p style={{ margin: "0 0 14px", fontSize: 12, color: "#8C8A82" }}>
+          <p style={{ margin: "0 0 14px", fontSize: 12, color: "#6B7794" }}>
             Basado en velocity últimos 30d × (lead time + cover + safety). Ajustá los parámetros si tu lead time real es distinto.
           </p>
           <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 14, alignItems: "center" }}>
-            <label style={{ fontSize: 12, color: "#37352F", fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+            <label style={{ fontSize: 12, color: "#1E2B4A", fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
               Lead time (días):
               <input
                 type="number" min={1} max={120}
                 value={leadTimeDays}
                 onChange={e => setLeadTimeDays(Math.max(1, Number(e.target.value) || 30))}
-                style={{ width: 70, padding: "5px 8px", borderRadius: 6, border: "1px solid #E8E7E3", fontSize: 13, textAlign: "right" }}
+                style={{ width: 70, padding: "5px 8px", borderRadius: 6, border: "1px solid #E5DAC2", fontSize: 13, textAlign: "right" }}
               />
             </label>
-            <label style={{ fontSize: 12, color: "#37352F", fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+            <label style={{ fontSize: 12, color: "#1E2B4A", fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
               Cover (días):
               <input
                 type="number" min={1} max={180}
                 value={coverDays}
                 onChange={e => setCoverDays(Math.max(1, Number(e.target.value) || 30))}
-                style={{ width: 70, padding: "5px 8px", borderRadius: 6, border: "1px solid #E8E7E3", fontSize: 13, textAlign: "right" }}
+                style={{ width: 70, padding: "5px 8px", borderRadius: 6, border: "1px solid #E5DAC2", fontSize: 13, textAlign: "right" }}
               />
             </label>
-            <span style={{ fontSize: 11, color: "#8C8A82" }}>
+            <span style={{ fontSize: 11, color: "#6B7794" }}>
               + 7d safety = horizonte total <strong>{leadTimeDays + coverDays + 7}d</strong>
             </span>
           </div>
           {suggestionsWithDemand.length === 0 ? (
-            <p style={{ color: "#B1AFA7", fontSize: 12, padding: 14 }}>
+            <p style={{ color: "#9AA2B3", fontSize: 12, padding: 14 }}>
               No hay productos con demanda activa que necesiten reposición.
             </p>
           ) : (
@@ -390,7 +390,7 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
                 <thead>
                   <tr>
                     {["Producto", "Velocity", "Stock actual", "Target", "Sugerir pedir", "Cobertura"].map(h => (
-                      <th key={h} style={{ textAlign: "left", padding: "6px 8px", fontSize: 10, color: "#8C8A82", textTransform: "uppercase", borderBottom: "1px solid #E8E7E3" }}>{h}</th>
+                      <th key={h} style={{ textAlign: "left", padding: "6px 8px", fontSize: 10, color: "#6B7794", textTransform: "uppercase", borderBottom: "1px solid #E5DAC2" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -399,20 +399,20 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
                     const daysOfStock = s.velocity30dPerDay > 0 ? Math.floor(s.stockActual / s.velocity30dPerDay) : Infinity;
                     return (
                       <tr key={s.productId}>
-                        <td style={{ padding: "6px 8px", color: "#37352F", borderBottom: "1px solid #F0EFEB", fontWeight: 600 }}>
+                        <td style={{ padding: "6px 8px", color: "#1E2B4A", borderBottom: "1px solid #EFE5CE", fontWeight: 600 }}>
                           {s.product.brand} {s.product.model} {s.product.flavor && `· ${s.product.flavor}`}
                         </td>
-                        <td style={{ padding: "6px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>
-                          {s.velocity30dPerDay} <span style={{ fontSize: 10, color: "#8C8A82" }}>uds/día</span>
+                        <td style={{ padding: "6px 8px", color: "#3A4868", borderBottom: "1px solid #EFE5CE" }}>
+                          {s.velocity30dPerDay} <span style={{ fontSize: 10, color: "#6B7794" }}>uds/día</span>
                         </td>
-                        <td style={{ padding: "6px 8px", color: s.stockActual === 0 ? "#E03E3E" : "#555247", borderBottom: "1px solid #F0EFEB", fontWeight: s.stockActual === 0 ? 700 : 500 }}>
+                        <td style={{ padding: "6px 8px", color: s.stockActual === 0 ? "#E03E3E" : "#3A4868", borderBottom: "1px solid #EFE5CE", fontWeight: s.stockActual === 0 ? 700 : 500 }}>
                           {s.stockActual} uds
                         </td>
-                        <td style={{ padding: "6px 8px", color: "#555247", borderBottom: "1px solid #F0EFEB" }}>{s.target} uds</td>
-                        <td style={{ padding: "6px 8px", borderBottom: "1px solid #F0EFEB" }}>
+                        <td style={{ padding: "6px 8px", color: "#3A4868", borderBottom: "1px solid #EFE5CE" }}>{s.target} uds</td>
+                        <td style={{ padding: "6px 8px", borderBottom: "1px solid #EFE5CE" }}>
                           <Badge color="#0F7B6C">{s.suggestedQty} uds</Badge>
                         </td>
-                        <td style={{ padding: "6px 8px", color: daysOfStock < 14 ? "#E03E3E" : daysOfStock < 30 ? "#CB912F" : "#0F7B6C", borderBottom: "1px solid #F0EFEB", fontWeight: 600 }}>
+                        <td style={{ padding: "6px 8px", color: daysOfStock < 14 ? "#E03E3E" : daysOfStock < 30 ? "#CB912F" : "#0F7B6C", borderBottom: "1px solid #EFE5CE", fontWeight: 600 }}>
                           {daysOfStock === Infinity ? "—" : `${daysOfStock}d`}
                         </td>
                       </tr>
@@ -421,9 +421,9 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
                 </tbody>
               </table>
               {suggestionsWithDemand.length > 30 && (
-                <p style={{ marginTop: 8, fontSize: 11, color: "#8C8A82" }}>...y {suggestionsWithDemand.length - 30} productos más con demanda.</p>
+                <p style={{ marginTop: 8, fontSize: 11, color: "#6B7794" }}>...y {suggestionsWithDemand.length - 30} productos más con demanda.</p>
               )}
-              <div style={{ marginTop: 14, padding: 10, background: "#FAFAF9", borderRadius: 8, fontSize: 12, color: "#37352F" }}>
+              <div style={{ marginTop: 14, padding: 10, background: "#F8F2E7", borderRadius: 8, fontSize: 12, color: "#1E2B4A" }}>
                 <strong>Total sugerido a pedir:</strong> {suggestionsWithDemand.reduce((s, x) => s + x.suggestedQty, 0)} unidades
                 {(() => {
                   const totalUSD = suggestionsWithDemand.reduce((s, x) => s + x.suggestedQty * (Number(x.product.costUSDT) || 0), 0);
@@ -438,17 +438,17 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
 
       {showSupplierStats && supplierStats.length > 0 && (
         <Card style={{ marginBottom: 16 }}>
-          <h3 style={{ margin: "0 0 14px", fontSize: 14, fontWeight: 700, color: "#37352F" }}>
+          <h3 style={{ margin: "0 0 14px", fontSize: 14, fontWeight: 700, color: "#1E2B4A" }}>
             🏭 Histórico por proveedor (lead time + volumen)
           </h3>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
             {supplierStats.map(s => (
               <div key={s.name} style={{
-                padding: 14, background: "#FAFAF9",
-                border: "1px solid #E8E7E3", borderRadius: 10,
+                padding: 14, background: "#F8F2E7",
+                border: "1px solid #E5DAC2", borderRadius: 10,
               }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <strong style={{ fontSize: 13, color: "#37352F" }}>{s.name}</strong>
+                  <strong style={{ fontSize: 13, color: "#1E2B4A" }}>{s.name}</strong>
                   {s.pending > 0 && (
                     <span style={{
                       fontSize: 10, padding: "2px 6px", borderRadius: 4,
@@ -456,17 +456,17 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
                     }}>{s.pending} pend.</span>
                   )}
                 </div>
-                <div style={{ fontSize: 11, color: "#8C8A82", marginBottom: 4 }}>
+                <div style={{ fontSize: 11, color: "#6B7794", marginBottom: 4 }}>
                   {s.count} pedido{s.count !== 1 ? "s" : ""} · {formatMoney(s.totalUSDT, "USDT")}
                 </div>
-                <div style={{ fontSize: 11, color: "#8C8A82", marginBottom: 8 }}>
+                <div style={{ fontSize: 11, color: "#6B7794", marginBottom: 8 }}>
                   Total ARS: {formatMoney(s.totalARS)}
                 </div>
                 <div style={{
                   padding: "6px 10px",
-                  background: s.avgLeadTime !== null ? "#E8F5E9" : "#F0EFEB",
+                  background: s.avgLeadTime !== null ? "#E8F5E9" : "#EFE5CE",
                   borderRadius: 6, fontSize: 11, fontWeight: 600,
-                  color: s.avgLeadTime !== null ? "#0F7B6C" : "#8C8A82",
+                  color: s.avgLeadTime !== null ? "#0F7B6C" : "#6B7794",
                   textAlign: "center",
                 }}>
                   ⏱️ Lead time: {s.avgLeadTime !== null ? `${s.avgLeadTime} días promedio` : "Sin datos"}
@@ -481,7 +481,7 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
         {isMobile ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {purchases.filter(p => !p.isDeleted).length === 0 ? (
-              <p style={{ color: "#B1AFA7", fontSize: 13, textAlign: "center", padding: "24px 0", margin: 0 }}>No hay pedidos registrados</p>
+              <p style={{ color: "#9AA2B3", fontSize: 13, textAlign: "center", padding: "24px 0", margin: 0 }}>No hay pedidos registrados</p>
             ) : (
               purchases.filter(p => !p.isDeleted).map(r => {
                 const next = getNextStatus(r.status);
@@ -490,14 +490,14 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
                 const costLabel = hasCosts ? formatMoney(r.totalCostARS) : "Costos incompletos";
                 return (
                   <div key={r.id} onClick={() => openEdit(r)} style={{
-                    background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 12,
+                    background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 12,
                     padding: 14, cursor: "pointer", display: "flex", flexDirection: "column", gap: 8,
                   }}>
                     {/* Row 1: supplier + status */}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: "#37352F", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: "#1E2B4A", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {r.supplier || "Sin proveedor"}
-                        {r.loteNumber && <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 500, color: "#8C8A82" }}>· {r.loteNumber}</span>}
+                        {r.loteNumber && <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 500, color: "#6B7794" }}>· {r.loteNumber}</span>}
                       </div>
                       {getStatusBadge(r.status)}
                     </div>
@@ -520,19 +520,19 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
                     {/* Invoice thumbnail */}
                     {r.invoiceUrl && (
                       <a href={r.invoiceUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-                        style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, color: "#5E6AD2", textDecoration: "none" }}
+                        style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, color: "#1E2B4A", textDecoration: "none" }}
                       >
                         🧾 Ver invoice
                       </a>
                     )}
                     {/* Row 2: fecha + unidades + costo */}
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12, color: "#8C8A82" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: 12, color: "#6B7794" }}>
                       <span>{formatDate(r.date)}</span>
-                      <span><strong style={{ color: "#37352F" }}>{totalUnits}</strong> uds</span>
+                      <span><strong style={{ color: "#1E2B4A" }}>{totalUnits}</strong> uds</span>
                       <span style={{ color: hasCosts ? "#0F7B6C" : "#CB912F", fontWeight: 700 }}>{costLabel}</span>
                     </div>
                     {/* Row 3: USDT breakdown (compacto) */}
-                    <div style={{ fontSize: 11, color: "#B1AFA7", display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <div style={{ fontSize: 11, color: "#9AA2B3", display: "flex", gap: 10, flexWrap: "wrap" }}>
                       <span>Vapes: {formatMoney(r.totalUSDT, "USDT")}</span>
                       {r.supplierCommUSDT > 0 && <span>Com: {formatMoney(r.supplierCommUSDT, "USDT")}</span>}
                       <span>Pasero: {r.paseroCostARS ? formatMoney(r.paseroCostARS) : "—"}</span>
@@ -558,10 +558,10 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
           { key: "supplier", label: "Proveedor", render: r => (
             <div>
               <div>{r.supplier || "—"}</div>
-              {r.loteNumber && <div style={{ fontSize: 10, color: "#8C8A82" }}>{r.loteNumber}</div>}
+              {r.loteNumber && <div style={{ fontSize: 10, color: "#6B7794" }}>{r.loteNumber}</div>}
             </div>
           )},
-          { key: "items", label: "Uds", render: r => <Badge color="#5E6AD2">{r.totalItems || (r.items||[]).reduce((s,i) => s + (Number(i.qty)||0), 0)}</Badge> },
+          { key: "items", label: "Uds", render: r => <Badge color="#1E2B4A">{r.totalItems || (r.items||[]).reduce((s,i) => s + (Number(i.qty)||0), 0)}</Badge> },
           { key: "status", label: "Estado", render: r => getStatusBadge(r.status) },
           { key: "totalUSDT", label: "Vapes", render: r => formatMoney(r.totalUSDT, "USDT") },
           { key: "supplierComm", label: "Com. prov.", render: r => r.supplierCommUSDT ? formatMoney(r.supplierCommUSDT, "USDT") : "—" },
@@ -570,7 +570,7 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
           { key: "envio", label: "Envío", render: r => r.envioCostARS ? formatMoney(r.envioCostARS) : <span style={{ color: "#fdcb6e55", fontSize: 11 }}>pendiente</span> },
           { key: "costoTotal", label: "Costo total", render: r => {
             const hasCosts = r.paseroCostARS && r.envioCostARS;
-            return hasCosts ? formatMoney(r.totalCostARS) : <span style={{ color: "#8C8A82", fontSize: 11 }}>incompleto</span>;
+            return hasCosts ? formatMoney(r.totalCostARS) : <span style={{ color: "#6B7794", fontSize: 11 }}>incompleto</span>;
           }},
           { key: "actions", label: "", render: r => {
             const next = getNextStatus(r.status);
@@ -578,7 +578,7 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
             return (<div style={{ display: "flex", gap: 4 }}>
               {!hasCosts && <button onClick={e => { e.stopPropagation(); openCosts(r); }} style={{ background: "#fdcb6e22", border: "1px solid #fdcb6e55", color: "#fdcb6e", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>$ Costos</button>}
               {next && <button onClick={e => { e.stopPropagation(); next.value === "verificado" ? setVerifyModal(r.id) : updateStatus(r.id, next.value); }} style={{ background: `${next.color}22`, border: `1px solid ${next.color}55`, color: next.color, padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>{next.value === "verificado" ? "Verificar" : "Avanzar"}</button>}
-              <button onClick={e => { e.stopPropagation(); openEdit(r); }} style={{ background: "none", border: "none", color: "#5E6AD2", cursor: "pointer", fontSize: 14 }}>✏️</button>
+              <button onClick={e => { e.stopPropagation(); openEdit(r); }} style={{ background: "none", border: "none", color: "#1E2B4A", cursor: "pointer", fontSize: 14 }}>✏️</button>
               {confirmDelete === r.id
                 ? <button onClick={e => { e.stopPropagation(); deletePurchase(r); }} style={{ background: "#F7D7D6", border: "1px solid #E03E3E55", color: "#E03E3E", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Confirmar</button>
                 : <button onClick={e => { e.stopPropagation(); deletePurchase(r); }} style={{ background: "none", border: "none", color: "#E03E3E", cursor: "pointer", fontSize: 14 }}>👑️</button>
@@ -608,9 +608,9 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
         {/* Product Groups */}
         {form.groups.map((group, gi) => {
           const availFlavors = group.brand ? getFlavorsForModel(group.brand, group.model) : [];
-          const bc = BRAND_COLORS[group.brand] || "#5E6AD2";
+          const bc = BRAND_COLORS[group.brand] || "#1E2B4A";
           return (
-            <div key={gi} style={{ background: "#FAFAF9", border: `1px solid ${bc}33`, borderRadius: 12, padding: 14, marginBottom: 12 }}>
+            <div key={gi} style={{ background: "#F8F2E7", border: `1px solid ${bc}33`, borderRadius: 12, padding: 14, marginBottom: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <span style={{ color: bc, fontSize: 13, fontWeight: 700 }}>{group.brand ? `${group.brand} ${group.model}` : "Seleccioná modelo"}</span>
                 <button onClick={() => removeGroup(gi)} style={{ background: "none", border: "none", color: "#E03E3E", cursor: "pointer", fontSize: 16 }}>✕</button>
@@ -624,7 +624,7 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
                 </div>
               </div>
               {group.brand && (<>
-                <label style={{ display: "block", fontSize: 11, color: "#8C8A82", marginBottom: 6, fontWeight: 600, textTransform: "uppercase" }}>Sabores</label>
+                <label style={{ display: "block", fontSize: 11, color: "#6B7794", marginBottom: 6, fontWeight: 600, textTransform: "uppercase" }}>Sabores</label>
                 {group.flavors.map((fl, fi) => (
                   <div key={fi} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "flex-end" }}>
                     <div style={{ flex: 2 }}>
@@ -636,21 +636,21 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
                   </div>
                 ))}
                 <button onClick={() => addFlavor(gi)} style={{ background: "none", border: `1px dashed ${bc}44`, color: bc, padding: "5px 12px", borderRadius: 8, cursor: "pointer", fontSize: 11, width: "100%" }}>+ Agregar sabor</button>
-                {group.flavors.length > 0 && <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid #F0EFEB", display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "#8C8A82", fontSize: 12 }}>{group.flavors.reduce((s, f) => s + (Number(f.qty) || 0), 0)} uds</span>
-                  <span style={{ color: "#555247", fontSize: 12, fontWeight: 600 }}>{formatMoney(group.flavors.reduce((s, f) => s + (Number(f.qty) || 0), 0) * (Number(group.unitCostUSDT) || 0), "USDT")}</span>
+                {group.flavors.length > 0 && <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid #EFE5CE", display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#6B7794", fontSize: 12 }}>{group.flavors.reduce((s, f) => s + (Number(f.qty) || 0), 0)} uds</span>
+                  <span style={{ color: "#3A4868", fontSize: 12, fontWeight: 600 }}>{formatMoney(group.flavors.reduce((s, f) => s + (Number(f.qty) || 0), 0) * (Number(group.unitCostUSDT) || 0), "USDT")}</span>
                 </div>}
               </>)}
             </div>
           );
         })}
-        <button onClick={addGroup} style={{ background: "#FFFFFF", border: "2px dashed #E8E7E3", color: "#5E6AD2", padding: "12px", borderRadius: 12, cursor: "pointer", fontSize: 13, fontWeight: 600, width: "100%", marginBottom: 14 }}>+ Agregar marca/modelo al pedido</button>
+        <button onClick={addGroup} style={{ background: "#FFFFFF", border: "2px dashed #E5DAC2", color: "#1E2B4A", padding: "12px", borderRadius: 12, cursor: "pointer", fontSize: 13, fontWeight: 600, width: "100%", marginBottom: 14 }}>+ Agregar marca/modelo al pedido</button>
 
         {/* Costs */}
-        <div style={{ background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10, padding: 14, marginBottom: 14 }}>
+        <div style={{ background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 10, padding: 14, marginBottom: 14 }}>
           <label style={{ display: "block", fontSize: 12, color: "#E03E3E", marginBottom: 10, fontWeight: 700, textTransform: "uppercase" }}>💰 Costos extra</label>
 
-          <label style={{ display: "block", fontSize: 11, color: "#8C8A82", marginBottom: 6, fontWeight: 600, textTransform: "uppercase" }}>Comisión proveedor (USDT)</label>
+          <label style={{ display: "block", fontSize: 11, color: "#6B7794", marginBottom: 6, fontWeight: 600, textTransform: "uppercase" }}>Comisión proveedor (USDT)</label>
           <div style={{ display: "flex", gap: 10, marginBottom: 4, flexDirection: isMobile ? "column" : "row" }}>
             <div style={{ flex: 1 }}>
               <Input label="% del total" type="number" placeholder="ej: 1" value={form.supplierCommPercent} onChange={e => setForm(f => ({ ...f, supplierCommPercent: e.target.value, supplierCommUSDT: "" }))} />
@@ -664,8 +664,8 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
             {form.supplierCommPercent ? ` (${form.supplierCommPercent}% de ${formatMoney(productsUSDT, "USDT")})` : ""}
           </div>}
 
-          <div style={{ borderTop: "1px solid #F0EFEB", paddingTop: 10, marginTop: 6 }}>
-            <label style={{ display: "block", fontSize: 11, color: "#8C8A82", marginBottom: 6, fontWeight: 600, textTransform: "uppercase" }}>Pasero + Envío (Pesos)</label>
+          <div style={{ borderTop: "1px solid #EFE5CE", paddingTop: 10, marginTop: 6 }}>
+            <label style={{ display: "block", fontSize: 11, color: "#6B7794", marginBottom: 6, fontWeight: 600, textTransform: "uppercase" }}>Pasero + Envío (Pesos)</label>
             <div style={{ display: "flex", gap: 10, flexDirection: isMobile ? "column" : "row" }}>
               <div style={{ flex: 1 }}>
                 <Input label="Pasero (%)" type="number" placeholder="ej: 5" value={form.paseroPercent} onChange={e => setForm(f => ({ ...f, paseroPercent: e.target.value, paseroCostARS: "" }))} />
@@ -680,28 +680,28 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
         </div>
 
         {/* Total */}
-        {totalItems > 0 && <div style={{ background: "#FAFAF9", borderRadius: 10, padding: 14, marginBottom: 14, border: "1px solid #E8E7E3" }}>
+        {totalItems > 0 && <div style={{ background: "#F8F2E7", borderRadius: 10, padding: 14, marginBottom: 14, border: "1px solid #E5DAC2" }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-            <span style={{ color: "#8C8A82", fontSize: 13 }}>Vapes ({totalItems} uds)</span>
-            <span style={{ color: "#555247" }}>{formatMoney(productsUSDT, "USDT")}</span>
+            <span style={{ color: "#6B7794", fontSize: 13 }}>Vapes ({totalItems} uds)</span>
+            <span style={{ color: "#3A4868" }}>{formatMoney(productsUSDT, "USDT")}</span>
           </div>
           {supplierCommUSDT > 0 && <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-            <span style={{ color: "#8C8A82", fontSize: 13 }}>Comisión proveedor</span>
+            <span style={{ color: "#6B7794", fontSize: 13 }}>Comisión proveedor</span>
             <span style={{ color: "#26de81" }}>{formatMoney(supplierCommUSDT, "USDT")}</span>
           </div>}
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, paddingTop: supplierCommUSDT > 0 ? 4 : 0, borderTop: supplierCommUSDT > 0 ? "1px solid #F0EFEB" : "none" }}>
-            <span style={{ color: "#8C8A82", fontSize: 13, fontWeight: supplierCommUSDT > 0 ? 600 : 400 }}>Total USDT transferido</span>
-            <span style={{ color: "#555247", fontWeight: 600 }}>{formatMoney(totalUSDTwithComm, "USDT")} · ~{formatMoney(Math.round(totalUSDTwithComm * exchangeRate))}</span>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, paddingTop: supplierCommUSDT > 0 ? 4 : 0, borderTop: supplierCommUSDT > 0 ? "1px solid #EFE5CE" : "none" }}>
+            <span style={{ color: "#6B7794", fontSize: 13, fontWeight: supplierCommUSDT > 0 ? 600 : 400 }}>Total USDT transferido</span>
+            <span style={{ color: "#3A4868", fontWeight: 600 }}>{formatMoney(totalUSDTwithComm, "USDT")} · ~{formatMoney(Math.round(totalUSDTwithComm * exchangeRate))}</span>
           </div>
-          {paseroARS > 0 && <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}><span style={{ color: "#8C8A82", fontSize: 13 }}>Pasero</span><span style={{ color: "#fdcb6e" }}>{formatMoney(paseroARS)}</span></div>}
-          {envioARS > 0 && <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}><span style={{ color: "#8C8A82", fontSize: 13 }}>Envío</span><span style={{ color: "#fdcb6e" }}>{formatMoney(envioARS)}</span></div>}
-          <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #E8E7E3", paddingTop: 8, marginTop: 4 }}>
-            <span style={{ color: "#37352F", fontSize: 15, fontWeight: 700 }}>Costo total</span>
+          {paseroARS > 0 && <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}><span style={{ color: "#6B7794", fontSize: 13 }}>Pasero</span><span style={{ color: "#fdcb6e" }}>{formatMoney(paseroARS)}</span></div>}
+          {envioARS > 0 && <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}><span style={{ color: "#6B7794", fontSize: 13 }}>Envío</span><span style={{ color: "#fdcb6e" }}>{formatMoney(envioARS)}</span></div>}
+          <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #E5DAC2", paddingTop: 8, marginTop: 4 }}>
+            <span style={{ color: "#1E2B4A", fontSize: 15, fontWeight: 700 }}>Costo total</span>
             <span style={{ color: "#E03E3E", fontSize: 18, fontWeight: 800 }}>{formatMoney(totalCostARS)}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-            <span style={{ color: "#8C8A82", fontSize: 12 }}>Costo por unidad</span>
-            <span style={{ color: "#8C8A82", fontSize: 13 }}>{formatMoney(Math.round(totalCostARS / totalItems))} / ud</span>
+            <span style={{ color: "#6B7794", fontSize: 12 }}>Costo por unidad</span>
+            <span style={{ color: "#6B7794", fontSize: 13 }}>{formatMoney(Math.round(totalCostARS / totalItems))} / ud</span>
           </div>
         </div>}
 
@@ -721,18 +721,18 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
       {/* Verify Modal */}
       <Modal open={!!verifyModal} onClose={() => setVerifyModal(null)} title="✅ Verificar Pedido">
         {verifyPurchase && (<div>
-          <div style={{ color: "#8C8A82", fontSize: 13, marginBottom: 16 }}>Pedido de <strong style={{ color: "#37352F" }}>{verifyPurchase.supplier}</strong> del {formatDate(verifyPurchase.date)}</div>
-          <div style={{ background: "#FAFAF9", borderRadius: 10, padding: 14, marginBottom: 16 }}>
+          <div style={{ color: "#6B7794", fontSize: 13, marginBottom: 16 }}>Pedido de <strong style={{ color: "#1E2B4A" }}>{verifyPurchase.supplier}</strong> del {formatDate(verifyPurchase.date)}</div>
+          <div style={{ background: "#F8F2E7", borderRadius: 10, padding: 14, marginBottom: 16 }}>
             <label style={{ display: "block", fontSize: 12, color: "#00b894", marginBottom: 10, fontWeight: 700, textTransform: "uppercase" }}>Verificá que recibiste:</label>
             {(verifyPurchase.items || []).map((item, i) => {
               const prod = products.find(p => p.id === item.productId);
-              return (<div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #F0EFEB" }}>
-                <span style={{ color: "#555247", fontSize: 14 }}>{prod ? `${prod.brand} ${prod.model} - ${prod.flavor}` : "?"}</span>
+              return (<div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #EFE5CE" }}>
+                <span style={{ color: "#3A4868", fontSize: 14 }}>{prod ? `${prod.brand} ${prod.model} - ${prod.flavor}` : "?"}</span>
                 <Badge color="#00b894">x{item.qty}</Badge>
               </div>);
             })}
             <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10 }}>
-              <span style={{ color: "#37352F", fontWeight: 700 }}>Total</span>
+              <span style={{ color: "#1E2B4A", fontWeight: 700 }}>Total</span>
               <span style={{ color: "#00b894", fontWeight: 700 }}>{(verifyPurchase.items||[]).reduce((s,i) => s + Number(i.qty), 0)} uds</span>
             </div>
           </div>
@@ -755,19 +755,19 @@ export const Purchases = ({ purchases, setPurchases, products, setProducts, exch
                 }}>📊 Margen real proyectado</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 12 }}>
                   <div>
-                    <div style={{ color: "#8C8A82" }}>Costo / unidad</div>
-                    <div style={{ fontWeight: 700, color: "#37352F" }}>{formatMoney(margin.costPerUnitARS)}</div>
+                    <div style={{ color: "#6B7794" }}>Costo / unidad</div>
+                    <div style={{ fontWeight: 700, color: "#1E2B4A" }}>{formatMoney(margin.costPerUnitARS)}</div>
                   </div>
                   <div>
-                    <div style={{ color: "#8C8A82" }}>Revenue esperado</div>
-                    <div style={{ fontWeight: 700, color: "#37352F" }}>{formatMoney(margin.expectedRevenueARS)}</div>
+                    <div style={{ color: "#6B7794" }}>Revenue esperado</div>
+                    <div style={{ fontWeight: 700, color: "#1E2B4A" }}>{formatMoney(margin.expectedRevenueARS)}</div>
                   </div>
                   <div>
-                    <div style={{ color: "#8C8A82" }}>Ganancia bruta</div>
+                    <div style={{ color: "#6B7794" }}>Ganancia bruta</div>
                     <div style={{ fontWeight: 700, color: positive ? "#0F7B6C" : "#E03E3E" }}>{formatMoney(margin.profit)}</div>
                   </div>
                   <div>
-                    <div style={{ color: "#8C8A82" }}>Margen</div>
+                    <div style={{ color: "#6B7794" }}>Margen</div>
                     <div style={{ fontWeight: 700, color: positive ? "#0F7B6C" : "#E03E3E" }}>
                       {margin.marginPct.toFixed(1)}%
                     </div>

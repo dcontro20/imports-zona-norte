@@ -17,7 +17,7 @@ const PREFERRED_EXCHANGES = [
   { key: "lemoncash", label: "Lemon", color: "#0064FF", emoji: "🍋" },
   { key: "binance", label: "Binance", color: "#F0B90B", emoji: "🟡" },
   { key: "ripio", label: "Ripio", color: "#7C3AED", emoji: "🟣" },
-  { key: "buenbit", label: "Buenbit", color: "#5E6AD2", emoji: "🟦" },
+  { key: "buenbit", label: "Buenbit", color: "#1E2B4A", emoji: "🟦" },
   { key: "belo", label: "Belo", color: "#22C55E", emoji: "🟢" },
   { key: "fiwind", label: "Fiwind", color: "#0EA5E9", emoji: "💨" },
 ];
@@ -34,13 +34,13 @@ const Arrow = ({ dir }) => (
 const SourceCard = ({ title, subtitle, buy, sell, spread, prev, color, updated, isMobile }) => {
   const diff = prev ? sell - prev : 0;
   const dir = diff > 0 ? "up" : diff < 0 ? "down" : "same";
-  const diffColor = dir === "up" ? "#E03E3E" : dir === "down" ? "#0F7B6C" : "#B1AFA7";
+  const diffColor = dir === "up" ? "#E03E3E" : dir === "down" ? "#0F7B6C" : "#9AA2B3";
 
   return (
     <div style={{
       background: "#FFFFFF", borderRadius: 14,
       padding: isMobile ? "16px 16px" : "18px 20px",
-      border: "1px solid #E8E7E3",
+      border: "1px solid #E5DAC2",
       flex: "1 1 220px",
       minWidth: isMobile ? 0 : 220,
       width: isMobile ? "100%" : "auto",
@@ -50,10 +50,10 @@ const SourceCard = ({ title, subtitle, buy, sell, spread, prev, color, updated, 
         gap: 8, marginBottom: 12,
       }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 700, fontSize: isMobile ? 14 : 15, color: "#37352F" }}>{title}</div>
+          <div style={{ fontWeight: 700, fontSize: isMobile ? 14 : 15, color: "#1E2B4A" }}>{title}</div>
           {subtitle && (
             <div style={{
-              fontSize: 11, color: "#B1AFA7", marginTop: 2,
+              fontSize: 11, color: "#9AA2B3", marginTop: 2,
               overflow: "hidden", textOverflow: "ellipsis",
               whiteSpace: isMobile ? "normal" : "nowrap",
               lineHeight: 1.3,
@@ -76,22 +76,22 @@ const SourceCard = ({ title, subtitle, buy, sell, spread, prev, color, updated, 
         flexWrap: "wrap",
       }}>
         <div style={{ flex: "1 1 70px" }}>
-          <div style={{ fontSize: 11, color: "#B1AFA7", fontWeight: 600, textTransform: "uppercase", marginBottom: 2 }}>Compra</div>
+          <div style={{ fontSize: 11, color: "#9AA2B3", fontWeight: 600, textTransform: "uppercase", marginBottom: 2 }}>Compra</div>
           <div style={{
             fontSize: isMobile ? 18 : 22, fontWeight: 800,
-            color: color || "#37352F", lineHeight: 1.1,
+            color: color || "#1E2B4A", lineHeight: 1.1,
           }}>{formatARS(buy)}</div>
         </div>
         <div style={{ flex: "1 1 70px" }}>
-          <div style={{ fontSize: 11, color: "#B1AFA7", fontWeight: 600, textTransform: "uppercase", marginBottom: 2 }}>Venta</div>
+          <div style={{ fontSize: 11, color: "#9AA2B3", fontWeight: 600, textTransform: "uppercase", marginBottom: 2 }}>Venta</div>
           <div style={{
             fontSize: isMobile ? 18 : 22, fontWeight: 800,
-            color: color || "#37352F", lineHeight: 1.1,
+            color: color || "#1E2B4A", lineHeight: 1.1,
           }}>{formatARS(sell)}</div>
         </div>
         {spread > 0 && (
           <div style={{ flex: "1 1 60px" }}>
-            <div style={{ fontSize: 11, color: "#B1AFA7", fontWeight: 600, textTransform: "uppercase", marginBottom: 2 }}>Spread</div>
+            <div style={{ fontSize: 11, color: "#9AA2B3", fontWeight: 600, textTransform: "uppercase", marginBottom: 2 }}>Spread</div>
             <div style={{
               fontSize: isMobile ? 18 : 22, fontWeight: 800,
               color: "#CB912F", lineHeight: 1.1,
@@ -100,7 +100,7 @@ const SourceCard = ({ title, subtitle, buy, sell, spread, prev, color, updated, 
         )}
       </div>
       {updated && (
-        <div style={{ fontSize: 11, color: "#B1AFA7" }}>
+        <div style={{ fontSize: 11, color: "#9AA2B3" }}>
           {"Actualizado: "}{new Date(updated).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
         </div>
       )}
@@ -123,7 +123,7 @@ const ExchangeCard = ({ label, emoji, color, ask, bid, isBest, isMobile, blueRef
     <div style={{
       background: "#FFFFFF", borderRadius: 12,
       padding: isMobile ? "12px 14px" : "14px 16px",
-      border: `1px solid ${isBest ? color : "#E8E7E3"}`,
+      border: `1px solid ${isBest ? color : "#E5DAC2"}`,
       borderLeft: `3px solid ${color}`,
       position: "relative",
       minWidth: 0,
@@ -138,29 +138,29 @@ const ExchangeCard = ({ label, emoji, color, ask, bid, isBest, isMobile, blueRef
       )}
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
         <span style={{ fontSize: 14 }}>{emoji}</span>
-        <span style={{ fontSize: 13, fontWeight: 700, color: "#37352F" }}>{label}</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: "#1E2B4A" }}>{label}</span>
       </div>
       {ask > 0 ? (
         <>
           <div style={{ display: "flex", gap: 12, marginBottom: 6 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 10, color: "#B1AFA7", fontWeight: 600, textTransform: "uppercase" }}>Compra</div>
+              <div style={{ fontSize: 10, color: "#9AA2B3", fontWeight: 600, textTransform: "uppercase" }}>Compra</div>
               <div style={{
                 fontSize: isMobile ? 15 : 17, fontWeight: 800,
                 color, lineHeight: 1.2,
               }}>{formatARS(bid)}</div>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 10, color: "#B1AFA7", fontWeight: 600, textTransform: "uppercase" }}>Venta</div>
+              <div style={{ fontSize: 10, color: "#9AA2B3", fontWeight: 600, textTransform: "uppercase" }}>Venta</div>
               <div style={{
                 fontSize: isMobile ? 15 : 17, fontWeight: 800,
-                color: "#37352F", lineHeight: 1.2,
+                color: "#1E2B4A", lineHeight: 1.2,
               }}>{formatARS(ask)}</div>
             </div>
           </div>
           <div style={{
             display: "flex", justifyContent: "space-between", alignItems: "center",
-            fontSize: 10, color: "#8C8A82",
+            fontSize: 10, color: "#6B7794",
           }}>
             <span>Spread {Math.abs(spread).toFixed(1)}%</span>
             {gapVsBlue !== null && (
@@ -174,7 +174,7 @@ const ExchangeCard = ({ label, emoji, color, ask, bid, isBest, isMobile, blueRef
           </div>
         </>
       ) : (
-        <div style={{ fontSize: 11, color: "#B1AFA7", padding: "6px 0" }}>Sin datos</div>
+        <div style={{ fontSize: 11, color: "#9AA2B3", padding: "6px 0" }}>Sin datos</div>
       )}
     </div>
   );
@@ -297,10 +297,10 @@ export const ExchangeMonitor = ({ exchangeRate, setExchangeRate }) => {
         gap: 12, marginBottom: 18,
       }}>
         <div>
-          <h2 style={{ fontSize: isMobile ? 20 : 22, fontWeight: 800, color: "#37352F", margin: 0 }}>
+          <h2 style={{ fontSize: isMobile ? 20 : 22, fontWeight: 800, color: "#1E2B4A", margin: 0 }}>
             Monitor de Cotizaciones
           </h2>
-          <p style={{ fontSize: isMobile ? 12 : 13, color: "#8C8A82", margin: "4px 0 0" }}>
+          <p style={{ fontSize: isMobile ? 12 : 13, color: "#6B7794", margin: "4px 0 0" }}>
             {"Actualización automática cada 5 minutos — DolarAPI + CriptoYa"}
           </p>
         </div>
@@ -330,7 +330,7 @@ export const ExchangeMonitor = ({ exchangeRate, setExchangeRate }) => {
             sell={data.blue.sell}
             spread={blueSpread}
             prev={prev.blue}
-            color="#5E6AD2"
+            color="#1E2B4A"
             updated={lastUpdate}
             isMobile={isMobile}
           />
@@ -387,17 +387,17 @@ export const ExchangeMonitor = ({ exchangeRate, setExchangeRate }) => {
         <div style={{
           background: "#FFFFFF", borderRadius: 14,
           padding: isMobile ? "14px 14px" : "18px 20px",
-          border: "1px solid #E8E7E3", marginBottom: 20,
+          border: "1px solid #E5DAC2", marginBottom: 20,
         }}>
           <div style={{
             display: "flex", justifyContent: "space-between", alignItems: "flex-start",
             gap: 8, marginBottom: 14, flexWrap: "wrap",
           }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <h3 style={{ fontSize: isMobile ? 14 : 15, fontWeight: 700, color: "#37352F", margin: "0 0 2px" }}>
+              <h3 style={{ fontSize: isMobile ? 14 : 15, fontWeight: 700, color: "#1E2B4A", margin: "0 0 2px" }}>
                 💱 USDT/ARS por Exchange
               </h3>
-              <p style={{ fontSize: 11, color: "#B1AFA7", margin: 0 }}>
+              <p style={{ fontSize: 11, color: "#9AA2B3", margin: 0 }}>
                 Tus exchanges favoritos · precios con comisiones · CriptoYa
               </p>
             </div>
@@ -405,9 +405,9 @@ export const ExchangeMonitor = ({ exchangeRate, setExchangeRate }) => {
               <button
                 onClick={() => setShowAllExchanges(s => !s)}
                 style={{
-                  background: "transparent", border: "1px solid #E8E7E3",
+                  background: "transparent", border: "1px solid #E5DAC2",
                   borderRadius: 8, padding: "6px 10px",
-                  fontSize: 11, fontWeight: 600, color: "#5E6AD2",
+                  fontSize: 11, fontWeight: 600, color: "#1E2B4A",
                   cursor: "pointer", fontFamily: "inherit",
                   whiteSpace: "nowrap",
                 }}
@@ -446,14 +446,14 @@ export const ExchangeMonitor = ({ exchangeRate, setExchangeRate }) => {
               Convención: "Compra" = bid (menor) · "Venta" = ask (mayor),
               igual que las cards de Blue/Oficial/MEP. */}
           {showAllExchanges && (
-            <div style={{ overflowX: "auto", marginTop: 14, paddingTop: 14, borderTop: "1px solid #F0EFEB" }}>
+            <div style={{ overflowX: "auto", marginTop: 14, paddingTop: 14, borderTop: "1px solid #EFE5CE" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: isMobile ? 11 : 13, minWidth: 480 }}>
                 <thead>
-                  <tr style={{ borderBottom: "2px solid #E8E7E3" }}>
-                    <th style={{ textAlign: "left", padding: isMobile ? "6px 8px" : "8px 12px", color: "#8C8A82", fontWeight: 600 }}>Exchange</th>
-                    <th style={{ textAlign: "right", padding: isMobile ? "6px 8px" : "8px 12px", color: "#8C8A82", fontWeight: 600 }}>Compra</th>
-                    <th style={{ textAlign: "right", padding: isMobile ? "6px 8px" : "8px 12px", color: "#8C8A82", fontWeight: 600 }}>Venta</th>
-                    <th style={{ textAlign: "right", padding: isMobile ? "6px 8px" : "8px 12px", color: "#8C8A82", fontWeight: 600 }}>Spread</th>
+                  <tr style={{ borderBottom: "2px solid #E5DAC2" }}>
+                    <th style={{ textAlign: "left", padding: isMobile ? "6px 8px" : "8px 12px", color: "#6B7794", fontWeight: 600 }}>Exchange</th>
+                    <th style={{ textAlign: "right", padding: isMobile ? "6px 8px" : "8px 12px", color: "#6B7794", fontWeight: 600 }}>Compra</th>
+                    <th style={{ textAlign: "right", padding: isMobile ? "6px 8px" : "8px 12px", color: "#6B7794", fontWeight: 600 }}>Venta</th>
+                    <th style={{ textAlign: "right", padding: isMobile ? "6px 8px" : "8px 12px", color: "#6B7794", fontWeight: 600 }}>Spread</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -461,17 +461,17 @@ export const ExchangeMonitor = ({ exchangeRate, setExchangeRate }) => {
                     const isBest = i === 0;
                     const sp = ex.bid > 0 && ex.ask > 0 ? ((ex.ask - ex.bid) / ex.bid * 100) : 0;
                     return (
-                      <tr key={ex.name} style={{ borderBottom: "1px solid #F0EFEB", background: isBest ? "#DDEDEA" : "transparent" }}>
-                        <td style={{ padding: isMobile ? "8px" : "10px 12px", fontWeight: isBest ? 700 : 500, color: "#37352F", textTransform: "capitalize" }}>
+                      <tr key={ex.name} style={{ borderBottom: "1px solid #EFE5CE", background: isBest ? "#DDEDEA" : "transparent" }}>
+                        <td style={{ padding: isMobile ? "8px" : "10px 12px", fontWeight: isBest ? 700 : 500, color: "#1E2B4A", textTransform: "capitalize" }}>
                           {isBest && "🥇 "}{ex.name}
                         </td>
-                        <td style={{ padding: isMobile ? "8px" : "10px 12px", textAlign: "right", fontWeight: 600, color: "#37352F" }}>
+                        <td style={{ padding: isMobile ? "8px" : "10px 12px", textAlign: "right", fontWeight: 600, color: "#1E2B4A" }}>
                           {formatARS(ex.bid)}
                         </td>
-                        <td style={{ padding: isMobile ? "8px" : "10px 12px", textAlign: "right", fontWeight: 600, color: isBest ? "#0F7B6C" : "#37352F" }}>
+                        <td style={{ padding: isMobile ? "8px" : "10px 12px", textAlign: "right", fontWeight: 600, color: isBest ? "#0F7B6C" : "#1E2B4A" }}>
                           {formatARS(ex.ask)}
                         </td>
-                        <td style={{ padding: isMobile ? "8px" : "10px 12px", textAlign: "right", color: "#8C8A82" }}>
+                        <td style={{ padding: isMobile ? "8px" : "10px 12px", textAlign: "right", color: "#6B7794" }}>
                           {Math.abs(sp).toFixed(1)}%
                         </td>
                       </tr>
@@ -494,9 +494,9 @@ export const ExchangeMonitor = ({ exchangeRate, setExchangeRate }) => {
         <div style={{
           background: "#FFFFFF", borderRadius: 14,
           padding: isMobile ? "14px 14px" : "16px 20px",
-          border: "1px solid #E8E7E3", minWidth: 0,
+          border: "1px solid #E5DAC2", minWidth: 0,
         }}>
-          <div style={{ fontSize: isMobile ? 10 : 12, color: "#B1AFA7", fontWeight: 600, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.3 }}>Blue vs Oficial</div>
+          <div style={{ fontSize: isMobile ? 10 : 12, color: "#9AA2B3", fontWeight: 600, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.3 }}>Blue vs Oficial</div>
           <div style={{
             fontSize: isMobile ? 22 : 28, fontWeight: 800,
             color: gapBlueOficial > 30 ? "#E03E3E" : gapBlueOficial > 15 ? "#CB912F" : "#0F7B6C",
@@ -504,14 +504,14 @@ export const ExchangeMonitor = ({ exchangeRate, setExchangeRate }) => {
           }}>
             {gapBlueOficial.toFixed(1)}%
           </div>
-          <div style={{ fontSize: 11, color: "#B1AFA7", marginTop: 4 }}>Brecha cambiaria</div>
+          <div style={{ fontSize: 11, color: "#9AA2B3", marginTop: 4 }}>Brecha cambiaria</div>
         </div>
         <div style={{
           background: "#FFFFFF", borderRadius: 14,
           padding: isMobile ? "14px 14px" : "16px 20px",
-          border: "1px solid #E8E7E3", minWidth: 0,
+          border: "1px solid #E5DAC2", minWidth: 0,
         }}>
-          <div style={{ fontSize: isMobile ? 10 : 12, color: "#B1AFA7", fontWeight: 600, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.3 }}>Blue vs MEP</div>
+          <div style={{ fontSize: isMobile ? 10 : 12, color: "#9AA2B3", fontWeight: 600, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.3 }}>Blue vs MEP</div>
           <div style={{
             fontSize: isMobile ? 22 : 28, fontWeight: 800,
             color: Math.abs(gapMepBlue) < 3 ? "#0F7B6C" : "#CB912F",
@@ -519,14 +519,14 @@ export const ExchangeMonitor = ({ exchangeRate, setExchangeRate }) => {
           }}>
             {gapMepBlue > 0 ? "+" : ""}{gapMepBlue.toFixed(1)}%
           </div>
-          <div style={{ fontSize: 11, color: "#B1AFA7", marginTop: 4 }}>Brecha bursátil</div>
+          <div style={{ fontSize: 11, color: "#9AA2B3", marginTop: 4 }}>Brecha bursátil</div>
         </div>
         <div style={{
           background: "#FFFFFF", borderRadius: 14,
           padding: isMobile ? "14px 14px" : "16px 20px",
-          border: "1px solid #E8E7E3", minWidth: 0,
+          border: "1px solid #E5DAC2", minWidth: 0,
         }}>
-          <div style={{ fontSize: isMobile ? 10 : 12, color: "#B1AFA7", fontWeight: 600, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.3 }}>USDT vs Blue</div>
+          <div style={{ fontSize: isMobile ? 10 : 12, color: "#9AA2B3", fontWeight: 600, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.3 }}>USDT vs Blue</div>
           <div style={{
             fontSize: isMobile ? 22 : 28, fontWeight: 800,
             color: Math.abs(gapCriptoBlue) < 2 ? "#0F7B6C" : "#CB912F",
@@ -534,25 +534,25 @@ export const ExchangeMonitor = ({ exchangeRate, setExchangeRate }) => {
           }}>
             {gapCriptoBlue > 0 ? "+" : ""}{gapCriptoBlue.toFixed(1)}%
           </div>
-          <div style={{ fontSize: 11, color: "#B1AFA7", marginTop: 4 }}>Brecha cripto</div>
+          <div style={{ fontSize: 11, color: "#9AA2B3", marginTop: 4 }}>Brecha cripto</div>
         </div>
         <div style={{
           background: "#FFFFFF", borderRadius: 14,
           padding: isMobile ? "14px 14px" : "16px 20px",
-          border: "1px solid #5E6AD244", minWidth: 0,
+          border: "1px solid #1E2B4A44", minWidth: 0,
         }}>
-          <div style={{ fontSize: isMobile ? 10 : 12, color: "#5E6AD2", fontWeight: 700, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.3 }}>Tu tipo de cambio</div>
+          <div style={{ fontSize: isMobile ? 10 : 12, color: "#1E2B4A", fontWeight: 700, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.3 }}>Tu tipo de cambio</div>
           {setExchangeRate ? (
             <div style={{ display: "flex", alignItems: "baseline", gap: 2 }}>
-              <span style={{ fontSize: isMobile ? 22 : 28, fontWeight: 800, color: "#5E6AD2", lineHeight: 1.1 }}>$</span>
+              <span style={{ fontSize: isMobile ? 22 : 28, fontWeight: 800, color: "#1E2B4A", lineHeight: 1.1 }}>$</span>
               <input
                 type="number"
                 value={exchangeRate || 0}
                 onChange={e => setExchangeRate(Number(e.target.value) || 0)}
                 style={{
                   width: "100%", minWidth: 0, padding: "2px 4px",
-                  background: "transparent", border: "none", borderBottom: "2px solid #5E6AD2",
-                  color: "#5E6AD2",
+                  background: "transparent", border: "none", borderBottom: "2px solid #1E2B4A",
+                  color: "#1E2B4A",
                   fontSize: isMobile ? 22 : 28, fontWeight: 800,
                   fontFamily: "inherit", outline: "none",
                   lineHeight: 1.1,
@@ -560,11 +560,11 @@ export const ExchangeMonitor = ({ exchangeRate, setExchangeRate }) => {
               />
             </div>
           ) : (
-            <div style={{ fontSize: isMobile ? 22 : 28, fontWeight: 800, color: "#5E6AD2", lineHeight: 1.1 }}>
+            <div style={{ fontSize: isMobile ? 22 : 28, fontWeight: 800, color: "#1E2B4A", lineHeight: 1.1 }}>
               {formatARS(exchangeRate || 0)}
             </div>
           )}
-          <div style={{ fontSize: 11, color: "#B1AFA7", marginTop: 4 }}>
+          <div style={{ fontSize: 11, color: "#9AA2B3", marginTop: 4 }}>
             {setExchangeRate ? "Editable — override" : "Configurado en Caja"}
           </div>
         </div>
@@ -575,9 +575,9 @@ export const ExchangeMonitor = ({ exchangeRate, setExchangeRate }) => {
         <div style={{
           background: "#FFFFFF", borderRadius: 14,
           padding: isMobile ? "14px 14px" : "18px 20px",
-          border: "1px solid #E8E7E3",
+          border: "1px solid #E5DAC2",
         }}>
-          <h3 style={{ fontSize: isMobile ? 14 : 15, fontWeight: 700, color: "#37352F", margin: "0 0 14px" }}>
+          <h3 style={{ fontSize: isMobile ? 14 : 15, fontWeight: 700, color: "#1E2B4A", margin: "0 0 14px" }}>
             {"Historial de esta sesión"}
           </h3>
           {history.length >= 2 && (() => {
@@ -598,20 +598,20 @@ export const ExchangeMonitor = ({ exchangeRate, setExchangeRate }) => {
               : "";
             return (
               <div style={{
-                background: "#FAFAF9", borderRadius: 10, padding: 12, marginBottom: 10,
-                border: "1px solid #E8E7E3", overflowX: "auto",
+                background: "#F8F2E7", borderRadius: 10, padding: 12, marginBottom: 10,
+                border: "1px solid #E5DAC2", overflowX: "auto",
               }}>
                 <svg viewBox={`0 0 ${w} ${hh}`} preserveAspectRatio="none" style={{ width: "100%", height: isMobile ? 90 : 120, display: "block" }}>
-                  {bluePath && <path d={bluePath} stroke="#5E6AD2" strokeWidth="2" fill="none" />}
+                  {bluePath && <path d={bluePath} stroke="#1E2B4A" strokeWidth="2" fill="none" />}
                   {criptoPath && <path d={criptoPath} stroke="#CB912F" strokeWidth="2" fill="none" strokeDasharray="4,2" />}
                   {history.map((entry, i) => (
                     <g key={i}>
-                      {entry.blue > 0 && <circle cx={i * dx} cy={norm(entry.blue, minBlue, maxBlue)} r="3" fill="#5E6AD2" />}
+                      {entry.blue > 0 && <circle cx={i * dx} cy={norm(entry.blue, minBlue, maxBlue)} r="3" fill="#1E2B4A" />}
                     </g>
                   ))}
                 </svg>
-                <div style={{ display: "flex", gap: 12, fontSize: 11, color: "#8C8A82", marginTop: 6, flexWrap: "wrap" }}>
-                  <span><span style={{ display: "inline-block", width: 14, height: 2, background: "#5E6AD2", marginRight: 4, verticalAlign: "middle" }} />Blue ({formatARS(minBlue)} → {formatARS(maxBlue)})</span>
+                <div style={{ display: "flex", gap: 12, fontSize: 11, color: "#6B7794", marginTop: 6, flexWrap: "wrap" }}>
+                  <span><span style={{ display: "inline-block", width: 14, height: 2, background: "#1E2B4A", marginRight: 4, verticalAlign: "middle" }} />Blue ({formatARS(minBlue)} → {formatARS(maxBlue)})</span>
                   {criptoValues.length > 0 && <span><span style={{ display: "inline-block", width: 14, height: 2, background: "#CB912F", marginRight: 4, verticalAlign: "middle" }} />USDT ({formatARS(minCripto)} → {formatARS(maxCripto)})</span>}
                 </div>
               </div>
@@ -620,12 +620,12 @@ export const ExchangeMonitor = ({ exchangeRate, setExchangeRate }) => {
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {history.map((h, i) => (
               <div key={i} style={{
-                background: "#FAFAF9", borderRadius: 8, padding: "6px 10px", fontSize: 11,
-                border: "1px solid #E8E7E3",
+                background: "#F8F2E7", borderRadius: 8, padding: "6px 10px", fontSize: 11,
+                border: "1px solid #E5DAC2",
               }}>
-                <span style={{ color: "#B1AFA7" }}>{new Date(h.time).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</span>
+                <span style={{ color: "#9AA2B3" }}>{new Date(h.time).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</span>
                 {" "}
-                <span style={{ fontWeight: 700, color: "#5E6AD2" }}>Blue {formatARS(h.blue)}</span>
+                <span style={{ fontWeight: 700, color: "#1E2B4A" }}>Blue {formatARS(h.blue)}</span>
                 {h.cripto > 0 && <span style={{ fontWeight: 600, color: "#CB912F" }}> · USDT {formatARS(h.cripto)}</span>}
               </div>
             ))}

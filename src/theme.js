@@ -1,38 +1,41 @@
-// Light theme tokens — estilo Notion/Linear.
-// Cálido, generoso en espaciado, apto para lectura al sol desde mobile.
+// Paleta inspirada en el logo de Imports Zona Norte: navy profundo + cream cálido.
+// El navy se usa como primary y para texto. El cream da una atmósfera más cálida
+// y profesional que el clásico off-white, manteniendo legibilidad y suavidad.
 export const T = {
   // Surfaces
-  bg: "#FAFAF9",        // Page background (warm off-white, no harsh)
-  card: "#FFFFFF",      // Cards, modals, topbar
-  cardHover: "#F6F5F2", // Hover sobre filas
-  surface2: "#F5F4F0",  // Secciones secundarias, inputs
-  input: "#FFFFFF",     // Input bg (white, contrast with surface2)
-  border: "#E8E7E3",    // Bordes principales
-  borderSoft: "#F0EFEB",// Separadores sutiles
+  bg: "#F8F2E7",        // Cream cálido (warm canvas) — inspirado en el bg del logo
+  card: "#FFFFFF",      // Cards y modales — white puro para contraste limpio
+  cardHover: "#F4ECDB", // Hover sobre filas (cream un poco más oscuro)
+  surface2: "#F1E9D6",  // Secciones secundarias / inputs sobre cards
+  input: "#FFFFFF",     // Inputs — white puro
+  border: "#E5DAC2",    // Bordes principales (beige medio)
+  borderSoft: "#EFE5CE",// Separadores sutiles (beige claro)
 
-  // Text (Notion-style: warm brown-black, no true black)
-  text: "#37352F",      // Texto primario
-  textSub: "#555247",   // Texto secundario
-  textMuted: "#8C8A82", // Muted (labels, metadata)
-  textFaint: "#B1AFA7", // Texto muy tenue
+  // Text — navy del logo. No usar negro puro para mantener calidez.
+  text: "#1E2B4A",      // Navy oscuro (texto principal)
+  textSub: "#3A4868",   // Navy medio (texto secundario)
+  textMuted: "#6B7794", // Gris-azul (labels, metadata)
+  textFaint: "#9AA2B3", // Gris claro (placeholders, info muy tenue)
 
-  // Accent
-  primary: "#5E6AD2",   // Linear indigo (modern + warm)
-  primarySoft: "#EEF0FC",
+  // Accent — navy como primary
+  primary: "#1E2B4A",
+  primaryHover: "#2A3A5C",
+  primarySoft: "#E8EBF2",  // Navy diluido (badges, pills, bg de hovers)
+  primarySofter: "#F1F3F7",// Aún más diluido (alternate row bg)
 
-  // Status — Notion colors, muted pero claros
-  green: "#0F7B6C", greenBg: "#DDEDEA", greenBorder: "#B6D4CC",
-  red: "#E03E3E", redBg: "#FBE4E4", redBorder: "#F1B8B6",
-  blue: "#2383E2", blueBg: "#DDEBF1", blueBorder: "#B1D4E8",
-  amber: "#CB912F", amberBg: "#FDECC8", amberBorder: "#F2D59A",
-  purple: "#6940A5", purpleBg: "#EAE4F2", purpleBorder: "#CDB8E2",
-  pink: "#E255A1", pinkBg: "#F5E0EE", pinkBorder: "#E8BDDB",
+  // Status — colores ajustados para combinar con navy+cream (cálidos, profundos)
+  green: "#0F6B5C", greenBg: "#D9E8E4", greenBorder: "#A8C8BE",
+  red: "#B83232", redBg: "#F7DEDE", redBorder: "#E5A8A8",
+  blue: "#1F5DB8", blueBg: "#DCE6F4", blueBorder: "#A8BFE2",
+  amber: "#B07A1F", amberBg: "#F5E4C2", amberBorder: "#E1C684",  // Gold/cobre cálido
+  purple: "#5B3592", purpleBg: "#E4D8F0", purpleBorder: "#C5A8E0",
+  pink: "#C73E8F", pinkBg: "#F2D8E8", pinkBorder: "#E0A8C9",
 
-  // Shadows — muy sutiles tipo Notion
-  shadowXs: "0 1px 2px rgba(15, 15, 15, 0.04)",
-  shadowSm: "0 1px 3px rgba(15, 15, 15, 0.06), 0 1px 2px rgba(15, 15, 15, 0.04)",
-  shadow: "0 4px 12px rgba(15, 15, 15, 0.08)",
-  shadowLg: "0 12px 32px rgba(15, 15, 15, 0.1)",
+  // Shadows — sutiles, alineadas a tono cream
+  shadowXs: "0 1px 2px rgba(30, 43, 74, 0.05)",
+  shadowSm: "0 1px 3px rgba(30, 43, 74, 0.07), 0 1px 2px rgba(30, 43, 74, 0.04)",
+  shadow: "0 4px 12px rgba(30, 43, 74, 0.09)",
+  shadowLg: "0 12px 32px rgba(30, 43, 74, 0.12)",
 
   // Radius
   radiusSm: 6, radius: 10, radiusLg: 14, radiusXl: 18,
@@ -42,11 +45,11 @@ export const T = {
   fontDisplay: "'Rubik', 'Inter', -apple-system, sans-serif",
 };
 
-// Pastel palette para avatares de clientes (12 combinaciones cálidas).
+// Pastel palette para avatares de clientes — armonizada con paleta cream+navy.
 export const AVATAR_PALETTE = [
   { bg: "#FED7AA", fg: "#9A3412" }, // peach
   { bg: "#FBCFE8", fg: "#9F1239" }, // rose
-  { bg: "#DDD6FE", fg: "#5B21B6" }, // lavender
+  { bg: "#C4CCDE", fg: "#1E2B4A" }, // navy soft (alineado al brand)
   { bg: "#BAE6FD", fg: "#075985" }, // sky
   { bg: "#A7F3D0", fg: "#065F46" }, // mint
   { bg: "#FEF08A", fg: "#854D0E" }, // lemon

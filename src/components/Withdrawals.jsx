@@ -93,9 +93,9 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
   // ---- chip style (same as Sales) ----
   const chipStyle = (active, color) => ({
     padding: "7px 14px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer",
-    border: `1.5px solid ${active ? (color || "#5E6AD2") : "#E8E7E3"}`,
-    background: active ? (color || "#5E6AD2") : "#FAFAF9",
-    color: active ? "#fff" : "#555247",
+    border: `1.5px solid ${active ? (color || "#1E2B4A") : "#E5DAC2"}`,
+    background: active ? (color || "#1E2B4A") : "#F8F2E7",
+    color: active ? "#fff" : "#3A4868",
     transition: "all .15s", whiteSpace: "nowrap",
   });
 
@@ -425,14 +425,14 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h2 style={{ color: "#37352F", margin: 0, fontSize: 22 }}>Mermas</h2>
-          <span style={{ color: "#8C8A82", fontSize: 13 }}>Consumo propio, garantías, canjes — {active.length} registros</span>
+          <h2 style={{ color: "#1E2B4A", margin: 0, fontSize: 22 }}>Mermas</h2>
+          <span style={{ color: "#6B7794", fontSize: 13 }}>Consumo propio, garantías, canjes — {active.length} registros</span>
         </div>
         <button onClick={() => setShowMermasReport(s => !s)} style={{
           padding: "8px 14px", borderRadius: 8,
-          border: "1px solid #E8E7E3",
-          background: showMermasReport ? "#5E6AD215" : "transparent",
-          color: showMermasReport ? "#5E6AD2" : "#37352F",
+          border: "1px solid #E5DAC2",
+          background: showMermasReport ? "#1E2B4A15" : "transparent",
+          color: showMermasReport ? "#1E2B4A" : "#1E2B4A",
           fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
         }}>
           {showMermasReport ? "▼" : "▶"} 📊 Reporte mensual 12m
@@ -442,7 +442,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
 
       {showMermasReport && (
         <Card style={{ marginBottom: 16 }}>
-          <h3 style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 700, color: "#37352F" }}>
+          <h3 style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 700, color: "#1E2B4A" }}>
             📊 Mermas últimos 12 meses (USD perdido por tipo)
           </h3>
           {(() => {
@@ -454,13 +454,13 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
             return (
               <>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 14 }}>
-                  <div style={{ padding: 10, background: "#FAFAF9", borderRadius: 8 }}>
-                    <div style={{ fontSize: 10, color: "#8C8A82", textTransform: "uppercase", fontWeight: 700 }}>Total 12m</div>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: "#37352F" }}>{formatMoney(grandTotal, "USD")}</div>
+                  <div style={{ padding: 10, background: "#F8F2E7", borderRadius: 8 }}>
+                    <div style={{ fontSize: 10, color: "#6B7794", textTransform: "uppercase", fontWeight: 700 }}>Total 12m</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: "#1E2B4A" }}>{formatMoney(grandTotal, "USD")}</div>
                   </div>
                   <div style={{ padding: 10, background: "#EAECF9", borderRadius: 8 }}>
-                    <div style={{ fontSize: 10, color: "#5E6AD2", textTransform: "uppercase", fontWeight: 700 }}>Consumo propio</div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: "#5E6AD2" }}>{formatMoney(totalPropio, "USD")}</div>
+                    <div style={{ fontSize: 10, color: "#1E2B4A", textTransform: "uppercase", fontWeight: 700 }}>Consumo propio</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "#1E2B4A" }}>{formatMoney(totalPropio, "USD")}</div>
                   </div>
                   <div style={{ padding: 10, background: "#FDECC8", borderRadius: 8 }}>
                     <div style={{ fontSize: 10, color: "#A65800", textTransform: "uppercase", fontWeight: 700 }}>Garantías</div>
@@ -471,7 +471,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                     <div style={{ fontSize: 14, fontWeight: 700, color: "#0F7B6C" }}>{formatMoney(totalCanje, "USD")}</div>
                   </div>
                 </div>
-                <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 100, paddingBottom: 18, borderBottom: "1px solid #E8E7E3" }}>
+                <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 100, paddingBottom: 18, borderBottom: "1px solid #E5DAC2" }}>
                   {monthlyMermas.map((m, i) => {
                     const pct = (m.totalUSD / maxMonth) * 100;
                     return (
@@ -481,9 +481,9 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                         <div style={{ display: "flex", flexDirection: "column", height: `${pct}%`, justifyContent: "flex-end" }}>
                           {m.canje.usd > 0 && <div style={{ flex: m.canje.usd, background: "#0F7B6C" }} />}
                           {m.garantia.usd > 0 && <div style={{ flex: m.garantia.usd, background: "#CB912F" }} />}
-                          {m.propio.usd > 0 && <div style={{ flex: m.propio.usd, background: "#5E6AD2" }} />}
+                          {m.propio.usd > 0 && <div style={{ flex: m.propio.usd, background: "#1E2B4A" }} />}
                         </div>
-                        <div style={{ fontSize: 9, color: "#8C8A82", textAlign: "center", marginTop: 4 }}>{m.label}</div>
+                        <div style={{ fontSize: 9, color: "#6B7794", textAlign: "center", marginTop: 4 }}>{m.label}</div>
                       </div>
                     );
                   })}
@@ -505,7 +505,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
 
       {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit, minmax(140px, 1fr))", gap: isMobile ? 8 : 14, marginBottom: 20 }}>
-        <StatCard label="Mías (Diego)" value={`${totalMine} uds`} icon="💜" color="#5E6AD2" />
+        <StatCard label="Mías (Diego)" value={`${totalMine} uds`} icon="💜" color="#1E2B4A" />
         <StatCard label="Consumo" value={`${totalConsumo}`} icon="🚬" color="#e17055" />
         <StatCard label="Garantías" value={`${totalGarantia}`} icon="🔄" color="#fdcb6e" />
         <StatCard label="Regalos" value={`${totalRegalo}`} icon="🎁" color="#00cec9" />
@@ -517,11 +517,11 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
       {/* ============================================ */}
       <div style={{
         display: "flex", gap: 4, marginBottom: 14,
-        borderBottom: "1px solid #E8E7E3", overflowX: "auto",
+        borderBottom: "1px solid #E5DAC2", overflowX: "auto",
         WebkitOverflowScrolling: "touch",
       }}>
         {[
-          { k: "all", label: "Todo", color: "#37352F", count: active.length },
+          { k: "all", label: "Todo", color: "#1E2B4A", count: active.length },
           { k: "consumo", label: "Consumos", color: "#e17055", count: active.filter(w => !w.withdrawType || w.withdrawType === "Consumo propio").length },
           { k: "garantia", label: "Garantías", color: "#CB912F", count: active.filter(w => isGarantia(w.withdrawType)).length },
           { k: "regalo", label: "Regalos", color: "#00cec9", count: active.filter(w => w.withdrawType === "Regalo / Canje").length },
@@ -531,7 +531,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
             <button key={t.k} onClick={() => setActiveTab(t.k)} style={{
               padding: "10px 16px", background: "transparent", border: "none",
               borderBottom: `2px solid ${isActive ? t.color : "transparent"}`,
-              color: isActive ? t.color : "#8C8A82",
+              color: isActive ? t.color : "#6B7794",
               fontSize: 14, fontWeight: isActive ? 700 : 500,
               cursor: "pointer", fontFamily: "inherit",
               display: "flex", alignItems: "center", gap: 6,
@@ -541,8 +541,8 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
               {t.label}
               <span style={{
                 fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
-                background: isActive ? `${t.color}22` : "#F0EFEB",
-                color: isActive ? t.color : "#8C8A82",
+                background: isActive ? `${t.color}22` : "#EFE5CE",
+                color: isActive ? t.color : "#6B7794",
               }}>{t.count}</span>
             </button>
           );
@@ -560,25 +560,25 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
         const totalQty = diegoQty;
         const totalUSD = diegoUSD;
         return (
-          <Card style={{ marginBottom: 12, background: "#FAFAF9" }}>
+          <Card style={{ marginBottom: 12, background: "#F8F2E7" }}>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "auto 1fr", gap: 14 }}>
               <div>
-                <div style={{ fontSize: 11, color: "#8C8A82", textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5, marginBottom: 4 }}>Consumos — total</div>
+                <div style={{ fontSize: 11, color: "#6B7794", textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5, marginBottom: 4 }}>Consumos — total</div>
                 <div style={{ fontSize: 22, fontWeight: 800, color: "#e17055" }}>{totalQty} uds</div>
-                <div style={{ fontSize: 12, color: "#8C8A82" }}>{formatMoney(totalUSD, "USD")}{exchangeRate ? ` · ${formatMoney(totalUSD * exchangeRate)}` : ""}</div>
+                <div style={{ fontSize: 12, color: "#6B7794" }}>{formatMoney(totalUSD, "USD")}{exchangeRate ? ` · ${formatMoney(totalUSD * exchangeRate)}` : ""}</div>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0 }}>
                 {[
-                  { name: "Diego", qty: diegoQty, usd: diegoUSD, color: "#5E6AD2", icon: "💜" },
+                  { name: "Diego", qty: diegoQty, usd: diegoUSD, color: "#1E2B4A", icon: "💜" },
                 ].map(p => (
                   <div key={p.name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span style={{ fontSize: 16 }}>{p.icon}</span>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: "#37352F", minWidth: 70 }}>{p.name}</span>
-                    <div style={{ flex: 1, height: 18, background: "#F0EFEB", borderRadius: 4, overflow: "hidden", minWidth: 60 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "#1E2B4A", minWidth: 70 }}>{p.name}</span>
+                    <div style={{ flex: 1, height: 18, background: "#EFE5CE", borderRadius: 4, overflow: "hidden", minWidth: 60 }}>
                       <div style={{ width: `${p.qty > 0 ? 100 : 0}%`, height: "100%", background: p.color, borderRadius: 4, transition: "width 0.3s" }} />
                     </div>
                     <span style={{ fontSize: 13, fontWeight: 700, color: p.color, minWidth: 40, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{p.qty}</span>
-                    <span style={{ fontSize: 11, color: "#8C8A82", minWidth: 60, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{formatMoney(p.usd, "USD")}</span>
+                    <span style={{ fontSize: 11, color: "#6B7794", minWidth: 60, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{formatMoney(p.usd, "USD")}</span>
                   </div>
                 ))}
               </div>
@@ -612,29 +612,29 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
         const pctReclamables = totalCount > 0 ? (reclamables.length / totalCount) * 100 : 0;
         return (
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 8, marginBottom: 12 }}>
-            <div style={{ background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10, padding: "10px 12px" }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5 }}>Total cambios</div>
+            <div style={{ background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 10, padding: "10px 12px" }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#6B7794", textTransform: "uppercase", letterSpacing: 0.5 }}>Total cambios</div>
               <div style={{ fontSize: 20, fontWeight: 800, color: "#CB912F", marginTop: 2 }}>{totalCount}</div>
-              <div style={{ fontSize: 11, color: "#8C8A82", marginTop: 2 }}>{formatMoney(totalUSD, "USD")} perdidos</div>
+              <div style={{ fontSize: 11, color: "#6B7794", marginTop: 2 }}>{formatMoney(totalUSD, "USD")} perdidos</div>
             </div>
-            <div style={{ background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10, padding: "10px 12px" }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5 }}>Modelo más cambiado</div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: "#37352F", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <div style={{ background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 10, padding: "10px 12px" }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#6B7794", textTransform: "uppercase", letterSpacing: 0.5 }}>Modelo más cambiado</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: "#1E2B4A", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {topFailed ? topFailed[0] : "—"}
               </div>
-              <div style={{ fontSize: 11, color: "#8C8A82", marginTop: 2 }}>
+              <div style={{ fontSize: 11, color: "#6B7794", marginTop: 2 }}>
                 {topFailed ? `${topFailed[1]} cambios` : "sin datos"}
               </div>
             </div>
-            <div style={{ background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10, padding: "10px 12px" }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5 }}>Tasa falla mes</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: failRate > 3 ? "#E03E3E" : "#37352F", marginTop: 2 }}>{failRate.toFixed(1)}%</div>
-              <div style={{ fontSize: 11, color: "#8C8A82", marginTop: 2 }}>{gMonth.length} / {unitsSoldMonth} vendidas</div>
+            <div style={{ background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 10, padding: "10px 12px" }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#6B7794", textTransform: "uppercase", letterSpacing: 0.5 }}>Tasa falla mes</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: failRate > 3 ? "#E03E3E" : "#1E2B4A", marginTop: 2 }}>{failRate.toFixed(1)}%</div>
+              <div style={{ fontSize: 11, color: "#6B7794", marginTop: 2 }}>{gMonth.length} / {unitsSoldMonth} vendidas</div>
             </div>
-            <div style={{ background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10, padding: "10px 12px" }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5 }}>Reclamables prov.</div>
+            <div style={{ background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 10, padding: "10px 12px" }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: "#6B7794", textTransform: "uppercase", letterSpacing: 0.5 }}>Reclamables prov.</div>
               <div style={{ fontSize: 20, fontWeight: 800, color: "#6940A5", marginTop: 2 }}>{pctReclamables.toFixed(0)}%</div>
-              <div style={{ fontSize: 11, color: "#8C8A82", marginTop: 2 }}>{reclamables.length} cambios</div>
+              <div style={{ fontSize: 11, color: "#6B7794", marginTop: 2 }}>{reclamables.length} cambios</div>
             </div>
           </div>
         );
@@ -655,27 +655,27 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
         });
         const top3 = Object.entries(byClient).sort((a, b) => b[1].count - a[1].count).slice(0, 3);
         return (
-          <Card style={{ marginBottom: 12, background: "#FAFAF9" }}>
+          <Card style={{ marginBottom: 12, background: "#F8F2E7" }}>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "auto 1fr", gap: 14 }}>
               <div>
-                <div style={{ fontSize: 11, color: "#8C8A82", textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5, marginBottom: 4 }}>Regalos — total</div>
+                <div style={{ fontSize: 11, color: "#6B7794", textTransform: "uppercase", fontWeight: 700, letterSpacing: 0.5, marginBottom: 4 }}>Regalos — total</div>
                 <div style={{ fontSize: 22, fontWeight: 800, color: "#00cec9" }}>{totalCount}</div>
-                <div style={{ fontSize: 12, color: "#8C8A82" }}>{formatMoney(totalUSD, "USD")}{exchangeRate ? ` · ${formatMoney(totalUSD * exchangeRate)}` : ""}</div>
+                <div style={{ fontSize: 12, color: "#6B7794" }}>{formatMoney(totalUSD, "USD")}{exchangeRate ? ` · ${formatMoney(totalUSD * exchangeRate)}` : ""}</div>
               </div>
               <div>
-                <div style={{ fontSize: 11, color: "#8C8A82", fontWeight: 700, textTransform: "uppercase", marginBottom: 6 }}>
+                <div style={{ fontSize: 11, color: "#6B7794", fontWeight: 700, textTransform: "uppercase", marginBottom: 6 }}>
                   Top 3 clientes con más regalos
                 </div>
                 {top3.length === 0 ? (
-                  <div style={{ fontSize: 12, color: "#8C8A82", fontStyle: "italic" }}>Sin regalos a clientes todavía</div>
+                  <div style={{ fontSize: 12, color: "#6B7794", fontStyle: "italic" }}>Sin regalos a clientes todavía</div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                     {top3.map(([name, v], i) => (
                       <div key={name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: "#8C8A82", minWidth: 16 }}>{i + 1}.</span>
-                        <span style={{ fontSize: 13, color: "#37352F", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "#6B7794", minWidth: 16 }}>{i + 1}.</span>
+                        <span style={{ fontSize: 13, color: "#1E2B4A", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
                         <span style={{ fontSize: 12, fontWeight: 700, color: "#00cec9", fontVariantNumeric: "tabular-nums" }}>{v.count}</span>
-                        <span style={{ fontSize: 11, color: "#8C8A82", fontVariantNumeric: "tabular-nums", minWidth: 60, textAlign: "right" }}>{formatMoney(v.usd, "USD")}</span>
+                        <span style={{ fontSize: 11, color: "#6B7794", fontVariantNumeric: "tabular-nums", minWidth: 60, textAlign: "right" }}>{formatMoney(v.usd, "USD")}</span>
                       </div>
                     ))}
                   </div>
@@ -692,9 +692,9 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
           {/* Tipo */}
           <select value={filterType} onChange={e => setFilterType(e.target.value)} style={{
             padding: "6px 10px", fontSize: 12, borderRadius: 7,
-            border: `1px solid ${filterType ? "#5E6AD2" : "#E8E7E3"}`,
-            background: filterType ? "#EEF0FC" : "#FFFFFF",
-            color: filterType ? "#5E6AD2" : "#555247",
+            border: `1px solid ${filterType ? "#1E2B4A" : "#E5DAC2"}`,
+            background: filterType ? "#E8EBF2" : "#FFFFFF",
+            color: filterType ? "#1E2B4A" : "#3A4868",
             fontFamily: "inherit", cursor: "pointer", outline: "none",
           }}>
             <option value="">Todos los tipos</option>
@@ -702,7 +702,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
           </select>
 
           {/* Presets de fecha */}
-          <div style={{ display: "inline-flex", background: "#FAFAF9", borderRadius: 8, padding: 3, border: "1px solid #E8E7E3" }}>
+          <div style={{ display: "inline-flex", background: "#F8F2E7", borderRadius: 8, padding: 3, border: "1px solid #E5DAC2" }}>
             {[
               { k: "all", l: "Todo" },
               { k: "today", l: "Hoy" },
@@ -732,7 +732,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                 }} style={{
                   padding: "5px 10px", fontSize: 12, fontWeight: 600, border: "none", borderRadius: 6,
                   background: presetActive ? "#FFFFFF" : "transparent",
-                  color: presetActive ? "#37352F" : "#8C8A82",
+                  color: presetActive ? "#1E2B4A" : "#6B7794",
                   boxShadow: presetActive ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
                   cursor: "pointer", fontFamily: "inherit",
                 }}>{p.l}</button>
@@ -745,8 +745,8 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
             placeholder="Buscar producto..."
             style={{
               padding: "7px 10px", fontSize: 12, borderRadius: 7, flex: "1 1 140px", minWidth: 140,
-              border: `1px solid ${filterProductSearch ? "#5E6AD2" : "#E8E7E3"}`,
-              background: "#FAFAF9", color: "#37352F",
+              border: `1px solid ${filterProductSearch ? "#1E2B4A" : "#E5DAC2"}`,
+              background: "#F8F2E7", color: "#1E2B4A",
               fontFamily: "inherit", outline: "none", boxSizing: "border-box",
             }} />
 
@@ -754,7 +754,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
           {(filterType || filterDateFrom || filterDateTo || filterProductSearch) && (
             <button onClick={() => { setFilterType(""); setFilterDateFrom(""); setFilterDateTo(""); setFilterProductSearch(""); }}
               style={{
-                background: "none", border: "none", color: "#8C8A82", fontSize: 12, fontWeight: 500,
+                background: "none", border: "none", color: "#6B7794", fontSize: 12, fontWeight: 500,
                 cursor: "pointer", fontFamily: "inherit", padding: "5px 8px",
               }}>✕ Limpiar</button>
           )}
@@ -794,7 +794,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
 
           return (
             <>
-              <div style={{ fontSize: 12, color: "#8C8A82", marginBottom: 8 }}>
+              <div style={{ fontSize: 12, color: "#6B7794", marginBottom: 8 }}>
                 {filtered.length === tabScope.length ? `${filtered.length} ${tabLabel}` : `${filtered.length} de ${tabScope.length} ${tabLabel}`}
               </div>
               {(() => {
@@ -803,7 +803,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                 // ============================================
                 const reasonCatColor = {
                   electrico: "#E03E3E", liquido: "#2383E2",
-                  fisico: "#CB912F", envio: "#6940A5", otro: "#8C8A82",
+                  fisico: "#CB912F", envio: "#6940A5", otro: "#6B7794",
                 };
 
                 const colDate = { key: "date", label: "Fecha", render: r => (
@@ -823,18 +823,18 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                     const cColor = reasonCatColor[cat];
                     return (
                       <div style={{ lineHeight: 1.4 }}>
-                        <div style={{ fontSize: 13, color: "#37352F" }}>
+                        <div style={{ fontSize: 13, color: "#1E2B4A" }}>
                           <span style={{ fontWeight: 600 }}>Entregado:</span> {entregadoName}
                         </div>
                         {!sameModel && (
-                          <div style={{ fontSize: 12, color: "#8C8A82", marginTop: 2 }}>
+                          <div style={{ fontSize: 12, color: "#6B7794", marginTop: 2 }}>
                             ← Falló: {failedName}
                           </div>
                         )}
                         {r.failureReason && (
                           <div style={{ fontSize: 11, color: cColor, fontWeight: 600, marginTop: 2 }}>
                             ⚠️ {r.failureReason}
-                            {r.failureNotes && <span style={{ color: "#8C8A82", fontWeight: 400 }}> — {r.failureNotes}</span>}
+                            {r.failureNotes && <span style={{ color: "#6B7794", fontWeight: 400 }}> — {r.failureNotes}</span>}
                           </div>
                         )}
                       </div>
@@ -851,7 +851,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                   const cColor = reasonCatColor[cat];
                   return (
                     <div style={{ lineHeight: 1.4 }}>
-                      <div style={{ fontSize: 13, color: "#37352F", fontWeight: 600 }}>
+                      <div style={{ fontSize: 13, color: "#1E2B4A", fontWeight: 600 }}>
                         {p ? `${p.brand} ${p.model} - ${p.flavor}` : "—"}
                       </div>
                       {r.failureReason && (
@@ -869,7 +869,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                   const sameModel = !r.failedProductId || r.failedProductId === r.productId;
                   return (
                     <div>
-                      <div style={{ fontSize: 13, color: "#37352F" }}>
+                      <div style={{ fontSize: 13, color: "#1E2B4A" }}>
                         {p ? `${p.brand} ${p.model} - ${p.flavor}` : "?"}
                       </div>
                       {!sameModel && (
@@ -898,7 +898,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                 const colReclamable = { key: "reclamable", label: "Reclam.", render: r => (
                   r.reclamableProveedor
                     ? <Badge color="#6940A5">📦 Sí</Badge>
-                    : <span style={{ fontSize: 11, color: "#B1AFA7" }}>—</span>
+                    : <span style={{ fontSize: 11, color: "#9AA2B3" }}>—</span>
                 )};
 
                 const colPerson = { key: "person", label: "Quién", render: r => <Badge color={r.person === "Diego" ? "#a855f7" : "#00b894"}>{r.person}</Badge> };
@@ -908,17 +908,17 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                   return (
                     <div>
                       <div style={{ fontWeight: 600, color: "#E03E3E" }}>{formatMoney(cost, "USD")}</div>
-                      {exchangeRate && <div style={{ fontSize: 11, color: "#B1AFA7" }}>{formatMoney(cost * exchangeRate)}</div>}
+                      {exchangeRate && <div style={{ fontSize: 11, color: "#9AA2B3" }}>{formatMoney(cost * exchangeRate)}</div>}
                     </div>
                   );
                 }};
 
                 const colClient = { key: "client", label: "Cliente", render: r => (
                   r.linkedClientId
-                    ? <span style={{ fontSize: 12, fontWeight: 600, color: "#5E6AD2" }}>👤 {r.linkedClientName}</span>
+                    ? <span style={{ fontSize: 12, fontWeight: 600, color: "#1E2B4A" }}>👤 {r.linkedClientName}</span>
                     : r.linkedSaleClient
-                      ? <span style={{ fontSize: 12, color: "#8C8A82" }}>{r.linkedSaleClient}</span>
-                      : <span style={{ fontSize: 11, color: "#B1AFA7" }}>—</span>
+                      ? <span style={{ fontSize: 12, color: "#6B7794" }}>{r.linkedSaleClient}</span>
+                      : <span style={{ fontSize: 11, color: "#9AA2B3" }}>—</span>
                 )};
 
                 const colNotes = { key: "notes", label: "Nota", render: r => (
@@ -929,7 +929,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                       </div>
                     )}
                     {r.linkedClientId && !r.linkedSaleId && !isGarantia(r.withdrawType) && (
-                      <div style={{ fontSize: 11, color: "#5E6AD2", fontWeight: 600, marginBottom: 2 }}>
+                      <div style={{ fontSize: 11, color: "#1E2B4A", fontWeight: 600, marginBottom: 2 }}>
                         👤 {r.linkedClientName}
                       </div>
                     )}
@@ -939,7 +939,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
 
                 const colActions = { key: "actions", label: "", render: r => (
                   <div style={{ display: "flex", gap: 4 }}>
-                    <button onClick={() => startEdit(r)} title="Editar" style={{ background: "none", border: "none", color: "#5E6AD2", cursor: "pointer", fontSize: 14 }}>✏️</button>
+                    <button onClick={() => startEdit(r)} title="Editar" style={{ background: "none", border: "none", color: "#1E2B4A", cursor: "pointer", fontSize: 14 }}>✏️</button>
                     {confirmDel === r.id
                       ? <button onClick={() => deleteWithdrawal(r)} style={{ background: "#F7D7D6", border: "1px solid #E03E3E55", color: "#E03E3E", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Confirmar</button>
                       : <button onClick={() => deleteWithdrawal(r)} style={{ background: "none", border: "none", color: "#E03E3E", cursor: "pointer", fontSize: 14 }}>🗑️</button>}
@@ -988,17 +988,17 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
 
         {/* Who consumed — big buttons */}
         <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 11, color: "#B1AFA7", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>QUIÉN</div>
+          <div style={{ fontSize: 11, color: "#9AA2B3", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>QUIÉN</div>
           <div style={{ display: "flex", gap: 10 }}>
             {WITHDRAW_PERSONS.map(p => (
               <button key={p} onClick={() => setForm(f => ({ ...f, person: p }))}
                 style={{
                   flex: 1, padding: "12px", borderRadius: 12, cursor: "pointer", textAlign: "center",
-                  border: "none", outline: `2px solid ${form.person === p ? (p === "Diego" ? "#5E6AD2" : "#0F7B6C") : "#E8E7E3"}`,
-                  background: form.person === p ? (p === "Diego" ? "#EAECF9" : "#DDEDEA") : "#FAFAF9",
+                  border: "none", outline: `2px solid ${form.person === p ? (p === "Diego" ? "#1E2B4A" : "#0F7B6C") : "#E5DAC2"}`,
+                  background: form.person === p ? (p === "Diego" ? "#EAECF9" : "#DDEDEA") : "#F8F2E7",
                 }}>
                 <div style={{ fontSize: 22, marginBottom: 2 }}>{p === "Diego" ? "💜" : "💙"}</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: form.person === p ? (p === "Diego" ? "#5E6AD2" : "#0F7B6C") : "#555247" }}>{p}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: form.person === p ? (p === "Diego" ? "#1E2B4A" : "#0F7B6C") : "#3A4868" }}>{p}</div>
               </button>
             ))}
           </div>
@@ -1006,7 +1006,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
 
         {/* Type — chip buttons */}
         <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 11, color: "#B1AFA7", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>TIPO DE MERMA</div>
+          <div style={{ fontSize: 11, color: "#9AA2B3", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>TIPO DE MERMA</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {WITHDRAW_TYPES.map(t => {
               const colors = { "Consumo propio": "#e17055", "Cambio por garantía": "#CB912F", "Regalo / Canje": "#00cec9" };
@@ -1036,10 +1036,10 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
               // Selected sale
               <div style={{ background: "#FDECC8", border: "1px solid #fcd34d", borderRadius: 10, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 13, color: "#37352F" }}>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: "#1E2B4A" }}>
                     {form.linkedSaleClient || "Sin cliente"} — {formatDate(form.linkedSaleDate)}
                   </div>
-                  <div style={{ fontSize: 12, color: "#8C8A82" }}>
+                  <div style={{ fontSize: 12, color: "#6B7794" }}>
                     {(() => {
                       const s = (sales || []).find(x => x.id === form.linkedSaleId);
                       if (!s) return "";
@@ -1051,7 +1051,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                   </div>
                 </div>
                 <button onClick={() => { setForm(f => ({ ...f, linkedSaleId: "", linkedSaleClient: "", linkedSaleDate: "" })); setSaleSearch(""); }}
-                  style={{ background: "none", border: "none", color: "#B1AFA7", cursor: "pointer", fontSize: 16 }}>✕</button>
+                  style={{ background: "none", border: "none", color: "#9AA2B3", cursor: "pointer", fontSize: 16 }}>✕</button>
               </div>
             ) : (
               // Search for sale
@@ -1067,11 +1067,11 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                 {showSaleDropdown && (
                   <div style={{
                     position: "absolute", top: "100%", left: 0, right: 0, background: "#FFFFFF",
-                    border: "1px solid #E8E7E3", borderRadius: 10, marginTop: 4, zIndex: 50,
+                    border: "1px solid #E5DAC2", borderRadius: 10, marginTop: 4, zIndex: 50,
                     maxHeight: 280, overflowY: "auto", boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
                   }}>
                     {filteredSales.length === 0 ? (
-                      <div style={{ padding: 14, textAlign: "center", color: "#B1AFA7", fontSize: 13 }}>
+                      <div style={{ padding: 14, textAlign: "center", color: "#9AA2B3", fontSize: 13 }}>
                         {saleSearch ? `No se encontró "${saleSearch}"` : "No hay ventas recientes"}
                       </div>
                     ) : filteredSales.map(s => {
@@ -1100,15 +1100,15 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                           setSaleSearch("");
                         }} style={{
                           display: "block", width: "100%", padding: "10px 14px", background: "none",
-                          border: "none", borderBottom: "1px solid #E8E7E3", cursor: "pointer", textAlign: "left",
+                          border: "none", borderBottom: "1px solid #E5DAC2", cursor: "pointer", textAlign: "left",
                         }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <div style={{ fontWeight: 600, fontSize: 13, color: "#37352F" }}>
+                            <div style={{ fontWeight: 600, fontSize: 13, color: "#1E2B4A" }}>
                               {s.clientName || "Sin cliente"}
                             </div>
-                            <span style={{ fontSize: 11, color: "#B1AFA7" }}>{formatDate(s.date)}</span>
+                            <span style={{ fontSize: 11, color: "#9AA2B3" }}>{formatDate(s.date)}</span>
                           </div>
-                          <div style={{ fontSize: 12, color: "#8C8A82", marginTop: 2 }}>{itemsText}</div>
+                          <div style={{ fontSize: 12, color: "#6B7794", marginTop: 2 }}>{itemsText}</div>
                           <div style={{ fontSize: 11, color: "#0F7B6C", fontWeight: 600 }}>{formatMoney(s.total, s.currency)}</div>
                         </button>
                       );
@@ -1117,7 +1117,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                 )}
               </div>
             )}
-            <div style={{ fontSize: 11, color: "#B1AFA7", marginTop: 6 }}>
+            <div style={{ fontSize: 11, color: "#9AA2B3", marginTop: 6 }}>
               Opcional — vinculá esta garantía con la venta original del vape fallido
             </div>
           </div>
@@ -1136,30 +1136,30 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
           const reasonCat = FAILURE_REASON_CATEGORY[reason] || "otro";
           const reasonColor = {
             electrico: "#E03E3E", liquido: "#2383E2",
-            fisico: "#CB912F", envio: "#6940A5", otro: "#8C8A82",
+            fisico: "#CB912F", envio: "#6940A5", otro: "#6B7794",
           }[reasonCat];
 
           return (
             <>
               {/* SECCIÓN: ¿Qué falló? */}
               <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 11, color: "#B1AFA7", marginBottom: 8, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                <div style={{ fontSize: 11, color: "#9AA2B3", marginBottom: 8, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>
                   ¿Qué falló? (lo que trajo el cliente)
                 </div>
 
                 {/* Dropdown "cuál falló" si la venta tiene varios items */}
                 {multiItemSale && (
                   <div style={{ marginBottom: 10 }}>
-                    <div style={{ fontSize: 11, color: "#8C8A82", marginBottom: 4, fontWeight: 600 }}>
+                    <div style={{ fontSize: 11, color: "#6B7794", marginBottom: 4, fontWeight: 600 }}>
                       La venta tiene {saleItems.length} items — ¿cuál falló?
                     </div>
                     <select
                       value={form.failedProductId}
                       onChange={e => setForm(f => ({ ...f, failedProductId: e.target.value }))}
                       style={{
-                        width: "100%", padding: "10px 12px", background: "#FAFAF9",
-                        border: "1px solid #E8E7E3", borderRadius: 8,
-                        fontSize: 14, fontFamily: "inherit", color: "#37352F",
+                        width: "100%", padding: "10px 12px", background: "#F8F2E7",
+                        border: "1px solid #E5DAC2", borderRadius: 8,
+                        fontSize: 14, fontFamily: "inherit", color: "#1E2B4A",
                       }}>
                       <option value="">Elegí cuál...</option>
                       {saleItems.map((it, i) => {
@@ -1184,22 +1184,22 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                       <div style={{ fontSize: 13, fontWeight: 700, color: "#E03E3E" }}>
                         {failedProd.brand} {failedProd.model} - {failedProd.flavor}
                       </div>
-                      <div style={{ fontSize: 11, color: "#8C8A82" }}>
+                      <div style={{ fontSize: 11, color: "#6B7794" }}>
                         {failedProd.puffs}p · producto fallido que trajo el cliente
                       </div>
                     </div>
                     <button onClick={() => setForm(f => ({ ...f, failedProductId: "" }))}
                       style={{
-                        background: "none", border: "none", color: "#8C8A82",
+                        background: "none", border: "none", color: "#6B7794",
                         cursor: "pointer", fontSize: 12, padding: "4px 8px",
                       }}>Cambiar</button>
                   </div>
                 ) : (
                   <div style={{
-                    padding: "10px 12px", background: "#FAFAF9",
-                    border: "1px dashed #E8E7E3", borderRadius: 10,
+                    padding: "10px 12px", background: "#F8F2E7",
+                    border: "1px dashed #E5DAC2", borderRadius: 10,
                     marginBottom: 10,
-                    fontSize: 12, color: "#8C8A82", fontStyle: "italic",
+                    fontSize: 12, color: "#6B7794", fontStyle: "italic",
                   }}>
                     Vinculá la venta original arriba o elegí manualmente el producto fallido más abajo.
                   </div>
@@ -1207,7 +1207,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
 
                 {/* Dropdown razón */}
                 <div style={{ marginBottom: 8 }}>
-                  <div style={{ fontSize: 11, color: "#8C8A82", marginBottom: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  <div style={{ fontSize: 11, color: "#6B7794", marginBottom: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>
                     Razón del fallo *
                   </div>
                   <select
@@ -1222,9 +1222,9 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                       }));
                     }}
                     style={{
-                      width: "100%", padding: "10px 12px", background: "#FAFAF9",
-                      border: `1px solid ${reason ? reasonColor : "#E8E7E3"}`, borderRadius: 8,
-                      fontSize: 14, fontFamily: "inherit", color: reason ? reasonColor : "#8C8A82",
+                      width: "100%", padding: "10px 12px", background: "#F8F2E7",
+                      border: `1px solid ${reason ? reasonColor : "#E5DAC2"}`, borderRadius: 8,
+                      fontSize: 14, fontFamily: "inherit", color: reason ? reasonColor : "#6B7794",
                       fontWeight: 600,
                     }}>
                     <option value="">Elegí una razón...</option>
@@ -1239,8 +1239,8 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                     onChange={e => setForm(f => ({ ...f, failureNotes: e.target.value }))}
                     placeholder={reason === "Otro" ? "Describí qué pasó (obligatorio, mín. 5 chars)" : "Detalle adicional (opcional)"}
                     style={{
-                      width: "100%", padding: "10px 12px", background: "#FAFAF9",
-                      border: `1px solid ${reason === "Otro" && (form.failureNotes || "").trim().length < 5 ? "#E03E3E" : "#E8E7E3"}`,
+                      width: "100%", padding: "10px 12px", background: "#F8F2E7",
+                      border: `1px solid ${reason === "Otro" && (form.failureNotes || "").trim().length < 5 ? "#E03E3E" : "#E5DAC2"}`,
                       borderRadius: 8,
                       fontSize: 14, fontFamily: "inherit", boxSizing: "border-box",
                     }} />
@@ -1249,7 +1249,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
 
               {/* SECCIÓN: ¿Qué le entregás? */}
               <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 11, color: "#B1AFA7", marginBottom: 8, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                <div style={{ fontSize: 11, color: "#9AA2B3", marginBottom: 8, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>
                   ¿Qué le entregás de reemplazo?
                 </div>
 
@@ -1272,8 +1272,8 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                       disabled={stock === 0}
                       style={{
                         width: "100%", padding: "14px 16px",
-                        background: sameSelected ? "#DDEDEA" : stock > 0 ? "#EEF0FC" : "#FAFAF9",
-                        border: `2px solid ${sameSelected ? "#0F7B6C" : stock > 0 ? "#5E6AD2" : "#E8E7E3"}`,
+                        background: sameSelected ? "#DDEDEA" : stock > 0 ? "#E8EBF2" : "#F8F2E7",
+                        border: `2px solid ${sameSelected ? "#0F7B6C" : stock > 0 ? "#1E2B4A" : "#E5DAC2"}`,
                         borderRadius: 12, cursor: stock > 0 ? "pointer" : "not-allowed",
                         textAlign: "left", fontFamily: "inherit",
                         marginBottom: 10,
@@ -1282,10 +1282,10 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <span style={{ fontSize: 22 }}>{sameSelected ? "✅" : "💡"}</span>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 14, fontWeight: 800, color: sameSelected ? "#0F7B6C" : "#5E6AD2" }}>
+                          <div style={{ fontSize: 14, fontWeight: 800, color: sameSelected ? "#0F7B6C" : "#1E2B4A" }}>
                             {sameSelected ? "Mismo modelo seleccionado" : `Entregar mismo modelo`}
                           </div>
-                          <div style={{ fontSize: 12, color: "#555247" }}>
+                          <div style={{ fontSize: 12, color: "#3A4868" }}>
                             {failedProd.brand} {failedProd.model} - {failedProd.flavor}
                             {stock > 0
                               ? ` · ${stock} ${stock === 1 ? "ud" : "uds"} disponibles`
@@ -1308,7 +1308,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                   </div>
                 )}
 
-                <div style={{ fontSize: 11, color: "#8C8A82", textAlign: "center", margin: "6px 0" }}>
+                <div style={{ fontSize: 11, color: "#6B7794", textAlign: "center", margin: "6px 0" }}>
                   — o elegir otro modelo —
                 </div>
               </div>
@@ -1318,7 +1318,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
 
         {/* Brand chips */}
         <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 11, color: "#B1AFA7", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>
+          <div style={{ fontSize: 11, color: "#9AA2B3", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>
             {isGarantia(form.withdrawType) ? "PRODUCTO DE REEMPLAZO" : "MARCA"}
           </div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -1326,7 +1326,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
               <button key={b} onClick={() => updateField("brand", b)}
                 style={{
                   ...chipStyle(form.brand === b),
-                  ...(form.brand === b ? { background: BRAND_COLORS[b] || "#5E6AD2", borderColor: BRAND_COLORS[b] || "#5E6AD2" } : {}),
+                  ...(form.brand === b ? { background: BRAND_COLORS[b] || "#1E2B4A", borderColor: BRAND_COLORS[b] || "#1E2B4A" } : {}),
                 }}>{b}</button>
             ))}
           </div>
@@ -1335,7 +1335,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
         {/* Model chips */}
         {form.brand && modelsForBrand.length > 0 && (
           <div style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 11, color: "#B1AFA7", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>MODELO</div>
+            <div style={{ fontSize: 11, color: "#9AA2B3", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>MODELO</div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               {modelsForBrand.map(m => {
                 const stockForModel = availableProducts.filter(p => p.brand === form.brand && p.model === m).reduce((s, p) => s + p.stock, 0);
@@ -1353,15 +1353,15 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
         {/* Flavor chips */}
         {form.brand && form.model && flavorsForModel.length > 0 && (
           <div style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 11, color: "#B1AFA7", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>SABOR ({flavorsForModel.length})</div>
+            <div style={{ fontSize: 11, color: "#9AA2B3", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>SABOR ({flavorsForModel.length})</div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", maxHeight: 200, overflowY: "auto" }}>
               {flavorsForModel.map(p => {
                 const stock = Number(p.stock) || 0;
                 const noStock = stock === 0;
                 const lowStock = stock > 0 && stock <= 1;
                 const selected = form.productId === p.id;
-                const stockColor = noStock ? "#B1AFA7" : lowStock ? "#CB912F" : "#0F7B6C";
-                const stockBg = noStock ? "#F0EFEB" : lowStock ? "#FDECC8" : "#DDEDEA";
+                const stockColor = noStock ? "#9AA2B3" : lowStock ? "#CB912F" : "#0F7B6C";
+                const stockBg = noStock ? "#EFE5CE" : lowStock ? "#FDECC8" : "#DDEDEA";
                 return (
                   <button key={p.id}
                     disabled={noStock}
@@ -1391,29 +1391,29 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
 
         {/* Selected product + qty */}
         {selectedProd && (
-          <div style={{ background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 12, padding: 14, marginBottom: 14 }}>
+          <div style={{ background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 12, padding: 14, marginBottom: 14 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "#37352F" }}>{selectedProd.brand} {selectedProd.model} - {selectedProd.flavor}</div>
-                <div style={{ fontSize: 12, color: "#8C8A82" }}>{selectedProd.puffs}p · Stock: {selectedProd.stock}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "#1E2B4A" }}>{selectedProd.brand} {selectedProd.model} - {selectedProd.flavor}</div>
+                <div style={{ fontSize: 12, color: "#6B7794" }}>{selectedProd.puffs}p · Stock: {selectedProd.stock}</div>
               </div>
               <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 11, color: "#8C8A82", fontWeight: 600 }}>Costo</div>
+                <div style={{ fontSize: 11, color: "#6B7794", fontWeight: 600 }}>Costo</div>
                 {(() => {
                   const c = Number(selectedProd.costUSDT) || (Number(selectedProd.priceUSD) || 0) * 0.55;
-                  return <div style={{ fontSize: 13, fontWeight: 700, color: "#37352F" }}>{formatMoney(c, "USD")}/u</div>;
+                  return <div style={{ fontSize: 13, fontWeight: 700, color: "#1E2B4A" }}>{formatMoney(c, "USD")}/u</div>;
                 })()}
               </div>
             </div>
 
             {/* Quantity picker */}
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ fontSize: 12, color: "#8C8A82", fontWeight: 600 }}>CANTIDAD</div>
+              <div style={{ fontSize: 12, color: "#6B7794", fontWeight: 600 }}>CANTIDAD</div>
               <button onClick={() => setForm(f => ({ ...f, qty: Math.max(1, (Number(f.qty) || 1) - 1) }))}
-                style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid #E8E7E3", background: "#FFFFFF", cursor: "pointer", fontSize: 18, fontWeight: 700 }}>−</button>
+                style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid #E5DAC2", background: "#FFFFFF", cursor: "pointer", fontSize: 18, fontWeight: 700 }}>−</button>
               <span style={{ fontSize: 22, fontWeight: 800, minWidth: 32, textAlign: "center" }}>{form.qty}</span>
               <button onClick={() => setForm(f => ({ ...f, qty: Math.min(selectedProd.stock, (Number(f.qty) || 1) + 1) }))}
-                style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid #E8E7E3", background: "#FFFFFF", cursor: "pointer", fontSize: 18, fontWeight: 700 }}>+</button>
+                style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid #E5DAC2", background: "#FFFFFF", cursor: "pointer", fontSize: 18, fontWeight: 700 }}>+</button>
             </div>
           </div>
         )}
@@ -1436,8 +1436,8 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
         {isGarantia(form.withdrawType) && form.linkedSaleId && form.linkedClientId && (
           <div style={{
             padding: "8px 12px", borderRadius: 8, marginBottom: 14,
-            background: "#EEF0FC", border: "1px solid #5E6AD233",
-            fontSize: 12, color: "#5E6AD2",
+            background: "#E8EBF2", border: "1px solid #1E2B4A33",
+            fontSize: 12, color: "#1E2B4A",
           }}>
             ✓ Vinculado a <strong>{form.linkedClientName}</strong> automáticamente desde la venta seleccionada
           </div>
@@ -1448,8 +1448,8 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
           <label style={{
             display: "flex", alignItems: "center", gap: 10,
             padding: "10px 12px", borderRadius: 10, marginBottom: 14, cursor: "pointer",
-            background: form.reclamableProveedor ? "#FDECC8" : "#FAFAF9",
-            border: `1px solid ${form.reclamableProveedor ? "#F2D59A" : "#E8E7E3"}`,
+            background: form.reclamableProveedor ? "#FDECC8" : "#F8F2E7",
+            border: `1px solid ${form.reclamableProveedor ? "#F2D59A" : "#E5DAC2"}`,
           }}>
             <input
               type="checkbox"
@@ -1458,10 +1458,10 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
               style={{ width: 18, height: 18, cursor: "pointer", accentColor: "#CB912F" }}
             />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: form.reclamableProveedor ? "#CB912F" : "#37352F" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: form.reclamableProveedor ? "#CB912F" : "#1E2B4A" }}>
                 Reclamable al proveedor
               </div>
-              <div style={{ fontSize: 11, color: "#8C8A82", lineHeight: 1.4 }}>
+              <div style={{ fontSize: 11, color: "#6B7794", lineHeight: 1.4 }}>
                 Si el producto vino defectuoso y querés contemplarlo en el próximo pedido al proveedor
               </div>
             </div>
@@ -1475,24 +1475,24 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
             padding: 10, background: "#FFF7E0", border: "1px solid #F2D59A", borderRadius: 10,
           }}>
             <div>
-              <label style={{ display: "block", fontSize: 11, color: "#8C8A82", marginBottom: 4, fontWeight: 600 }}>
+              <label style={{ display: "block", fontSize: 11, color: "#6B7794", marginBottom: 4, fontWeight: 600 }}>
                 Fecha devolución a proveedor
               </label>
               <input
                 type="date"
                 value={form.providerReturnDate || ""}
                 onChange={e => setForm(f => ({ ...f, providerReturnDate: e.target.value }))}
-                style={{ width: "100%", padding: "8px 10px", borderRadius: 6, border: "1px solid #E8E7E3", fontSize: 13, fontFamily: "inherit", background: "#fff" }}
+                style={{ width: "100%", padding: "8px 10px", borderRadius: 6, border: "1px solid #E5DAC2", fontSize: 13, fontFamily: "inherit", background: "#fff" }}
               />
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 11, color: "#8C8A82", marginBottom: 4, fontWeight: 600 }}>
+              <label style={{ display: "block", fontSize: 11, color: "#6B7794", marginBottom: 4, fontWeight: 600 }}>
                 Resultado
               </label>
               <select
                 value={form.replacedVsReturned || ""}
                 onChange={e => setForm(f => ({ ...f, replacedVsReturned: e.target.value }))}
-                style={{ width: "100%", padding: "8px 10px", borderRadius: 6, border: "1px solid #E8E7E3", fontSize: 13, fontFamily: "inherit", background: "#fff" }}
+                style={{ width: "100%", padding: "8px 10px", borderRadius: 6, border: "1px solid #E5DAC2", fontSize: 13, fontFamily: "inherit", background: "#fff" }}
               >
                 <option value="">Pendiente…</option>
                 <option value="reemplazado">✓ Reemplazado</option>
@@ -1506,7 +1506,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
         {/* Foto del producto fallado */}
         {isGarantia(form.withdrawType) && (
           <div style={{ marginBottom: 14 }}>
-            <label style={{ display: "block", fontSize: 11, color: "#8C8A82", marginBottom: 4, fontWeight: 600 }}>
+            <label style={{ display: "block", fontSize: 11, color: "#6B7794", marginBottom: 4, fontWeight: 600 }}>
               📸 Foto del defecto (URL — opcional, evidencia)
             </label>
             <input
@@ -1516,13 +1516,13 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
               placeholder="https://..."
               style={{
                 width: "100%", padding: "8px 10px", borderRadius: 6,
-                border: "1px solid #E8E7E3", fontSize: 13, fontFamily: "inherit",
+                border: "1px solid #E5DAC2", fontSize: 13, fontFamily: "inherit",
                 background: "#fff", boxSizing: "border-box",
               }}
             />
             {form.failurePhotoUrl && (
               <img src={form.failurePhotoUrl} alt="" onError={e => { e.target.style.display = "none"; }}
-                style={{ marginTop: 6, maxWidth: 120, maxHeight: 120, borderRadius: 6, border: "1px solid #E8E7E3" }}
+                style={{ marginTop: 6, maxWidth: 120, maxHeight: 120, borderRadius: 6, border: "1px solid #E5DAC2" }}
               />
             )}
           </div>
@@ -1533,7 +1533,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
 
         <button onClick={() => document.getElementById("merma-date-toggle")?.click()} style={{ display: "none" }} />
         <details style={{ marginBottom: 14 }}>
-          <summary id="merma-date-toggle" style={{ fontSize: 12, color: "#5E6AD2", cursor: "pointer", fontWeight: 600, marginBottom: 4 }}>
+          <summary id="merma-date-toggle" style={{ fontSize: 12, color: "#1E2B4A", cursor: "pointer", fontWeight: 600, marginBottom: 4 }}>
             Cambiar fecha ({form.date})
           </summary>
           <Input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
@@ -1551,19 +1551,19 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
           const usingFallback = costUSDTunit <= 0;
           return (
             <div style={{
-              background: "#FFFFFF", border: "1px solid #E8E7E3", borderRadius: 12,
+              background: "#FFFFFF", border: "1px solid #E5DAC2", borderRadius: 12,
               padding: "14px 16px", marginBottom: 14,
               display: "flex", flexDirection: "column", gap: 10,
             }}>
-              <div style={{ fontSize: 11, color: "#8C8A82", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6 }}>
+              <div style={{ fontSize: 11, color: "#6B7794", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6 }}>
                 Impacto de esta merma
               </div>
 
               {/* Línea 1: Costo real */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
                 <div>
-                  <div style={{ fontSize: 13, color: "#37352F", fontWeight: 600 }}>Costo real perdido</div>
-                  <div style={{ fontSize: 11, color: "#8C8A82" }}>
+                  <div style={{ fontSize: 13, color: "#1E2B4A", fontWeight: 600 }}>Costo real perdido</div>
+                  <div style={{ fontSize: 11, color: "#6B7794" }}>
                     Lo que pagaste al proveedor por estas {qty} unidad{qty === 1 ? "" : "es"}
                     {usingFallback && " · estimado (sin costUSDT cargado)"}
                   </div>
@@ -1571,21 +1571,21 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                 <div style={{ textAlign: "right" }}>
                   <div style={{ fontSize: 16, fontWeight: 800, color: "#E03E3E" }}>{formatMoney(costRealUSD, "USD")}</div>
                   {exchangeRate > 0 && (
-                    <div style={{ fontSize: 12, color: "#8C8A82" }}>≈ {formatMoney(Math.round(costRealUSD * exchangeRate))} ARS</div>
+                    <div style={{ fontSize: 12, color: "#6B7794" }}>≈ {formatMoney(Math.round(costRealUSD * exchangeRate))} ARS</div>
                   )}
                 </div>
               </div>
 
               {/* Línea 2: Lucro cesante */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, paddingTop: 8, borderTop: "1px solid #F0EFEB" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, paddingTop: 8, borderTop: "1px solid #EFE5CE" }}>
                 <div>
-                  <div style={{ fontSize: 13, color: "#37352F", fontWeight: 600 }}>Lucro cesante</div>
-                  <div style={{ fontSize: 11, color: "#8C8A82" }}>Lo que dejás de ganar al no venderlo</div>
+                  <div style={{ fontSize: 13, color: "#1E2B4A", fontWeight: 600 }}>Lucro cesante</div>
+                  <div style={{ fontSize: 11, color: "#6B7794" }}>Lo que dejás de ganar al no venderlo</div>
                 </div>
                 <div style={{ textAlign: "right" }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: "#CB912F" }}>{formatMoney(lucroCesanteUSD, "USD")}</div>
                   {exchangeRate > 0 && (
-                    <div style={{ fontSize: 11, color: "#8C8A82" }}>≈ {formatMoney(Math.round(lucroCesanteUSD * exchangeRate))} ARS</div>
+                    <div style={{ fontSize: 11, color: "#6B7794" }}>≈ {formatMoney(Math.round(lucroCesanteUSD * exchangeRate))} ARS</div>
                   )}
                 </div>
               </div>
@@ -1593,20 +1593,20 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
               {/* Línea 3: Total impacto */}
               <div style={{
                 display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10,
-                paddingTop: 10, borderTop: "1px solid #E8E7E3",
+                paddingTop: 10, borderTop: "1px solid #E5DAC2",
               }}>
-                <div style={{ fontSize: 13, color: "#37352F", fontWeight: 700 }}>Total impacto</div>
+                <div style={{ fontSize: 13, color: "#1E2B4A", fontWeight: 700 }}>Total impacto</div>
                 <div style={{ textAlign: "right" }}>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: "#37352F" }}>{formatMoney(totalImpactoUSD, "USD")}</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: "#1E2B4A" }}>{formatMoney(totalImpactoUSD, "USD")}</div>
                   {exchangeRate > 0 && (
-                    <div style={{ fontSize: 12, color: "#8C8A82" }}>≈ {formatMoney(Math.round(totalImpactoUSD * exchangeRate))} ARS</div>
+                    <div style={{ fontSize: 12, color: "#6B7794" }}>≈ {formatMoney(Math.round(totalImpactoUSD * exchangeRate))} ARS</div>
                   )}
                 </div>
               </div>
 
               {/* Aviso clave: solo el costo real entra en KPIs */}
               <div style={{
-                fontSize: 11, color: "#8C8A82", fontStyle: "italic",
+                fontSize: 11, color: "#6B7794", fontStyle: "italic",
                 paddingTop: 6,
               }}>
                 Solo el <strong>costo real</strong> se registra en los KPIs financieros.
@@ -1634,7 +1634,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
               <div style={{ fontSize: 13, fontWeight: 700, color: "#CB912F", marginBottom: 4 }}>
                 ⚠️ ¿Estás seguro? Cargaste algo parecido hace {confirmingDup.minutes} min
               </div>
-              <div style={{ fontSize: 12, color: "#555247", marginBottom: 8, lineHeight: 1.4 }}>
+              <div style={{ fontSize: 12, color: "#3A4868", marginBottom: 8, lineHeight: 1.4 }}>
                 <strong>{confirmingDup.mov.qty}× {dupName}</strong><br />
                 {confirmingDup.mov.withdrawType} · {confirmingDup.mov.person} · por {confirmingDup.mov.createdBy || "?"}
               </div>
@@ -1698,7 +1698,7 @@ const ClientPicker = ({ clients = [], sales = [], value, valueName, onChange, la
   return (
     <div style={{ marginBottom: 14 }}>
       <label style={{
-        display: "block", fontSize: 11, fontWeight: 700, color: "#8C8A82",
+        display: "block", fontSize: 11, fontWeight: 700, color: "#6B7794",
         textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6,
       }}>{label}</label>
 
@@ -1707,15 +1707,15 @@ const ClientPicker = ({ clients = [], sales = [], value, valueName, onChange, la
         <div style={{
           display: "flex", alignItems: "center", gap: 10,
           padding: "10px 14px", borderRadius: 10,
-          background: "#EEF0FC", border: "1px solid #5E6AD244",
+          background: "#E8EBF2", border: "1px solid #1E2B4A44",
         }}>
           <span style={{ fontSize: 18 }}>👤</span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#5E6AD2" }}>{valueName || selected.name}</div>
-            {selected.phone && <div style={{ fontSize: 11, color: "#8C8A82" }}>{selected.phone}</div>}
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#1E2B4A" }}>{valueName || selected.name}</div>
+            {selected.phone && <div style={{ fontSize: 11, color: "#6B7794" }}>{selected.phone}</div>}
           </div>
           <button onClick={() => onChange("", "")} style={{
-            background: "none", border: "none", color: "#8C8A82", cursor: "pointer",
+            background: "none", border: "none", color: "#6B7794", cursor: "pointer",
             fontSize: 14, padding: "4px 8px",
           }} title="Quitar vínculo">✕</button>
         </div>
@@ -1726,14 +1726,14 @@ const ClientPicker = ({ clients = [], sales = [], value, valueName, onChange, la
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
               {recentClients.map(c => (
                 <button key={c.id} onClick={() => onChange(c.id, c.name)} style={{
-                  padding: "6px 12px", borderRadius: 999, border: "1px solid #E8E7E3",
-                  background: "#FFFFFF", color: "#37352F", fontSize: 12, fontWeight: 600,
+                  padding: "6px 12px", borderRadius: 999, border: "1px solid #E5DAC2",
+                  background: "#FFFFFF", color: "#1E2B4A", fontSize: 12, fontWeight: 600,
                   cursor: "pointer", fontFamily: "inherit", minHeight: 36,
                 }}>👤 {c.name}</button>
               ))}
               <button onClick={() => onChange("", "Sin cliente específico")} style={{
-                padding: "6px 12px", borderRadius: 999, border: "1px dashed #E8E7E3",
-                background: "transparent", color: "#8C8A82", fontSize: 12, fontWeight: 600,
+                padding: "6px 12px", borderRadius: 999, border: "1px dashed #E5DAC2",
+                background: "transparent", color: "#6B7794", fontSize: 12, fontWeight: 600,
                 cursor: "pointer", fontFamily: "inherit", minHeight: 36,
               }}>Sin cliente</button>
             </div>
@@ -1744,15 +1744,15 @@ const ClientPicker = ({ clients = [], sales = [], value, valueName, onChange, la
             placeholder="Buscar por nombre o teléfono..."
             style={{
               width: "100%", padding: "10px 14px",
-              background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10,
-              color: "#37352F", fontSize: isMobile ? 16 : 14, outline: "none",
+              background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 10,
+              color: "#1E2B4A", fontSize: isMobile ? 16 : 14, outline: "none",
               boxSizing: "border-box", fontFamily: "inherit",
             }} />
 
           {/* Resultados de búsqueda */}
           {filtered.length > 0 && (
             <div style={{
-              marginTop: 6, border: "1px solid #E8E7E3", borderRadius: 10,
+              marginTop: 6, border: "1px solid #E5DAC2", borderRadius: 10,
               background: "#FFFFFF", overflow: "hidden",
             }}>
               {filtered.map((c, i) => (
@@ -1760,17 +1760,17 @@ const ClientPicker = ({ clients = [], sales = [], value, valueName, onChange, la
                   style={{
                     display: "block", width: "100%", padding: "10px 14px",
                     background: "none", border: "none",
-                    borderBottom: i < filtered.length - 1 ? "1px solid #F0EFEB" : "none",
+                    borderBottom: i < filtered.length - 1 ? "1px solid #EFE5CE" : "none",
                     cursor: "pointer", textAlign: "left", fontFamily: "inherit",
                   }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "#37352F" }}>{c.name}</div>
-                  {c.phone && <div style={{ fontSize: 11, color: "#8C8A82" }}>{c.phone}</div>}
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#1E2B4A" }}>{c.name}</div>
+                  {c.phone && <div style={{ fontSize: 11, color: "#6B7794" }}>{c.phone}</div>}
                 </button>
               ))}
             </div>
           )}
           {search.length >= 2 && filtered.length === 0 && (
-            <div style={{ marginTop: 6, fontSize: 12, color: "#8C8A82", padding: "6px 10px" }}>
+            <div style={{ marginTop: 6, fontSize: 12, color: "#6B7794", padding: "6px 10px" }}>
               Sin resultados para "{search}"
             </div>
           )}

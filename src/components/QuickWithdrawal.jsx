@@ -165,7 +165,7 @@ export const QuickWithdrawal = ({
         <div style={{ textAlign: "center", padding: "20px 0" }}>
           <div style={{ fontSize: 56, marginBottom: 12 }}>✅</div>
           <p style={{ fontSize: 17, fontWeight: 700, color: "#0F7B6C", marginBottom: 4 }}>Anotado</p>
-          <p style={{ color: "#8C8A82", fontSize: 14 }}>
+          <p style={{ color: "#6B7794", fontSize: 14 }}>
             {qty}× {selected?.brand} {selected?.model} - {selected?.flavor}
           </p>
           <p style={{ color: "#E03E3E", fontSize: 18, fontWeight: 800, marginTop: 6 }}>
@@ -181,31 +181,31 @@ export const QuickWithdrawal = ({
       {/* Suggested top 5 — solo si no hay nada seleccionado y no se está buscando */}
       {!selected && !search && topForUser.length > 0 && (
         <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "#8C8A82", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#6B7794", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>
             Lo que más fumás últimamente
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {topForUser.map(({ prod, qty: prevQty }) => (
               <button key={prod.id} onClick={() => setSelected(prod)} style={{
                 display: "flex", alignItems: "center", gap: 10,
-                padding: "10px 12px", background: "#FAFAF9",
-                border: "1px solid #E8E7E3", borderRadius: 10,
+                padding: "10px 12px", background: "#F8F2E7",
+                border: "1px solid #E5DAC2", borderRadius: 10,
                 cursor: "pointer", textAlign: "left", fontFamily: "inherit",
                 minHeight: 48,
               }}>
                 <div style={{
                   width: 8, height: 8, borderRadius: "50%",
-                  background: BRAND_COLORS[prod.brand] || "#5E6AD2", flexShrink: 0,
+                  background: BRAND_COLORS[prod.brand] || "#1E2B4A", flexShrink: 0,
                 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "#37352F" }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#1E2B4A" }}>
                     {prod.brand} {prod.model}
                   </div>
-                  <div style={{ fontSize: 11, color: "#8C8A82" }}>{prod.flavor}</div>
+                  <div style={{ fontSize: 11, color: "#6B7794" }}>{prod.flavor}</div>
                 </div>
                 <div style={{ textAlign: "right", flexShrink: 0 }}>
                   <Badge color={(prod.stock || 0) <= 1 ? "#CB912F" : "#0F7B6C"}>{prod.stock} uds</Badge>
-                  <div style={{ fontSize: 10, color: "#8C8A82", marginTop: 2 }}>{prevQty}× consumido</div>
+                  <div style={{ fontSize: 10, color: "#6B7794", marginTop: 2 }}>{prevQty}× consumido</div>
                 </div>
               </button>
             ))}
@@ -220,13 +220,13 @@ export const QuickWithdrawal = ({
             placeholder="O buscar otro producto..."
             style={{
               width: "100%", padding: "12px 14px",
-              background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10,
-              color: "#37352F", fontSize: 16, outline: "none",
+              background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 10,
+              color: "#1E2B4A", fontSize: 16, outline: "none",
               boxSizing: "border-box", fontFamily: "inherit",
             }} />
           {filtered.length > 0 && (
             <div style={{
-              marginTop: 6, border: "1px solid #E8E7E3", borderRadius: 10,
+              marginTop: 6, border: "1px solid #E5DAC2", borderRadius: 10,
               background: "#FFFFFF", overflow: "hidden",
               maxHeight: 280, overflowY: "auto",
             }}>
@@ -236,13 +236,13 @@ export const QuickWithdrawal = ({
                     display: "flex", alignItems: "center", gap: 10,
                     width: "100%", padding: "10px 14px",
                     background: "none", border: "none",
-                    borderBottom: i < filtered.length - 1 ? "1px solid #F0EFEB" : "none",
+                    borderBottom: i < filtered.length - 1 ? "1px solid #EFE5CE" : "none",
                     cursor: "pointer", textAlign: "left", fontFamily: "inherit",
                     minHeight: 48,
                   }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#37352F" }}>{p.brand} {p.model}</div>
-                    <div style={{ fontSize: 11, color: "#8C8A82" }}>{p.flavor}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#1E2B4A" }}>{p.brand} {p.model}</div>
+                    <div style={{ fontSize: 11, color: "#6B7794" }}>{p.flavor}</div>
                   </div>
                   <Badge color={(p.stock || 0) <= 1 ? "#CB912F" : "#0F7B6C"}>{p.stock}</Badge>
                 </button>
@@ -250,7 +250,7 @@ export const QuickWithdrawal = ({
             </div>
           )}
           {search.length >= 2 && filtered.length === 0 && (
-            <div style={{ marginTop: 6, fontSize: 12, color: "#8C8A82", padding: "6px 10px" }}>
+            <div style={{ marginTop: 6, fontSize: 12, color: "#6B7794", padding: "6px 10px" }}>
               Sin resultados para "{search}"
             </div>
           )}
@@ -262,17 +262,17 @@ export const QuickWithdrawal = ({
         <>
           <div style={{
             display: "flex", alignItems: "center", gap: 10,
-            padding: "12px 14px", background: "#EEF0FC", border: "1px solid #5E6AD244",
+            padding: "12px 14px", background: "#E8EBF2", border: "1px solid #1E2B4A44",
             borderRadius: 10, marginBottom: 14,
           }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#37352F" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#1E2B4A" }}>
                 {selected.brand} {selected.model}
               </div>
-              <div style={{ fontSize: 12, color: "#8C8A82" }}>{selected.flavor} · {selected.puffs}p · stock {selected.stock}</div>
+              <div style={{ fontSize: 12, color: "#6B7794" }}>{selected.flavor} · {selected.puffs}p · stock {selected.stock}</div>
             </div>
             <button onClick={() => { setSelected(null); setQty(1); }} style={{
-              background: "none", border: "none", color: "#8C8A82", cursor: "pointer",
+              background: "none", border: "none", color: "#6B7794", cursor: "pointer",
               fontSize: 14, padding: "4px 8px",
             }}>✕</button>
           </div>
@@ -281,35 +281,35 @@ export const QuickWithdrawal = ({
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, marginBottom: 14 }}>
             <button onClick={() => setQty(Math.max(1, qty - 1))} disabled={qty <= 1} style={{
               width: 48, height: 48, borderRadius: 12,
-              border: "1px solid #E8E7E3", background: "#FFFFFF",
+              border: "1px solid #E5DAC2", background: "#FFFFFF",
               cursor: qty <= 1 ? "not-allowed" : "pointer",
-              fontSize: 24, fontWeight: 700, color: qty <= 1 ? "#B1AFA7" : "#37352F",
+              fontSize: 24, fontWeight: 700, color: qty <= 1 ? "#9AA2B3" : "#1E2B4A",
             }}>−</button>
             <div style={{ minWidth: 64, textAlign: "center" }}>
-              <div style={{ fontSize: 11, color: "#8C8A82", fontWeight: 700, textTransform: "uppercase" }}>cantidad</div>
-              <div style={{ fontSize: 36, fontWeight: 800, color: "#37352F", lineHeight: 1 }}>{qty}</div>
+              <div style={{ fontSize: 11, color: "#6B7794", fontWeight: 700, textTransform: "uppercase" }}>cantidad</div>
+              <div style={{ fontSize: 36, fontWeight: 800, color: "#1E2B4A", lineHeight: 1 }}>{qty}</div>
             </div>
             <button onClick={() => setQty(Math.min(selected.stock, qty + 1))} disabled={qty >= selected.stock} style={{
               width: 48, height: 48, borderRadius: 12,
-              border: "1px solid #E8E7E3", background: "#FFFFFF",
+              border: "1px solid #E5DAC2", background: "#FFFFFF",
               cursor: qty >= selected.stock ? "not-allowed" : "pointer",
-              fontSize: 24, fontWeight: 700, color: qty >= selected.stock ? "#B1AFA7" : "#37352F",
+              fontSize: 24, fontWeight: 700, color: qty >= selected.stock ? "#9AA2B3" : "#1E2B4A",
             }}>+</button>
           </div>
 
           {/* Costo */}
           <div style={{
             padding: "12px 14px", borderRadius: 10, marginBottom: 14,
-            background: "#FAFAF9", border: "1px solid #E8E7E3",
+            background: "#F8F2E7", border: "1px solid #E5DAC2",
             display: "flex", justifyContent: "space-between", alignItems: "baseline",
           }}>
             <div>
-              <div style={{ fontSize: 11, color: "#8C8A82", fontWeight: 700, textTransform: "uppercase" }}>Costo perdido</div>
-              <div style={{ fontSize: 11, color: "#B1AFA7" }}>Se imputa 100% a {personDefault}</div>
+              <div style={{ fontSize: 11, color: "#6B7794", fontWeight: 700, textTransform: "uppercase" }}>Costo perdido</div>
+              <div style={{ fontSize: 11, color: "#9AA2B3" }}>Se imputa 100% a {personDefault}</div>
             </div>
             <div style={{ textAlign: "right" }}>
               <div style={{ fontSize: 18, fontWeight: 800, color: "#E03E3E" }}>{formatMoney(costRealUSD, "USD")}</div>
-              {exchangeRate > 0 && <div style={{ fontSize: 12, color: "#8C8A82" }}>≈ {formatMoney(costRealARS)} ARS</div>}
+              {exchangeRate > 0 && <div style={{ fontSize: 12, color: "#6B7794" }}>≈ {formatMoney(costRealARS)} ARS</div>}
             </div>
           </div>
 
@@ -324,8 +324,8 @@ export const QuickWithdrawal = ({
               </div>
               <div style={{ display: "flex", gap: 6 }}>
                 <button onClick={() => setConfirmingDup(null)} style={{
-                  flex: 1, padding: "8px 12px", borderRadius: 8, border: "1px solid #E8E7E3",
-                  background: "#FFFFFF", color: "#555247", fontSize: 12, fontWeight: 600,
+                  flex: 1, padding: "8px 12px", borderRadius: 8, border: "1px solid #E5DAC2",
+                  background: "#FFFFFF", color: "#3A4868", fontSize: 12, fontWeight: 600,
                   cursor: "pointer", fontFamily: "inherit",
                 }}>Cancelar</button>
                 <button onClick={attemptSubmit} style={{
@@ -348,7 +348,7 @@ export const QuickWithdrawal = ({
 
       {/* Empty state si no hay nada */}
       {!selected && !search && topForUser.length === 0 && (
-        <div style={{ textAlign: "center", padding: "20px 0", color: "#8C8A82", fontSize: 13 }}>
+        <div style={{ textAlign: "center", padding: "20px 0", color: "#6B7794", fontSize: 13 }}>
           Empezá buscando un producto arriba.
         </div>
       )}

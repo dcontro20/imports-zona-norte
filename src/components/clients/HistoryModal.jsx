@@ -70,7 +70,7 @@ const HistoryModal = ({ client, stats, productsById, withdrawals = [], onClose }
             border: `1px solid ${activeTab === tab.key ? T.primary : T.borderSoft}`,
             borderRadius: 20, fontSize: 12,
             fontWeight: activeTab === tab.key ? 700 : 500,
-            background: activeTab === tab.key ? "#EEF0FC" : T.surface2,
+            background: activeTab === tab.key ? "#E8EBF2" : T.surface2,
             color: activeTab === tab.key ? T.primary : T.textMuted,
             cursor: "pointer", fontFamily: "inherit",
           }}>{tab.label}</button>

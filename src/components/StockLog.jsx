@@ -6,7 +6,7 @@ import { useResponsive } from "../App.jsx";
 // -- STOCK LOG --
 const STOCK_LOG_TYPES = {
   "venta": { label: "Venta", color: "#00b894", icon: "🛒" },
-  "compra": { label: "Compra", color: "#5E6AD2", icon: "📦" },
+  "compra": { label: "Compra", color: "#1E2B4A", icon: "📦" },
   "consumo": { label: "Consumo", color: "#e17055", icon: "🚬" },
   "ajuste": { label: "Ajuste", color: "#fdcb6e", icon: "⚡" },
   "devolucion": { label: "Devolución", color: "#00cec9", icon: "↩️" },
@@ -38,15 +38,15 @@ export const StockLog = ({ stockLog, setStockLog, products }) => {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h2 style={{ color: "#37352F", margin: 0, fontSize: 22 }}>Historial de Stock</h2>
-          <span style={{ color: "#8C8A82", fontSize: 13 }}>{filtered.length} movimientos{hasFilters ? " (filtrados)" : ""}</span>
+          <h2 style={{ color: "#1E2B4A", margin: 0, fontSize: 22 }}>Historial de Stock</h2>
+          <span style={{ color: "#6B7794", fontSize: 13 }}>{filtered.length} movimientos{hasFilters ? " (filtrados)" : ""}</span>
         </div>
       </div>
 
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 16 }}>
         <StatCard label="Entradas" value={`+${totalIn}`} icon="📥" color="#00b894" />
         <StatCard label="Salidas" value={`-${totalOut}`} icon="📤" color="#E03E3E" />
-        <StatCard label="Neto" value={totalIn - totalOut >= 0 ? `+${totalIn - totalOut}` : `${totalIn - totalOut}`} icon="📊" color="#5E6AD2" />
+        <StatCard label="Neto" value={totalIn - totalOut >= 0 ? `+${totalIn - totalOut}` : `${totalIn - totalOut}`} icon="📊" color="#1E2B4A" />
       </div>
 
       {/* Filters — responsive grid */}

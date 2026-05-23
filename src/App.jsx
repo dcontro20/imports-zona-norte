@@ -3,6 +3,7 @@ import { uid, formatMoney, formatDate } from "./helpers.js";
 import { useFirebaseSync } from "./useFirebaseSync.js";
 import { AppContext } from "./AppContext.js";
 import { loginWithEmail, logout, onAuthChange, getUserProfile } from "./firebase.js";
+import { LogoMark, LogoFull } from "./components/Logo.jsx";
 
 // Responsive hook — used by UI.jsx, Dashboard.jsx, PriceLog.jsx and others
 export const useResponsive = () => {
@@ -56,7 +57,7 @@ const SupplierMonitor = lazy(() => import("./components/SupplierMonitor.jsx").th
 
 const LoadingSpinner = () => (
   <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "40px 16px" }}>
-    <span style={{ color: "#5E6AD2", fontSize: 15, fontWeight: 500 }}>Cargando...</span>
+    <span style={{ color: "#1E2B4A", fontSize: 15, fontWeight: 500 }}>Cargando...</span>
   </div>
 );
 
@@ -77,10 +78,10 @@ class ErrorBoundary extends Component {
       return (
         <div style={{ padding: "32px 16px", textAlign: "center" }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
-          <h2 style={{ color: "#37352F", marginBottom: 8 }}>Algo salió mal</h2>
-          <p style={{ color: "#8C8A82", fontSize: 14, marginBottom: 20 }}>{this.state.error?.message || "Error inesperado"}</p>
+          <h2 style={{ color: "#1E2B4A", marginBottom: 8 }}>Algo salió mal</h2>
+          <p style={{ color: "#6B7794", fontSize: 14, marginBottom: 20 }}>{this.state.error?.message || "Error inesperado"}</p>
           <button onClick={() => this.setState({ hasError: false, error: null })} style={{
-            padding: "10px 24px", background: "#5E6AD2", color: "#fff", border: "none",
+            padding: "10px 24px", background: "#1E2B4A", color: "#fff", border: "none",
             borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: "pointer"
           }}>Reintentar</button>
         </div>
@@ -293,10 +294,10 @@ export default function App() {
   // ---- Loading screen ----
   if (authLoading) {
     return (
-      <div style={{ minHeight: "100vh", background: "#FAFAF9", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ textAlign: "center" }}>
-          <span style={{ fontSize: 48 }}>💨</span>
-          <p style={{ color: "#5E6AD2", fontSize: 15, fontWeight: 500, marginTop: 12 }}>Cargando...</p>
+      <div style={{ minHeight: "100vh", background: "#F8F2E7", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ textAlign: "center", animation: "fadeIn 0.4s ease" }}>
+          <LogoMark size={72} bgColor="#F8F2E7" />
+          <p style={{ color: "#3A4868", fontSize: 14, fontWeight: 600, marginTop: 16, letterSpacing: 0.3 }}>Cargando...</p>
         </div>
       </div>
     );
@@ -305,11 +306,23 @@ export default function App() {
   // ---- Login screen ----
   if (!currentUser) {
     return (
-      <div style={{ minHeight: "100vh", background: "#FAFAF9", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Open Sans', 'Inter', -apple-system, sans-serif" }}>
-        <div style={{ background: "#FFFFFF", border: "1px solid #E8E7E3", borderRadius: 16, padding: "40px 32px", width: "100%", maxWidth: 360, textAlign: "center", boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
-          <span style={{ fontSize: 48 }}>💨</span>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: "#37352F", margin: "12px 0 6px", fontFamily: "'Poppins', sans-serif" }}>IMPORTS ZONA NORTE</h1>
-          <p style={{ color: "#B1AFA7", fontSize: 13, marginBottom: 24 }}>Sistema de Gestión</p>
+      <div style={{
+        minHeight: "100vh", background: "#F8F2E7", display: "flex", alignItems: "center", justifyContent: "center",
+        fontFamily: "'Inter', -apple-system, sans-serif", padding: "20px",
+        backgroundImage: "radial-gradient(circle at 20% 30%, rgba(30,43,74,0.04) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(30,43,74,0.04) 0%, transparent 50%)",
+      }}>
+        <div style={{
+          background: "#FFFFFF", border: "1px solid #E5DAC2", borderRadius: 20,
+          padding: "40px 32px", width: "100%", maxWidth: 380, textAlign: "center",
+          boxShadow: "0 12px 40px rgba(30, 43, 74, 0.10), 0 1px 3px rgba(30, 43, 74, 0.06)",
+        }}>
+          <div style={{ marginBottom: 24 }}>
+            <LogoFull size={48} orientation="stacked" />
+          </div>
+          <p style={{
+            color: "#6B7794", fontSize: 12, marginBottom: 28,
+            textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 700,
+          }}>Sistema de Gestión</p>
           <input
             type="email"
             value={loginEmail}
@@ -317,12 +330,14 @@ export default function App() {
             onKeyDown={e => e.key === "Enter" && document.getElementById("login-pass")?.focus()}
             placeholder="Email"
             style={{
-              width: "100%", padding: "14px 18px", background: "#FAFAF9",
-              border: `1px solid ${loginError ? "#E03E3E" : "#E8E7E3"}`,
-              borderRadius: 10, color: "#37352F", fontSize: 16, outline: "none",
-              marginBottom: 10, boxSizing: "border-box",
-              transition: "border-color 0.3s"
+              width: "100%", padding: "14px 18px", background: "#F8F2E7",
+              border: `1px solid ${loginError ? "#B83232" : "#E5DAC2"}`,
+              borderRadius: 12, color: "#1E2B4A", fontSize: 16, outline: "none",
+              marginBottom: 10, boxSizing: "border-box", fontFamily: "inherit",
+              transition: "border-color 0.2s, box-shadow 0.2s",
             }}
+            onFocus={e => e.target.style.borderColor = "#1E2B4A"}
+            onBlur={e => e.target.style.borderColor = loginError ? "#B83232" : "#E5DAC2"}
             autoFocus
           />
           <input
@@ -333,19 +348,27 @@ export default function App() {
             onKeyDown={e => e.key === "Enter" && handleLogin()}
             placeholder="Contraseña"
             style={{
-              width: "100%", padding: "14px 18px", background: "#FAFAF9",
-              border: `1px solid ${loginError ? "#E03E3E" : "#E8E7E3"}`,
-              borderRadius: 10, color: "#37352F", fontSize: 16, outline: "none",
-              marginBottom: 14, boxSizing: "border-box",
-              transition: "border-color 0.3s"
+              width: "100%", padding: "14px 18px", background: "#F8F2E7",
+              border: `1px solid ${loginError ? "#B83232" : "#E5DAC2"}`,
+              borderRadius: 12, color: "#1E2B4A", fontSize: 16, outline: "none",
+              marginBottom: 18, boxSizing: "border-box", fontFamily: "inherit",
+              transition: "border-color 0.2s",
             }}
+            onFocus={e => e.target.style.borderColor = "#1E2B4A"}
+            onBlur={e => e.target.style.borderColor = loginError ? "#B83232" : "#E5DAC2"}
           />
           <button onClick={handleLogin} style={{
-            width: "100%", padding: "14px", background: "#5E6AD2",
-            border: "none", borderRadius: 10, color: "#fff", fontSize: 16, fontWeight: 700,
-            cursor: "pointer"
-          }}>Entrar</button>
-          {loginError && <p style={{ color: "#E03E3E", fontSize: 13, marginTop: 10 }}>{loginError}</p>}
+            width: "100%", padding: "14px", background: "#1E2B4A",
+            border: "none", borderRadius: 12, color: "#F8F2E7",
+            fontSize: 15, fontWeight: 700, letterSpacing: 0.5,
+            cursor: "pointer", fontFamily: "inherit",
+            transition: "background 0.15s, transform 0.05s",
+          }}
+            onMouseDown={e => e.currentTarget.style.transform = "scale(0.98)"}
+            onMouseUp={e => e.currentTarget.style.transform = "scale(1)"}
+            onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+          >Entrar</button>
+          {loginError && <p style={{ color: "#B83232", fontSize: 13, marginTop: 12, fontWeight: 500 }}>{loginError}</p>}
         </div>
       </div>
     );
@@ -395,33 +418,27 @@ export default function App() {
   return (
     <AppContext.Provider value={ctxValue}>
       <div style={{
-        minHeight: "100vh", background: "#FAFAF9", fontFamily: "'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif",
-        color: "#37352F"
+        minHeight: "100vh", background: "#F8F2E7", fontFamily: "'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif",
+        color: "#1E2B4A"
       }}>
-        {/* Top bar */}
+        {/* Top bar — con logo brand */}
         <div style={{
-          background: "#FFFFFF", borderBottom: "1px solid #E8E7E3",
-          padding: isMobile ? "10px 14px" : "10px 20px",
+          background: "#FFFFFF", borderBottom: "1px solid #E5DAC2",
+          padding: isMobile ? "10px 14px" : "12px 24px",
           paddingTop: "max(10px, env(safe-area-inset-top))",
           display: "flex", alignItems: "center", justifyContent: "space-between",
           position: "sticky", top: 0, zIndex: 100,
-          boxShadow: "0 1px 3px rgba(15,15,15,0.04)",
+          boxShadow: "0 2px 8px rgba(30, 43, 74, 0.04)",
           gap: 8,
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 6 : 12, minWidth: 0, flex: "0 1 auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 14, minWidth: 0, flex: "0 1 auto" }}>
             <button onClick={() => setMenuOpen(!menuOpen)} aria-label="Abrir menú" style={{
-              background: "none", border: "none", color: "#5E6AD2", fontSize: 24, cursor: "pointer",
+              background: "none", border: "none", color: "#1E2B4A", fontSize: 22, cursor: "pointer",
               display: isMobile ? "flex" : "none", flexShrink: 0,
               width: 40, height: 40, padding: 0, borderRadius: 8,
               alignItems: "center", justifyContent: "center",
             }}>☰</button>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-              <span style={{ fontSize: isMobile ? 20 : 22, flexShrink: 0 }}>💨</span>
-              <span style={{
-                fontSize: isMobile ? 13 : 18, fontWeight: 800, color: "#37352F", letterSpacing: "-0.3px",
-                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-              }}>{isMobile ? "IMPORTS ZN" : "IMPORTS ZONA NORTE"}</span>
-            </div>
+            <LogoFull size={isMobile ? 28 : 34} compact={isMobile} />
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 6 : 12 }}>
             {/* Global Search — hidden on mobile to save space */}
@@ -430,24 +447,24 @@ export default function App() {
                 <input value={globalSearch} onChange={e => { setGlobalSearch(e.target.value); setShowGlobalResults(true); }}
                   onFocus={() => setShowGlobalResults(true)}
                   placeholder="Buscar..."
-                  style={{ padding: "7px 14px 7px 32px", background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 8, color: "#37352F", fontSize: 13, width: 180, outline: "none" }} />
-                <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "#B1AFA7", pointerEvents: "none" }}>🔍</span>
+                  style={{ padding: "7px 14px 7px 32px", background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 8, color: "#1E2B4A", fontSize: 13, width: 180, outline: "none" }} />
+                <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "#9AA2B3", pointerEvents: "none" }}>🔍</span>
                 {showGlobalResults && globalResults.length > 0 && (
                   <div style={{
                     position: "absolute", top: "100%", right: 0, marginTop: 6, background: "#FFFFFF",
-                    border: "1px solid #E8E7E3", borderRadius: 12, width: 350, maxHeight: 400, overflowY: "auto",
+                    border: "1px solid #E5DAC2", borderRadius: 12, width: 350, maxHeight: 400, overflowY: "auto",
                     boxShadow: "0 12px 32px rgba(0,0,0,0.1)", zIndex: 200
                   }}>
                     {globalResults.map((r, i) => (
                       <div key={i} onClick={() => { setPage(r.page); setGlobalSearch(""); setShowGlobalResults(false); }}
                         style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", cursor: "pointer",
-                          borderBottom: i < globalResults.length - 1 ? "1px solid #E8E7E3" : "none" }}
-                        onMouseEnter={e => e.currentTarget.style.background = "#FAFAF9"}
+                          borderBottom: i < globalResults.length - 1 ? "1px solid #E5DAC2" : "none" }}
+                        onMouseEnter={e => e.currentTarget.style.background = "#F8F2E7"}
                         onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                         <span style={{ fontSize: 18 }}>{r.icon}</span>
                         <div style={{ flex: 1 }}>
-                          <div style={{ color: "#37352F", fontSize: 13, fontWeight: 600 }}>{r.label}</div>
-                          <div style={{ color: "#B1AFA7", fontSize: 11 }}>{r.sub}</div>
+                          <div style={{ color: "#1E2B4A", fontSize: 13, fontWeight: 600 }}>{r.label}</div>
+                          <div style={{ color: "#9AA2B3", fontSize: 11 }}>{r.sub}</div>
                         </div>
                       </div>
                     ))}
@@ -456,8 +473,8 @@ export default function App() {
                 {showGlobalResults && globalSearch.length >= 2 && globalResults.length === 0 && (
                   <div style={{
                     position: "absolute", top: "100%", right: 0, marginTop: 6, background: "#FFFFFF",
-                    border: "1px solid #E8E7E3", borderRadius: 12, width: 250, padding: "16px",
-                    boxShadow: "0 12px 32px rgba(0,0,0,0.1)", zIndex: 200, textAlign: "center", color: "#B1AFA7", fontSize: 13
+                    border: "1px solid #E5DAC2", borderRadius: 12, width: 250, padding: "16px",
+                    boxShadow: "0 12px 32px rgba(0,0,0,0.1)", zIndex: 200, textAlign: "center", color: "#9AA2B3", fontSize: 13
                   }}>Sin resultados</div>
                 )}
               </div>
@@ -487,33 +504,33 @@ export default function App() {
             </div>
             {/* Dolar Blue — hidden on mobile to save space */}
             {!isMobile && (
-              <div style={{ fontSize: 13, color: "#8C8A82", fontWeight: 500 }}>
-                Blue: <span style={{ color: "#37352F", fontWeight: 700 }}>${exchangeRate}</span>
+              <div style={{ fontSize: 13, color: "#6B7794", fontWeight: 500 }}>
+                Blue: <span style={{ color: "#1E2B4A", fontWeight: 700 }}>${exchangeRate}</span>
               </div>
             )}
             <button onClick={() => setSettingsOpen(true)} aria-label="Configuración"
               style={{
-                background: "transparent", border: "1px solid #E8E7E3",
+                background: "transparent", border: "1px solid #E5DAC2",
                 borderRadius: 8, padding: isMobile ? "5px 8px" : "5px 10px",
-                cursor: "pointer", color: "#8C8A82", fontSize: 14,
+                cursor: "pointer", color: "#6B7794", fontSize: 14,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 flexShrink: 0, fontFamily: "inherit",
               }}>⚙️</button>
             {/* User badge */}
             <div style={{
               display: "flex", alignItems: "center", gap: isMobile ? 4 : 6,
-              background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 8,
+              background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 8,
               padding: isMobile ? "5px 8px" : "5px 12px",
               flexShrink: 0, maxWidth: isMobile ? 110 : "none",
             }}>
               <span style={{ width: 8, height: 8, borderRadius: "50%", background: currentUser.color, display: "inline-block", flexShrink: 0 }} />
               <span style={{
-                color: "#37352F", fontSize: 13, fontWeight: 600,
+                color: "#1E2B4A", fontSize: 13, fontWeight: 600,
                 overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                 minWidth: 0,
               }}>{currentUser.name}</span>
               <button onClick={handleLogout} aria-label="Cerrar sesión" style={{
-                background: "none", border: "none", color: "#B1AFA7", cursor: "pointer",
+                background: "none", border: "none", color: "#9AA2B3", cursor: "pointer",
                 fontSize: 14, marginLeft: 2, padding: 0,
                 width: 24, height: 24, borderRadius: 4,
                 display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
@@ -527,7 +544,7 @@ export default function App() {
           <nav style={{
             width: isMobile ? 260 : 220,
             minHeight: "calc(100vh - 52px)",
-            background: "#FFFFFF", borderRight: "1px solid #E8E7E3",
+            background: "#FFFFFF", borderRight: "1px solid #E5DAC2",
             padding: "12px 0", flexShrink: 0,
             ...(isMobile ? {
               position: "fixed", top: 52, bottom: 0,
@@ -545,12 +562,12 @@ export default function App() {
                 display: "flex", alignItems: "center", gap: 12, width: "100%",
                 padding: isMobile ? "13px 20px" : "10px 20px",
                 minHeight: isMobile ? 48 : 40,
-                background: page === item.key ? "#EEF0FC" : "transparent",
-                border: "none", borderLeft: page === item.key ? "3px solid #5E6AD2" : "3px solid transparent",
-                color: page === item.key ? "#37352F" : "#8C8A82", cursor: "pointer",
+                background: page === item.key ? "#E8EBF2" : "transparent",
+                border: "none", borderLeft: page === item.key ? "3px solid #1E2B4A" : "3px solid transparent",
+                color: page === item.key ? "#1E2B4A" : "#6B7794", cursor: "pointer",
                 fontSize: isMobile ? 14 : 13, fontWeight: page === item.key ? 700 : 500, textAlign: "left",
                 transition: "all 0.2s", fontFamily: "inherit",
-                WebkitTapHighlightColor: "rgba(94,106,210,0.08)",
+                WebkitTapHighlightColor: "rgba(30,43,74,0.08)",
               }}>
                 <span style={{ fontSize: 18, flexShrink: 0 }}>{item.icon}</span>
                 <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</span>
@@ -631,11 +648,11 @@ export default function App() {
                 right: 20,
                 width: 60, height: 60,
                 borderRadius: "50%",
-                background: "linear-gradient(135deg, #5E6AD2 0%, #6366f1 100%)",
+                background: "linear-gradient(135deg, #1E2B4A 0%, #3A4868 100%)",
                 border: "none", color: "#fff",
                 fontSize: 26, cursor: "pointer",
                 zIndex: 92,
-                boxShadow: "0 8px 24px rgba(94,106,210,0.45), 0 2px 8px rgba(15,15,15,0.12)",
+                boxShadow: "0 8px 24px rgba(30,43,74,0.45), 0 2px 8px rgba(15,15,15,0.12)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 transform: fabMenuOpen ? "rotate(45deg)" : "rotate(0)",
                 transition: "transform 0.18s ease-out",
@@ -650,10 +667,10 @@ export default function App() {
                 height: 60,
                 display: "flex", alignItems: "center",
                 fontSize: 13, fontWeight: 600, color: "#fff",
-                background: "linear-gradient(135deg, #5E6AD2 0%, #6366f1 100%)",
+                background: "linear-gradient(135deg, #1E2B4A 0%, #3A4868 100%)",
                 padding: "0 14px", borderRadius: 999,
                 zIndex: 91,
-                boxShadow: "0 6px 18px rgba(94,106,210,0.45), 0 2px 6px rgba(15,15,15,0.12)",
+                boxShadow: "0 6px 18px rgba(30,43,74,0.45), 0 2px 6px rgba(15,15,15,0.12)",
                 pointerEvents: "none",
               }}>🛒 Venta rápida</div>
             )}
@@ -759,9 +776,9 @@ export default function App() {
         <div style={{
           position: "fixed", top: 70, left: "50%", transform: "translateX(-50%)",
           zIndex: 2002, maxWidth: "92vw",
-          background: "#5E6AD2", color: "#FFFFFF",
+          background: "#1E2B4A", color: "#FFFFFF",
           padding: "12px 18px", borderRadius: 10,
-          boxShadow: "0 8px 24px rgba(94,106,210,0.35)",
+          boxShadow: "0 8px 24px rgba(30,43,74,0.35)",
           fontSize: 13, fontWeight: 600, fontFamily: "inherit",
           display: "flex", alignItems: "center", gap: 10,
         }}>

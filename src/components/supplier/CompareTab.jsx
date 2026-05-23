@@ -206,7 +206,7 @@ export function CompareTab({
       {/* Top: chips de listas cargadas + botón add */}
       <Card style={{ marginBottom: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: "#37352F" }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#1E2B4A" }}>
             {loadedLists.length === 0 ? "Empezá agregando listas" : `${loadedLists.length} ${loadedLists.length === 1 ? "lista cargada" : "listas cargadas"}`}
           </div>
           <Btn onClick={() => setShowAddListModal(true)} disabled={activeProfilesList.length === 0}>
@@ -233,12 +233,12 @@ export function CompareTab({
               >
                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: l.color }} />
                 <span style={{ fontSize: 13, fontWeight: 700, color: l.color }}>{l.supplierName}</span>
-                <span style={{ fontSize: 11, color: "#8C8A82" }}>· {l.items.length} items</span>
+                <span style={{ fontSize: 11, color: "#6B7794" }}>· {l.items.length} items</span>
                 <button
                   onClick={() => removeList(l.supplierId)}
                   aria-label="Quitar"
                   style={{
-                    background: "none", border: "none", color: "#8C8A82",
+                    background: "none", border: "none", color: "#6B7794",
                     cursor: "pointer", fontSize: 13, padding: "0 0 0 4px",
                     fontFamily: "inherit",
                   }}
@@ -251,9 +251,9 @@ export function CompareTab({
 
       {loadedLists.length === 0 && !busy && (
         <Card>
-          <div style={{ textAlign: "center", padding: isMobile ? 24 : 48, color: "#8C8A82" }}>
+          <div style={{ textAlign: "center", padding: isMobile ? 24 : 48, color: "#6B7794" }}>
             <div style={{ fontSize: isMobile ? 48 : 64, marginBottom: 12 }}>🔀</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: "#37352F", marginBottom: 6 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "#1E2B4A", marginBottom: 6 }}>
               Compará proveedores lado a lado
             </div>
             <div style={{ fontSize: 13, maxWidth: 500, margin: "0 auto" }}>
@@ -297,17 +297,17 @@ export function CompareTab({
                       background: s.color, borderRadius: "12px 12px 0 0",
                     }} />
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginTop: 4, marginBottom: 10 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: "#37352F" }}>{s.supplierName}</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: "#1E2B4A" }}>{s.supplierName}</div>
                       {isBest && <Badge label="🏆 Líder" color="#0F7B6C" />}
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                       <Mini label="Productos" value={s.totalProductsListed} />
                       <Mini label="Disponibles" value={s.availableCount} color="#0F7B6C" />
-                      <Mini label="Mejor precio" value={s.bestPriceCount} color={isBest ? "#0F7B6C" : "#555247"} bold={isBest} />
-                      <Mini label="Exclusivos" value={s.exclusiveCount} color="#5E6AD2" />
+                      <Mini label="Mejor precio" value={s.bestPriceCount} color={isBest ? "#0F7B6C" : "#3A4868"} bold={isBest} />
+                      <Mini label="Exclusivos" value={s.exclusiveCount} color="#1E2B4A" />
                     </div>
-                    <div style={{ marginTop: 10, paddingTop: 8, borderTop: "1px solid #F0EFEB" }}>
-                      <div style={{ fontSize: 10, color: "#8C8A82", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 4 }}>
+                    <div style={{ marginTop: 10, paddingTop: 8, borderTop: "1px solid #EFE5CE" }}>
+                      <div style={{ fontSize: 10, color: "#6B7794", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 4 }}>
                         Premium vs el mejor precio
                       </div>
                       <div style={{ fontSize: 14, fontWeight: 700, color: s.avgPremiumVsBest > 5 ? "#E03E3E" : s.avgPremiumVsBest > 0 ? "#CB912F" : "#0F7B6C" }}>
@@ -322,7 +322,7 @@ export function CompareTab({
 
           {/* Top opportunities (mayor spread) */}
           {topSpreads.length > 0 && (
-            <Card style={{ marginBottom: 16, background: "linear-gradient(135deg, #EEF0FC 0%, #FFFFFF 100%)", border: "1px solid #5E6AD240" }}>
+            <Card style={{ marginBottom: 16, background: "linear-gradient(135deg, #E8EBF2 0%, #FFFFFF 100%)", border: "1px solid #1E2B4A40" }}>
               <SectionTitle style={{ marginTop: 0 }}>💎 Top oportunidades (mayor diferencia entre proveedores)</SectionTitle>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {topSpreads.map(p => {
@@ -332,11 +332,11 @@ export function CompareTab({
                     <div key={p.productId} style={{
                       display: "flex", alignItems: "center", justifyContent: "space-between",
                       gap: 10, padding: "8px 12px",
-                      background: "#FFFFFF", borderRadius: 8, border: "1px solid #E8E7E3",
+                      background: "#FFFFFF", borderRadius: 8, border: "1px solid #E5DAC2",
                       flexWrap: "wrap",
                     }}>
                       <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: "#37352F",
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "#1E2B4A",
                           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {p.brand} {p.model} · {p.flavor}
                         </div>
@@ -344,9 +344,9 @@ export function CompareTab({
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <SupplierBadge name={bestSup?.supplierName || "?"} color={bestSup?.color} size="sm" />
                         <span style={{ fontSize: 13, fontWeight: 700, color: "#0F7B6C" }}>${p.best.priceUSD}</span>
-                        <span style={{ fontSize: 11, color: "#8C8A82" }}>vs</span>
+                        <span style={{ fontSize: 11, color: "#6B7794" }}>vs</span>
                         <SupplierBadge name={worstSup?.supplierName || "?"} color={worstSup?.color} size="sm" />
-                        <span style={{ fontSize: 13, color: "#8C8A82", textDecoration: "line-through" }}>${p.worst.priceUSD}</span>
+                        <span style={{ fontSize: 13, color: "#6B7794", textDecoration: "line-through" }}>${p.worst.priceUSD}</span>
                         <span style={{
                           fontSize: 11, fontWeight: 800, color: "#FFFFFF",
                           background: "#0F7B6C", padding: "2px 8px", borderRadius: 6,
@@ -367,8 +367,8 @@ export function CompareTab({
                 onChange={e => setFilterText(e.target.value)}
                 placeholder="🔍 Buscar producto..."
                 style={{
-                  padding: "8px 12px", background: "#FAFAF9",
-                  border: "1px solid #E8E7E3", borderRadius: 8,
+                  padding: "8px 12px", background: "#F8F2E7",
+                  border: "1px solid #E5DAC2", borderRadius: 8,
                   fontSize: 13, outline: "none", fontFamily: "inherit",
                   minWidth: 180, flex: isMobile ? "1 1 100%" : "0 1 auto",
                 }}
@@ -377,20 +377,20 @@ export function CompareTab({
                 value={filterBrand}
                 onChange={e => setFilterBrand(e.target.value)}
                 style={{
-                  padding: "8px 12px", background: "#FAFAF9",
-                  border: "1px solid #E8E7E3", borderRadius: 8,
+                  padding: "8px 12px", background: "#F8F2E7",
+                  border: "1px solid #E5DAC2", borderRadius: 8,
                   fontSize: 13, outline: "none", fontFamily: "inherit",
                 }}
               >
                 <option value="">Todas las marcas</option>
                 {brandsInMatrix.map(b => <option key={b} value={b}>{b}</option>)}
               </select>
-              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#555247", cursor: "pointer" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#3A4868", cursor: "pointer" }}>
                 <input
                   type="checkbox"
                   checked={showOnlyAvailable}
                   onChange={e => setShowOnlyAvailable(e.target.checked)}
-                  style={{ accentColor: "#5E6AD2" }}
+                  style={{ accentColor: "#1E2B4A" }}
                 />
                 Solo disponibles
               </label>
@@ -398,7 +398,7 @@ export function CompareTab({
                 <button
                   onClick={() => autoFillDemand("best")}
                   style={{
-                    background: "transparent", border: "1px solid #E8E7E3", color: "#5E6AD2",
+                    background: "transparent", border: "1px solid #E5DAC2", color: "#1E2B4A",
                     padding: "6px 10px", borderRadius: 8, fontSize: 12, cursor: "pointer",
                     fontWeight: 600, fontFamily: "inherit",
                   }}
@@ -406,7 +406,7 @@ export function CompareTab({
                 <button
                   onClick={() => setDemand({})}
                   style={{
-                    background: "transparent", border: "1px solid #E8E7E3", color: "#555247",
+                    background: "transparent", border: "1px solid #E5DAC2", color: "#3A4868",
                     padding: "6px 10px", borderRadius: 8, fontSize: 12, cursor: "pointer",
                     fontWeight: 600, fontFamily: "inherit",
                   }}
@@ -421,7 +421,7 @@ export function CompareTab({
             <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 600 }}>
                 <thead>
-                  <tr style={{ background: "#FAFAF9" }}>
+                  <tr style={{ background: "#F8F2E7" }}>
                     <th style={th()}>Producto</th>
                     {matrix.suppliers.map(s => (
                       <th key={s.supplierId} style={{ ...th(), textAlign: "center", minWidth: 100 }}>
@@ -440,18 +440,18 @@ export function CompareTab({
                   {filteredProducts.map(p => {
                     const best = matrix.bestBy[p.productId];
                     return (
-                      <tr key={p.productId} style={{ borderBottom: "1px solid #F0EFEB" }}>
+                      <tr key={p.productId} style={{ borderBottom: "1px solid #EFE5CE" }}>
                         <td style={td()}>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: "#37352F" }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: "#1E2B4A" }}>
                             {p.brand} {p.model}
                           </div>
-                          <div style={{ fontSize: 11, color: "#8C8A82" }}>{p.flavor}</div>
+                          <div style={{ fontSize: 11, color: "#6B7794" }}>{p.flavor}</div>
                         </td>
                         {matrix.suppliers.map(s => {
                           const cell = matrix.cells[p.productId]?.[s.supplierId];
                           const isBest = best?.supplierId === s.supplierId;
                           if (!cell) {
-                            return <td key={s.supplierId} style={{ ...td(), textAlign: "center", color: "#B1AFA7" }}>—</td>;
+                            return <td key={s.supplierId} style={{ ...td(), textAlign: "center", color: "#9AA2B3" }}>—</td>;
                           }
                           return (
                             <td key={s.supplierId} style={{
@@ -463,12 +463,12 @@ export function CompareTab({
                                 <div>
                                   <div style={{
                                     fontSize: 13, fontWeight: 800,
-                                    color: isBest ? "#0F7B6C" : "#37352F",
+                                    color: isBest ? "#0F7B6C" : "#1E2B4A",
                                   }}>${cell.priceUSD}</div>
-                                  <div style={{ fontSize: 10, color: "#8C8A82" }}>{cell.qty}u</div>
+                                  <div style={{ fontSize: 10, color: "#6B7794" }}>{cell.qty}u</div>
                                 </div>
                               ) : (
-                                <span style={{ fontSize: 11, color: "#B1AFA7", fontStyle: "italic" }}>Sin stock</span>
+                                <span style={{ fontSize: 11, color: "#9AA2B3", fontStyle: "italic" }}>Sin stock</span>
                               )}
                             </td>
                           );
@@ -483,7 +483,7 @@ export function CompareTab({
                             }}
                             placeholder="0"
                             style={{
-                              width: 60, padding: "5px 8px", border: "1px solid #E8E7E3",
+                              width: 60, padding: "5px 8px", border: "1px solid #E5DAC2",
                               borderRadius: 6, fontSize: 13, textAlign: "center",
                               outline: "none", fontFamily: "inherit", background: "#FFFFFF",
                             }}
@@ -516,7 +516,7 @@ export function CompareTab({
                   label="Ahorro vs el peor"
                   value={`USD ${split.savingsVsWorst.toFixed(0)}`}
                   sub={split.savingsVsWorst > 0 ? `${formatMoney(split.savingsVsWorst * (exchangeRate || 0))}` : "—"}
-                  color="#5E6AD2"
+                  color="#1E2B4A"
                   icon="💎"
                 />
               </div>
@@ -527,16 +527,16 @@ export function CompareTab({
                     <div key={supId} style={{
                       padding: 12,
                       background: "#FFFFFF",
-                      border: `1px solid ${sup?.color || "#E8E7E3"}40`,
+                      border: `1px solid ${sup?.color || "#E5DAC2"}40`,
                       borderRadius: 10,
                     }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
                         <SupplierBadge name={sup?.supplierName || "?"} color={sup?.color} />
                       </div>
-                      <div style={{ fontSize: 11, color: "#8C8A82", marginBottom: 4 }}>
+                      <div style={{ fontSize: 11, color: "#6B7794", marginBottom: 4 }}>
                         {agg.itemCount} productos · {agg.totalUnits} unidades
                       </div>
-                      <div style={{ fontSize: 18, fontWeight: 800, color: "#37352F" }}>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: "#1E2B4A" }}>
                         USD {agg.totalUSD.toFixed(0)}
                       </div>
                     </div>
@@ -589,14 +589,14 @@ function AddListModal({ open, profiles, onClose, onFile, onText, busy }) {
   return (
     <Modal open={open} onClose={onClose} title="➕ Cargar lista de proveedor">
       <div style={{ marginBottom: 14 }}>
-        <label style={{ fontSize: 11, color: "#8C8A82", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Proveedor</label>
+        <label style={{ fontSize: 11, color: "#6B7794", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Proveedor</label>
         <select
           value={profileId}
           onChange={e => setProfileId(e.target.value)}
           style={{
             width: "100%", padding: "12px 14px",
-            background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10,
-            color: "#37352F", fontSize: 16, outline: "none", boxSizing: "border-box",
+            background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 10,
+            color: "#1E2B4A", fontSize: 16, outline: "none", boxSizing: "border-box",
             fontFamily: "inherit",
           }}
         >
@@ -606,7 +606,7 @@ function AddListModal({ open, profiles, onClose, onFile, onText, busy }) {
       </div>
 
       <div style={{ marginBottom: 14 }}>
-        <label style={{ fontSize: 11, color: "#8C8A82", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Formato</label>
+        <label style={{ fontSize: 11, color: "#6B7794", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block", marginBottom: 6 }}>Formato</label>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {[
             { key: "spreadsheet", label: "📊 Excel/CSV" },
@@ -619,9 +619,9 @@ function AddListModal({ open, profiles, onClose, onFile, onText, busy }) {
               onClick={() => setMode(m.key)}
               style={{
                 padding: "8px 14px",
-                background: mode === m.key ? "#5E6AD2" : "transparent",
-                color: mode === m.key ? "#FFFFFF" : "#555247",
-                border: `1px solid ${mode === m.key ? "#5E6AD2" : "#E8E7E3"}`,
+                background: mode === m.key ? "#1E2B4A" : "transparent",
+                color: mode === m.key ? "#FFFFFF" : "#3A4868",
+                border: `1px solid ${mode === m.key ? "#1E2B4A" : "#E5DAC2"}`,
                 borderRadius: 8, fontSize: 12, fontWeight: 600,
                 cursor: "pointer", fontFamily: "inherit",
               }}
@@ -637,14 +637,14 @@ function AddListModal({ open, profiles, onClose, onFile, onText, busy }) {
           placeholder="Pegá la lista del proveedor..."
           style={{
             width: "100%", minHeight: 140, padding: 12,
-            background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10,
-            color: "#37352F", fontSize: 13, outline: "none", boxSizing: "border-box",
+            background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 10,
+            color: "#1E2B4A", fontSize: 13, outline: "none", boxSizing: "border-box",
             fontFamily: "'SF Mono', Monaco, monospace", resize: "vertical",
             marginBottom: 12,
           }}
         />
       ) : (
-        <div style={{ fontSize: 12, color: "#8C8A82", marginBottom: 12 }}>
+        <div style={{ fontSize: 12, color: "#6B7794", marginBottom: 12 }}>
           Hacé click en "Cargar archivo" y elegí el {mode === "spreadsheet" ? "Excel/CSV" : "PDF"} de tu proveedor.
         </div>
       )}
@@ -673,21 +673,21 @@ function AddListModal({ open, profiles, onClose, onFile, onText, busy }) {
 // ----- Helpers de estilo internos -----
 
 const th = () => ({
-  textAlign: "left", padding: "10px 12px", fontSize: 11, color: "#8C8A82",
+  textAlign: "left", padding: "10px 12px", fontSize: 11, color: "#6B7794",
   textTransform: "uppercase", letterSpacing: 0.5,
-  borderBottom: "1px solid #E8E7E3", fontWeight: 700,
+  borderBottom: "1px solid #E5DAC2", fontWeight: 700,
   whiteSpace: "nowrap",
 });
 
 const td = () => ({
-  padding: "10px 12px", fontSize: 13, color: "#37352F",
-  borderBottom: "1px solid #F0EFEB",
+  padding: "10px 12px", fontSize: 13, color: "#1E2B4A",
+  borderBottom: "1px solid #EFE5CE",
 });
 
 function SectionTitle({ children, style }) {
   return (
     <div style={{
-      fontSize: 12, color: "#8C8A82", fontWeight: 700,
+      fontSize: 12, color: "#6B7794", fontWeight: 700,
       textTransform: "uppercase", letterSpacing: 0.6,
       marginBottom: 10, marginTop: 16,
       ...style,
@@ -695,7 +695,7 @@ function SectionTitle({ children, style }) {
   );
 }
 
-function Badge({ label, color = "#5E6AD2" }) {
+function Badge({ label, color = "#1E2B4A" }) {
   return (
     <span style={{
       fontSize: 10, fontWeight: 700, color: "#FFFFFF",
@@ -704,13 +704,13 @@ function Badge({ label, color = "#5E6AD2" }) {
   );
 }
 
-function Mini({ label, value, color = "#37352F", bold = false }) {
+function Mini({ label, value, color = "#1E2B4A", bold = false }) {
   return (
     <div style={{
       padding: "6px 8px",
-      background: "#FAFAF9", borderRadius: 6, border: "1px solid #F0EFEB",
+      background: "#F8F2E7", borderRadius: 6, border: "1px solid #EFE5CE",
     }}>
-      <div style={{ fontSize: 9, color: "#8C8A82", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>{label}</div>
+      <div style={{ fontSize: 9, color: "#6B7794", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4 }}>{label}</div>
       <div style={{ fontSize: 16, fontWeight: bold ? 800 : 700, color, marginTop: 2 }}>{value}</div>
     </div>
   );

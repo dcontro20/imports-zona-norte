@@ -758,9 +758,9 @@ export const Sales = ({
 
   const chipStyle = (active) => ({
     padding: "7px 14px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer",
-    border: `1.5px solid ${active ? "#5E6AD2" : "#E8E7E3"}`,
-    background: active ? "#5E6AD2" : "#FAFAF9",
-    color: active ? "#fff" : "#555247",
+    border: `1.5px solid ${active ? "#1E2B4A" : "#E5DAC2"}`,
+    background: active ? "#1E2B4A" : "#F8F2E7",
+    color: active ? "#fff" : "#3A4868",
     transition: "all .15s",
     whiteSpace: "nowrap",
   });
@@ -768,7 +768,7 @@ export const Sales = ({
   // ---- Product picker (cascading) ----
   const renderProductPicker = () => (
     <div>
-      <label style={{ display: "block", fontSize: 12, color: "#8C8A82", marginBottom: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
+      <label style={{ display: "block", fontSize: 12, color: "#6B7794", marginBottom: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
         Productos ({totalQty} {totalQty === 1 ? "unidad" : "unidades"})
       </label>
 
@@ -780,7 +780,7 @@ export const Sales = ({
 
         return (
           <div key={i} style={{
-            background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 12, padding: isMobile ? 12 : 14,
+            background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 12, padding: isMobile ? 12 : 14,
             marginBottom: 10, position: "relative",
           }}>
             {form.items.length > 1 && (
@@ -792,13 +792,13 @@ export const Sales = ({
 
             {/* Row 1: Brand chips */}
             <div style={{ marginBottom: 10 }}>
-              <div style={{ fontSize: 11, color: "#B1AFA7", marginBottom: 6, fontWeight: 600 }}>MARCA</div>
+              <div style={{ fontSize: 11, color: "#9AA2B3", marginBottom: 6, fontWeight: 600 }}>MARCA</div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {brands.map(b => (
                   <button key={b} onClick={() => updateItem(i, "brand", b)}
                     style={{
                       ...chipStyle(item.brand === b),
-                      ...(item.brand === b ? { background: BRAND_COLORS[b] || "#5E6AD2", borderColor: BRAND_COLORS[b] || "#5E6AD2" } : {}),
+                      ...(item.brand === b ? { background: BRAND_COLORS[b] || "#1E2B4A", borderColor: BRAND_COLORS[b] || "#1E2B4A" } : {}),
                     }}>
                     {b}
                   </button>
@@ -809,7 +809,7 @@ export const Sales = ({
             {/* Row 2: Model chips */}
             {item.brand && modelsForBrand.length > 0 && (
               <div style={{ marginBottom: 10 }}>
-                <div style={{ fontSize: 11, color: "#B1AFA7", marginBottom: 6, fontWeight: 600 }}>MODELO</div>
+                <div style={{ fontSize: 11, color: "#9AA2B3", marginBottom: 6, fontWeight: 600 }}>MODELO</div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {modelsForBrand.map(m => {
                     const stockForModel = availableProducts.filter(p => p.brand === item.brand && p.model === m).reduce((s, p) => s + p.stock, 0);
@@ -831,11 +831,11 @@ export const Sales = ({
                 : flavorsForModel;
               return (
                 <div style={{ marginBottom: 10 }}>
-                  <div style={{ fontSize: 11, color: "#B1AFA7", marginBottom: 6, fontWeight: 600 }}>SABOR ({flavorsForModel.length})</div>
+                  <div style={{ fontSize: 11, color: "#9AA2B3", marginBottom: 6, fontWeight: 600 }}>SABOR ({flavorsForModel.length})</div>
                   {flavorsForModel.length >= 8 && (
                     <input value={flavorSearch} onChange={e => setFlavorSearch(e.target.value)}
                       placeholder="Filtrar sabor..."
-                      style={{ width: "100%", padding: isMobile ? "10px 12px" : "7px 10px", background: "#FFFFFF", border: "1px solid #E8E7E3", borderRadius: 8, fontSize: isMobile ? 16 : 13, outline: "none", marginBottom: 8, boxSizing: "border-box" }} />
+                      style={{ width: "100%", padding: isMobile ? "10px 12px" : "7px 10px", background: "#FFFFFF", border: "1px solid #E5DAC2", borderRadius: 8, fontSize: isMobile ? 16 : 13, outline: "none", marginBottom: 8, boxSizing: "border-box" }} />
                   )}
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap", maxHeight: 180, overflowY: "auto" }}>
                     {filteredFlavors.map(p => (
@@ -848,7 +848,7 @@ export const Sales = ({
                         {p.flavor} <span style={{ opacity: 0.6, fontSize: 10, marginLeft: 2 }}>({p.stock})</span>
                       </button>
                     ))}
-                    {filteredFlavors.length === 0 && <span style={{ color: "#B1AFA7", fontSize: 12 }}>Sin resultados</span>}
+                    {filteredFlavors.length === 0 && <span style={{ color: "#9AA2B3", fontSize: 12 }}>Sin resultados</span>}
                   </div>
                 </div>
               );
@@ -859,20 +859,20 @@ export const Sales = ({
               <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <button onClick={() => updateItem(i, "qty", Math.max(1, (item.qty || 1) - 1))}
-                    style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid #E8E7E3", background: "#FFFFFF", cursor: "pointer", fontSize: 16, fontWeight: 700 }}>−</button>
+                    style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid #E5DAC2", background: "#FFFFFF", cursor: "pointer", fontSize: 16, fontWeight: 700 }}>−</button>
                   <span style={{ fontSize: 18, fontWeight: 800, minWidth: 28, textAlign: "center" }}>{item.qty || 1}</span>
                   <button onClick={() => updateItem(i, "qty", Math.min(selectedProd.stock, (item.qty || 1) + 1))}
-                    style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid #E8E7E3", background: "#FFFFFF", cursor: "pointer", fontSize: 16, fontWeight: 700 }}>+</button>
+                    style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid #E5DAC2", background: "#FFFFFF", cursor: "pointer", fontSize: 16, fontWeight: 700 }}>+</button>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                   <input type="number" value={item.customPrice !== undefined && item.customPrice !== "" ? item.customPrice : ""}
                     onChange={e => updateItem(i, "customPrice", e.target.value)}
                     placeholder={String(priceDisplay.replace(/[^\d]/g, ""))}
-                    style={{ width: 75, padding: "4px 6px", border: "1px solid #E8E7E3", borderRadius: 6, fontSize: 13, textAlign: "center", background: item.customPrice ? "#FBE3B3" : "#FAFAF9", color: "#37352F" }}
+                    style={{ width: 75, padding: "4px 6px", border: "1px solid #E5DAC2", borderRadius: 6, fontSize: 13, textAlign: "center", background: item.customPrice ? "#FBE3B3" : "#F8F2E7", color: "#1E2B4A" }}
                   />
-                  <span style={{ fontSize: 11, color: "#B1AFA7" }}>/u</span>
+                  <span style={{ fontSize: 11, color: "#9AA2B3" }}>/u</span>
                 </div>
-                <span style={{ fontSize: 11, color: "#B1AFA7" }}>Stock: {selectedProd.stock}</span>
+                <span style={{ fontSize: 11, color: "#9AA2B3" }}>Stock: {selectedProd.stock}</span>
                 <div style={{ marginLeft: "auto", fontSize: 16, fontWeight: 800, color: "#0F7B6C" }}>
                   {formatMoney(getItemPrice(item) * (item.qty || 1), form.currency)}
                 </div>
@@ -883,7 +883,7 @@ export const Sales = ({
               const tips = [];
               // Última unidad (16.11)
               if (selectedProd.stock === 1) {
-                tips.push({ icon: "🎯", color: "#5E6AD2", text: "Última unidad — sugerí -10% para cerrar venta" });
+                tips.push({ icon: "🎯", color: "#1E2B4A", text: "Última unidad — sugerí -10% para cerrar venta" });
               }
               // Vencimiento próximo (16.7)
               if (selectedProd.expiryDate) {
@@ -918,7 +918,7 @@ export const Sales = ({
       })}
 
       <button onClick={addItem} style={{
-        background: "none", border: "2px dashed #E8E7E3", color: "#5E6AD2", padding: "10px 14px",
+        background: "none", border: "2px dashed #E5DAC2", color: "#1E2B4A", padding: "10px 14px",
         borderRadius: 10, cursor: "pointer", fontSize: 13, width: "100%", fontWeight: 600,
         transition: "border-color .15s",
       }}>+ Agregar otro producto</button>
@@ -943,7 +943,7 @@ export const Sales = ({
   // ---- Client selector ----
   const renderClientSelector = () => (
     <div style={{ marginBottom: 14 }}>
-      <label style={{ display: "block", fontSize: 12, color: "#8C8A82", marginBottom: 6, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
+      <label style={{ display: "block", fontSize: 12, color: "#6B7794", marginBottom: 6, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
         Cliente
       </label>
 
@@ -958,7 +958,7 @@ export const Sales = ({
             display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14, flexShrink: 0,
           }}>{form.clientName.charAt(0).toUpperCase()}</div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: "#37352F" }}>{form.clientName}</div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: "#1E2B4A" }}>{form.clientName}</div>
             {clientCredit !== 0 && (
               <div style={{ fontSize: 12, color: clientCredit > 0 ? "#0F7B6C" : "#E03E3E", fontWeight: 600 }}>
                 {clientCredit > 0 ? `Saldo a favor: ${formatMoney(clientCredit)}` : `Deuda: ${formatMoney(Math.abs(clientCredit))}`}
@@ -966,12 +966,12 @@ export const Sales = ({
             )}
           </div>
           <button onClick={() => { setForm(f => ({ ...f, clientId: "", clientName: "", isNewClient: false })); setClientSearch(""); }}
-            style={{ background: "none", border: "none", color: "#B1AFA7", cursor: "pointer", fontSize: 16 }}>✕</button>
+            style={{ background: "none", border: "none", color: "#9AA2B3", cursor: "pointer", fontSize: 16 }}>✕</button>
         </div>
       ) : form.isNewClient ? (
         // New client inline form
         <div style={{ background: "#EAECF9", border: "1px solid #D4D7F2", borderRadius: 10, padding: 14 }}>
-          <div style={{ fontSize: 12, color: "#5E6AD2", fontWeight: 700, marginBottom: 10 }}>NUEVO CLIENTE</div>
+          <div style={{ fontSize: 12, color: "#1E2B4A", fontWeight: 700, marginBottom: 10 }}>NUEVO CLIENTE</div>
           <Input placeholder="Nombre *" value={form.clientName} onChange={e => setForm(f => ({ ...f, clientName: e.target.value }))} />
           <div style={{ display: "flex", gap: 10 }}>
             <div style={{ flex: 1 }}><Input placeholder="Teléfono" value={form.clientPhone} onChange={e => setForm(f => ({ ...f, clientPhone: e.target.value }))} /></div>
@@ -989,14 +989,14 @@ export const Sales = ({
             onFocus={() => setShowClientDropdown(true)}
             placeholder="Buscar cliente por nombre, tel o IG..."
             style={{
-              width: "100%", padding: "10px 14px", background: "#FAFAF9", border: "1px solid #E8E7E3",
+              width: "100%", padding: "10px 14px", background: "#F8F2E7", border: "1px solid #E5DAC2",
               borderRadius: 10, fontSize: 14, outline: "none", boxSizing: "border-box",
             }}
           />
           {showClientDropdown && (clientSearch.length > 0) && (
             <div style={{
               position: "absolute", top: "100%", left: 0, right: 0, background: "#FFFFFF",
-              border: "1px solid #E8E7E3", borderRadius: 10, marginTop: 4, zIndex: 50,
+              border: "1px solid #E5DAC2", borderRadius: 10, marginTop: 4, zIndex: 50,
               maxHeight: 250, overflowY: "auto", boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
             }}>
               {filteredClients.map(c => (
@@ -1010,16 +1010,16 @@ export const Sales = ({
                   setShowClientDropdown(false);
                 }} style={{
                   display: "flex", alignItems: "center", gap: 10, padding: "10px 14px",
-                  background: "none", border: "none", borderBottom: "1px solid #E8E7E3",
+                  background: "none", border: "none", borderBottom: "1px solid #E5DAC2",
                   cursor: "pointer", width: "100%", textAlign: "left",
                 }}>
                   <div style={{
-                    width: 28, height: 28, borderRadius: "50%", background: "#5E6AD2", color: "#fff",
+                    width: 28, height: 28, borderRadius: "50%", background: "#1E2B4A", color: "#fff",
                     display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 12, flexShrink: 0,
                   }}>{c.name.charAt(0).toUpperCase()}</div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: 13, color: "#37352F" }}>{c.name}</div>
-                    <div style={{ fontSize: 11, color: "#B1AFA7" }}>{c.phone || c.instagram || ""}</div>
+                    <div style={{ fontWeight: 600, fontSize: 13, color: "#1E2B4A" }}>{c.name}</div>
+                    <div style={{ fontSize: 11, color: "#9AA2B3" }}>{c.phone || c.instagram || ""}</div>
                   </div>
                   {(c.balance || 0) !== 0 && (
                     <span style={{ fontSize: 11, fontWeight: 700, color: c.balance > 0 ? "#0F7B6C" : "#E03E3E" }}>
@@ -1029,7 +1029,7 @@ export const Sales = ({
                 </button>
               ))}
               {filteredClients.length === 0 && (
-                <div style={{ padding: "14px", textAlign: "center", color: "#B1AFA7", fontSize: 13 }}>
+                <div style={{ padding: "14px", textAlign: "center", color: "#9AA2B3", fontSize: 13 }}>
                   No se encontró "{clientSearch}"
                 </div>
               )}
@@ -1038,8 +1038,8 @@ export const Sales = ({
                 setShowClientDropdown(false);
               }} style={{
                 display: "flex", alignItems: "center", gap: 8, padding: "10px 14px",
-                background: "#FAFAF9", border: "none", cursor: "pointer", width: "100%",
-                color: "#5E6AD2", fontWeight: 600, fontSize: 13, borderTop: "1px solid #E8E7E3",
+                background: "#F8F2E7", border: "none", cursor: "pointer", width: "100%",
+                color: "#1E2B4A", fontWeight: 600, fontSize: 13, borderTop: "1px solid #E5DAC2",
               }}>
                 + Registrar nuevo cliente
               </button>
@@ -1053,7 +1053,7 @@ export const Sales = ({
   // ---- Payment section ----
   const renderPaymentSection = () => (
     <div style={{ marginBottom: 14 }}>
-      <label style={{ display: "block", fontSize: 12, color: "#8C8A82", marginBottom: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
+      <label style={{ display: "block", fontSize: 12, color: "#6B7794", marginBottom: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
         Pago {form.payments.length > 1 ? "(Mixto)" : ""}
       </label>
 
@@ -1100,7 +1100,7 @@ export const Sales = ({
               placeholder={String(Math.round(effectiveTotal || finalTotal))} />
             {!pay.amount && (
               <button onClick={() => fillFullAmount(i)} style={{
-                position: "absolute", right: 6, bottom: 18, background: "#5E6AD2", color: "#fff",
+                position: "absolute", right: 6, bottom: 18, background: "#1E2B4A", color: "#fff",
                 border: "none", borderRadius: 6, padding: "3px 8px", fontSize: 10, fontWeight: 700,
                 cursor: "pointer", lineHeight: 1.3,
               }}>Total</button>
@@ -1115,7 +1115,7 @@ export const Sales = ({
       ))}
 
       <button onClick={addPayment} style={{
-        background: "none", border: "1px dashed #5E6AD233", color: "#5E6AD2", padding: "6px 14px",
+        background: "none", border: "1px dashed #1E2B4A33", color: "#1E2B4A", padding: "6px 14px",
         borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 600, width: "100%",
       }}>+ Agregar otro medio de pago (mixto)</button>
 
@@ -1127,8 +1127,8 @@ export const Sales = ({
           borderRadius: 10, padding: "10px 14px", marginTop: 10,
         }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-            <span style={{ fontSize: 13, color: "#8C8A82" }}>Total a cobrar</span>
-            <span style={{ fontSize: 14, fontWeight: 700, color: "#37352F" }}>{formatMoney(effectiveTotal, form.currency)}</span>
+            <span style={{ fontSize: 13, color: "#6B7794" }}>Total a cobrar</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#1E2B4A" }}>{formatMoney(effectiveTotal, form.currency)}</span>
           </div>
           {creditUsed > 0 && (
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
@@ -1137,8 +1137,8 @@ export const Sales = ({
             </div>
           )}
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-            <span style={{ fontSize: 13, color: "#8C8A82" }}>Pagó</span>
-            <span style={{ fontSize: 14, fontWeight: 700, color: "#37352F" }}>{formatMoney(totalPaid, form.currency)}</span>
+            <span style={{ fontSize: 13, color: "#6B7794" }}>Pagó</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: "#1E2B4A" }}>{formatMoney(totalPaid, form.currency)}</span>
           </div>
 
           {difference > 0 && (
@@ -1147,7 +1147,7 @@ export const Sales = ({
                 <span style={{ fontSize: 14, color: "#ea580c", fontWeight: 700 }}>Vuelto a dar</span>
                 <span style={{ fontSize: 18, fontWeight: 800, color: "#ea580c" }}>{formatMoney(difference, form.currency)}</span>
               </div>
-              <div style={{ fontSize: 12, color: "#8C8A82", marginBottom: 8, fontWeight: 600 }}>
+              <div style={{ fontSize: 12, color: "#6B7794", marginBottom: 8, fontWeight: 600 }}>
                 ¿Cómo le devolvés el vuelto?
               </div>
 
@@ -1156,24 +1156,24 @@ export const Sales = ({
                 <button onClick={() => setForm(f => ({ ...f, changeMethod: f.changeMethod && f.changeMethod !== "credit" ? f.changeMethod : "Pesos Cash", changeMpAccount: "" }))}
                   style={{
                     flex: 1, padding: "14px 12px", borderRadius: 12, cursor: "pointer", border: "none",
-                    background: form.changeMethod && form.changeMethod !== "credit" ? "#FDECC8" : "#FAFAF9",
-                    outline: form.changeMethod && form.changeMethod !== "credit" ? "2px solid #ea580c" : "2px solid #E8E7E3",
+                    background: form.changeMethod && form.changeMethod !== "credit" ? "#FDECC8" : "#F8F2E7",
+                    outline: form.changeMethod && form.changeMethod !== "credit" ? "2px solid #ea580c" : "2px solid #E5DAC2",
                     textAlign: "center",
                   }}>
                   <div style={{ fontSize: 24, marginBottom: 4 }}>💸</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: form.changeMethod && form.changeMethod !== "credit" ? "#ea580c" : "#555247" }}>Devolver vuelto</div>
-                  <div style={{ fontSize: 11, color: "#B1AFA7" }}>Efectivo, transferencia, etc.</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: form.changeMethod && form.changeMethod !== "credit" ? "#ea580c" : "#3A4868" }}>Devolver vuelto</div>
+                  <div style={{ fontSize: 11, color: "#9AA2B3" }}>Efectivo, transferencia, etc.</div>
                 </button>
                 <button onClick={() => setForm(f => ({ ...f, changeMethod: "credit", changeMpAccount: "" }))}
                   style={{
                     flex: 1, padding: "14px 12px", borderRadius: 12, cursor: "pointer", border: "none",
-                    background: form.changeMethod === "credit" ? "#EAECF9" : "#FAFAF9",
-                    outline: form.changeMethod === "credit" ? "2px solid #5E6AD2" : "2px solid #E8E7E3",
+                    background: form.changeMethod === "credit" ? "#EAECF9" : "#F8F2E7",
+                    outline: form.changeMethod === "credit" ? "2px solid #1E2B4A" : "2px solid #E5DAC2",
                     textAlign: "center",
                   }}>
                   <div style={{ fontSize: 24, marginBottom: 4 }}>🏦</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: form.changeMethod === "credit" ? "#5E6AD2" : "#555247" }}>Dejar a favor</div>
-                  <div style={{ fontSize: 11, color: "#B1AFA7" }}>Crédito para próxima compra</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: form.changeMethod === "credit" ? "#1E2B4A" : "#3A4868" }}>Dejar a favor</div>
+                  <div style={{ fontSize: 11, color: "#9AA2B3" }}>Crédito para próxima compra</div>
                 </button>
               </div>
 
@@ -1186,9 +1186,9 @@ export const Sales = ({
                       <button key={m} onClick={() => setForm(f => ({ ...f, changeMethod: m, changeMpAccount: "" }))}
                         style={{
                           padding: "8px 14px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer",
-                          border: `2px solid ${form.changeMethod === m ? "#ea580c" : "#E8E7E3"}`,
-                          background: form.changeMethod === m ? "#ea580c" : "#FAFAF9",
-                          color: form.changeMethod === m ? "#fff" : "#555247",
+                          border: `2px solid ${form.changeMethod === m ? "#ea580c" : "#E5DAC2"}`,
+                          background: form.changeMethod === m ? "#ea580c" : "#F8F2E7",
+                          color: form.changeMethod === m ? "#fff" : "#3A4868",
                         }}>{m}</button>
                     ))}
                   </div>
@@ -1200,9 +1200,9 @@ export const Sales = ({
                           <button key={acc} onClick={() => setForm(f => ({ ...f, changeMpAccount: acc }))}
                             style={{
                               padding: "8px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: "pointer",
-                              border: `2px solid ${form.changeMpAccount === acc ? "#ea580c" : "#E8E7E3"}`,
-                              background: form.changeMpAccount === acc ? "#ea580c" : "#FAFAF9",
-                              color: form.changeMpAccount === acc ? "#fff" : "#555247",
+                              border: `2px solid ${form.changeMpAccount === acc ? "#ea580c" : "#E5DAC2"}`,
+                              background: form.changeMpAccount === acc ? "#ea580c" : "#F8F2E7",
+                              color: form.changeMpAccount === acc ? "#fff" : "#3A4868",
                             }}>{acc}</button>
                         ))}
                       </div>
@@ -1212,7 +1212,7 @@ export const Sales = ({
               )}
 
               {form.changeMethod === "credit" && (
-                <div style={{ background: "#EAECF9", border: "1px solid #D4D7F2", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#5E6AD2", fontWeight: 600 }}>
+                <div style={{ background: "#EAECF9", border: "1px solid #D4D7F2", borderRadius: 10, padding: "10px 14px", fontSize: 13, color: "#1E2B4A", fontWeight: 600 }}>
                   Se guardará {formatMoney(difference)} como saldo a favor de {form.clientName || "este cliente"} para su próxima compra.
                 </div>
               )}
@@ -1252,7 +1252,7 @@ export const Sales = ({
                     Se registra deuda de {formatMoney(Math.abs(difference))}
                   </span>
                   <button onClick={() => setForm(f => ({ ...f, debtConfirmed: false, debtReason: "" }))}
-                    style={{ background: "none", border: "none", color: "#B1AFA7", cursor: "pointer", fontSize: 12 }}>Cambiar</button>
+                    style={{ background: "none", border: "none", color: "#9AA2B3", cursor: "pointer", fontSize: 12 }}>Cambiar</button>
                 </div>
               ) : (
                 <div style={{ background: "#FDECC8", border: "1px solid #fcd34d", borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -1260,7 +1260,7 @@ export const Sales = ({
                     Sin deuda — precio final: {formatMoney(totalPaid)}
                   </span>
                   <button onClick={() => setForm(f => ({ ...f, debtConfirmed: false, debtReason: "" }))}
-                    style={{ background: "none", border: "none", color: "#B1AFA7", cursor: "pointer", fontSize: 12 }}>Cambiar</button>
+                    style={{ background: "none", border: "none", color: "#9AA2B3", cursor: "pointer", fontSize: 12 }}>Cambiar</button>
                 </div>
               )}
             </div>
@@ -1278,7 +1278,7 @@ export const Sales = ({
 
   // ---- Discount section ----
   const renderDiscountSection = () => (
-    <div style={{ background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10, padding: 14, marginBottom: 14 }}>
+    <div style={{ background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 10, padding: 14, marginBottom: 14 }}>
       <label style={{ display: "block", fontSize: 12, color: "#b8860b", marginBottom: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>🏷️ Descuento</label>
 
       {/* S16.3+9+19 — Sugerencias automáticas según volumen, tier y fidelización */}
@@ -1288,21 +1288,21 @@ export const Sales = ({
           background: "#EAECF9", border: "1px solid #D4D7F2", borderRadius: 8,
           fontSize: 12,
         }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "#5E6AD2", marginBottom: 6 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#1E2B4A", marginBottom: 6 }}>
             💡 Descuentos sugeridos automáticos:
           </div>
           {autoDiscounts.volumePct > 0 && (
-            <div style={{ color: "#37352F", marginBottom: 3 }}>
+            <div style={{ color: "#1E2B4A", marginBottom: 3 }}>
               📦 Volumen ({totalQty} uds): <strong>-{autoDiscounts.volumePct}%</strong>
             </div>
           )}
           {autoDiscounts.tierPct > 0 && (
-            <div style={{ color: "#37352F", marginBottom: 3 }}>
+            <div style={{ color: "#1E2B4A", marginBottom: 3 }}>
               ⭐ Tier cliente: <strong>-{autoDiscounts.tierPct}%</strong>
             </div>
           )}
           {autoDiscounts.loyaltyPct > 0 && (
-            <div style={{ color: "#37352F", marginBottom: 3 }}>
+            <div style={{ color: "#1E2B4A", marginBottom: 3 }}>
               🤝 Fidelización (10+ compras este mes): <strong>-{autoDiscounts.loyaltyPct}%</strong>
             </div>
           )}
@@ -1317,7 +1317,7 @@ export const Sales = ({
             }))}
             style={{
               marginTop: 4, padding: "4px 10px", borderRadius: 6,
-              background: "#5E6AD2", color: "#fff",
+              background: "#1E2B4A", color: "#fff",
               border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
             }}
           >
@@ -1335,9 +1335,9 @@ export const Sales = ({
           <button key={opt.value} onClick={() => setForm(f => ({ ...f, discountType: opt.value, discountValue: opt.value === "none" ? "" : f.discountValue }))}
             style={{
               padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer",
-              border: `1px solid ${form.discountType === opt.value ? "#b8860b" : "#E8E7E3"}`,
+              border: `1px solid ${form.discountType === opt.value ? "#b8860b" : "#E5DAC2"}`,
               background: form.discountType === opt.value ? "#fdcb6e22" : "transparent",
-              color: form.discountType === opt.value ? "#b8860b" : "#8C8A82",
+              color: form.discountType === opt.value ? "#b8860b" : "#6B7794",
             }}>{opt.label}</button>
         ))}
       </div>
@@ -1365,8 +1365,8 @@ export const Sales = ({
       )}
 
       {/* S16.1 — Input de cupón */}
-      <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px dashed #E8E7E3" }}>
-        <label style={{ display: "block", fontSize: 12, color: "#5E6AD2", marginBottom: 6, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
+      <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px dashed #E5DAC2" }}>
+        <label style={{ display: "block", fontSize: 12, color: "#1E2B4A", marginBottom: 6, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>
           🎟️ Cupón (opcional)
         </label>
         <Input
@@ -1403,7 +1403,7 @@ export const Sales = ({
 
   // ---- Extras ----
   const renderExtras = () => (
-    <div style={{ background: "#FAFAF9", border: "1px solid #E8E7E3", borderRadius: 10, padding: 14, marginBottom: 14 }}>
+    <div style={{ background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 10, padding: 14, marginBottom: 14 }}>
       <label style={{ display: "block", fontSize: 12, color: "#0F7B6C", marginBottom: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>➕ Extras</label>
       {(form.extras || []).map((extra, i) => (
         <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6, alignItems: "flex-end" }}>
@@ -1421,10 +1421,10 @@ export const Sales = ({
 
   // ---- Totals ----
   const renderTotals = () => (
-    <div style={{ background: "#FAFAF9", borderRadius: 10, padding: 14, marginBottom: 14, border: "1px solid #E8E7E3" }}>
+    <div style={{ background: "#F8F2E7", borderRadius: 10, padding: 14, marginBottom: 14, border: "1px solid #E5DAC2" }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-        <span style={{ color: "#8C8A82", fontSize: 13 }}>Subtotal</span>
-        <span style={{ color: "#555247", fontSize: 14 }}>{formatMoney(subtotal, form.currency)}</span>
+        <span style={{ color: "#6B7794", fontSize: 13 }}>Subtotal</span>
+        <span style={{ color: "#3A4868", fontSize: 14 }}>{formatMoney(subtotal, form.currency)}</span>
       </div>
       {discountAmount > 0 && (
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
@@ -1444,8 +1444,8 @@ export const Sales = ({
           <span style={{ color: "#0F7B6C", fontSize: 14 }}>-{formatMoney(Math.min(clientCredit, finalTotal))}</span>
         </div>
       )}
-      <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #E8E7E3", paddingTop: 8 }}>
-        <span style={{ color: "#37352F", fontSize: 15, fontWeight: 700 }}>Total</span>
+      <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #E5DAC2", paddingTop: 8 }}>
+        <span style={{ color: "#1E2B4A", fontSize: 15, fontWeight: 700 }}>Total</span>
         <span style={{ color: "#0F7B6C", fontSize: 20, fontWeight: 800 }}>{formatMoney(finalTotal, form.currency)}</span>
       </div>
     </div>
@@ -1746,8 +1746,8 @@ export const Sales = ({
           ].map(s => (
             <button key={s.n} onClick={() => setStep(s.n)} style={{
               flex: 1, padding: "8px 0", border: "none", cursor: "pointer",
-              background: step === s.n ? "#5E6AD2" : "#E8E7E3",
-              color: step === s.n ? "#fff" : "#8C8A82",
+              background: step === s.n ? "#1E2B4A" : "#E5DAC2",
+              color: step === s.n ? "#fff" : "#6B7794",
               fontWeight: 700, fontSize: 13,
               borderRadius: s.n === 1 ? "8px 0 0 8px" : "0 8px 8px 0",
             }}>
@@ -1758,7 +1758,7 @@ export const Sales = ({
 
         {/* Advanced options (fecha, moneda) — collapsed by default */}
         <button onClick={() => setShowAdvanced(!showAdvanced)} style={{
-          background: "none", border: "none", color: "#5E6AD2", fontSize: 12, fontWeight: 600,
+          background: "none", border: "none", color: "#1E2B4A", fontSize: 12, fontWeight: 600,
           cursor: "pointer", marginBottom: showAdvanced ? 8 : 14, display: "flex", alignItems: "center", gap: 4,
         }}>
           {showAdvanced ? "▾" : "▸"} Fecha y moneda
@@ -1791,7 +1791,7 @@ export const Sales = ({
               <Btn variant="secondary" onClick={() => { setModal(false); setEditing(null); }}>Cancelar</Btn>
               <Btn onClick={() => { setValidationError(""); setStep(2); }}
                 disabled={form.items.every(i => !i.productId)}
-                style={{ background: form.items.some(i => i.productId) ? "#5E6AD2" : "#c7c7c7" }}>
+                style={{ background: form.items.some(i => i.productId) ? "#1E2B4A" : "#c7c7c7" }}>
                 Siguiente: Cliente & Pago →
               </Btn>
             </div>

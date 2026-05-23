@@ -128,10 +128,10 @@ export const SupplierMonitor = ({
     <div style={{ padding: isMobile ? "12px" : "20px", maxWidth: 1280, margin: "0 auto" }}>
       {/* Header */}
       <div style={{ marginBottom: 16 }}>
-        <h1 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 800, color: "#37352F", margin: 0, letterSpacing: "-0.5px" }}>
+        <h1 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 800, color: "#1E2B4A", margin: 0, letterSpacing: "-0.5px" }}>
           📋 Monitor de Proveedores
         </h1>
-        <p style={{ color: "#8C8A82", fontSize: 13, margin: "6px 0 0" }}>
+        <p style={{ color: "#6B7794", fontSize: 13, margin: "6px 0 0" }}>
           Gestión inteligente: aprende de cada lista, compara entre proveedores y arma pedidos en segundos.
         </p>
       </div>
@@ -151,7 +151,7 @@ export const SupplierMonitor = ({
       {/* Tabs */}
       <div style={{
         display: "flex", gap: 6, marginBottom: 16,
-        borderBottom: "1px solid #E8E7E3",
+        borderBottom: "1px solid #E5DAC2",
         overflowX: "auto",
         WebkitOverflowScrolling: "touch",
         scrollbarWidth: "none",
@@ -167,9 +167,9 @@ export const SupplierMonitor = ({
             style={{
               padding: "10px 16px",
               background: "transparent",
-              color: tab === t.key ? "#37352F" : "#8C8A82",
+              color: tab === t.key ? "#1E2B4A" : "#6B7794",
               border: "none",
-              borderBottom: `2px solid ${tab === t.key ? "#5E6AD2" : "transparent"}`,
+              borderBottom: `2px solid ${tab === t.key ? "#1E2B4A" : "transparent"}`,
               borderRadius: 0,
               fontSize: 13, fontWeight: 700,
               cursor: "pointer", fontFamily: "inherit",

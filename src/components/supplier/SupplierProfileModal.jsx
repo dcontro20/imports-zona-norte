@@ -66,7 +66,7 @@ export function SupplierProfileModal({ open, profile, existingProfiles = [], onC
 
       {/* Color picker */}
       <div style={{ marginBottom: 14 }}>
-        <label style={{ fontSize: 11, color: "#8C8A82", marginBottom: 6, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block" }}>Color identificador</label>
+        <label style={{ fontSize: 11, color: "#6B7794", marginBottom: 6, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block" }}>Color identificador</label>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {SUPPLIER_COLORS.map(color => {
             const taken = usedColors.includes(color) && color !== form.color;
@@ -80,7 +80,7 @@ export function SupplierProfileModal({ open, profile, existingProfiles = [], onC
                 style={{
                   width: 32, height: 32, borderRadius: 8, padding: 0,
                   background: color,
-                  border: form.color === color ? "3px solid #37352F" : "1px solid #E8E7E3",
+                  border: form.color === color ? "3px solid #1E2B4A" : "1px solid #E5DAC2",
                   cursor: taken ? "not-allowed" : "pointer",
                   opacity: taken ? 0.3 : 1,
                   transition: "all 0.15s",
@@ -135,15 +135,15 @@ export function SupplierProfileModal({ open, profile, existingProfiles = [], onC
       </div>
 
       <div style={{ marginBottom: 14 }}>
-        <label style={{ fontSize: 11, color: "#8C8A82", marginBottom: 6, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block" }}>Notas</label>
+        <label style={{ fontSize: 11, color: "#6B7794", marginBottom: 6, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block" }}>Notas</label>
         <textarea
           value={form.notes}
           onChange={e => set("notes", e.target.value)}
           placeholder="Notas internas — preferencias, condiciones, etc."
           style={{
             width: "100%", minHeight: 80, padding: 14,
-            background: "#FAFAF9", border: "1px solid #E8E7E3",
-            borderRadius: 10, color: "#37352F", fontSize: 14,
+            background: "#F8F2E7", border: "1px solid #E5DAC2",
+            borderRadius: 10, color: "#1E2B4A", fontSize: 14,
             outline: "none", boxSizing: "border-box",
             fontFamily: "inherit", resize: "vertical",
           }}

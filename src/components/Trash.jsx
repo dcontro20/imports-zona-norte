@@ -270,9 +270,9 @@ export function Trash({
   };
 
   const tabStyle = (active) => ({
-    padding: "6px 14px", border: "1px solid " + (active ? "#5E6AD2" : "#E8E7E3"),
+    padding: "6px 14px", border: "1px solid " + (active ? "#1E2B4A" : "#E5DAC2"),
     borderRadius: 20, fontSize: 12, fontWeight: active ? 700 : 500,
-    background: active ? "#EEF0FC" : "#FAFAF9", color: active ? "#5E6AD2" : "#8C8A82",
+    background: active ? "#E8EBF2" : "#F8F2E7", color: active ? "#1E2B4A" : "#6B7794",
     cursor: "pointer"
   });
 
@@ -280,8 +280,8 @@ export function Trash({
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div>
-          <h2 style={{ fontSize: 20, fontWeight: 800, color: "#37352F", margin: 0 }}>Papelera</h2>
-          <p style={{ color: "#B1AFA7", fontSize: 13, margin: "4px 0 0" }}>
+          <h2 style={{ fontSize: 20, fontWeight: 800, color: "#1E2B4A", margin: 0 }}>Papelera</h2>
+          <p style={{ color: "#9AA2B3", fontSize: 13, margin: "4px 0 0" }}>
             {trashItems.length} elementos eliminados · Se eliminan permanentemente después de 30 días
           </p>
         </div>
@@ -304,12 +304,12 @@ export function Trash({
       </div>
 
       {/* Items */}
-      <div style={{ background: "#FFFFFF", border: "1px solid #E8E7E3", borderRadius: 12, overflow: "hidden" }}>
+      <div style={{ background: "#FFFFFF", border: "1px solid #E5DAC2", borderRadius: 12, overflow: "hidden" }}>
         {filtered.length > 0 && (
           <div style={{
             display: "flex", alignItems: "center", gap: 10, padding: 10, marginBottom: 10,
-            background: selectedIds.length > 0 ? "#EAECF9" : "#FAFAF9",
-            border: `1px solid ${selectedIds.length > 0 ? "#5E6AD244" : "#E8E7E3"}`,
+            background: selectedIds.length > 0 ? "#EAECF9" : "#F8F2E7",
+            border: `1px solid ${selectedIds.length > 0 ? "#1E2B4A44" : "#E5DAC2"}`,
             borderRadius: 8, flexWrap: "wrap",
           }}>
             <input
@@ -319,7 +319,7 @@ export function Trash({
               style={{ width: 16, height: 16, cursor: "pointer" }}
               aria-label="Seleccionar todo"
             />
-            <span style={{ fontSize: 12, color: "#37352F", fontWeight: 600 }}>
+            <span style={{ fontSize: 12, color: "#1E2B4A", fontWeight: 600 }}>
               {selectedIds.length === 0
                 ? "Seleccionar todo"
                 : `${selectedIds.length} seleccionado${selectedIds.length > 1 ? "s" : ""}`}
@@ -337,8 +337,8 @@ export function Trash({
                   cursor: "pointer", fontFamily: "inherit",
                 }}>🗑️ Borrar permanente</button>
                 <button onClick={clearSelection} style={{
-                  padding: "5px 10px", borderRadius: 6, border: "1px solid #E8E7E3",
-                  background: "transparent", color: "#8C8A82", fontSize: 11, fontWeight: 600,
+                  padding: "5px 10px", borderRadius: 6, border: "1px solid #E5DAC2",
+                  background: "transparent", color: "#6B7794", fontSize: 11, fontWeight: 600,
                   cursor: "pointer", fontFamily: "inherit",
                 }}>Cancelar</button>
               </div>
@@ -346,7 +346,7 @@ export function Trash({
           </div>
         )}
         {filtered.length === 0 ? (
-          <div style={{ padding: 40, textAlign: "center", color: "#B1AFA7", fontSize: 14 }}>
+          <div style={{ padding: 40, textAlign: "center", color: "#9AA2B3", fontSize: 14 }}>
             La papelera está vacía
           </div>
         ) : (
@@ -358,7 +358,7 @@ export function Trash({
             return (
               <div key={item.id} style={{
                 display: "flex", alignItems: "center", gap: 12, padding: "12px 16px",
-                borderBottom: i < filtered.length - 1 ? "1px solid #E8E7E3" : "none",
+                borderBottom: i < filtered.length - 1 ? "1px solid #E5DAC2" : "none",
                 background: selectedIds.includes(item.id) ? "#EAECF940" : "transparent",
               }}>
                 <input
@@ -370,8 +370,8 @@ export function Trash({
                 />
                 <span style={{ fontSize: 20 }}>{entityInfo.icon}</span>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, color: "#37352F", fontWeight: 600 }}>{item._label}</div>
-                  <div style={{ fontSize: 12, color: "#B1AFA7" }}>
+                  <div style={{ fontSize: 13, color: "#1E2B4A", fontWeight: 600 }}>{item._label}</div>
+                  <div style={{ fontSize: 12, color: "#9AA2B3" }}>
                     {item._sub} · Eliminado por {item.deletedBy || "?"} · {daysLeft} días restantes
                   </div>
                 </div>
@@ -381,7 +381,7 @@ export function Trash({
                       Confirmar restaurar
                     </button>
                   ) : (
-                    <button onClick={() => restore(item)} style={{ ...btnStyle, background: "#EEF0FC", color: "#5E6AD2" }} title="Restaurar">
+                    <button onClick={() => restore(item)} style={{ ...btnStyle, background: "#E8EBF2", color: "#1E2B4A" }} title="Restaurar">
                       ↩️ Restaurar
                     </button>
                   )}
