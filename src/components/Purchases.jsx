@@ -344,7 +344,41 @@ export const Purchases = ({
       totalItems, createdBy: currentUser?.name || "",
     };
     if (editing) {
-      setPurchases(prev => prev.map(p => p.id === editing ? { ...purchaseData, id: editing } : p));
+      const original = purchases.find(p => p.id === editing);
+      // Si el pedido YA estaba verificado, editar las cantidades debe reajustar
+      // el stock por el delta (sino queda descuadrado). Calculamos viejo vs nuevo.
+      if (original && original.status === "verificado") {
+        const oldQty = {};
+        (original.items || []).forEach(it => {
+          if (it.productId) oldQty[it.productId] = (oldQty[it.productId] || 0) + (Number(it.qty) || 0);
+        });
+        const newQty = {};
+        finalItems.forEach(it => {
+          if (it.productId) newQty[it.productId] = (newQty[it.productId] || 0) + (Number(it.qty) || 0);
+        });
+        const allPids = new Set([...Object.keys(oldQty), ...Object.keys(newQty)]);
+        allPids.forEach(pid => {
+          const delta = (newQty[pid] || 0) - (oldQty[pid] || 0);
+          if (delta !== 0) {
+            setProducts(pr => pr.map(prod => prod.id === pid
+              ? { ...prod, stock: Math.max(0, (prod.stock || 0) + delta) }
+              : prod));
+            logStock({
+              productId: pid, type: "ajuste", qty: delta,
+              reason: `Edición de pedido verificado - ${form.supplier || ""}`, refId: editing,
+            });
+          }
+        });
+      }
+      setPurchases(prev => prev.map(p => p.id === editing
+        ? {
+            ...purchaseData,
+            id: editing,
+            // Preservar el historial y status reales del pedido — el form no los trackea
+            status: p.status,
+            statusHistory: p.statusHistory || [],
+          }
+        : p));
       if (logAudit) logAudit("update", "purchase", editing, `Editó compra: ${form.supplier} · ${totalItems} items`);
     } else {
       const newId = uid();
@@ -401,9 +435,15 @@ export const Purchases = ({
     if (confirmDelete !== purchase.id) { setConfirmDelete(purchase.id); return; }
     if (purchase.status === "verificado") {
       (purchase.items || []).forEach(item => {
+        if (!item.productId) return;
         setProducts(prev => prev.map(p => p.id === item.productId
           ? { ...p, stock: Math.max(0, (p.stock || 0) - Number(item.qty)) }
           : p));
+        // Registrar la reversa en el StockLog para que el log cuadre con el stock físico
+        logStock({
+          productId: item.productId, type: "ajuste", qty: -Number(item.qty),
+          reason: `Pedido verificado eliminado - ${purchase.supplier || ""}`, refId: purchase.id,
+        });
       });
     }
     setPurchases(prev => prev.map(p => p.id === purchase.id
