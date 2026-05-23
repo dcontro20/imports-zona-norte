@@ -30,6 +30,7 @@ export const SupplierMonitor = ({
   setSupplierAliases,
   supplierLists = [],
   setSupplierLists,
+  embedded = false,
 }) => {
   const { isMobile } = useResponsive();
   const [tab, setTab] = useState("process");
@@ -125,16 +126,18 @@ export const SupplierMonitor = ({
   }, [supplierProfiles, products, exchangeRate, currentUser, setPurchases, logAudit, showToast]);
 
   return (
-    <div style={{ padding: isMobile ? "12px" : "20px", maxWidth: 1280, margin: "0 auto" }}>
-      {/* Header */}
-      <div style={{ marginBottom: 16 }}>
-        <h1 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 800, color: "#1E2B4A", margin: 0, letterSpacing: "-0.5px" }}>
-          📋 Monitor de Proveedores
-        </h1>
-        <p style={{ color: "#6B7794", fontSize: 13, margin: "6px 0 0" }}>
-          Gestión inteligente: aprende de cada lista, compara entre proveedores y arma pedidos en segundos.
-        </p>
-      </div>
+    <div style={embedded ? {} : { padding: isMobile ? "12px" : "20px", maxWidth: 1280, margin: "0 auto" }}>
+      {/* Header (oculto si está embebido en el hub de Compras) */}
+      {!embedded && (
+        <div style={{ marginBottom: 16 }}>
+          <h1 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 800, color: "#1E2B4A", margin: 0, letterSpacing: "-0.5px" }}>
+            📋 Monitor de Proveedores
+          </h1>
+          <p style={{ color: "#6B7794", fontSize: 13, margin: "6px 0 0" }}>
+            Gestión inteligente: aprende de cada lista, compara entre proveedores y arma pedidos en segundos.
+          </p>
+        </div>
+      )}
 
       {/* Toast */}
       {toast && (

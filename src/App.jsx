@@ -34,7 +34,6 @@ export const useResponsive = () => {
 const Dashboard = lazy(() => import("./components/Dashboard.jsx").then(m => ({ default: m.Dashboard })));
 const Products = lazy(() => import("./components/Products.jsx").then(m => ({ default: m.Products })));
 const Sales = lazy(() => import("./components/Sales.jsx").then(m => ({ default: m.Sales })));
-const Purchases = lazy(() => import("./components/Purchases.jsx").then(m => ({ default: m.Purchases })));
 const Clients = lazy(() => import("./components/Clients.jsx").then(m => ({ default: m.Clients })));
 const Expenses = lazy(() => import("./components/Expenses.jsx").then(m => ({ default: m.Expenses })));
 const Withdrawals = lazy(() => import("./components/Withdrawals.jsx").then(m => ({ default: m.Withdrawals })));
@@ -53,7 +52,7 @@ const Trash = lazy(() => import("./components/Trash.jsx").then(m => ({ default: 
 const SettingsModal = lazy(() => import("./components/SettingsModal.jsx").then(m => ({ default: m.SettingsModal })));
 const QuickSale = lazy(() => import("./components/QuickSale.jsx").then(m => ({ default: m.QuickSale })));
 const QuickWithdrawal = lazy(() => import("./components/QuickWithdrawal.jsx").then(m => ({ default: m.QuickWithdrawal })));
-const SupplierMonitor = lazy(() => import("./components/SupplierMonitor.jsx").then(m => ({ default: m.SupplierMonitor })));
+const Procurement = lazy(() => import("./components/Procurement.jsx").then(m => ({ default: m.Procurement })));
 const Finance = lazy(() => import("./components/Finance.jsx").then(m => ({ default: m.Finance })));
 
 const LoadingSpinner = () => (
@@ -100,8 +99,7 @@ const NAV_ITEMS = [
   { key: "dashboard", label: "Dashboard", icon: "📊" },
   { key: "products", label: "Stock", icon: "📦" },
   { key: "sales", label: "Ventas", icon: "🛒" },
-  { key: "purchases", label: "Compras", icon: "🚚" },
-  { key: "supplier-monitor", label: "Proveedores", icon: "📋" },
+  { key: "procurement", label: "Compras", icon: "🚚" },
   { key: "clients", label: "Clientes", icon: "👥" },
   { key: "expenses", label: "Gastos", icon: "💸" },
   { key: "withdrawals", label: "Mermas", icon: "📉" },
@@ -247,7 +245,7 @@ export default function App() {
       .forEach(c => results.push({ type: "client", icon: "👥", label: c.name, sub: c.phone || c.instagram || "", page: "clients" }));
 
     purchases.filter(p => !p.isDeleted && (p.supplier || "").toLowerCase().includes(q)).slice(0, 3)
-      .forEach(p => results.push({ type: "purchase", icon: "🚚", label: `Pedido - ${p.supplier}`, sub: `${formatDate(p.date)} · ${p.status}`, page: "purchases" }));
+      .forEach(p => results.push({ type: "purchase", icon: "🚚", label: `Pedido - ${p.supplier}`, sub: `${formatDate(p.date)} · ${p.status}`, page: "procurement" }));
 
     expenses.filter(e => !e.isDeleted && `${e.category} ${e.description}`.toLowerCase().includes(q)).slice(0, 3)
       .forEach(e => results.push({ type: "expense", icon: "💸", label: `${e.category}`, sub: `${formatDate(e.date)} · ${formatMoney(e.amountARS)}`, page: "expenses" }));
@@ -386,8 +384,7 @@ export default function App() {
       case "dashboard": return <Dashboard products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} clients={clients} cashMovements={activeCashMovements} />;
       case "products": return <Products products={products} setProducts={setProducts} priceLog={priceLog} sales={activeSales} />;
       case "sales": return <Sales sales={sales} setSales={setSales} products={products} setProducts={setProducts} logStock={logStock} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} clients={clients} setClients={setClients} cashMovements={cashMovements} setCashMovements={setCashMovements} monthlyClosures={monthlyClosures} coupons={coupons} setCoupons={setCoupons} />;
-      case "purchases": return <Purchases purchases={purchases} setPurchases={setPurchases} products={products} setProducts={setProducts} exchangeRate={exchangeRate} logStock={logStock} currentUser={currentUser} logAudit={logAudit} monthlyClosures={monthlyClosures} sales={activeSales} supplierProfiles={supplierProfiles} setSupplierProfiles={setSupplierProfiles} supplierAliases={supplierAliases} supplierLists={supplierLists} />;
-      case "supplier-monitor": return <SupplierMonitor products={products} setProducts={setProducts} purchases={purchases} setPurchases={setPurchases} sales={activeSales} exchangeRate={exchangeRate} logStock={logStock} currentUser={currentUser} logAudit={logAudit} supplierProfiles={supplierProfiles} setSupplierProfiles={setSupplierProfiles} supplierAliases={supplierAliases} setSupplierAliases={setSupplierAliases} supplierLists={supplierLists} setSupplierLists={setSupplierLists} />;
+      case "procurement": return <Procurement products={products} setProducts={setProducts} purchases={purchases} setPurchases={setPurchases} sales={activeSales} exchangeRate={exchangeRate} logStock={logStock} currentUser={currentUser} logAudit={logAudit} monthlyClosures={monthlyClosures} supplierProfiles={supplierProfiles} setSupplierProfiles={setSupplierProfiles} supplierAliases={supplierAliases} setSupplierAliases={setSupplierAliases} supplierLists={supplierLists} setSupplierLists={setSupplierLists} />;
       case "clients": return <Clients clients={clients} setClients={setClients} sales={activeSales} products={activeProducts} withdrawals={activeWithdrawals} />;
       case "expenses": return <Expenses expenses={expenses} setExpenses={setExpenses} currentUser={currentUser} exchangeRate={exchangeRate} logAudit={logAudit} monthlyClosures={monthlyClosures} />;
       case "withdrawals": return <Withdrawals withdrawals={withdrawals} setWithdrawals={setWithdrawals} products={products} setProducts={setProducts} sales={activeSales} clients={clients} monthlyClosures={monthlyClosures} logStock={logStock} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} />;

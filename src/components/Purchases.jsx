@@ -13,7 +13,6 @@ import { activeProfiles } from "../lib/supplierProfiles.js";
 import { applyPurchaseCosts } from "../finance.js";
 import { ListView } from "./purchases/ListView.jsx";
 import { KanbanBoard } from "./purchases/KanbanBoard.jsx";
-import { RecommendedOrdersPanel } from "./purchases/RecommendedOrdersPanel.jsx";
 import { BulkPasteModal } from "./purchases/BulkPasteModal.jsx";
 import { AutoFillModal } from "./purchases/AutoFillModal.jsx";
 import { QuickAddSearch } from "./purchases/QuickAddSearch.jsx";
@@ -33,6 +32,7 @@ export const Purchases = ({
   currentUser, logAudit, monthlyClosures = [], sales = [],
   supplierProfiles = [], setSupplierProfiles,
   supplierAliases = [], supplierLists = [],
+  embedded = false,
 }) => {
   const { isMobile } = useResponsive();
   const [modal, setModal] = useState(false);
@@ -227,24 +227,6 @@ export const Purchases = ({
   // ----- Auto-fill apply (similar a bulk pero items vienen de suggestPurchaseQty) -----
   const handleAutoFillApply = (items) => {
     handleBulkApply(items);
-  };
-
-  // ----- Crear desde recomendación cross-supplier -----
-  const handleCreatePurchaseFromReco = (purchaseData) => {
-    const newId = uid();
-    const newPurchase = {
-      ...purchaseData,
-      id: newId,
-      createdBy: currentUser?.name || "",
-      statusHistory: [{
-        status: "pedido",
-        timestamp: new Date().toISOString(),
-        note: "Pedido recomendado por análisis automático",
-        user: currentUser?.name || "?",
-      }],
-    };
-    setPurchases(prev => [newPurchase, ...prev]);
-    if (logAudit) logAudit("create", "purchase", newId, `Pedido recomendado: ${purchaseData.supplier} · ${purchaseData.totalItems}u`);
   };
 
   // ----- Picker proveedor: al elegir perfil, autocompleta costos defaults -----
@@ -521,16 +503,22 @@ export const Purchases = ({
 
   return (
     <div>
-      {/* Header con título + nuevo */}
+      {/* Header con título + nuevo (oculto el título si está embebido en el hub) */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 12, flexWrap: "wrap" }}>
-        <div>
-          <h2 style={{ color: "#1E2B4A", margin: 0, fontSize: isMobile ? 22 : 26, fontWeight: 800, letterSpacing: "-0.4px" }}>
-            🚚 Compras / Importaciones
-          </h2>
-          <p style={{ color: "#6B7794", fontSize: 12, margin: "4px 0 0" }}>
-            {stats.totalPending} pedidos en curso · {formatMoney(stats.totalUSDTinTransit, "USDT")} en tránsito
-          </p>
-        </div>
+        {!embedded ? (
+          <div>
+            <h2 style={{ color: "#1E2B4A", margin: 0, fontSize: isMobile ? 22 : 26, fontWeight: 800, letterSpacing: "-0.4px" }}>
+              🚚 Compras / Importaciones
+            </h2>
+            <p style={{ color: "#6B7794", fontSize: 12, margin: "4px 0 0" }}>
+              {stats.totalPending} pedidos en curso · {formatMoney(stats.totalUSDTinTransit, "USDT")} en tránsito
+            </p>
+          </div>
+        ) : (
+          <div style={{ fontSize: 13, color: "#6B7794", fontWeight: 600 }}>
+            {stats.totalPending} en curso · {formatMoney(stats.totalUSDTinTransit, "USDT")} en tránsito
+          </div>
+        )}
         <Btn onClick={openNew}>➕ Nuevo Pedido</Btn>
       </div>
 
@@ -569,17 +557,6 @@ export const Purchases = ({
           </button>
         ))}
       </div>
-
-      {/* Panel: Pedidos Recomendados (pilar EXTRA — cross-supplier inteligente) */}
-      <RecommendedOrdersPanel
-        products={products}
-        sales={sales}
-        purchases={purchases}
-        supplierLists={supplierLists}
-        supplierProfiles={supplierProfiles}
-        exchangeRate={exchangeRate}
-        onCreatePurchase={handleCreatePurchaseFromReco}
-      />
 
       {/* Overdue alert */}
       {stats.overdueCount > 0 && (
