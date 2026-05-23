@@ -13,6 +13,7 @@ export function ListView({
   onVerify,
   onOpenCosts,
   onDelete,
+  onReorder,
   confirmDeleteId,
 }) {
   const sorted = useMemo(
@@ -54,6 +55,7 @@ export function ListView({
           onVerify={onVerify}
           onOpenCosts={onOpenCosts}
           onDelete={onDelete}
+          onReorder={onReorder}
           confirmDeleteId={confirmDeleteId}
         />
       ))}

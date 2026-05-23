@@ -19,7 +19,7 @@ import {
 //   - Stats inline: items, días en estado, ETA, costo total
 //   - Indicador "Vino de Monitor 📋"
 //   - ROI proyectado si está verificado o tiene costos
-//   - Botones: avanzar, costos, editar, borrar
+//   - Botones: avanzar, costos, editar, borrar, reordenar
 export function PurchaseCard({
   purchase,
   supplierProfiles = [],
@@ -31,6 +31,7 @@ export function PurchaseCard({
   onVerify,
   onOpenCosts,
   onDelete,
+  onReorder,
   confirmDeleteId,
 }) {
   const { isMobile } = useResponsive();
@@ -202,6 +203,14 @@ export function PurchaseCard({
             >
               {next.value === "verificado" ? "✅ Verificar" : `${next.emoji} ${next.label}`}
             </button>
+          )}
+          {/* Reorder visible siempre, especialmente útil en verificados */}
+          {onReorder && (
+            <button
+              onClick={e => { e.stopPropagation(); onReorder(purchase); }}
+              title="Clonar este pedido para volver a pedir lo mismo"
+              style={btnStyle("#1E2B4A", "#E8EBF2")}
+            >↻ Reordenar</button>
           )}
           {confirmDeleteId === purchase.id ? (
             <button

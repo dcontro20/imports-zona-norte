@@ -12,6 +12,10 @@ import {
 import { activeProfiles } from "../lib/supplierProfiles.js";
 import { ListView } from "./purchases/ListView.jsx";
 import { KanbanBoard } from "./purchases/KanbanBoard.jsx";
+import { RecommendedOrdersPanel } from "./purchases/RecommendedOrdersPanel.jsx";
+import { BulkPasteModal } from "./purchases/BulkPasteModal.jsx";
+import { AutoFillModal } from "./purchases/AutoFillModal.jsx";
+import { QuickAddSearch } from "./purchases/QuickAddSearch.jsx";
 
 // Vacío del form para crear/editar un Pedido.
 const emptyPurchaseForm = () => ({
@@ -27,6 +31,7 @@ export const Purchases = ({
   purchases, setPurchases, products, setProducts, exchangeRate, logStock,
   currentUser, logAudit, monthlyClosures = [], sales = [],
   supplierProfiles = [], setSupplierProfiles,
+  supplierAliases = [], supplierLists = [],
 }) => {
   const { isMobile } = useResponsive();
   const [modal, setModal] = useState(false);
@@ -37,6 +42,10 @@ export const Purchases = ({
   const [form, setForm] = useState(emptyPurchaseForm());
   const [verifyNote, setVerifyNote] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(null);
+
+  // Sub-modales del modal Nuevo Pedido
+  const [bulkPasteOpen, setBulkPasteOpen] = useState(false);
+  const [autoFillOpen, setAutoFillOpen] = useState(false);
 
   // Vista: list | kanban (auto-fuerza list en mobile)
   const [view, setView] = useState("list");
@@ -116,6 +125,126 @@ export const Purchases = ({
     : (Number(form.paseroCostARS) || 0);
   const envioARS = Number(form.envioCostARS) || 0;
   const totalCostARS = Math.round(totalUSDTwithComm * exchangeRate) + paseroARS + envioARS;
+
+  // ----- Reordenar: clonar un pedido existente como nuevo borrador -----
+  const handleReorder = (purchase) => {
+    // Clonar todos los items y costos en un nuevo form
+    let groups = purchase.groups || [];
+    if (groups.length === 0 && purchase.items) {
+      const gmap = {};
+      purchase.items.forEach(item => {
+        const prod = products.find(pr => pr.id === item.productId);
+        if (prod) {
+          const key = `${prod.brand}|||${prod.model}|||${prod.puffs}`;
+          if (!gmap[key]) gmap[key] = { brand: prod.brand, model: prod.model, puffs: prod.puffs, modelKey: key, unitCostUSDT: item.unitCostUSDT || "", flavors: [] };
+          gmap[key].flavors.push({ name: prod.flavor, qty: item.qty, productId: item.productId, isNew: false });
+        }
+      });
+      groups = Object.values(gmap);
+    } else {
+      // Deep clone para no mutar el original
+      groups = groups.map(g => ({ ...g, flavors: (g.flavors || []).map(f => ({ ...f })) }));
+    }
+    const matchedProfile = resolvePurchaseProfile(purchase, profiles);
+    setForm({
+      ...emptyPurchaseForm(),
+      supplier: purchase.supplier || "",
+      supplierProfileId: matchedProfile?.id || "",
+      loteNumber: "",
+      groups,
+      supplierCommPercent: purchase.supplierCommPercent || "",
+      supplierCommUSDT: "",
+      paseroPercent: purchase.paseroPercent || "",
+      paseroCostARS: "",
+      envioCostARS: purchase.envioCostARS || "",
+      notes: `Reorden de pedido del ${formatDate(purchase.date)}`,
+      date: new Date().toISOString().slice(0, 10),
+      status: "pedido",
+      invoiceUrl: "",
+    });
+    setEditing(null); // es un nuevo pedido, no edit
+    setModal(true);
+  };
+
+  // ----- Quick add: agregar producto desde el buscador autocomplete -----
+  const handleQuickAdd = (product) => {
+    setForm(f => {
+      const key = `${product.brand}|||${product.model}|||${product.puffs}`;
+      const existingIdx = f.groups.findIndex(g => g.modelKey === key || (g.brand === product.brand && g.model === product.model && String(g.puffs) === String(product.puffs)));
+      if (existingIdx >= 0) {
+        // Agregar al grupo existente
+        const existingGroup = f.groups[existingIdx];
+        const alreadyHas = existingGroup.flavors.some(fl => fl.productId === product.id);
+        if (alreadyHas) return f; // no duplicar
+        return {
+          ...f,
+          groups: f.groups.map((g, i) => i === existingIdx
+            ? { ...g, flavors: [...g.flavors, { name: product.flavor, qty: 1, productId: product.id, isNew: false }] }
+            : g),
+        };
+      }
+      // Crear nuevo grupo
+      return {
+        ...f,
+        groups: [
+          ...f.groups,
+          {
+            brand: product.brand, model: product.model, puffs: product.puffs,
+            modelKey: key, unitCostUSDT: product.costUSDT || "",
+            flavors: [{ name: product.flavor, qty: 1, productId: product.id, isNew: false }],
+          },
+        ],
+      };
+    });
+  };
+
+  // ----- Bulk paste apply -----
+  const handleBulkApply = (items) => {
+    // items: [{ product, qty, priceUSD }]
+    items.forEach(({ product, qty, priceUSD }) => {
+      handleQuickAdd(product);
+      // Después actualizar qty + priceUSD en el group recién agregado
+      setForm(f => {
+        const key = `${product.brand}|||${product.model}|||${product.puffs}`;
+        return {
+          ...f,
+          groups: f.groups.map(g => {
+            if (g.modelKey !== key) return g;
+            return {
+              ...g,
+              unitCostUSDT: priceUSD || g.unitCostUSDT,
+              flavors: g.flavors.map(fl =>
+                fl.productId === product.id ? { ...fl, qty } : fl
+              ),
+            };
+          }),
+        };
+      });
+    });
+  };
+
+  // ----- Auto-fill apply (similar a bulk pero items vienen de suggestPurchaseQty) -----
+  const handleAutoFillApply = (items) => {
+    handleBulkApply(items);
+  };
+
+  // ----- Crear desde recomendación cross-supplier -----
+  const handleCreatePurchaseFromReco = (purchaseData) => {
+    const newId = uid();
+    const newPurchase = {
+      ...purchaseData,
+      id: newId,
+      createdBy: currentUser?.name || "",
+      statusHistory: [{
+        status: "pedido",
+        timestamp: new Date().toISOString(),
+        note: "Pedido recomendado por análisis automático",
+        user: currentUser?.name || "?",
+      }],
+    };
+    setPurchases(prev => [newPurchase, ...prev]);
+    if (logAudit) logAudit("create", "purchase", newId, `Pedido recomendado: ${purchaseData.supplier} · ${purchaseData.totalItems}u`);
+  };
 
   // ----- Picker proveedor: al elegir perfil, autocompleta costos defaults -----
   const handleProfileChange = (profileId) => {
@@ -391,6 +520,17 @@ export const Purchases = ({
         ))}
       </div>
 
+      {/* Panel: Pedidos Recomendados (pilar EXTRA — cross-supplier inteligente) */}
+      <RecommendedOrdersPanel
+        products={products}
+        sales={sales}
+        purchases={purchases}
+        supplierLists={supplierLists}
+        supplierProfiles={supplierProfiles}
+        exchangeRate={exchangeRate}
+        onCreatePurchase={handleCreatePurchaseFromReco}
+      />
+
       {/* Overdue alert */}
       {stats.overdueCount > 0 && (
         <Card style={{ marginBottom: 12, background: "#F7DEDE", border: "1px solid #E5A8A8" }}>
@@ -458,6 +598,7 @@ export const Purchases = ({
           onVerify={setVerifyModal}
           onOpenCosts={openCosts}
           onDelete={deletePurchase}
+          onReorder={handleReorder}
           confirmDeleteId={confirmDelete}
         />
       ) : (
@@ -471,6 +612,7 @@ export const Purchases = ({
           onVerify={setVerifyModal}
           onOpenCosts={openCosts}
           onDelete={deletePurchase}
+          onReorder={handleReorder}
           confirmDeleteId={confirmDelete}
         />
       )}
@@ -518,6 +660,35 @@ export const Purchases = ({
         <div style={{ display: "flex", gap: 10, flexDirection: isMobile ? "column" : "row" }}>
           <div style={{ flex: 1 }}>
             <Input label="N° de lote (opcional)" placeholder="ej: LOTE-042" value={form.loteNumber} onChange={e => setForm(f => ({ ...f, loteNumber: e.target.value }))} />
+          </div>
+        </div>
+
+        {/* Atajos de carga rápida */}
+        <div style={{
+          padding: "10px 12px", marginBottom: 14,
+          background: "linear-gradient(135deg, #EEF0FC 0%, #FFFFFF 100%)",
+          border: "1px solid #C5CADE", borderRadius: 10,
+        }}>
+          <div style={{
+            fontSize: 11, fontWeight: 700, color: "#6B7794",
+            textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 8,
+          }}>⚡ Carga rápida</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            <button
+              onClick={() => setBulkPasteOpen(true)}
+              style={quickBtnStyle("#5B3592", "#E4D8F0")}
+            >📝 Pegar lista</button>
+            <button
+              onClick={() => setAutoFillOpen(true)}
+              style={quickBtnStyle("#0F6B5C", "#D9E8E4")}
+            >🪄 Auto-fill reposición</button>
+          </div>
+          <div style={{ marginTop: 10 }}>
+            <QuickAddSearch
+              products={products}
+              onPick={handleQuickAdd}
+              placeholder="🔍 O buscá producto y agregalo (Enter)..."
+            />
           </div>
         </div>
 
@@ -745,6 +916,41 @@ export const Purchases = ({
           </div>
         </div>)}
       </Modal>
+
+      {/* Bulk Paste Modal */}
+      <BulkPasteModal
+        open={bulkPasteOpen}
+        onClose={() => setBulkPasteOpen(false)}
+        products={products}
+        supplierAliases={supplierAliases}
+        supplierProfileId={form.supplierProfileId || null}
+        onApply={handleBulkApply}
+      />
+
+      {/* Auto-fill Modal */}
+      <AutoFillModal
+        open={autoFillOpen}
+        onClose={() => setAutoFillOpen(false)}
+        products={products}
+        sales={sales}
+        exchangeRate={exchangeRate}
+        defaultLeadDays={profiles.find(p => p.id === form.supplierProfileId)?.defaultLeadDays || 30}
+        onApply={handleAutoFillApply}
+      />
     </div>
   );
 };
+
+function quickBtnStyle(color, bg) {
+  return {
+    background: bg,
+    border: `1px solid ${color}40`,
+    color,
+    padding: "7px 12px",
+    borderRadius: 8,
+    fontSize: 12,
+    fontWeight: 700,
+    cursor: "pointer",
+    fontFamily: "inherit",
+  };
+}

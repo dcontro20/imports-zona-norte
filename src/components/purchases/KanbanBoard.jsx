@@ -16,6 +16,7 @@ export function KanbanBoard({
   onVerify,
   onOpenCosts,
   onDelete,
+  onReorder,
   confirmDeleteId,
 }) {
   const { isMobile } = useResponsive();
@@ -81,6 +82,7 @@ export function KanbanBoard({
                     onVerify={onVerify}
                     onOpenCosts={onOpenCosts}
                     onDelete={onDelete}
+                    onReorder={onReorder}
                     confirmDeleteId={confirmDeleteId}
                   />
                 ))}
