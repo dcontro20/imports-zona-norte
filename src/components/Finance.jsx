@@ -217,6 +217,17 @@ function PnLRow({ label, value, bold, big, pct, divider, color }) {
   );
 }
 
+function FlowRow({ label, value, color }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0" }}>
+      <span style={{ fontSize: 13, color: "#3A4868" }}>{label}</span>
+      <span style={{ fontSize: 14, fontWeight: 700, color: color || (value < 0 ? "#B83232" : "#1E2B4A") }}>
+        {formatMoney(value)}
+      </span>
+    </div>
+  );
+}
+
 function ValueBox({ label, value, sub, color = "#1E2B4A" }) {
   return (
     <div style={{ padding: "12px 14px", background: "#F8F2E7", borderRadius: 10, border: "1px solid #EFE5CE" }}>
