@@ -54,6 +54,7 @@ const SettingsModal = lazy(() => import("./components/SettingsModal.jsx").then(m
 const QuickSale = lazy(() => import("./components/QuickSale.jsx").then(m => ({ default: m.QuickSale })));
 const QuickWithdrawal = lazy(() => import("./components/QuickWithdrawal.jsx").then(m => ({ default: m.QuickWithdrawal })));
 const SupplierMonitor = lazy(() => import("./components/SupplierMonitor.jsx").then(m => ({ default: m.SupplierMonitor })));
+const Finance = lazy(() => import("./components/Finance.jsx").then(m => ({ default: m.Finance })));
 
 const LoadingSpinner = () => (
   <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "40px 16px" }}>
@@ -110,6 +111,7 @@ const NAV_ITEMS = [
   { key: "pricelog", label: "Precios", icon: "💲" },
   { key: "coupons", label: "Promos", icon: "🎟️" },
   { key: "partners", label: "Mi Cartera", icon: "💼" },
+  { key: "finance", label: "Finanzas", icon: "💵" },
   { key: "closures", label: "Cierres", icon: "📅" },
   { key: "export", label: "Exportar", icon: "📥" },
   { key: "reports", label: "Reportes", icon: "📈" },
@@ -394,6 +396,7 @@ export default function App() {
       case "stocklog": return <StockLog stockLog={stockLog} setStockLog={setStockLog} products={activeProducts} />;
       case "pricelog": return <PriceLog priceLog={priceLog} products={activeProducts} setProducts={setProducts} logPrice={logPrice} exchangeRate={exchangeRate} />;
       case "partners": return <Partners partnerWithdrawals={partnerWithdrawals} setPartnerWithdrawals={setPartnerWithdrawals} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} products={activeProducts} cashMovements={activeCashMovements} clients={clients} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} />;
+      case "finance": return <Finance sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} products={activeProducts} exchangeRate={exchangeRate} />;
       case "closures": return <MonthlyClosures monthlyClosures={monthlyClosures} setMonthlyClosures={setMonthlyClosures} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} products={activeProducts} exchangeRate={exchangeRate} logAudit={logAudit} />;
       case "export": return <ExportData
         products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses}

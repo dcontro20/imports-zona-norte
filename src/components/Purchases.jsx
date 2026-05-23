@@ -10,6 +10,7 @@ import {
   resolvePurchaseProfile,
 } from "./purchases/purchaseHelpers.js";
 import { activeProfiles } from "../lib/supplierProfiles.js";
+import { applyPurchaseCosts } from "../finance.js";
 import { ListView } from "./purchases/ListView.jsx";
 import { KanbanBoard } from "./purchases/KanbanBoard.jsx";
 import { RecommendedOrdersPanel } from "./purchases/RecommendedOrdersPanel.jsx";
@@ -402,11 +403,20 @@ export const Purchases = ({
     setPurchases(prev => prev.map(p => {
       if (p.id !== purchaseId) return p;
       if (newStatus === "verificado" && p.status !== "verificado") {
+        // Actualizar costo promedio ponderado (con stock VIEJO) y luego sumar stock.
+        // El orden importa: el promedio usa el stock previo a la entrada.
+        setProducts(pr => {
+          let updated = applyPurchaseCosts(pr, p.items || []);
+          (p.items || []).forEach(item => {
+            if (!item.productId) return;
+            updated = updated.map(prod => prod.id === item.productId
+              ? { ...prod, stock: (prod.stock || 0) + Number(item.qty) }
+              : prod);
+          });
+          return updated;
+        });
         (p.items || []).forEach(item => {
           if (item.productId) {
-            setProducts(pr => pr.map(prod => prod.id === item.productId
-              ? { ...prod, stock: (prod.stock || 0) + Number(item.qty) }
-              : prod));
             logStock({
               productId: item.productId, type: "compra", qty: Number(item.qty),
               reason: `Pedido verificado - ${p.supplier || ""}`, refId: p.id,

@@ -391,11 +391,18 @@ export const Sales = ({
       items: validItems.map(i => {
         const prod = products.find(p => p.id === i.productId);
         const unitPriceARS = getItemPrice(i);
+        // Snapshot del costo real al momento de la venta (avgCost ponderado o
+        // costUSDT manual). Fija el COGS de esta venta aunque el costo cambie después.
+        const costSnapshot = prod
+          ? (Number(prod.avgCostUSDT) > 0 ? Number(prod.avgCostUSDT)
+            : Number(prod.costUSDT) > 0 ? Number(prod.costUSDT) : 0)
+          : 0;
         return {
           productId: i.productId, qty: Number(i.qty) || 1,
           priceUSD: prod?.priceUSD || 0,
           priceARS: unitPriceARS,
           name: prod ? `${prod.brand} ${prod.model} - ${prod.flavor}` : "",
+          ...(costSnapshot > 0 ? { costUSDTAtSale: costSnapshot } : {}),
           ...(i.customPrice !== "" && i.customPrice !== undefined ? { customPrice: Number(i.customPrice) } : {}),
         };
       }),
