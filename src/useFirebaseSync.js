@@ -49,6 +49,9 @@ const DATA_KEYS = [
   { key: "auditLog", default: [] },
   { key: "coupons", default: [] }, // S16.1 — sistema de cupones formal
   { key: "bundles", default: [] }, // S16.10 — bundles/combos preconfigurados
+  { key: "supplierProfiles", default: [] }, // perfiles de proveedor con defaults y stats
+  { key: "supplierAliases", default: [] },  // diccionario aprendido raw→productId
+  { key: "supplierLists", default: [] },    // historial de listas procesadas
 ];
 
 export function useFirebaseSync() {
@@ -68,6 +71,9 @@ export function useFirebaseSync() {
   const [auditLog, setAuditLog] = useState(() => loadData("auditLog", []));
   const [coupons, setCoupons] = useState(() => loadData("coupons", []));
   const [bundles, setBundles] = useState(() => loadData("bundles", []));
+  const [supplierProfiles, setSupplierProfiles] = useState(() => loadData("supplierProfiles", []));
+  const [supplierAliases, setSupplierAliases] = useState(() => loadData("supplierAliases", []));
+  const [supplierLists, setSupplierLists] = useState(() => loadData("supplierLists", []));
 
   // ---- Sync flags ----
   // lastFirestoreData[key] = JSON serializado de la última data recibida de Firestore.
@@ -117,6 +123,9 @@ export function useFirebaseSync() {
     cashMovements: setCashMovements, stockLog: setStockLog, priceLog: setPriceLog,
     monthlyClosures: setMonthlyClosures, partnerWithdrawals: setPartnerWithdrawals,
     auditLog: setAuditLog, coupons: setCoupons, bundles: setBundles,
+    supplierProfiles: setSupplierProfiles,
+    supplierAliases: setSupplierAliases,
+    supplierLists: setSupplierLists,
   }).current;
 
   // ---- Subscribe to Firestore ONLY when authenticated ----
@@ -266,6 +275,9 @@ export function useFirebaseSync() {
   useEffect(() => smartSave("auditLog", auditLog), [auditLog]); // eslint-disable-line
   useEffect(() => smartSave("coupons", coupons), [coupons]); // eslint-disable-line
   useEffect(() => smartSave("bundles", bundles), [bundles]); // eslint-disable-line
+  useEffect(() => smartSave("supplierProfiles", supplierProfiles), [supplierProfiles]); // eslint-disable-line
+  useEffect(() => smartSave("supplierAliases", supplierAliases), [supplierAliases]); // eslint-disable-line
+  useEffect(() => smartSave("supplierLists", supplierLists), [supplierLists]); // eslint-disable-line
   useEffect(() => smartSave("exchangeRate", exchangeRate), [exchangeRate]); // eslint-disable-line
 
   // ---- Auto-fetch dolar blue ----
@@ -308,6 +320,9 @@ export function useFirebaseSync() {
     exchangeRate, setExchangeRate, auditLog, setAuditLog,
     coupons, setCoupons,
     bundles, setBundles,
+    supplierProfiles, setSupplierProfiles,
+    supplierAliases, setSupplierAliases,
+    supplierLists, setSupplierLists,
     dataReady, syncStatus, fromFirestore,
     logStock, logPrice,
   };
