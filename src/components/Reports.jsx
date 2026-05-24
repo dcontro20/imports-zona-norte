@@ -98,7 +98,7 @@ const DonutChart = ({ data, size = 160 }) => {
   );
 };
 
-export const Reports = ({ products, sales, purchases, expenses, withdrawals, clients = [], priceLog = [] }) => {
+export const Reports = ({ products, sales, purchases, expenses, withdrawals, clients = [], priceLog = [], embedded = false }) => {
   const { exchangeRate } = useAppContext();
   const { isMobile } = useResponsive();
 
@@ -217,7 +217,7 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
-        <h2 style={{ color: "#1E2B4A", margin: 0, fontSize: 22 }}>Reportes</h2>
+        <h2 style={{ color: "#1E2B4A", margin: 0, fontSize: 22 }}>{embedded ? "" : "Reportes"}</h2>
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={() => window.print()} style={{
             padding: "8px 14px", borderRadius: 8, border: "1px solid #E5DAC2",

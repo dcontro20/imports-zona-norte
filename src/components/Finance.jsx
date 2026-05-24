@@ -14,7 +14,7 @@ import {
 // valuación de inventario, flujo de caja proyectado, KPIs ejecutivos).
 export const Finance = ({
   sales = [], purchases = [], expenses = [], withdrawals = [],
-  products = [], exchangeRate = 1,
+  products = [], exchangeRate = 1, embedded = false,
 }) => {
   const { isMobile } = useResponsive();
 
@@ -72,10 +72,12 @@ export const Finance = ({
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 12, flexWrap: "wrap" }}>
         <div>
-          <h2 style={{ color: "#1E2B4A", margin: 0, fontSize: isMobile ? 22 : 26, fontWeight: 800, letterSpacing: "-0.4px" }}>
-            💵 Finanzas
-          </h2>
-          <p style={{ color: "#6B7794", fontSize: 12, margin: "4px 0 0" }}>
+          {!embedded && (
+            <h2 style={{ color: "#1E2B4A", margin: 0, fontSize: isMobile ? 22 : 26, fontWeight: 800, letterSpacing: "-0.4px" }}>
+              💵 Finanzas
+            </h2>
+          )}
+          <p style={{ color: "#6B7794", fontSize: 12, margin: embedded ? 0 : "4px 0 0" }}>
             Rentabilidad real con costo de lo vendido (COGS), no de lo comprado.
           </p>
         </div>

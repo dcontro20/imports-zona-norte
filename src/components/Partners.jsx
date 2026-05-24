@@ -65,7 +65,7 @@ export const Partners = ({
   partnerWithdrawals = [], setPartnerWithdrawals,
   sales = [], purchases = [], expenses = [], withdrawals = [],
   products = [], cashMovements = [], clients = [],
-  exchangeRate, currentUser, logAudit,
+  exchangeRate, currentUser, logAudit, embedded = false,
 }) => {
   const { isMobile } = useResponsive();
   const [modal, setModal] = useState(false);
@@ -282,9 +282,11 @@ export const Partners = ({
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h2 style={{ color: T.text, margin: 0, fontSize: 24, fontFamily: T.fontDisplay, letterSpacing: "-0.02em" }}>
-            💼 Mi Cartera
-          </h2>
+          {!embedded && (
+            <h2 style={{ color: T.text, margin: 0, fontSize: 24, fontFamily: T.fontDisplay, letterSpacing: "-0.02em" }}>
+              💼 Mi Cartera
+            </h2>
+          )}
           <div style={{ color: T.textSub, fontSize: 13, marginTop: 4 }}>
             Diego — 100% dueño de Imports Zona Norte
           </div>

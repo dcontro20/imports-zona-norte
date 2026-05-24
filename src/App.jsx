@@ -38,10 +38,7 @@ const Clients = lazy(() => import("./components/Clients.jsx").then(m => ({ defau
 const Expenses = lazy(() => import("./components/Expenses.jsx").then(m => ({ default: m.Expenses })));
 const Withdrawals = lazy(() => import("./components/Withdrawals.jsx").then(m => ({ default: m.Withdrawals })));
 const CashBox = lazy(() => import("./components/CashBox.jsx").then(m => ({ default: m.CashBox })));
-const Reports = lazy(() => import("./components/Reports.jsx").then(m => ({ default: m.Reports })));
 const WhatsAppMessage = lazy(() => import("./components/WhatsApp.jsx").then(m => ({ default: m.WhatsAppMessage })));
-const Partners = lazy(() => import("./components/Partners.jsx").then(m => ({ default: m.Partners })));
-const MonthlyClosures = lazy(() => import("./components/Closures.jsx").then(m => ({ default: m.MonthlyClosures })));
 const ExportData = lazy(() => import("./components/Export.jsx").then(m => ({ default: m.ExportData })));
 const PriceLog = lazy(() => import("./components/PriceLog.jsx").then(m => ({ default: m.PriceLog })));
 const StockLog = lazy(() => import("./components/StockLog.jsx").then(m => ({ default: m.StockLog })));
@@ -53,7 +50,7 @@ const SettingsModal = lazy(() => import("./components/SettingsModal.jsx").then(m
 const QuickSale = lazy(() => import("./components/QuickSale.jsx").then(m => ({ default: m.QuickSale })));
 const QuickWithdrawal = lazy(() => import("./components/QuickWithdrawal.jsx").then(m => ({ default: m.QuickWithdrawal })));
 const Procurement = lazy(() => import("./components/Procurement.jsx").then(m => ({ default: m.Procurement })));
-const Finance = lazy(() => import("./components/Finance.jsx").then(m => ({ default: m.Finance })));
+const Analisis = lazy(() => import("./components/Analisis.jsx").then(m => ({ default: m.Analisis })));
 
 const LoadingSpinner = () => (
   <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "40px 16px" }}>
@@ -108,11 +105,8 @@ const NAV_ITEMS = [
   { key: "stocklog", label: "Historial", icon: "📋" },
   { key: "pricelog", label: "Precios", icon: "💲" },
   { key: "coupons", label: "Promos", icon: "🎟️" },
-  { key: "partners", label: "Mi Cartera", icon: "💼" },
-  { key: "finance", label: "Finanzas", icon: "💵" },
-  { key: "closures", label: "Cierres", icon: "📅" },
+  { key: "analisis", label: "Análisis", icon: "📊" },
   { key: "export", label: "Exportar", icon: "📥" },
-  { key: "reports", label: "Reportes", icon: "📈" },
   { key: "exchange", label: "Cotizaciones", icon: "💱" },
   { key: "audit", label: "Auditoría", icon: "🔍" },
   { key: "trash", label: "Papelera", icon: "🗑️" },
@@ -392,9 +386,7 @@ export default function App() {
       case "whatsapp": return <WhatsAppMessage products={activeProducts} />;
       case "stocklog": return <StockLog stockLog={stockLog} setStockLog={setStockLog} products={activeProducts} />;
       case "pricelog": return <PriceLog priceLog={priceLog} products={activeProducts} setProducts={setProducts} logPrice={logPrice} exchangeRate={exchangeRate} />;
-      case "partners": return <Partners partnerWithdrawals={partnerWithdrawals} setPartnerWithdrawals={setPartnerWithdrawals} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} products={activeProducts} cashMovements={activeCashMovements} clients={clients} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} />;
-      case "finance": return <Finance sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} products={activeProducts} exchangeRate={exchangeRate} />;
-      case "closures": return <MonthlyClosures monthlyClosures={monthlyClosures} setMonthlyClosures={setMonthlyClosures} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} products={activeProducts} exchangeRate={exchangeRate} logAudit={logAudit} />;
+      case "analisis": return <Analisis products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} clients={clients} cashMovements={activeCashMovements} priceLog={priceLog} partnerWithdrawals={partnerWithdrawals} setPartnerWithdrawals={setPartnerWithdrawals} monthlyClosures={monthlyClosures} setMonthlyClosures={setMonthlyClosures} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} />;
       case "export": return <ExportData
         products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses}
         withdrawals={activeWithdrawals} cashMovements={activeCashMovements} stockLog={stockLog}
@@ -406,7 +398,6 @@ export default function App() {
         setStockLog={setStockLog} setPriceLog={setPriceLog}
         logAudit={logAudit} currentUser={currentUser}
       />;
-      case "reports": return <Reports products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} clients={clients} priceLog={priceLog} />;
       case "exchange": return <ExchangeMonitor exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} />;
       case "audit": return <AuditLog auditLog={auditLog} products={products} />;
       case "coupons": return <Coupons coupons={coupons} setCoupons={setCoupons} bundles={bundles} setBundles={setBundles} products={activeProducts} sales={activeSales} clients={clients} currentUser={currentUser} logAudit={logAudit} />;

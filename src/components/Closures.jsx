@@ -5,7 +5,7 @@ import { Card, Btn, Badge, StatCard } from "./UI.jsx";
 import { useResponsive } from "../App.jsx";
 
 // -- MONTHLY CLOSURES --
-export const MonthlyClosures = ({ monthlyClosures, setMonthlyClosures, sales, purchases, expenses, withdrawals, products, exchangeRate, logAudit }) => {
+export const MonthlyClosures = ({ monthlyClosures, setMonthlyClosures, sales, purchases, expenses, withdrawals, products, exchangeRate, logAudit, embedded = false }) => {
   const { isMobile } = useResponsive();
   const [showConfirm, setShowConfirm] = useState(false);
   const [closureNotes, setClosureNotes] = useState("");
@@ -272,7 +272,7 @@ export const MonthlyClosures = ({ monthlyClosures, setMonthlyClosures, sales, pu
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h2 style={{ color: "#1E2B4A", margin: 0, fontSize: 22 }}>Cierres Mensuales</h2>
+          {!embedded && <h2 style={{ color: "#1E2B4A", margin: 0, fontSize: 22 }}>Cierres Mensuales</h2>}
           <span style={{ color: "#6B7794", fontSize: 13 }}>Foto financiera de cada mes para comparar evolución</span>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
