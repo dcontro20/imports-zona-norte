@@ -43,7 +43,7 @@ const ExportData = lazy(() => import("./components/Export.jsx").then(m => ({ def
 const PriceLog = lazy(() => import("./components/PriceLog.jsx").then(m => ({ default: m.PriceLog })));
 const StockLog = lazy(() => import("./components/StockLog.jsx").then(m => ({ default: m.StockLog })));
 const AuditLog = lazy(() => import("./components/AuditLog.jsx").then(m => ({ default: m.AuditLog })));
-const Coupons = lazy(() => import("./components/Coupons.jsx").then(m => ({ default: m.Coupons })));
+const Offers = lazy(() => import("./components/Offers.jsx").then(m => ({ default: m.Offers })));
 const ExchangeMonitor = lazy(() => import("./components/ExchangeMonitor.jsx").then(m => ({ default: m.ExchangeMonitor })));
 const Trash = lazy(() => import("./components/Trash.jsx").then(m => ({ default: m.Trash })));
 const SettingsModal = lazy(() => import("./components/SettingsModal.jsx").then(m => ({ default: m.SettingsModal })));
@@ -105,7 +105,7 @@ const NAV_ITEMS = [
   // Gestión
   { key: "expenses", label: "Gastos", icon: "💸" },
   { key: "withdrawals", label: "Mermas", icon: "📉" },
-  { key: "coupons", label: "Promos", icon: "🎟️" },
+  { key: "offers", label: "Ofertas", icon: "🔥" },
   { key: "whatsapp", label: "WhatsApp", icon: "📲" },
   // Registros / utilidades
   { key: "pricelog", label: "Precios", icon: "💲" },
@@ -404,7 +404,7 @@ export default function App() {
       />;
       case "exchange": return <ExchangeMonitor exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} />;
       case "audit": return <AuditLog auditLog={auditLog} products={products} />;
-      case "coupons": return <Coupons coupons={coupons} setCoupons={setCoupons} bundles={bundles} setBundles={setBundles} products={activeProducts} sales={activeSales} clients={clients} currentUser={currentUser} logAudit={logAudit} />;
+      case "offers": return <Offers products={activeProducts} sales={activeSales} exchangeRate={exchangeRate} />;
       case "trash": return <Trash products={products} setProducts={setProducts} sales={sales} setSales={setSales} purchases={purchases} setPurchases={setPurchases} expenses={expenses} setExpenses={setExpenses} cashMovements={cashMovements} setCashMovements={setCashMovements} partnerWithdrawals={partnerWithdrawals} setPartnerWithdrawals={setPartnerWithdrawals} clients={clients} setClients={setClients} coupons={coupons} setCoupons={setCoupons} logAudit={logAudit} currentUser={currentUser} />;
       default: return null;
     }
