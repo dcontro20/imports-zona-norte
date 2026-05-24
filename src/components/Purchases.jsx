@@ -16,6 +16,7 @@ import { KanbanBoard } from "./purchases/KanbanBoard.jsx";
 import { BulkPasteModal } from "./purchases/BulkPasteModal.jsx";
 import { AutoFillModal } from "./purchases/AutoFillModal.jsx";
 import { QuickAddSearch } from "./purchases/QuickAddSearch.jsx";
+import { PurchaseDetailDrawer } from "./purchases/PurchaseDetailDrawer.jsx";
 
 // Vacío del form para crear/editar un Pedido.
 const emptyPurchaseForm = () => ({
@@ -44,6 +45,7 @@ export const Purchases = ({
   const [verifyNote, setVerifyNote] = useState("");
   const [receivedQty, setReceivedQty] = useState({}); // recepción parcial: { productId: qty }
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [detailId, setDetailId] = useState(null); // pedido abierto en el drawer de ficha
 
   // Sub-modales del modal Nuevo Pedido
   const [bulkPasteOpen, setBulkPasteOpen] = useState(false);
@@ -472,6 +474,8 @@ export const Purchases = ({
     setConfirmDelete(null);
   };
 
+  const openDetail = (purchase) => setDetailId(purchase.id);
+
   // Abre el modal de verificación inicializando la recepción parcial con la
   // qty pedida de cada item (default: llegó todo).
   const openVerify = (purchaseId) => {
@@ -661,7 +665,7 @@ export const Purchases = ({
           supplierProfiles={supplierProfiles}
           products={products}
           exchangeRate={exchangeRate}
-          onOpenEdit={openEdit}
+          onOpenEdit={openDetail}
           onAdvance={(id, status) => updateStatus(id, status)}
           onVerify={openVerify}
           onOpenCosts={openCosts}
@@ -675,7 +679,7 @@ export const Purchases = ({
           supplierProfiles={supplierProfiles}
           products={products}
           exchangeRate={exchangeRate}
-          onOpenEdit={openEdit}
+          onOpenEdit={openDetail}
           onAdvance={(id, status) => updateStatus(id, status)}
           onVerify={openVerify}
           onOpenCosts={openCosts}
@@ -1045,6 +1049,22 @@ export const Purchases = ({
         defaultLeadDays={profiles.find(p => p.id === form.supplierProfileId)?.defaultLeadDays || 30}
         onApply={handleAutoFillApply}
       />
+
+      {/* Drawer de detalle del pedido */}
+      {detailId && (
+        <PurchaseDetailDrawer
+          purchase={purchases.find(p => p.id === detailId)}
+          products={products}
+          supplierProfiles={supplierProfiles}
+          exchangeRate={exchangeRate}
+          onClose={() => setDetailId(null)}
+          onAdvance={(id, status) => updateStatus(id, status)}
+          onVerify={openVerify}
+          onOpenCosts={openCosts}
+          onReorder={handleReorder}
+          onEdit={openEdit}
+        />
+      )}
     </div>
   );
 };
