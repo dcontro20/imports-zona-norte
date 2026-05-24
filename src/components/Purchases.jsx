@@ -8,6 +8,7 @@ import {
   PURCHASE_STATUSES,
   aggregatePurchaseStats,
   resolvePurchaseProfile,
+  statusDelayInfo,
 } from "./purchases/purchaseHelpers.js";
 import { activeProfiles } from "../lib/supplierProfiles.js";
 import { applyPurchaseCosts } from "../finance.js";
@@ -53,19 +54,50 @@ export const Purchases = ({
 
   // Vista: list | kanban (auto-fuerza list en mobile)
   const [view, setView] = useState("list");
-  // Filtro por status (null = todos)
+  // Filtros
   const [statusFilter, setStatusFilter] = useState(null);
+  const [searchText, setSearchText] = useState("");
+  const [supplierFilter, setSupplierFilter] = useState("");
+  const [onlyOverdue, setOnlyOverdue] = useState(false);
 
   const profiles = useMemo(() => activeProfiles(supplierProfiles), [supplierProfiles]);
 
   // Stats globales (KPIs del header)
   const stats = useMemo(() => aggregatePurchaseStats(purchases), [purchases]);
 
+  // Proveedores presentes en los pedidos (para el selector de filtro)
+  const purchaseSuppliers = useMemo(() => {
+    const set = new Set();
+    (purchases || []).forEach(p => { if (!p.isDeleted && p.supplier) set.add(p.supplier); });
+    return Array.from(set).sort();
+  }, [purchases]);
+
   // Lista filtrada que vamos a pasar a ListView / KanbanBoard
   const filteredPurchases = useMemo(() => {
-    const active = (purchases || []).filter(p => p && !p.isDeleted);
-    return statusFilter ? active.filter(p => p.status === statusFilter) : active;
-  }, [purchases, statusFilter]);
+    let active = (purchases || []).filter(p => p && !p.isDeleted);
+    if (statusFilter) active = active.filter(p => p.status === statusFilter);
+    if (supplierFilter) active = active.filter(p => p.supplier === supplierFilter);
+    if (searchText) {
+      const t = searchText.toLowerCase();
+      active = active.filter(p => {
+        if (`${p.supplier || ""} ${p.loteNumber || ""}`.toLowerCase().includes(t)) return true;
+        // Buscar también por producto contenido
+        return (p.items || []).some(it => {
+          const prod = products.find(pr => pr.id === it.productId);
+          return prod && `${prod.brand} ${prod.model} ${prod.flavor}`.toLowerCase().includes(t);
+        });
+      });
+    }
+    if (onlyOverdue) {
+      active = active.filter(p => {
+        const info = statusDelayInfo(p);
+        return info && info.severity === "danger";
+      });
+    }
+    return active;
+  }, [purchases, statusFilter, supplierFilter, searchText, onlyOverdue, products]);
+
+  const hasActiveFilters = statusFilter || supplierFilter || searchText || onlyOverdue;
 
   // Modelos únicos del catálogo (para el modal nuevo/edit)
   const modelOptions = useMemo(() => {
@@ -619,6 +651,47 @@ export const Purchases = ({
           </div>
         </Card>
       )}
+
+      {/* Barra de filtros */}
+      <Card style={{ marginBottom: 12 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <input
+            value={searchText}
+            onChange={e => setSearchText(e.target.value)}
+            placeholder="🔍 Buscar por proveedor, lote o producto..."
+            style={{
+              flex: isMobile ? "1 1 100%" : "1 1 220px", minWidth: 0,
+              padding: "8px 12px", background: "#F8F2E7", border: "1px solid #E5DAC2",
+              borderRadius: 8, fontSize: 13, outline: "none", fontFamily: "inherit", color: "#1E2B4A",
+            }}
+          />
+          <select
+            value={supplierFilter}
+            onChange={e => setSupplierFilter(e.target.value)}
+            style={{
+              padding: "8px 12px", background: "#F8F2E7", border: "1px solid #E5DAC2",
+              borderRadius: 8, fontSize: 13, outline: "none", fontFamily: "inherit", color: "#1E2B4A",
+            }}
+          >
+            <option value="">Todos los proveedores</option>
+            {purchaseSuppliers.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#555247", cursor: "pointer" }}>
+            <input type="checkbox" checked={onlyOverdue} onChange={e => setOnlyOverdue(e.target.checked)} style={{ accentColor: "#B83232" }} />
+            Solo atrasados
+          </label>
+          {hasActiveFilters && (
+            <button
+              onClick={() => { setSearchText(""); setSupplierFilter(""); setStatusFilter(null); setOnlyOverdue(false); }}
+              style={{
+                marginLeft: "auto", padding: "6px 12px", background: "#E8EBF2",
+                border: "1px solid #C5CADE", borderRadius: 8, cursor: "pointer",
+                fontSize: 12, fontWeight: 600, color: "#1E2B4A", fontFamily: "inherit",
+              }}
+            >Limpiar filtros ✕</button>
+          )}
+        </div>
+      </Card>
 
       {/* Toolbar: view toggle + filter chip */}
       {!isMobile && (

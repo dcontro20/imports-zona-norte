@@ -4,6 +4,7 @@ import { useResponsive } from "../App.jsx";
 import { Purchases } from "./Purchases.jsx";
 import { SupplierMonitor } from "./SupplierMonitor.jsx";
 import { ProcurementSummary } from "./purchases/ProcurementSummary.jsx";
+import { PurchaseAnalytics } from "./purchases/PurchaseAnalytics.jsx";
 
 // Hub unificado de Abastecimiento — un solo punto de entrada para todo el ciclo
 // de compra: Resumen (centro de comando) + Pedidos + Proveedores.
@@ -44,6 +45,7 @@ export const Procurement = (props) => {
     { key: "summary", label: "📊 Resumen", desc: "Centro de comando" },
     { key: "orders", label: "🚚 Pedidos", desc: "Gestión de compras" },
     { key: "suppliers", label: "🏭 Proveedores", desc: "Listas + perfiles" },
+    { key: "analytics", label: "📈 Analytics", desc: "Inteligencia" },
   ];
 
   return (
@@ -138,6 +140,17 @@ export const Procurement = (props) => {
           supplierLists={supplierLists}
           setSupplierLists={setSupplierLists}
           embedded
+        />
+      )}
+
+      {tab === "analytics" && (
+        <PurchaseAnalytics
+          purchases={purchases}
+          products={products}
+          sales={sales}
+          supplierProfiles={supplierProfiles}
+          supplierLists={supplierLists}
+          exchangeRate={exchangeRate}
         />
       )}
     </div>
