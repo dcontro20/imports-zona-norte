@@ -93,21 +93,25 @@ class ErrorBoundary extends Component {
 // ============================================
 // Diego es único usuario — ya no hay flags por rol.
 const NAV_ITEMS = [
+  // Ver / decidir
   { key: "dashboard", label: "Dashboard", icon: "📊" },
-  { key: "products", label: "Stock", icon: "📦" },
+  { key: "analisis", label: "Análisis", icon: "📈" },
+  // Operación diaria
   { key: "sales", label: "Ventas", icon: "🛒" },
   { key: "procurement", label: "Compras", icon: "🚚" },
+  { key: "products", label: "Stock", icon: "📦" },
+  { key: "cash", label: "Caja", icon: "💰" },
   { key: "clients", label: "Clientes", icon: "👥" },
+  // Gestión
   { key: "expenses", label: "Gastos", icon: "💸" },
   { key: "withdrawals", label: "Mermas", icon: "📉" },
-  { key: "cash", label: "Caja", icon: "💰" },
-  { key: "whatsapp", label: "WhatsApp", icon: "📲" },
-  { key: "stocklog", label: "Historial", icon: "📋" },
-  { key: "pricelog", label: "Precios", icon: "💲" },
   { key: "coupons", label: "Promos", icon: "🎟️" },
-  { key: "analisis", label: "Análisis", icon: "📊" },
-  { key: "export", label: "Exportar", icon: "📥" },
+  { key: "whatsapp", label: "WhatsApp", icon: "📲" },
+  // Registros / utilidades
+  { key: "pricelog", label: "Precios", icon: "💲" },
+  { key: "stocklog", label: "Historial", icon: "📋" },
   { key: "exchange", label: "Cotizaciones", icon: "💱" },
+  { key: "export", label: "Exportar", icon: "📥" },
   { key: "audit", label: "Auditoría", icon: "🔍" },
   { key: "trash", label: "Papelera", icon: "🗑️" },
 ];
