@@ -42,6 +42,7 @@ export const Purchases = ({
   const [costsForm, setCostsForm] = useState({ supplierCommPercent: "", supplierCommUSDT: "", paseroPercent: "", paseroCostARS: "", envioCostARS: "" });
   const [form, setForm] = useState(emptyPurchaseForm());
   const [verifyNote, setVerifyNote] = useState("");
+  const [receivedQty, setReceivedQty] = useState({}); // recepción parcial: { productId: qty }
   const [confirmDelete, setConfirmDelete] = useState(null);
 
   // Sub-modales del modal Nuevo Pedido
@@ -381,40 +382,66 @@ export const Purchases = ({
     setModal(false); setEditing(null); setForm(emptyPurchaseForm());
   };
 
-  const updateStatus = (purchaseId, newStatus, note = "") => {
+  // updateStatus — al verificar acepta receivedMap { productId: qtyRecibida }
+  // para recepción parcial. Si no se pasa, se recibe todo lo pedido.
+  const updateStatus = (purchaseId, newStatus, note = "", receivedMap = null) => {
     setPurchases(prev => prev.map(p => {
       if (p.id !== purchaseId) return p;
+      let itemsForStock = p.items || [];
       if (newStatus === "verificado" && p.status !== "verificado") {
-        // Actualizar costo promedio ponderado (con stock VIEJO) y luego sumar stock.
-        // El orden importa: el promedio usa el stock previo a la entrada.
+        // Recepción parcial: la qty efectiva es la recibida (o la pedida si no se especifica)
+        itemsForStock = (p.items || []).map(item => ({
+          ...item,
+          receivedQty: receivedMap ? (Number(receivedMap[item.productId]) || 0) : Number(item.qty),
+        }));
+        // Actualizar costo promedio ponderado (con stock VIEJO) y luego sumar stock recibido.
+        const costItems = itemsForStock.map(it => ({ productId: it.productId, qty: it.receivedQty, unitCostUSDT: it.unitCostUSDT }));
         setProducts(pr => {
-          let updated = applyPurchaseCosts(pr, p.items || []);
-          (p.items || []).forEach(item => {
-            if (!item.productId) return;
+          let updated = applyPurchaseCosts(pr, costItems);
+          itemsForStock.forEach(item => {
+            if (!item.productId || item.receivedQty <= 0) return;
             updated = updated.map(prod => prod.id === item.productId
-              ? { ...prod, stock: (prod.stock || 0) + Number(item.qty) }
+              ? { ...prod, stock: (prod.stock || 0) + Number(item.receivedQty) }
               : prod);
           });
           return updated;
         });
-        (p.items || []).forEach(item => {
-          if (item.productId) {
+        itemsForStock.forEach(item => {
+          if (item.productId && item.receivedQty > 0) {
             logStock({
-              productId: item.productId, type: "compra", qty: Number(item.qty),
+              productId: item.productId, type: "compra", qty: Number(item.receivedQty),
               reason: `Pedido verificado - ${p.supplier || ""}`, refId: p.id,
             });
           }
         });
       }
+      // Detectar faltantes para la nota del historial
+      let autoNote = note || "";
+      if (receivedMap && newStatus === "verificado") {
+        const faltantes = itemsForStock.filter(it => it.receivedQty < Number(it.qty));
+        if (faltantes.length > 0) {
+          const detail = faltantes.map(it => {
+            const prod = products.find(pr => pr.id === it.productId);
+            return `${prod?.flavor || it.productId}: ${it.receivedQty}/${it.qty}`;
+          }).join(", ");
+          autoNote = `${note ? note + " · " : ""}Recepción parcial — faltaron: ${detail}`;
+        }
+      }
       const history = [...(p.statusHistory || []), {
         status: newStatus,
         timestamp: new Date().toISOString(),
-        note: note || "",
+        note: autoNote,
         user: currentUser?.name || "?",
       }];
-      return { ...p, status: newStatus, statusHistory: history };
+      // Si hubo recepción parcial, guardar las qty recibidas en los items
+      const updatedItems = (newStatus === "verificado" && receivedMap)
+        ? itemsForStock
+        : p.items;
+      return { ...p, status: newStatus, statusHistory: history, items: updatedItems };
     }));
     setVerifyModal(null);
+    setVerifyNote("");
+    setReceivedQty({});
   };
 
   const deletePurchase = (purchase) => {
@@ -443,6 +470,20 @@ export const Purchases = ({
       : p));
     if (logAudit) logAudit("delete", "purchase", purchase.id, `Eliminó compra: ${purchase.supplier || ""} · ${purchase.totalItems || 0} items`);
     setConfirmDelete(null);
+  };
+
+  // Abre el modal de verificación inicializando la recepción parcial con la
+  // qty pedida de cada item (default: llegó todo).
+  const openVerify = (purchaseId) => {
+    const purchase = purchases.find(p => p.id === purchaseId);
+    if (purchase) {
+      const init = {};
+      (purchase.items || []).forEach(it => {
+        if (it.productId) init[it.productId] = Number(it.qty) || 0;
+      });
+      setReceivedQty(init);
+    }
+    setVerifyModal(purchaseId);
   };
 
   const openCosts = (purchase) => {
@@ -622,7 +663,7 @@ export const Purchases = ({
           exchangeRate={exchangeRate}
           onOpenEdit={openEdit}
           onAdvance={(id, status) => updateStatus(id, status)}
-          onVerify={setVerifyModal}
+          onVerify={openVerify}
           onOpenCosts={openCosts}
           onDelete={deletePurchase}
           onReorder={handleReorder}
@@ -636,7 +677,7 @@ export const Purchases = ({
           exchangeRate={exchangeRate}
           onOpenEdit={openEdit}
           onAdvance={(id, status) => updateStatus(id, status)}
-          onVerify={setVerifyModal}
+          onVerify={openVerify}
           onOpenCosts={openCosts}
           onDelete={deletePurchase}
           onReorder={handleReorder}
@@ -837,22 +878,62 @@ export const Purchases = ({
         {verifyPurchase && (<div>
           <div style={{ color: "#6B7794", fontSize: 13, marginBottom: 16 }}>Pedido de <strong style={{ color: "#1E2B4A" }}>{verifyPurchase.supplier}</strong> del {formatDate(verifyPurchase.date)}</div>
           <div style={{ background: "#F8F2E7", borderRadius: 10, padding: 14, marginBottom: 16 }}>
-            <label style={{ display: "block", fontSize: 12, color: "#0F6B5C", marginBottom: 10, fontWeight: 700, textTransform: "uppercase" }}>Verificá que recibiste:</label>
+            <label style={{ display: "block", fontSize: 12, color: "#0F6B5C", marginBottom: 4, fontWeight: 700, textTransform: "uppercase" }}>Confirmá lo que recibiste:</label>
+            <p style={{ fontSize: 11, color: "#6B7794", margin: "0 0 12px" }}>
+              Ajustá la cantidad si llegó parcial. Solo se suma al stock lo que recibiste.
+            </p>
             {(verifyPurchase.items || []).map((item, i) => {
               const prod = products.find(p => p.id === item.productId);
-              return (<div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #EFE5CE" }}>
-                <span style={{ color: "#3A4868", fontSize: 14 }}>{prod ? `${prod.brand} ${prod.model} - ${prod.flavor}` : "?"}</span>
-                <Badge color="#0F6B5C">x{item.qty}</Badge>
+              const ordered = Number(item.qty) || 0;
+              const received = receivedQty[item.productId] ?? ordered;
+              const partial = received < ordered;
+              return (<div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, padding: "8px 0", borderBottom: "1px solid #EFE5CE" }}>
+                <span style={{ color: "#3A4868", fontSize: 13, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {prod ? `${prod.brand} ${prod.model} - ${prod.flavor}` : "?"}
+                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                  <span style={{ fontSize: 11, color: "#9AA2B3" }}>de {ordered}</span>
+                  <input
+                    type="number" min={0} max={ordered}
+                    value={received}
+                    onChange={e => {
+                      const v = Math.max(0, Math.min(ordered, Number(e.target.value) || 0));
+                      setReceivedQty(prev => ({ ...prev, [item.productId]: v }));
+                    }}
+                    style={{
+                      width: 56, padding: "5px 8px", textAlign: "center", fontWeight: 700,
+                      border: `1px solid ${partial ? "#E1C684" : "#A8C8BE"}`, borderRadius: 6,
+                      fontSize: 13, fontFamily: "inherit", outline: "none",
+                      background: partial ? "#F5E4C2" : "#FFFFFF",
+                      color: partial ? "#B07A1F" : "#0F6B5C",
+                    }}
+                  />
+                </div>
               </div>);
             })}
             <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 10 }}>
-              <span style={{ color: "#1E2B4A", fontWeight: 700 }}>Total</span>
-              <span style={{ color: "#0F6B5C", fontWeight: 700 }}>{(verifyPurchase.items||[]).reduce((s,i) => s + Number(i.qty), 0)} uds</span>
+              <span style={{ color: "#1E2B4A", fontWeight: 700 }}>Total a sumar al stock</span>
+              <span style={{ color: "#0F6B5C", fontWeight: 700 }}>
+                {(verifyPurchase.items || []).reduce((s, it) => s + (receivedQty[it.productId] ?? Number(it.qty) ?? 0), 0)} uds
+              </span>
             </div>
           </div>
-          <div style={{ background: "#D9E8E4", border: "1px solid #A8C8BE", borderRadius: 10, padding: "10px 14px", marginBottom: 16 }}>
-            <span style={{ color: "#0F6B5C", fontSize: 13 }}>⚠️ Al confirmar, se suma todo al stock.</span>
-          </div>
+          {(() => {
+            const anyPartial = (verifyPurchase.items || []).some(it => (receivedQty[it.productId] ?? Number(it.qty)) < Number(it.qty));
+            return (
+              <div style={{
+                background: anyPartial ? "#F5E4C2" : "#D9E8E4",
+                border: `1px solid ${anyPartial ? "#E1C684" : "#A8C8BE"}`,
+                borderRadius: 10, padding: "10px 14px", marginBottom: 16,
+              }}>
+                <span style={{ color: anyPartial ? "#B07A1F" : "#0F6B5C", fontSize: 13 }}>
+                  {anyPartial
+                    ? "⚠️ Recepción parcial — el faltante queda registrado en el historial."
+                    : "✅ Al confirmar, se suma todo al stock."}
+                </span>
+              </div>
+            );
+          })()}
           {(() => {
             const margin = calcRealMargin(verifyPurchase);
             if (!margin) return null;
@@ -897,8 +978,8 @@ export const Purchases = ({
             placeholder="ej: Faltaron 2 unidades del modelo X..."
           />
           <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-            <Btn variant="secondary" onClick={() => { setVerifyModal(null); setVerifyNote(""); }}>Cancelar</Btn>
-            <Btn variant="success" onClick={() => { updateStatus(verifyPurchase.id, "verificado", verifyNote); setVerifyNote(""); }}>✅ Verificar</Btn>
+            <Btn variant="secondary" onClick={() => { setVerifyModal(null); setVerifyNote(""); setReceivedQty({}); }}>Cancelar</Btn>
+            <Btn variant="success" onClick={() => { updateStatus(verifyPurchase.id, "verificado", verifyNote, receivedQty); }}>✅ Verificar</Btn>
           </div>
         </div>)}
       </Modal>
