@@ -16,7 +16,7 @@ const resolveSaleItemName = (item, products) => {
   return p ? `${p.brand} ${p.model} - ${p.flavor}` : "Producto eliminado";
 };
 
-const SaleCard = ({ sale: r, products, clients = [], exchangeRate, isMobile, onEdit, onRepeat, onDelete, confirmDelete, selectionMode, selected, onToggleSelect }) => {
+const SaleCard = ({ sale: r, products, clients = [], exchangeRate, isMobile, onEdit, onRepeat, onDelete, onReceiptPdf, confirmDelete, selectionMode, selected, onToggleSelect }) => {
   // Email receipt via mailto — abre el cliente de email del usuario con todos los campos pre-cargados
   const sendReceipt = () => {
     const client = clients.find(c => c.id === r.clientId);
@@ -238,6 +238,7 @@ const SaleCard = ({ sale: r, products, clients = [], exchangeRate, isMobile, onE
         </div>
 
         <div style={{ display: "flex", gap: 4 }}>
+          {onReceiptPdf && <GhostBtn onClick={onReceiptPdf} color={T.primary} title="Descargar recibo PDF">🧾</GhostBtn>}
           <GhostBtn onClick={sendReceiptWhatsApp} color={T.green} title="Enviar recibo por WhatsApp">📲</GhostBtn>
           {clientHasEmail && <GhostBtn onClick={sendReceipt} color={T.primary} title="Enviar recibo por email">📧</GhostBtn>}
           <GhostBtn onClick={onRepeat} color={T.amber} title="Repetir">🔄</GhostBtn>

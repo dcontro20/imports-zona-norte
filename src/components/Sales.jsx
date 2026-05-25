@@ -11,6 +11,10 @@ import {
 } from "../pricing.js";
 import { T, pickAvatarColor } from "../theme.js";
 import SaleCard from "./sales/SaleCard.jsx";
+import { getClientInsights } from "../lib/clientInsights.js";
+import { calcSaleMargin } from "../finance.js";
+import { generateSaleReceipt } from "../lib/saleReceipt.js";
+import { crossSellPairs } from "../lib/smartOffers.js";
 
 // ============================================
 // SALES v2 — Full rewrite
@@ -207,6 +211,57 @@ export const Sales = ({
   const difference = totalPaid - effectiveTotal; // positive = overpaid (change), negative = underpaid (debt)
 
   const autoVolume = totalQty >= 3 && form.discountType === "none";
+
+  // ----- Inteligencia del cliente (panel en el modal) -----
+  const clientInsights = useMemo(() => {
+    if (!form.clientId) return null;
+    const client = (clients || []).find(c => c.id === form.clientId);
+    if (!client) return null;
+    return getClientInsights(client, sales, products, { exchangeRate });
+  }, [form.clientId, clients, sales, products, exchangeRate]);
+
+  // ----- Margen de la venta en curso (ganancia con costo real) -----
+  const saleMargin = useMemo(() => {
+    const items = form.items.filter(i => i.productId).map(i => ({
+      productId: i.productId,
+      qty: Number(i.qty) || 1,
+      customPrice: i.customPrice !== "" && i.customPrice !== undefined ? Number(i.customPrice) : undefined,
+    }));
+    if (items.length === 0) return null;
+    const pseudoSale = { items, total: finalTotal, currency: form.currency, exchangeRate };
+    return calcSaleMargin(pseudoSale, products, exchangeRate);
+  }, [form.items, finalTotal, form.currency, products, exchangeRate]);
+
+  // ----- Upsell: cross-sell según lo ya agregado -----
+  const upsellSuggestions = useMemo(() => {
+    const inCart = new Set(form.items.map(i => i.productId).filter(Boolean));
+    if (inCart.size === 0) return [];
+    const pairs = crossSellPairs(sales, { minTogether: 2, limit: 30 });
+    const suggestedIds = new Set();
+    pairs.forEach(pair => {
+      if (inCart.has(pair.a) && !inCart.has(pair.b)) suggestedIds.add(pair.b);
+      if (inCart.has(pair.b) && !inCart.has(pair.a)) suggestedIds.add(pair.a);
+    });
+    return Array.from(suggestedIds)
+      .map(id => products.find(p => p.id === id))
+      .filter(p => p && !p.isDeleted && (Number(p.stock) || 0) > 0)
+      .slice(0, 4);
+  }, [form.items, sales, products]);
+
+  // Agrega un producto sugerido al carrito (upsell)
+  const addSuggestedProduct = useCallback((product) => {
+    setForm(f => {
+      // Reusar un item vacío si existe, sino agregar uno nuevo
+      const emptyIdx = f.items.findIndex(i => !i.productId);
+      const newItem = { brand: product.brand, model: product.model, productId: product.id, qty: 1, customPrice: "" };
+      if (emptyIdx >= 0) {
+        const items = [...f.items];
+        items[emptyIdx] = newItem;
+        return { ...f, items };
+      }
+      return { ...f, items: [...f.items, newItem] };
+    });
+  }, []);
 
   // S16.3 — Descuento automático por volumen
   // S16.9 — Descuento automático por tier
@@ -1455,6 +1510,25 @@ export const Sales = ({
         <span style={{ color: "#1E2B4A", fontSize: 15, fontWeight: 700 }}>Total</span>
         <span style={{ color: "#0F7B6C", fontSize: 20, fontWeight: 800 }}>{formatMoney(finalTotal, form.currency)}</span>
       </div>
+      {/* Margen de la venta (ganancia con costo real) */}
+      {saleMargin && saleMargin.cogsARS > 0 && (
+        <div style={{
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          marginTop: 8, paddingTop: 8, borderTop: "1px dashed #E5DAC2",
+        }}>
+          <span style={{ fontSize: 11, color: "#6B7794", fontWeight: 600 }}>
+            💎 Ganás <strong style={{ color: saleMargin.profitARS >= 0 ? "#0F6B5C" : "#B83232" }}>{formatMoney(saleMargin.profitARS)}</strong>
+          </span>
+          <span style={{
+            fontSize: 11, fontWeight: 800,
+            color: saleMargin.marginPct >= 30 ? "#0F6B5C" : saleMargin.marginPct >= 15 ? "#CB912F" : "#B83232",
+            padding: "2px 8px", borderRadius: 6,
+            background: saleMargin.marginPct >= 30 ? "#D9E8E4" : saleMargin.marginPct >= 15 ? "#F5E4C2" : "#F7DEDE",
+          }}>
+            margen {saleMargin.marginPct}%
+          </span>
+        </div>
+      )}
     </div>
   );
 
@@ -1692,6 +1766,7 @@ export const Sales = ({
                 onEdit={() => openEdit(r)}
                 onRepeat={() => repeatSale(r)}
                 onDelete={() => deleteSale(r)}
+                onReceiptPdf={() => generateSaleReceipt(r, products, { exchangeRate })}
                 confirmDelete={confirmDeleteSale === r.id}
                 selectionMode={selectedSaleIds.length > 0}
                 selected={selectedSaleIds.includes(r.id)}
@@ -1791,6 +1866,26 @@ export const Sales = ({
         {step === 1 && (
           <>
             {renderProductPicker()}
+            {/* Upsell: productos que se compran junto a lo del carrito */}
+            {upsellSuggestions.length > 0 && (
+              <div style={{
+                background: "#EEF0FC", border: "1px solid #C5CADE", borderRadius: 10,
+                padding: "10px 12px", marginBottom: 14,
+              }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#5B3592", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 8 }}>
+                  🔗 Suelen llevarse juntos
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {upsellSuggestions.map(p => (
+                    <button key={p.id} onClick={() => addSuggestedProduct(p)} style={{
+                      padding: "5px 10px", fontSize: 11, fontWeight: 600,
+                      background: "#FFFFFF", color: "#1E2B4A",
+                      border: "1px solid #C5CADE", borderRadius: 999, cursor: "pointer", fontFamily: "inherit",
+                    }}>+ {p.brand} {p.flavor}</button>
+                  ))}
+                </div>
+              </div>
+            )}
             {renderDiscountSection()}
             {renderExtras()}
             {renderTotals()}
@@ -1810,6 +1905,42 @@ export const Sales = ({
           <>
             {renderTotals()}
             {renderClientSelector()}
+            {/* Inteligencia del cliente */}
+            {clientInsights && !clientInsights.isNew && (
+              <div style={{
+                background: "#FFFFFF", border: "1px solid #E5DAC2", borderRadius: 10,
+                padding: "10px 12px", marginBottom: 14,
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: "#1E2B4A", textTransform: "uppercase", letterSpacing: 0.4 }}>
+                    🧠 {form.clientName}
+                  </span>
+                  {clientInsights.tier && clientInsights.tier !== "regular" && (
+                    <span style={{ fontSize: 9, fontWeight: 800, color: "#5B3592", background: "#E4D8F0", padding: "1px 7px", borderRadius: 5, textTransform: "uppercase" }}>{clientInsights.tier}</span>
+                  )}
+                  {clientInsights.isDue && (
+                    <span style={{ fontSize: 9, fontWeight: 800, color: "#B07A1F", background: "#F5E4C2", padding: "1px 7px", borderRadius: 5 }}>⏰ le toca comprar</span>
+                  )}
+                </div>
+                <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 11, color: "#6B7794" }}>
+                  <span>{clientInsights.orderCount} compras · ticket <strong style={{ color: "#1E2B4A" }}>{formatMoney(clientInsights.avgTicketARS)}</strong></span>
+                  <span>Última hace <strong style={{ color: clientInsights.daysSinceLast > 30 ? "#B83232" : "#1E2B4A" }}>{clientInsights.daysSinceLast}d</strong></span>
+                  {clientInsights.avgDaysBetween && <span>compra c/<strong style={{ color: "#1E2B4A" }}>{clientInsights.avgDaysBetween}d</strong></span>}
+                </div>
+                {clientInsights.topProducts.length > 0 && (
+                  <div style={{ marginTop: 8 }}>
+                    <span style={{ fontSize: 10, color: "#9AA2B3", fontWeight: 600 }}>Suele llevar: </span>
+                    {clientInsights.topProducts.map((tp, i) => (
+                      <button key={tp.product.id} onClick={() => addSuggestedProduct(tp.product)} style={{
+                        padding: "2px 8px", fontSize: 10, fontWeight: 600, margin: "2px 3px 0 0",
+                        background: "#F8F2E7", color: "#1E2B4A", border: "1px dashed #C5CADE",
+                        borderRadius: 999, cursor: "pointer", fontFamily: "inherit",
+                      }}>+ {tp.product.flavor}</button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             <Select label="Canal de venta" options={CHANNELS} value={form.channel} onChange={e => setForm(f => ({ ...f, channel: e.target.value }))} />
             {renderPaymentSection()}
             <Input label="Notas" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Opcional..." />
