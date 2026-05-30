@@ -453,7 +453,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
             const maxMonth = Math.max(1, ...monthlyMermas.map(m => m.totalUSD));
             return (
               <>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 14 }}>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: 10, marginBottom: 14 }}>
                   <div style={{ padding: 10, background: "#F8F2E7", borderRadius: 8 }}>
                     <div style={{ fontSize: 10, color: "#6B7794", textTransform: "uppercase", fontWeight: 700 }}>Total 12m</div>
                     <div style={{ fontSize: 16, fontWeight: 800, color: "#1E2B4A" }}>{formatMoney(grandTotal, "USD")}</div>

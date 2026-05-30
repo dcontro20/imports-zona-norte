@@ -1147,7 +1147,7 @@ const TrendingProductModal = ({ product, sales, onClose }) => {
           }} aria-label="Cerrar">×</button>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 18 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: 8, marginBottom: 18 }}>
           <div>
             <div style={{ fontSize: 10, color: T.textMuted, marginBottom: 2 }}>Total uds</div>
             <div style={{ fontSize: 18, fontWeight: 800, color: T.text, fontFamily: T.fontDisplay }}>{totalQty}</div>

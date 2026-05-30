@@ -256,7 +256,7 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
         const medals = ["🥇", "🥈", "🥉"];
         const medalColors = ["#F59E0B", "#9CA3AF", "#CD7F32"];
         const Section = ({ title, items, getLabel, getValue }) => (
-          <div style={{ flex: 1, minWidth: 220 }}>
+          <div style={{ flex: 1, minWidth: isMobile ? 0 : 220 }}>
             <h4 style={{ color: "#6B7794", margin: "0 0 8px", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>
               {title}
             </h4>
@@ -384,7 +384,7 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
           const cSet = abcAnalysis.filter(x => x.classification === "C");
           return (
             <>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 14 }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 10, marginBottom: 14 }}>
                 {[
                   { label: "Clase A (top)", count: aSet.length, color: "#0F7B6C", bg: "#DDEDEA" },
                   { label: "Clase B (medio)", count: bSet.length, color: "#CB912F", bg: "#FEF6E4" },
@@ -1437,7 +1437,7 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
                 <div style={{ fontSize: 24, fontWeight: 800, color: pctReclamables > 15 ? "#CB912F" : "#1E2B4A" }}>
                   {pctReclamables.toFixed(0)}%
                 </div>
-                <div style={{ flex: 1, minWidth: 200 }}>
+                <div style={{ flex: 1, minWidth: isMobile ? 0 : 200 }}>
                   <div style={{ fontSize: 13, color: "#1E2B4A", fontWeight: 600 }}>
                     de cambios fueron por daño de envío desde Paraguay
                   </div>
@@ -1718,7 +1718,7 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
               </p>
 
               {/* Stats por tier */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 16 }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 10, marginBottom: 16 }}>
                 {["A", "B", "C"].map(t => {
                   const col = tierColors[t];
                   const stats = tierStats[t];
@@ -1822,7 +1822,7 @@ function PromoCandidateRow({ cand, stat }) {
       </button>
       {expanded && scenarios && (
         <div style={{ padding: 14, borderTop: "1px solid #E5DAC2", background: "#FFFFFF" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 10 }}>
             {[
               { key: "conservative", label: "Conservador", color: "#0F7B6C" },
               { key: "moderate", label: "Moderado", color: "#CB912F" },

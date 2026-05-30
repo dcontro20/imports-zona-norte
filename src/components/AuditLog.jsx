@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useResponsive } from "../App.jsx";
 import { formatDate } from "../helpers.js";
 
 const ACTION_LABELS = {
@@ -20,6 +21,7 @@ const ENTITY_LABELS = {
 };
 
 export function AuditLog({ auditLog = [], products = [] }) {
+  const { isMobile } = useResponsive();
   const [search, setSearch] = useState("");
   const [filterAction, setFilterAction] = useState("");
   const [filterEntity, setFilterEntity] = useState("");
@@ -48,8 +50,14 @@ export function AuditLog({ auditLog = [], products = [] }) {
   const users = useMemo(() => [...new Set(auditLog.map(e => e.user))], [auditLog]);
 
   const inputStyle = {
-    padding: "7px 12px", background: "#F8F2E7", border: "1px solid #E5DAC2",
-    borderRadius: 8, color: "#1E2B4A", fontSize: 13, outline: "none"
+    padding: isMobile ? "10px 12px" : "7px 12px",
+    minHeight: isMobile ? 44 : "auto",
+    background: "#F8F2E7", border: "1px solid #E5DAC2",
+    borderRadius: 8, color: "#1E2B4A",
+    fontSize: isMobile ? 16 : 13, // 16 evita zoom iOS
+    outline: "none",
+    flex: isMobile ? "1 1 calc(50% - 4px)" : "0 1 auto",
+    minWidth: 0, fontFamily: "inherit", boxSizing: "border-box",
   };
 
   return (
@@ -63,7 +71,7 @@ export function AuditLog({ auditLog = [], products = [] }) {
 
       {/* Filters */}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar..." style={{ ...inputStyle, width: 180 }} />
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar..." style={{ ...inputStyle, flex: isMobile ? "1 1 100%" : "0 1 220px" }} />
         <select value={filterAction} onChange={e => setFilterAction(e.target.value)} style={inputStyle}>
           <option value="">Todas las acciones</option>
           <option value="create">Creaciones</option>
