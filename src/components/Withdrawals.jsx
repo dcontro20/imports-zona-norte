@@ -941,7 +941,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                   <div style={{ display: "flex", gap: 4 }}>
                     <button onClick={() => startEdit(r)} title="Editar" style={{ background: "none", border: "none", color: "#1E2B4A", cursor: "pointer", fontSize: 14 }}>✏️</button>
                     {confirmDel === r.id
-                      ? <button onClick={() => deleteWithdrawal(r)} style={{ background: "#F7D7D6", border: "1px solid #E03E3E55", color: "#E03E3E", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Confirmar</button>
+                      ? <button onClick={() => deleteWithdrawal(r)} style={{ background: "#F7D7D6", border: "1px solid #E03E3E55", color: "#E03E3E", padding: isMobile ? "10px 14px" : "3px 8px", minHeight: isMobile ? 40 : "auto", borderRadius: 6, cursor: "pointer", fontSize: isMobile ? 13 : 11, fontWeight: 600 }}>Confirmar</button>
                       : <button onClick={() => deleteWithdrawal(r)} style={{ background: "none", border: "none", color: "#E03E3E", cursor: "pointer", fontSize: 14 }}>🗑️</button>}
                   </div>
                 )};

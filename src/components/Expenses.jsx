@@ -418,7 +418,7 @@ export const Expenses = ({ expenses, setExpenses, currentUser, exchangeRate, log
               <div style={{ display: "flex", gap: 6 }}>
                 <button onClick={(e) => { e.stopPropagation(); openEdit(r); }} style={{ background: "none", border: "none", color: "#a855f7", cursor: "pointer", fontSize: 14 }}>✏️</button>
                 {confirmDeleteExp === r.id
-                ? <button onClick={(e) => { e.stopPropagation(); deleteExpense(r.id); }} style={{ background: "#F7D7D6", border: "1px solid #E03E3E55", color: "#E03E3E", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Confirmar</button>
+                ? <button onClick={(e) => { e.stopPropagation(); deleteExpense(r.id); }} style={{ background: "#F7D7D6", border: "1px solid #E03E3E55", color: "#E03E3E", padding: isMobile ? "10px 14px" : "3px 8px", minHeight: isMobile ? 40 : "auto", borderRadius: 6, cursor: "pointer", fontSize: isMobile ? 13 : 11, fontWeight: 600 }}>Confirmar</button>
                 : <button onClick={(e) => { e.stopPropagation(); deleteExpense(r.id); }} style={{ background: "none", border: "none", color: "#E03E3E", cursor: "pointer", fontSize: 14 }}>🗑️</button>
               }
               </div>

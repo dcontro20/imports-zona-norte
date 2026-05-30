@@ -247,17 +247,17 @@ export const Offers = ({ products = [], sales = [], clients = [], exchangeRate =
           {/* Parámetros según tipo */}
           <Card>
             <Label>Encabezado (opcional)</Label>
-            <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Ej: 🔥 OFERTA FINDE 🔥" style={inputStyle()} />
+            <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Ej: 🔥 OFERTA FINDE 🔥" style={inputStyle(isMobile)} />
 
             {type === "combo" && (
               <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
                 <div style={{ flex: 1 }}>
                   <Label>Cantidad</Label>
-                  <input type="number" min={2} value={comboQty} onChange={e => setComboQty(e.target.value)} style={inputStyle()} />
+                  <input type="number" min={2} value={comboQty} onChange={e => setComboQty(e.target.value)} style={inputStyle(isMobile)} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <Label>Precio combo ($)</Label>
-                  <input type="number" value={comboPrice} onChange={e => setComboPrice(e.target.value)} placeholder="75000" style={inputStyle()} />
+                  <input type="number" value={comboPrice} onChange={e => setComboPrice(e.target.value)} placeholder="75000" style={inputStyle(isMobile)} />
                 </div>
               </div>
             )}
@@ -265,13 +265,13 @@ export const Offers = ({ products = [], sales = [], clients = [], exchangeRate =
             {(type === "liquidacion" || type === "descuento") && (
               <div style={{ marginTop: 10 }}>
                 <Label>Descuento %</Label>
-                <input type="number" min={0} max={90} value={discountPct} onChange={e => setDiscountPct(e.target.value)} style={inputStyle()} />
+                <input type="number" min={0} max={90} value={discountPct} onChange={e => setDiscountPct(e.target.value)} style={inputStyle(isMobile)} />
               </div>
             )}
 
             <div style={{ marginTop: 10 }}>
               <Label>Cierre del mensaje</Label>
-              <input value={footer} onChange={e => setFooter(e.target.value)} style={inputStyle()} />
+              <input value={footer} onChange={e => setFooter(e.target.value)} style={inputStyle(isMobile)} />
             </div>
           </Card>
 
@@ -299,7 +299,7 @@ export const Offers = ({ products = [], sales = [], clients = [], exchangeRate =
           {/* Selección de productos */}
           <Card>
             <Label>Productos {selectedIds.length > 0 && `(${selectedIds.length})`}</Label>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="🔍 Buscar..." style={{ ...inputStyle(), marginBottom: 8 }} />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="🔍 Buscar..." style={{ ...inputStyle(isMobile), marginBottom: 8 }} />
             <div style={{ maxHeight: 280, overflowY: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
               {filtered.slice(0, 60).map(p => {
                 const sel = selectedIds.includes(p.id);
@@ -348,7 +348,7 @@ export const Offers = ({ products = [], sales = [], clients = [], exchangeRate =
 
             <div style={{ marginTop: 12 }}>
               <Label>Teléfono del cliente (opcional, para enviar directo)</Label>
-              <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+54 9 11 ..." style={inputStyle()} />
+              <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+54 9 11 ..." style={inputStyle(isMobile)} />
             </div>
 
             <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
@@ -376,10 +376,12 @@ function Label({ children }) {
   return <div style={{ fontSize: 11, color: "#6B7794", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>{children}</div>;
 }
 
-function inputStyle() {
+function inputStyle(isMobile) {
   return {
-    width: "100%", padding: "10px 12px", background: "#F8F2E7",
-    border: "1px solid #E5DAC2", borderRadius: 10, color: "#1E2B4A",
-    fontSize: 14, outline: "none", boxSizing: "border-box", fontFamily: "inherit",
+    width: "100%", padding: isMobile ? "12px 14px" : "10px 12px",
+    minHeight: isMobile ? 44 : "auto",
+    background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 10, color: "#1E2B4A",
+    fontSize: isMobile ? 16 : 14, // 16 evita zoom iOS
+    outline: "none", boxSizing: "border-box", fontFamily: "inherit",
   };
 }

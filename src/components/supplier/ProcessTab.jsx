@@ -811,6 +811,7 @@ export function ProcessTab({
                 <Card style={{
                   position: isMobile ? "sticky" : "static",
                   bottom: isMobile ? 0 : "auto",
+                  paddingBottom: isMobile ? "max(14px, env(safe-area-inset-bottom))" : undefined,
                   zIndex: 10,
                   boxShadow: isMobile ? "0 -4px 16px rgba(0,0,0,0.1)" : "none",
                   background: "linear-gradient(135deg, #DDEDEA 0%, #FFFFFF 100%)",

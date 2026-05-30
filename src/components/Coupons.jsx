@@ -283,7 +283,7 @@ export const Coupons = ({
                         <div style={{ display: "flex", gap: 6 }}>
                           <button onClick={() => openEditBundle(b)} style={{ background: "none", border: "none", color: "#1E2B4A", cursor: "pointer", fontSize: 14 }}>✏️</button>
                           {confirmDelBundle === b.id ? (
-                            <button onClick={() => removeBundle(b.id)} style={{ background: "#F7D7D6", border: "1px solid #E03E3E55", color: "#E03E3E", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>¿Borrar?</button>
+                            <button onClick={() => removeBundle(b.id)} style={{ background: "#F7D7D6", border: "1px solid #E03E3E55", color: "#E03E3E", padding: isMobile ? "10px 14px" : "3px 8px", minHeight: isMobile ? 40 : "auto", borderRadius: 6, cursor: "pointer", fontSize: isMobile ? 13 : 11, fontWeight: 600 }}>¿Borrar?</button>
                           ) : (
                             <button onClick={() => removeBundle(b.id)} style={{ background: "none", border: "none", color: "#E03E3E", cursor: "pointer", fontSize: 14 }}>🗑️</button>
                           )}
@@ -363,7 +363,7 @@ export const Coupons = ({
                       <td style={{ padding: "8px 10px", borderBottom: "1px solid #EFE5CE", display: "flex", gap: 4 }}>
                         <button onClick={() => openEdit(c)} style={{ background: "none", border: "none", color: "#1E2B4A", cursor: "pointer", fontSize: 14 }}>✏️</button>
                         {confirmDel === c.id ? (
-                          <button onClick={() => remove(c.id)} style={{ background: "#F7D7D6", border: "1px solid #E03E3E55", color: "#E03E3E", padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>¿Borrar?</button>
+                          <button onClick={() => remove(c.id)} style={{ background: "#F7D7D6", border: "1px solid #E03E3E55", color: "#E03E3E", padding: isMobile ? "10px 14px" : "3px 8px", minHeight: isMobile ? 40 : "auto", borderRadius: 6, cursor: "pointer", fontSize: isMobile ? 13 : 11, fontWeight: 600 }}>¿Borrar?</button>
                         ) : (
                           <button onClick={() => remove(c.id)} style={{ background: "none", border: "none", color: "#E03E3E", cursor: "pointer", fontSize: 14 }}>🗑️</button>
                         )}

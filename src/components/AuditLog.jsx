@@ -94,7 +94,7 @@ export function AuditLog({ auditLog = [], products = [] }) {
       {/* Log entries */}
       <div style={{ background: "#FFFFFF", border: "1px solid #E5DAC2", borderRadius: 12, overflow: "hidden" }}>
         {filtered.length === 0 ? (
-          <div style={{ padding: 40, textAlign: "center", color: "#9AA2B3", fontSize: 14 }}>
+          <div style={{ padding: isMobile ? 24 : 40, textAlign: "center", color: "#9AA2B3", fontSize: 14 }}>
             No hay registros de auditoría
           </div>
         ) : (

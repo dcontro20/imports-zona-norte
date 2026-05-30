@@ -599,7 +599,7 @@ export const Partners = ({
           { key: "description", label: "Detalle", render: r => r.description || "—" },
           { key: "actions", label: "", render: r => (
             confirmDel === r.id
-              ? <button onClick={() => deleteW(r.id)} style={{ background: "#F7D7D6", border: `1px solid ${T.red}55`, color: T.red, padding: "3px 8px", borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>Confirmar</button>
+              ? <button onClick={() => deleteW(r.id)} style={{ background: "#F7D7D6", border: `1px solid ${T.red}55`, color: T.red, padding: isMobile ? "10px 14px" : "3px 8px", minHeight: isMobile ? 40 : "auto", borderRadius: 6, cursor: "pointer", fontSize: isMobile ? 13 : 11, fontWeight: 600 }}>Confirmar</button>
               : <button onClick={() => deleteW(r.id)} style={{ background: "none", border: "none", color: T.red, cursor: "pointer", fontSize: 14 }}>🗑️</button>
           )},
         ]} data={(partnerWithdrawals || []).filter(w => !w.isDeleted && !w._historicalArchived && w.person === "Diego")} emptyMsg="No hay movimientos registrados" />

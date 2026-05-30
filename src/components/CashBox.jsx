@@ -630,7 +630,7 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
 
       {/* ========== PERIOD FLOW ========== */}
       <SectionTitle right={
-        <PeriodSelector value={period} onChange={setPeriod} customFrom={customFrom} customTo={customTo} setCustomFrom={setCustomFrom} setCustomTo={setCustomTo} />
+        <PeriodSelector value={period} onChange={setPeriod} customFrom={customFrom} customTo={customTo} setCustomFrom={setCustomFrom} setCustomTo={setCustomTo} isMobile={isMobile} />
       }>Flujo de dinero</SectionTitle>
       <PeriodFlow
         entries={periodEntries}
@@ -900,7 +900,7 @@ const AccountCard = ({ account, balance, exchangeRate, sparkData, lastMovement, 
 // ============================================
 // PERIOD SELECTOR + PERIOD FLOW
 // ============================================
-const PeriodSelector = ({ value, onChange, customFrom, customTo, setCustomFrom, setCustomTo }) => (
+const PeriodSelector = ({ value, onChange, customFrom, customTo, setCustomFrom, setCustomTo, isMobile }) => (
   <div style={{ display: "inline-flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
     <div style={{ display: "inline-flex", background: T.surface2, borderRadius: 10, padding: 3, border: `1px solid ${T.borderSoft}` }}>
       {[
@@ -921,16 +921,19 @@ const PeriodSelector = ({ value, onChange, customFrom, customTo, setCustomFrom, 
     </div>
     {value === "custom" && (
       <>
-        <input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)} style={dateInput()} />
+        <input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)} style={dateInput(isMobile)} />
         <span style={{ color: T.textMuted, fontSize: 12 }}>—</span>
-        <input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)} style={dateInput()} />
+        <input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)} style={dateInput(isMobile)} />
       </>
     )}
   </div>
 );
 
-const dateInput = () => ({
-  padding: "5px 10px", fontSize: 12, border: `1px solid ${T.border}`,
+const dateInput = (isMobile) => ({
+  padding: isMobile ? "10px 12px" : "5px 10px",
+  minHeight: isMobile ? 44 : "auto",
+  fontSize: isMobile ? 16 : 12, // 16 evita zoom iOS
+  border: `1px solid ${T.border}`,
   borderRadius: 7, background: T.card, color: T.text, fontFamily: "inherit", outline: "none",
 });
 
