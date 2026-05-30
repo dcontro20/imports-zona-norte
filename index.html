@@ -30,11 +30,11 @@
         overflow-x: hidden;
       }
       body {
-        /* safe-area para iPhone con notch */
+        /* safe-area para iPhone con notch — solo laterales y bottom.
+           El top lo manejan los componentes sticky (header) para que pinten
+           su background detrás del notch como una app nativa. */
         padding-left: env(safe-area-inset-left);
         padding-right: env(safe-area-inset-right);
-        /* En modo PWA standalone, padding-top para no quedar bajo la status bar */
-        padding-top: env(safe-area-inset-top);
       }
       input, select, textarea {
         color-scheme: light; font-family: inherit;

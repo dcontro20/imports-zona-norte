@@ -538,11 +538,13 @@ export default function App() {
           {/* Sidebar */}
           <nav style={{
             width: isMobile ? 260 : 220,
-            minHeight: "calc(100vh - 52px)",
+            minHeight: "calc(100vh - 52px - env(safe-area-inset-top))",
             background: "#FFFFFF", borderRight: "1px solid #E5DAC2",
             padding: "12px 0", flexShrink: 0,
             ...(isMobile ? {
-              position: "fixed", top: 52, bottom: 0,
+              position: "fixed",
+              top: "calc(52px + env(safe-area-inset-top))",
+              bottom: 0,
               left: menuOpen ? 0 : -280,
               zIndex: 99,
               overflowY: "auto",
@@ -594,7 +596,9 @@ export default function App() {
         {/* Mobile menu overlay */}
         {isMobile && menuOpen && (
           <div onClick={() => setMenuOpen(false)} style={{
-            position: "fixed", inset: 0, top: 52, background: "rgba(0,0,0,0.2)", zIndex: 98
+            position: "fixed", inset: 0,
+            top: "calc(52px + env(safe-area-inset-top))",
+            background: "rgba(0,0,0,0.2)", zIndex: 98
           }} />
         )}
 
