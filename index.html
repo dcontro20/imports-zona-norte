@@ -2,14 +2,18 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M50 5 L88 17 L88 47 C88 70 72 86 50 95 C28 86 12 70 12 47 L12 17 Z' stroke='%231E2B4A' stroke-width='6' stroke-linejoin='round' fill='%23F8F2E7'/%3E%3Ccircle cx='50' cy='56' r='22' stroke='%231E2B4A' stroke-width='3' fill='none'/%3E%3Crect x='42' y='32' width='16' height='42' rx='3' fill='%23F8F2E7' stroke='%231E2B4A' stroke-width='3'/%3E%3Crect x='45' y='22' width='10' height='10' rx='2' fill='%231E2B4A'/%3E%3C/svg%3E" />
+    <!-- Favicon: escudo simple para pestañas del browser -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231E2B4A'/%3E%3Cpath d='M50 18 L80 27 L80 53 C80 70 67 82 50 88 C33 82 20 70 20 53 L20 27 Z' fill='none' stroke='%23F8F2E7' stroke-width='5' stroke-linejoin='round'/%3E%3Crect x='44' y='40' width='12' height='32' rx='3' fill='%23F8F2E7'/%3E%3Crect x='46' y='32' width='8' height='8' rx='2' fill='%23F8F2E7'/%3E%3C/svg%3E" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#1E2B4A" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="IZN" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='36' fill='%23F8F2E7'/%3E%3Cg transform='translate(40,30)'%3E%3Cpath d='M50 5 L88 17 L88 47 C88 70 72 86 50 95 C28 86 12 70 12 47 L12 17 Z' stroke='%231E2B4A' stroke-width='6' stroke-linejoin='round' fill='none'/%3E%3Ccircle cx='50' cy='56' r='22' stroke='%231E2B4A' stroke-width='3' fill='none'/%3E%3Crect x='42' y='32' width='16' height='42' rx='3' fill='%23F8F2E7' stroke='%231E2B4A' stroke-width='3'/%3E%3Crect x='45' y='22' width='10' height='10' rx='2' fill='%231E2B4A'/%3E%3C/g%3E%3C/svg%3E" />
+    <!-- Apple touch icon: 180×180, fondo navy lleno, escudo+vape cream grande -->
+    <!-- Sin texto porque iOS muestra "IZN" debajo del icon automáticamente -->
+    <link rel="apple-touch-icon" sizes="180x180" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' fill='%231E2B4A'/%3E%3Cpath d='M90 22 L150 42 L150 92 C150 124 126 150 90 162 C54 150 30 124 30 92 L30 42 Z' fill='none' stroke='%23F8F2E7' stroke-width='8' stroke-linejoin='round'/%3E%3Crect x='75' y='66' width='30' height='66' rx='5' fill='%23F8F2E7'/%3E%3Crect x='80' y='50' width='20' height='16' rx='3' fill='%23F8F2E7'/%3E%3Cline x1='75' y1='92' x2='105' y2='92' stroke='%231E2B4A' stroke-width='4'/%3E%3C/svg%3E" />
     <meta name="format-detection" content="telephone=no" />
     <title>IMPORTS ZONA NORTE</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -28,6 +32,8 @@
         /* safe-area para iPhone con notch */
         padding-left: env(safe-area-inset-left);
         padding-right: env(safe-area-inset-right);
+        /* En modo PWA standalone, padding-top para no quedar bajo la status bar */
+        padding-top: env(safe-area-inset-top);
       }
       input, select, textarea {
         color-scheme: light; font-family: inherit;
