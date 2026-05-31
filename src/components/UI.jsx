@@ -281,28 +281,29 @@ export const Table = ({ columns, data, onRowClick, emptyMsg = "Sin datos", mobil
 export const StatCard = ({ label, value, sub, color = "#1E2B4A", icon }) => {
   const { isMobile } = useResponsive();
   return (
-    <Card style={{ flex: 1, minWidth: isMobile ? 100 : 150, overflow: "hidden" }}>
+    <Card style={{ flex: 1, minWidth: isMobile ? 0 : 150, overflow: "hidden" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{
             fontSize: isMobile ? 10 : 12, color: "#6B7794",
-            textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6,
-            fontWeight: 600,
-            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6,
+            fontWeight: 600, lineHeight: 1.2,
+            wordBreak: "break-word",
           }}>{label}</div>
           <div style={{
-            fontSize: isMobile ? 20 : 26, fontWeight: 800, color, lineHeight: 1,
+            fontSize: isMobile ? 20 : 26, fontWeight: 800, color, lineHeight: 1.1,
             letterSpacing: "-0.02em",
             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
           }}>{value}</div>
           {sub && (
             <div style={{
               fontSize: isMobile ? 11 : 12, color: "#6B7794", marginTop: 6,
-              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+              lineHeight: 1.25,
+              wordBreak: "break-word",
             }}>{sub}</div>
           )}
         </div>
-        {icon && <div style={{ fontSize: isMobile ? 22 : 28, opacity: 0.5, flexShrink: 0 }}>{icon}</div>}
+        {icon && <div style={{ fontSize: isMobile ? 20 : 28, opacity: 0.5, flexShrink: 0 }}>{icon}</div>}
       </div>
     </Card>
   );

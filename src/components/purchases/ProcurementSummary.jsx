@@ -64,7 +64,11 @@ export function ProcurementSummary({
   return (
     <div>
       {/* KPIs del ciclo */}
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
+        gap: 10, marginBottom: 16,
+      }}>
         <StatCard
           label="Pedidos en curso"
           value={stats.totalPending}
