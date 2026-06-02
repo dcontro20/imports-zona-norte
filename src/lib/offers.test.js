@@ -112,3 +112,96 @@ describe("whatsappLink", () => {
     expect(whatsappLink("hi")).toBe("https://wa.me/?text=hi");
   });
 });
+
+describe("buildOfferMessage - audiencias", () => {
+  it("aplica opener warm para audiencia individual con clientName", () => {
+    const msg = buildOfferMessage(
+      { type: "destacado", products: [{ product: PRODUCTS[0] }] },
+      RATE,
+      { audience: "individual", ctx: { clientName: "Juan" } }
+    );
+    expect(msg.full).toMatch(/Hola Juan/);
+    expect(msg.full).toMatch(/Diego.*IZN/);
+  });
+
+  it("aplica opener commercial para grupo de clientes", () => {
+    const msg = buildOfferMessage(
+      { type: "destacado", products: [{ product: PRODUCTS[0] }] },
+      RATE,
+      { audience: "groupClients" }
+    );
+    expect(msg.full).toMatch(/IMPORTS ZONA NORTE/);
+    expect(msg.full).toMatch(/Reservás por DM/);
+  });
+
+  it("aplica opener casual para grupo de fiestas en finde", () => {
+    const msg = buildOfferMessage(
+      { type: "packfiesta", products: [{ product: PRODUCTS[0] }, { product: PRODUCTS[1] }], comboQty: 2, comboPriceARS: 40000 },
+      RATE,
+      { audience: "groupParty", ctx: { weekend: true } }
+    );
+    expect(msg.full).toMatch(/Hola gente/);
+    expect(msg.full).toMatch(/finde/);
+    expect(msg.full).toMatch(/x privado/);
+  });
+
+  it("no aplica tono si no se pasa audiencia (legacy)", () => {
+    const msg = buildOfferMessage(
+      { type: "destacado", products: [{ product: PRODUCTS[0] }], footer: "Footer custom" },
+      RATE
+    );
+    expect(msg.full).toMatch(/Footer custom/);
+    expect(msg.full).not.toMatch(/Hola/);
+  });
+});
+
+describe("buildOfferMessage - nuevos tipos", () => {
+  it("stocklist agrupa por marca con precio", () => {
+    const msg = buildOfferMessage(
+      { type: "stocklist", products: PRODUCTS.map(p => ({ product: p })) },
+      RATE
+    );
+    expect(msg.full).toMatch(/ELFBAR/);
+    expect(msg.full).toMatch(/LOST MARY/);
+    expect(msg.full).toMatch(/GEEK/);
+    expect(msg.full).toMatch(/Watermelon Ice/);
+  });
+
+  it("packfiesta muestra cantidad y precio del pack", () => {
+    const msg = buildOfferMessage(
+      { type: "packfiesta", products: [{ product: PRODUCTS[0] }, { product: PRODUCTS[1] }], comboQty: 2, comboPriceARS: 50000 },
+      RATE
+    );
+    expect(msg.full).toMatch(/PACK PARA LA FINDE/);
+    expect(msg.full).toMatch(/Llevate \*2\*/);
+    expect(msg.full).toMatch(/50.000/);
+  });
+
+  it("recordatorio es casual sin push duro", () => {
+    const msg = buildOfferMessage(
+      { type: "recordatorio", products: [{ product: PRODUCTS[0] }] },
+      RATE
+    );
+    expect(msg.full).toMatch(/Zona Norte/);
+    expect(msg.full).not.toMatch(/OFERTA/);
+    expect(msg.full).not.toMatch(/DESCUENTO/);
+  });
+
+  it("drop anuncia productos nuevos", () => {
+    const msg = buildOfferMessage(
+      { type: "drop", products: [{ product: PRODUCTS[0] }] },
+      RATE
+    );
+    expect(msg.full).toMatch(/DROP NUEVO/);
+    expect(msg.full).toMatch(/acaban de llegar/);
+  });
+
+  it("restock muestra productos que volvieron", () => {
+    const msg = buildOfferMessage(
+      { type: "restock", products: [{ product: PRODUCTS[0] }] },
+      RATE
+    );
+    expect(msg.full).toMatch(/VOLVIÓ EL STOCK/);
+    expect(msg.full).toMatch(/Watermelon Ice/);
+  });
+});

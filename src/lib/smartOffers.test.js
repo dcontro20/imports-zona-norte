@@ -138,3 +138,62 @@ describe("suggestSmartOffers", () => {
     expect(suggestSmartOffers({})).toEqual([]);
   });
 });
+
+describe("nuevas categorías de ideas", () => {
+  // Re-construyo data para los nuevos tests
+  const productsForNew = [
+    { id: "p1", brand: "Elfbar", model: "TE", flavor: "Watermelon Ice", priceUSD: 30, costUSDT: 18, stock: 5, createdAt: "2026-01-01" },
+    { id: "p2", brand: "Lost Mary", model: "BM", flavor: "Cherry Cola", priceUSD: 28, costUSDT: 17, stock: 4, createdAt: "2026-01-01" },
+    { id: "p3", brand: "Geek", model: "Pulse", flavor: "Mango", priceUSD: 32, costUSDT: 20, stock: 6, createdAt: "2026-01-01" },
+    // Producto nuevo (drop)
+    { id: "p4", brand: "Ignite", model: "V300", flavor: "Banana", priceUSD: 25, costUSDT: 15, stock: 3, createdAt: new Date().toISOString() },
+  ];
+  const RATE = 1000;
+  const statsForNew = {
+    p1: { product: productsForNew[0], velocity30dPerDay: 0.5, soldLast30d: 15 },
+    p2: { product: productsForNew[1], velocity30dPerDay: 0.4, soldLast30d: 12 },
+    p3: { product: productsForNew[2], velocity30dPerDay: 0.3, soldLast30d: 9 },
+    p4: { product: productsForNew[3], velocity30dPerDay: 0.1, soldLast30d: 3 },
+  };
+
+  it("genera idea de stocklist con productos en stock", () => {
+    const ideas = suggestSmartOffers({ products: productsForNew, statsMap: statsForNew, sales: [], clients: [], exchangeRate: RATE });
+    const stocklist = ideas.find(i => i.category === "stocklist");
+    expect(stocklist).toBeTruthy();
+    expect(stocklist.impact.productsListed).toBeGreaterThan(0);
+    expect(stocklist.impact.totalUnits).toBeGreaterThan(0);
+  });
+
+  it("genera pack fiesta si hay 3+ marcas con stock", () => {
+    const ideas = suggestSmartOffers({ products: productsForNew, statsMap: statsForNew, sales: [], clients: [], exchangeRate: RATE });
+    const pack = ideas.find(i => i.category === "packfiesta");
+    expect(pack).toBeTruthy();
+    expect(pack.comboQty).toBeGreaterThanOrEqual(3);
+    expect(pack.impact.savingARS).toBeGreaterThan(0);
+  });
+
+  it("genera recordatorio con top 3 productos", () => {
+    const ideas = suggestSmartOffers({ products: productsForNew, statsMap: statsForNew, sales: [], clients: [], exchangeRate: RATE });
+    const rec = ideas.find(i => i.category === "recordatorio");
+    expect(rec).toBeTruthy();
+    expect(rec.products.length).toBeGreaterThan(0);
+    expect(rec.products.length).toBeLessThanOrEqual(3);
+  });
+
+  it("genera idea de drop si hay productos creados en últimos 14d", () => {
+    const ideas = suggestSmartOffers({ products: productsForNew, statsMap: statsForNew, sales: [], clients: [], exchangeRate: RATE });
+    const drop = ideas.find(i => i.category === "drop");
+    expect(drop).toBeTruthy();
+    expect(drop.products.length).toBeGreaterThan(0);
+    expect(drop.products[0].product.id).toBe("p4");
+  });
+
+  it("no genera drop si no hay productos recientes", () => {
+    const oldProducts = productsForNew.map(p => ({ ...p, createdAt: "2025-01-01" }));
+    const oldStats = Object.fromEntries(
+      Object.entries(statsForNew).map(([k, v]) => [k, { ...v, product: oldProducts.find(p => p.id === k) }])
+    );
+    const ideas = suggestSmartOffers({ products: oldProducts, statsMap: oldStats, sales: [], clients: [], exchangeRate: RATE });
+    expect(ideas.find(i => i.category === "drop")).toBeFalsy();
+  });
+});

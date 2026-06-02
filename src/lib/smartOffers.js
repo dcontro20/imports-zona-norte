@@ -3,11 +3,15 @@
 // Motor de "Ideas de venta": analiza estadísticas y genera ofertas concretas
 // para vender más, cada una con su razón y su impacto en ganancia.
 //
-// 4 categorías:
-//   reactivar   — clientes dormidos (no compran hace +Nd)
-//   liquidar    — stock parado, recuperar capital sin malvender
-//   crosssell   — combos de productos que se compran juntos
-//   topseller   — empujar lo que más rota, con margen sano
+// Categorías:
+//   reactivar     — clientes dormidos (no compran hace +Nd)
+//   liquidar      — stock parado, recuperar capital sin malvender
+//   crosssell     — combos de productos que se compran juntos
+//   topseller     — empujar lo que más rota, con margen sano
+//   stocklist     — catálogo agrupado para grupos (sin descuento)
+//   packfiesta    — pack 3-4u pensado para grupos sociales/fiestas
+//   recordatorio  — mensaje casual sin push de venta
+//   drop          — sabores agregados al catálogo recientemente
 //
 // Funciones PURAS. El componente pasa statsMap (buildProductSalesStats) ya hecho.
 
@@ -252,6 +256,113 @@ export function suggestSmartOffers({
       impact: { ...impact, marginAfterPct: impact.marginPct, currentMarginPct: guard.currentMarginPct },
     });
   });
+
+  // ---- 5) STOCK LIST — catálogo agrupado por marca para mandar a grupos ----
+  const inStock = Object.values(statsMap)
+    .filter(s => s.product && !s.product.isDeleted && (Number(s.product.stock) || 0) > 0)
+    .sort((a, b) => (b.velocity30dPerDay || 0) - (a.velocity30dPerDay || 0));
+  if (inStock.length > 0) {
+    const top = inStock.slice(0, 25);
+    const totalUnits = top.reduce((sum, s) => sum + (Number(s.product.stock) || 0), 0);
+    const totalValueARS = top.reduce((sum, s) => sum + productPriceARS(s.product, exchangeRate) * (Number(s.product.stock) || 0), 0);
+    ideas.push({
+      id: "stocklist",
+      category: "stocklist",
+      icon: "📋",
+      title: "Stock list para mandar al grupo",
+      reason: `${top.length} productos con stock — catálogo listo para pegar`,
+      products: top.map(s => ({ product: s.product })),
+      offerType: "stocklist",
+      impact: {
+        totalUnits,
+        potentialARS: Math.round(totalValueARS),
+        productsListed: top.length,
+      },
+    });
+  }
+
+  // ---- 6) PACK FIESTA — combo 3-4u top de marcas distintas con stock ----
+  const byBrand = {};
+  Object.values(statsMap).forEach(s => {
+    if (!s.product || s.product.isDeleted || !s.product.brand) return;
+    if ((Number(s.product.stock) || 0) <= 0) return;
+    if ((s.velocity30dPerDay || 0) <= 0) return;
+    const b = s.product.brand;
+    if (!byBrand[b] || (s.velocity30dPerDay || 0) > (byBrand[b].velocity30dPerDay || 0)) {
+      byBrand[b] = s;
+    }
+  });
+  const partyPicks = Object.values(byBrand)
+    .sort((a, b) => (b.velocity30dPerDay || 0) - (a.velocity30dPerDay || 0))
+    .slice(0, 4);
+  if (partyPicks.length >= 3) {
+    const regularTotal = partyPicks.reduce((sum, s) => sum + productPriceARS(s.product, exchangeRate), 0);
+    const packPrice = applyDiscount(regularTotal, 15); // 15% off pack
+    // Margen agregado del pack
+    const totalCostARS = partyPicks.reduce((sum, s) => sum + getProductCostUSDT(s.product) * safeRate(exchangeRate), 0);
+    const packProfit = packPrice - totalCostARS;
+    const packMarginPct = packPrice > 0 ? Math.round((packProfit / packPrice) * 1000) / 10 : 0;
+    ideas.push({
+      id: "packfiesta",
+      category: "packfiesta",
+      icon: "🎵",
+      title: `Pack para la finde — ${partyPicks.length}u`,
+      reason: `Top de cada marca con stock. Pack a -15% pensado para grupos de fiestas`,
+      products: partyPicks.map(s => ({ product: s.product })),
+      suggestedDiscountPct: 15,
+      offerType: "packfiesta",
+      comboQty: partyPicks.length,
+      comboPriceARS: packPrice,
+      impact: {
+        comboRegularARS: regularTotal,
+        comboPriceARS: packPrice,
+        savingARS: regularTotal - packPrice,
+        unitProfitARS: Math.round(packProfit),
+        marginPct: packMarginPct,
+      },
+    });
+  }
+
+  // ---- 7) RECORDATORIO — mensaje casual, top 3 destacados ----
+  const top3 = inStock.slice(0, 3);
+  if (top3.length > 0) {
+    ideas.push({
+      id: "recordatorio",
+      category: "recordatorio",
+      icon: "💬",
+      title: "Recordatorio casual",
+      reason: "Hacerse presente sin push fuerte. Ideal después de varias ofertas",
+      products: top3.map(s => ({ product: s.product })),
+      offerType: "recordatorio",
+      impact: {
+        productsShown: top3.length,
+      },
+    });
+  }
+
+  // ---- 8) DROP — sabores agregados al catálogo en últimos 14 días ----
+  const NOW_MS = Date.now();
+  const DAYS_14 = 14 * MS_PER_DAY;
+  const recent = products.filter(p => {
+    if (!p || p.isDeleted) return false;
+    if ((Number(p.stock) || 0) <= 0) return false;
+    const created = p.createdAt ? new Date(p.createdAt).getTime() : 0;
+    return created > 0 && (NOW_MS - created) < DAYS_14;
+  });
+  if (recent.length > 0) {
+    ideas.push({
+      id: "drop",
+      category: "drop",
+      icon: "🆕",
+      title: `Drop nuevo — ${recent.length} sabor${recent.length === 1 ? "" : "es"}`,
+      reason: `Productos agregados en las últimas 2 semanas`,
+      products: recent.slice(0, 8).map(p => ({ product: p })),
+      offerType: "drop",
+      impact: {
+        newProducts: recent.length,
+      },
+    });
+  }
 
   return ideas;
 }
