@@ -58,29 +58,99 @@ const LoadingSpinner = () => (
   </div>
 );
 
+// Detecta errores que indican que el código cacheado quedó desactualizado
+// (PWA con SW viejo que apunta a chunks JS que ya no existen en el servidor).
+function isStaleChunkError(error) {
+  if (!error) return false;
+  const msg = String(error.message || error.toString() || "");
+  return /importing a module script failed/i.test(msg)
+      || /failed to fetch dynamically imported module/i.test(msg)
+      || /loading chunk \d+ failed/i.test(msg)
+      || /loading css chunk \d+ failed/i.test(msg);
+}
+
+// Limpia todo el cache de la app y el SW, después fuerza un reload.
+// Esto resuelve el caso "Importing a module script failed" cuando el HTML
+// cacheado apunta a chunks que ya no existen tras un deploy nuevo.
+async function hardReloadAppCache() {
+  try {
+    if ("caches" in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+    if ("serviceWorker" in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+  } catch (e) {
+    console.warn("[recover] limpiando cache:", e);
+  }
+  // Reload con timestamp para evitar caches HTTP intermedios
+  const sep = window.location.href.includes("?") ? "&" : "?";
+  window.location.href = window.location.href.split("?")[0].split("#")[0] + sep + "_t=" + Date.now();
+}
+
 // ErrorBoundary — prevents a crash in one component from killing the entire app
 class ErrorBoundary extends Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, recovering: false };
   }
   static getDerivedStateFromError(error) {
     return { hasError: true, error };
   }
   componentDidCatch(error, info) {
     console.error("[ErrorBoundary]", error, info.componentStack);
+    // Si es error de chunks desactualizados, intentar auto-recovery una vez
+    if (isStaleChunkError(error) && !sessionStorage.getItem("izn_auto_recovered")) {
+      sessionStorage.setItem("izn_auto_recovered", "1");
+      this.setState({ recovering: true });
+      hardReloadAppCache();
+    }
   }
   render() {
     if (this.state.hasError) {
+      const stale = isStaleChunkError(this.state.error);
+      if (this.state.recovering) {
+        return (
+          <div style={{ padding: "32px 16px", textAlign: "center" }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>🔄</div>
+            <h2 style={{ color: "#1E2B4A", marginBottom: 8 }}>Actualizando…</h2>
+            <p style={{ color: "#6B7794", fontSize: 14 }}>Cargando la versión más reciente.</p>
+          </div>
+        );
+      }
       return (
-        <div style={{ padding: "32px 16px", textAlign: "center" }}>
+        <div style={{ padding: "32px 16px", textAlign: "center", maxWidth: 480, margin: "0 auto" }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
-          <h2 style={{ color: "#1E2B4A", marginBottom: 8 }}>Algo salió mal</h2>
-          <p style={{ color: "#6B7794", fontSize: 14, marginBottom: 20 }}>{this.state.error?.message || "Error inesperado"}</p>
-          <button onClick={() => this.setState({ hasError: false, error: null })} style={{
-            padding: "10px 24px", background: "#1E2B4A", color: "#fff", border: "none",
-            borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: "pointer"
-          }}>Reintentar</button>
+          <h2 style={{ color: "#1E2B4A", marginBottom: 8 }}>
+            {stale ? "Hay una versión nueva" : "Algo salió mal"}
+          </h2>
+          <p style={{ color: "#6B7794", fontSize: 14, marginBottom: 20, lineHeight: 1.5 }}>
+            {stale
+              ? "La app se actualizó. Hacé clic en Actualizar para cargar la versión nueva (limpia caché)."
+              : (this.state.error?.message || "Error inesperado")}
+          </p>
+          <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+            {stale ? (
+              <button onClick={hardReloadAppCache} style={{
+                padding: "12px 24px", background: "#1E2B4A", color: "#fff", border: "none",
+                borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: "pointer", minHeight: 44,
+              }}>🔄 Actualizar app</button>
+            ) : (
+              <>
+                <button onClick={() => this.setState({ hasError: false, error: null })} style={{
+                  padding: "12px 24px", background: "#1E2B4A", color: "#fff", border: "none",
+                  borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: "pointer", minHeight: 44,
+                }}>Reintentar</button>
+                <button onClick={hardReloadAppCache} style={{
+                  padding: "12px 24px", background: "transparent", color: "#1E2B4A",
+                  border: "1px solid #E5DAC2",
+                  borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: "pointer", minHeight: 44,
+                }}>🔄 Limpiar caché</button>
+              </>
+            )}
+          </div>
         </div>
       );
     }
