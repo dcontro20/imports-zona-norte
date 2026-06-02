@@ -121,7 +121,7 @@ const SectionLabel = ({ children, icon, color = T.textMuted, right }) => (
 export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, clients = [], cashMovements }) => {
   const { exchangeRate } = useAppContext();
   const settings = useSettings();
-  const { isMobile } = useResponsive();
+  const { isMobile, isTablet } = useResponsive();
   const [period, setPeriod] = useState("month"); // today | week | month
   const [showAllAlerts, setShowAllAlerts] = useState(false);
   const [reorderModal, setReorderModal] = useState(false);
@@ -719,7 +719,7 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, c
       {/* ===== SECONDARY KPIs ===== */}
       <div style={{
         display: "grid",
-        gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)",
+        gridTemplateColumns: isMobile ? "1fr 1fr" : isTablet ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
         gap: isMobile ? 10 : 14, marginBottom: 20,
       }}>
         <MiniKpi label="Gastos del mes" value={formatMoney(monthExpensesARS)} sub={`${monthExpenses.length} registros`} accent={T.red} />
@@ -1147,7 +1147,7 @@ const TrendingProductModal = ({ product, sales, onClose }) => {
           }} aria-label="Cerrar">×</button>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: 8, marginBottom: 18 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile || isTablet ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: 8, marginBottom: 18 }}>
           <div>
             <div style={{ fontSize: 10, color: T.textMuted, marginBottom: 2 }}>Total uds</div>
             <div style={{ fontSize: 18, fontWeight: 800, color: T.text, fontFamily: T.fontDisplay }}>{totalQty}</div>
@@ -1210,7 +1210,7 @@ const TrendingProductModal = ({ product, sales, onClose }) => {
 };
 
 const ReorderModal = ({ products, qtyMap, setQtyMap, onClose, onCopied }) => {
-  const { isMobile } = useResponsive();
+  const { isMobile, isTablet } = useResponsive();
 
   // Agrupar por marca para el mensaje
   const byBrand = useMemo(() => {

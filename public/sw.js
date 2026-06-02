@@ -6,7 +6,7 @@
 //
 // El CACHE_VERSION se debe bumpear en cada cambio grande que requiera invalidación.
 
-const CACHE_VERSION = "izn-v7";
+const CACHE_VERSION = "izn-v8";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 

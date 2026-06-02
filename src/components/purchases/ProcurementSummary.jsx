@@ -23,7 +23,7 @@ export function ProcurementSummary({
   onCreatePurchaseFromReco,
   onGoToTab,
 }) {
-  const { isMobile } = useResponsive();
+  const { isMobile, isTablet } = useResponsive();
 
   const stats = useMemo(() => aggregatePurchaseStats(purchases), [purchases]);
   const productStats = useMemo(
@@ -66,7 +66,7 @@ export function ProcurementSummary({
       {/* KPIs del ciclo */}
       <div style={{
         display: "grid",
-        gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
+        gridTemplateColumns: isMobile || isTablet ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
         gap: 10, marginBottom: 16,
       }}>
         <StatCard

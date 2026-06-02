@@ -26,7 +26,7 @@ const daysAgo = (d, days) => new Date(d) >= new Date(Date.now() - days * msPerDa
 // MAIN
 // ============================================
 export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements, setCashMovements, exchangeRate, setExchangeRate, currentUser, logAudit }) => {
-  const { isMobile } = useResponsive();
+  const { isMobile, isTablet } = useResponsive();
   const [showMovementModal, setShowMovementModal] = useState(false);
   const [editMovementType, setEditMovementType] = useState(null); // pre-selects type when set
   const [showConciliation, setShowConciliation] = useState(false);
@@ -582,7 +582,7 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
             }}>⚠️ Saldo negativo en {forecast30d.negativeIn}d</span>
           )}
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : isTablet ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: 10 }}>
           <div>
             <div style={{ fontSize: 10, color: "#6B7794", textTransform: "uppercase", fontWeight: 700 }}>ARS hoy</div>
             <div style={{ fontSize: 16, fontWeight: 800, color: "#1E2B4A" }}>{formatMoney(forecast30d.totalARSNow)}</div>

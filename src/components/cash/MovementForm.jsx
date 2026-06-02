@@ -13,7 +13,7 @@ import {
 // Extraído de CashBox.jsx para reducir tamaño del archivo padre.
 
 const MovementForm = ({ presetType, exchangeRate, balances, recentMovements = [], onSave, onCancel }) => {
-  const { isMobile } = useResponsive();
+  const { isMobile, isTablet } = useResponsive();
   const [type, setType] = useState(presetType || "transfer");
   const [form, setForm] = useState({
     from: "", to: "", amount: "", amountUSDT: "", description: "", date: dayKey(new Date()),
@@ -316,7 +316,7 @@ const MovementForm = ({ presetType, exchangeRate, balances, recentMovements = []
 };
 
 const AccountPicker = ({ label, value, onChange, balances, filter, exclude }) => {
-  const { isMobile } = useResponsive();
+  const { isMobile, isTablet } = useResponsive();
   const opts = ACCOUNTS.filter(a => (!filter || a.currency === filter) && a.id !== exclude);
   return (
     <div>
@@ -447,7 +447,7 @@ const HistoryList = ({ ledger, isMobile, onDelete, confirmDel, currentExchangeRa
         <div style={{
           padding: 12, background: T.surface2, borderRadius: 10, marginBottom: 12,
           border: `1px solid ${T.borderSoft}`,
-          display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 10,
+          display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : isTablet ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: 10,
         }}>
           <div style={{ gridColumn: "1 / -1" }}>
             <label style={lblStyle}>Cuentas</label>
@@ -637,7 +637,7 @@ const selectStyle = () => ({
 // CONCILIATION FORM
 // ============================================
 const ConciliationForm = ({ balances, onSave, onCancel }) => {
-  const { isMobile } = useResponsive();
+  const { isMobile, isTablet } = useResponsive();
   const [real, setReal] = useState(() => {
     const r = {};
     ACCOUNTS.forEach(a => { r[a.id] = String(Math.round((balances[a.id] || 0) * 100) / 100); });

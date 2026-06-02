@@ -117,7 +117,7 @@ const NAV_ITEMS = [
 ];
 
 export default function App() {
-  const { isMobile } = useResponsive();
+  const { isMobile, isTablet } = useResponsive();
 
   // ---- Firebase Auth state ----
   const [currentUser, setCurrentUser] = useState(null);
@@ -537,7 +537,7 @@ export default function App() {
         <div style={{ display: "flex" }}>
           {/* Sidebar */}
           <nav style={{
-            width: isMobile ? 260 : 220,
+            width: isMobile ? 260 : isTablet ? 184 : 220,
             minHeight: "calc(100vh - 52px - env(safe-area-inset-top))",
             background: "#FFFFFF", borderRight: "1px solid #E5DAC2",
             padding: "12px 0", flexShrink: 0,
@@ -575,9 +575,9 @@ export default function App() {
           {/* Content */}
           <main style={{
             flex: 1,
-            padding: isMobile ? "14px" : "24px",
-            paddingBottom: isMobile ? "max(90px, env(safe-area-inset-bottom))" : "24px",
-            maxWidth: 1100, minWidth: 0,
+            padding: isMobile ? "14px" : isTablet ? "18px" : "24px",
+            paddingBottom: isMobile ? "max(90px, env(safe-area-inset-bottom))" : (isTablet ? "18px" : "24px"),
+            maxWidth: isTablet ? "100%" : 1100, minWidth: 0,
           }} onClick={() => setShowGlobalResults(false)}>
             {syncStatus === "offline" && (
               <div style={{ background: "#FBE4E4", border: "1px solid #F1B8B6", borderRadius: 10, padding: "10px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#E03E3E" }}>

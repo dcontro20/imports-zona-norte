@@ -13,7 +13,7 @@ const SUBMIT_DEBOUNCE_MS = 3000;
 
 // Helper: muestra fecha + hora corta. Si el ISO no tiene hora, solo fecha.
 export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts, sales, clients = [], monthlyClosures = [], logStock, exchangeRate, currentUser, logAudit }) => {
-  const { isMobile } = useResponsive();
+  const { isMobile, isTablet } = useResponsive();
   const [modal, setModal] = useState(false);
   const [editingId, setEditingId] = useState(null); // id del withdrawal en edición, null = modo creación
   const [validationError, setValidationError] = useState("");
@@ -453,7 +453,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
             const maxMonth = Math.max(1, ...monthlyMermas.map(m => m.totalUSD));
             return (
               <>
-                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: 10, marginBottom: 14 }}>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile || isTablet ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: 10, marginBottom: 14 }}>
                   <div style={{ padding: 10, background: "#F8F2E7", borderRadius: 8 }}>
                     <div style={{ fontSize: 10, color: "#6B7794", textTransform: "uppercase", fontWeight: 700 }}>Total 12m</div>
                     <div style={{ fontSize: 16, fontWeight: 800, color: "#1E2B4A" }}>{formatMoney(grandTotal, "USD")}</div>
@@ -611,7 +611,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
         const reclamables = gList.filter(w => w.reclamableProveedor);
         const pctReclamables = totalCount > 0 ? (reclamables.length / totalCount) * 100 : 0;
         return (
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 8, marginBottom: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : isTablet ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: 8, marginBottom: 12 }}>
             <div style={{ background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 10, padding: "10px 12px" }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: "#6B7794", textTransform: "uppercase", letterSpacing: 0.5 }}>Total cambios</div>
               <div style={{ fontSize: 20, fontWeight: 800, color: "#CB912F", marginTop: 2 }}>{totalCount}</div>

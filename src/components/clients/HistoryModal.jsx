@@ -11,7 +11,7 @@ import { Sparkline, Avatar, SummaryStat } from "./primitives.jsx";
 // Compras, Regalos, Saldo). Extraído de Clients.jsx.
 
 const HistoryModal = ({ client, stats, productsById, withdrawals = [], onClose }) => {
-  const { isMobile } = useResponsive();
+  const { isMobile, isTablet } = useResponsive();
   const [activeTab, setActiveTab] = useState("resumen");
   if (!client || !stats) return null;
 
@@ -50,7 +50,7 @@ const HistoryModal = ({ client, stats, productsById, withdrawals = [], onClose }
       </div>
 
       {/* Summary stats */}
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 10, marginBottom: 18 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : isTablet ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: 10, marginBottom: 18 }}>
         <SummaryStat label="Gastado" value={formatMoney(stats.totalSpent)} color={T.green} />
         <SummaryStat label="Compras" value={stats.salesCount} />
         <SummaryStat label="Unidades" value={stats.totalUnits} />

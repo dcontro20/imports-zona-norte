@@ -53,7 +53,7 @@ const TYPES = [
 ];
 
 export const Offers = ({ products = [], sales = [], clients = [], exchangeRate = 1, logAudit, currentUser, auditLog = [] }) => {
-  const { isMobile } = useResponsive();
+  const { isMobile, isTablet } = useResponsive();
 
   // Audiencia activa (filtra qué ideas se muestran)
   const [audience, setAudience] = useState("individual");
@@ -964,7 +964,7 @@ function HistoryView({ auditLog, sales, clients, products, isMobile }) {
       {/* Stats overall */}
       <div style={{
         display: "grid",
-        gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
+        gridTemplateColumns: isMobile || isTablet ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
         gap: 10, marginBottom: 14,
       }}>
         <StatBox label="Ofertas mandadas" value={stats.totalSent} icon="📨" color="#1E2B4A" />

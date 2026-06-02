@@ -68,7 +68,7 @@ export const Sales = ({
   clients, setClients, cashMovements, setCashMovements, monthlyClosures = [],
   coupons = [], setCoupons, auditLog = [],
 }) => {
-  const { isMobile } = useResponsive();
+  const { isMobile, isTablet } = useResponsive();
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [search, setSearch] = useState("");
@@ -944,7 +944,7 @@ export const Sales = ({
                   <input type="number" value={item.customPrice !== undefined && item.customPrice !== "" ? item.customPrice : ""}
                     onChange={e => updateItem(i, "customPrice", e.target.value)}
                     placeholder={String(priceDisplay.replace(/[^\d]/g, ""))}
-                    style={{ width: 75, padding: "4px 6px", border: "1px solid #E5DAC2", borderRadius: 6, fontSize: 13, textAlign: "center", background: item.customPrice ? "#FBE3B3" : "#F8F2E7", color: "#1E2B4A" }}
+                    style={{ width: isMobile ? 90 : 75, padding: isMobile ? "8px 6px" : "4px 6px", minHeight: isMobile ? 36 : "auto", border: "1px solid #E5DAC2", borderRadius: 6, fontSize: isMobile ? 16 : 13, textAlign: "center", background: item.customPrice ? "#FBE3B3" : "#F8F2E7", color: "#1E2B4A" }}
                   />
                   <span style={{ fontSize: 11, color: "#9AA2B3" }}>/u</span>
                 </div>
@@ -1607,7 +1607,7 @@ export const Sales = ({
       {/* ===== MONTH STATS ===== */}
       <div style={{
         display: "grid",
-        gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)",
+        gridTemplateColumns: isMobile ? "1fr 1fr" : isTablet ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
         gap: isMobile ? 10 : 14, marginBottom: 20,
       }}>
         <MonthStat label="Ventas del mes" value={monthStats.count} sub={`${monthStats.units} unidades`} accent={T.primary} />

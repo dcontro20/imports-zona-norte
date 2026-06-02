@@ -5,7 +5,7 @@ import { useResponsive } from "../App.jsx";
 // padding: 12px vertical + 14px horizontal + fontSize: 14 ≈ 44px.
 
 export const Modal = ({ open, onClose, title, children }) => {
-  const { isMobile } = useResponsive();
+  const { isMobile, isTablet } = useResponsive();
   // Ref al contenedor scrolleable + state para indicador "hay más abajo".
   // canScrollDown=true cuando hay contenido oculto que requiere scroll.
   const contentRef = useRef(null);
@@ -45,7 +45,7 @@ export const Modal = ({ open, onClose, title, children }) => {
         background: "#FFFFFF",
         borderRadius: isMobile ? "16px 16px 0 0" : 16,
         padding: isMobile ? "16px" : "24px",
-        maxWidth: isMobile ? "100%" : 520,
+        maxWidth: isMobile ? "100%" : isTablet ? 680 : 520,
         width: "100%",
         maxHeight: isMobile ? "92vh" : "85vh",
         overflowY: "auto",

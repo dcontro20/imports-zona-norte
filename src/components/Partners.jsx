@@ -67,7 +67,7 @@ export const Partners = ({
   products = [], cashMovements = [], clients = [],
   exchangeRate, currentUser, logAudit, embedded = false,
 }) => {
-  const { isMobile } = useResponsive();
+  const { isMobile, isTablet } = useResponsive();
   const [modal, setModal] = useState(false);
   const [confirmDel, setConfirmDel] = useState(null);
   const [period, setPeriod] = useState("ytd");
@@ -333,7 +333,7 @@ export const Partners = ({
         </div>
 
         {/* Composición leyenda */}
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 8, marginTop: 16, paddingTop: 14, borderTop: `1px solid ${T.borderSoft}` }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : isTablet ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: 8, marginTop: 16, paddingTop: 14, borderTop: `1px solid ${T.borderSoft}` }}>
           {composition.map((seg, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ width: 10, height: 10, borderRadius: 3, background: seg.color, flexShrink: 0 }} />
