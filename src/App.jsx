@@ -6,25 +6,71 @@ import { loginWithEmail, logout, onAuthChange, getUserProfile } from "./firebase
 import { LogoMark, LogoFull } from "./components/Logo.jsx";
 
 // Responsive hook — used by UI.jsx, Dashboard.jsx, PriceLog.jsx and others
+// useResponsive — breakpoints reactivos a cambios de viewport.
+//
+// PWA iOS: cuando la app vuelve de background, "resize" NO se dispara si
+// el viewport no cambió, pero window.innerWidth puede devolver un valor
+// stale durante los primeros frames. Por eso también escuchamos:
+//   - pageshow: dispara al volver de bfcache / al reabrir PWA
+//   - visibilitychange: dispara al cambiar a foreground
+//   - focus: dispara al ganar foco la ventana
+//   - orientationchange: rotar el iPad
+// Usamos el max entre window.innerWidth y documentElement.clientWidth para
+// obtener la medida más confiable (innerWidth puede ser 0 brevemente).
 export const useResponsive = () => {
-  const [dimensions, setDimensions] = useState({
-    isMobile: typeof window !== "undefined" ? window.innerWidth < 768 : false,
-    isTablet: typeof window !== "undefined" ? window.innerWidth >= 768 && window.innerWidth <= 1024 : false,
-    isDesktop: typeof window !== "undefined" ? window.innerWidth > 1024 : true,
-  });
+  const readDimensions = () => {
+    if (typeof window === "undefined") {
+      return { isMobile: false, isTablet: false, isDesktop: true };
+    }
+    const innerW = window.innerWidth || 0;
+    const clientW = document.documentElement?.clientWidth || 0;
+    const width = Math.max(innerW, clientW);
+    // Si por algún motivo la medida es 0 (PWA recién resumida), asumimos
+    // desktop por defecto para no quedar pegados en mobile layout
+    if (width <= 0) return { isMobile: false, isTablet: false, isDesktop: true };
+    return {
+      isMobile: width < 768,
+      isTablet: width >= 768 && width <= 1024,
+      isDesktop: width > 1024,
+    };
+  };
+
+  const [dimensions, setDimensions] = useState(readDimensions);
 
   useEffect(() => {
-    const handleResize = () => {
-      const width = window.innerWidth;
-      setDimensions({
-        isMobile: width < 768,
-        isTablet: width >= 768 && width <= 1024,
-        isDesktop: width > 1024,
+    let rafId = null;
+    const recompute = () => {
+      // requestAnimationFrame para asegurar que el viewport ya está estable
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        const next = readDimensions();
+        setDimensions(prev => {
+          if (prev.isMobile === next.isMobile
+              && prev.isTablet === next.isTablet
+              && prev.isDesktop === next.isDesktop) return prev;
+          return next;
+        });
       });
     };
+    const onVisibility = () => { if (!document.hidden) recompute(); };
 
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    window.addEventListener("resize", recompute);
+    window.addEventListener("orientationchange", recompute);
+    window.addEventListener("pageshow", recompute);
+    window.addEventListener("focus", recompute);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    // Re-medir una vez más después de mount por si la medición inicial salió mal
+    recompute();
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      window.removeEventListener("resize", recompute);
+      window.removeEventListener("orientationchange", recompute);
+      window.removeEventListener("pageshow", recompute);
+      window.removeEventListener("focus", recompute);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, []);
 
   return dimensions;
@@ -267,6 +313,14 @@ export default function App() {
       const original = document.body.style.overflow;
       document.body.style.overflow = "hidden";
       return () => { document.body.style.overflow = original; };
+    }
+  }, [isMobile, menuOpen]);
+
+  // Si el viewport sale de mobile (ej: PWA en iPad volviendo de background),
+  // cerramos el menú overlay automáticamente — ya no aplica.
+  useEffect(() => {
+    if (!isMobile && menuOpen) {
+      setMenuOpen(false);
     }
   }, [isMobile, menuOpen]);
 
