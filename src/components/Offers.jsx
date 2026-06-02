@@ -9,7 +9,7 @@ import {
   applyDiscount,
   whatsappLink,
 } from "../lib/offers.js";
-import { suggestSmartOffers } from "../lib/smartOffers.js";
+import { suggestSmartOffers, maxDiscountForMargin } from "../lib/smartOffers.js";
 import { AUDIENCES, AUDIENCE_LIST, getAudience } from "../lib/offerAudiences.js";
 import { weeklyCalendar, todaySuggestions, isWeekend } from "../lib/offerCalendar.js";
 
@@ -47,7 +47,7 @@ const TYPES = [
   { key: "drop", label: "🆕 Drop", desc: "Sabores nuevos" },
 ];
 
-export const Offers = ({ products = [], sales = [], clients = [], exchangeRate = 1 }) => {
+export const Offers = ({ products = [], sales = [], clients = [], exchangeRate = 1, logAudit, currentUser }) => {
   const { isMobile } = useResponsive();
 
   // Audiencia activa (filtra qué ideas se muestran)
@@ -227,6 +227,7 @@ export const Offers = ({ products = [], sales = [], clients = [], exchangeRate =
           onClose={() => setPreviewIdea(null)}
           onEditManual={useIdeaManual}
           isMobile={isMobile}
+          logAudit={logAudit}
         />
       )}
     </div>
@@ -426,11 +427,15 @@ function IdeaCard({ idea, onClick }) {
   );
 }
 
-function ImpactRow({ idea }) {
+function ImpactRow({ idea: rawIdea }) {
+  // Defense: si una idea futura llega sin impact, no rompe el render.
+  const idea = { ...rawIdea, impact: rawIdea.impact || {} };
   const wrap = {
     display: "flex", gap: 12, flexWrap: "wrap",
     padding: "8px 10px", background: "#F8F2E7", borderRadius: 8, border: "1px solid #EFE5CE",
   };
+  const hasContent = ["liquidar","reactivar","crosssell","topseller","stocklist","packfiesta","recordatorio","drop"].includes(idea.category);
+  if (!hasContent) return null;
   return (
     <div style={wrap}>
       {idea.category === "liquidar" && (
@@ -559,7 +564,7 @@ function WeekView({ week, ideas, onOpenIdea, onPickAudience, isMobile }) {
 // MODAL PREVIEW DE IDEA
 // ============================================================================
 
-function IdeaPreviewModal({ idea, audience, clients, exchangeRate, onClose, onEditManual, isMobile }) {
+function IdeaPreviewModal({ idea, audience, clients, exchangeRate, onClose, onEditManual, isMobile, logAudit }) {
   const audienceConfig = getAudience(audience);
   const needsClient = audienceConfig.needsClient;
   const [selectedClientId, setSelectedClientId] = useState(idea.clientId || "");
@@ -592,12 +597,31 @@ function IdeaPreviewModal({ idea, audience, clients, exchangeRate, onClose, onEd
     [offer, exchangeRate, audience, ctx]
   );
 
+  // Registra en audit log que mandamos una oferta. Esto deja trazabilidad
+  // para después poder ver "qué oferta llevó a qué venta".
+  const logOfferSent = (method) => {
+    if (!logAudit) return;
+    const target = audienceConfig.needsClient
+      ? (selectedClient?.name || idea.clientName || "—")
+      : audienceConfig.label;
+    logAudit("create", "offer", `${idea.id}-${Date.now()}`, `Envió oferta "${idea.title}" a ${target} vía ${method}`, {
+      audience,
+      ideaCategory: idea.category,
+      offerType: idea.offerType,
+      method,
+      clientId: selectedClientId || idea.clientId || null,
+      productIds: (idea.products || []).map(x => x.product?.id).filter(Boolean),
+      suggestedDiscountPct: idea.suggestedDiscountPct || 0,
+    });
+  };
+
   // Acciones
   const copyText = async () => {
     try {
       await navigator.clipboard.writeText(message.full);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+      logOfferSent("copia");
     } catch {
       prompt("Copiá esto:", message.full);
     }
@@ -606,12 +630,14 @@ function IdeaPreviewModal({ idea, audience, clients, exchangeRate, onClose, onEd
   const openWhatsApp = () => {
     const phone = selectedClient?.phone || idea.clientPhone || "";
     window.open(whatsappLink(message.full, phone), "_blank");
+    logOfferSent("whatsapp");
   };
 
   const shareNative = async () => {
-    if (navigator.share) {
+    if (typeof navigator !== "undefined" && navigator.share) {
       try {
         await navigator.share({ text: message.full });
+        logOfferSent("share");
       } catch {/* user cancelled */}
     } else {
       copyText();
@@ -793,6 +819,7 @@ function ManualView({
               <div style={{ marginTop: 10 }}>
                 <Label>Descuento %</Label>
                 <input type="number" min={0} max={90} value={discountPct} onChange={e => setDiscountPct(e.target.value)} style={inputStyle(isMobile)} />
+                <DiscountGuard discountPct={Number(discountPct) || 0} selectedProducts={manualOffer.products.map(x => x.product)} />
               </div>
             )}
           </Card>
@@ -885,6 +912,42 @@ function ManualView({
 // ============================================================================
 // HELPERS
 // ============================================================================
+
+// Avisa al usuario si el descuento manual baja del margen mínimo (15%).
+// Calcula el peor caso (producto con menor margen) y compara.
+function DiscountGuard({ discountPct, selectedProducts }) {
+  const issues = useMemo(() => {
+    if (!selectedProducts || selectedProducts.length === 0 || discountPct <= 0) return [];
+    return selectedProducts
+      .map(p => {
+        const guard = maxDiscountForMargin(p, 15);
+        if (!guard) return null;
+        if (discountPct <= guard.maxDiscountPct) return null;
+        return {
+          product: p,
+          maxAllowed: guard.maxDiscountPct,
+          currentMargin: guard.currentMarginPct,
+        };
+      })
+      .filter(Boolean);
+  }, [selectedProducts, discountPct]);
+
+  if (issues.length === 0) return null;
+
+  return (
+    <div style={{
+      marginTop: 8, padding: "8px 10px",
+      background: "#FBE4E4", border: "1px solid #F1B8B6", borderRadius: 8,
+      fontSize: 11, color: "#9C2A2A",
+    }}>
+      <div style={{ fontWeight: 800, marginBottom: 4 }}>⚠️ El descuento es muy agresivo</div>
+      <div style={{ lineHeight: 1.4 }}>
+        Estás bajando del margen mínimo (15%) en <strong>{issues.length}</strong> producto{issues.length === 1 ? "" : "s"}.
+        Bajá a -{Math.floor(Math.min(...issues.map(x => x.maxAllowed)))}% para mantener margen sano.
+      </div>
+    </div>
+  );
+}
 
 function Impact({ label, value, color = "#1E2B4A" }) {
   return (
