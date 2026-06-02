@@ -230,6 +230,32 @@ export function buildOfferMessage(offer, exchangeRate, opts = {}) {
     });
   }
 
+  else if (type === "reactivar") {
+    // Mensaje personalizado para cliente dormido con sus productos favoritos
+    lines.push(title || "Te tenía esto preparado 👀", "");
+    storyLines.push("Para vos 👀");
+    if (products.length > 0) {
+      lines.push("Sé que te gustaba esto, te lo dejo con un mimo:");
+      lines.push("");
+      products.forEach(({ product }) => {
+        const regular = productPriceARS(product, exchangeRate);
+        const finalP = discountPct > 0 ? applyDiscount(regular, discountPct) : regular;
+        lines.push(`💨 *${productLabel(product, { withPuffs: false })}*`);
+        if (discountPct > 0) {
+          lines.push(`   ${money(finalP)}  ~${money(regular)}~  (-${discountPct}%)`);
+          storyLines.push(`${product.flavor} ${money(finalP)} (-${discountPct}%)`);
+        } else {
+          lines.push(`   ${money(finalP)}`);
+          storyLines.push(`${product.flavor} ${money(finalP)}`);
+        }
+        lines.push("");
+      });
+    } else {
+      lines.push("Hace tiempo que no charlamos. Si te interesa algo nuevo,");
+      lines.push("avisame y te paso lo que tengo 💨");
+    }
+  }
+
   else if (type === "restock") {
     lines.push(title || "✅ *VOLVIÓ EL STOCK* ✅", "");
     lines.push("Productos que volvieron:", "");

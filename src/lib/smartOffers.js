@@ -18,6 +18,7 @@
 import { safeRate } from "../helpers.js";
 import { getProductCostUSDT } from "../finance.js";
 import { productPriceARS, applyDiscount } from "./offers.js";
+import { getClientInsights } from "./clientInsights.js";
 
 const MS_PER_DAY = 86400000;
 
@@ -182,24 +183,40 @@ export function suggestSmartOffers({
     });
   });
 
-  // ---- 2) REACTIVAR clientes dormidos ----
+  // ---- 2) REACTIVAR clientes dormidos (personalizado con sus favoritos) ----
   const dormant = dormantClients(clients, sales, { daysThreshold: dormantDays, exchangeRate });
   dormant.slice(0, 5).forEach(d => {
+    // Buscamos los productos favoritos del cliente para personalizar la oferta
+    const insights = getClientInsights(d.client, sales, products, { exchangeRate });
+    const favs = (insights?.topProducts || [])
+      .filter(tp => tp.product && !tp.product.isDeleted && (Number(tp.product.stock) || 0) > 0)
+      .slice(0, 2);
+
+    const favNames = favs.map(tp => tp.product.flavor).filter(Boolean).join(" y ");
+    const personalizedReason = favs.length > 0
+      ? `No compra hace ${d.daysSince}d. Te llevó ${favNames} antes — ofrecele eso con -10%`
+      : `No compra hace ${d.daysSince}d. ${d.orderCount}x compró (${money(d.totalSpentARS)} histórico)`;
+
+    // Si tenemos favoritos con stock, oferta especializada. Si no, fallback a descuento general.
+    const useFavorites = favs.length > 0;
+
     ideas.push({
       id: `react_${d.client.id}`,
       category: "reactivar",
       icon: "😴",
       title: `Reactivar a ${d.client.name}`,
-      reason: `No compra hace ${d.daysSince}d. Te compró ${d.orderCount}x (${money(d.totalSpentARS)} histórico, ticket ${money(d.avgTicketARS)})`,
-      products: [],
+      reason: personalizedReason,
+      products: favs.map(tp => ({ product: tp.product })),
       suggestedDiscountPct: 10,
-      offerType: "descuento",
+      offerType: useFavorites ? "reactivar" : "descuento",
       clientId: d.client.id,
       clientName: d.client.name,
       clientPhone: d.client.phone || "",
       impact: {
         avgTicketARS: d.avgTicketARS,
-        potentialARS: d.avgTicketARS, // si vuelve a comprar su ticket promedio
+        potentialARS: d.avgTicketARS,
+        favoriteCount: favs.length,
+        ordersHistorical: d.orderCount,
       },
     });
   });

@@ -12,6 +12,11 @@ import {
 import { suggestSmartOffers, maxDiscountForMargin } from "../lib/smartOffers.js";
 import { AUDIENCES, AUDIENCE_LIST, getAudience } from "../lib/offerAudiences.js";
 import { weeklyCalendar, todaySuggestions, isWeekend } from "../lib/offerCalendar.js";
+import {
+  extractOffersFromAuditLog,
+  linkSalesToOffers,
+  calcConversionStats,
+} from "../lib/offerHistory.js";
 
 // Módulo "🔥 Ofertas" — generador inteligente de promos para WhatsApp.
 //
@@ -47,7 +52,7 @@ const TYPES = [
   { key: "drop", label: "🆕 Drop", desc: "Sabores nuevos" },
 ];
 
-export const Offers = ({ products = [], sales = [], clients = [], exchangeRate = 1, logAudit, currentUser }) => {
+export const Offers = ({ products = [], sales = [], clients = [], exchangeRate = 1, logAudit, currentUser, auditLog = [] }) => {
   const { isMobile } = useResponsive();
 
   // Audiencia activa (filtra qué ideas se muestran)
@@ -162,6 +167,7 @@ export const Offers = ({ products = [], sales = [], clients = [], exchangeRate =
         {[
           { key: "hoy", label: isMobile ? "💡 Hoy" : "💡 Hoy + Ideas" },
           { key: "semana", label: isMobile ? "📅 Semana" : "📅 Plan semanal" },
+          { key: "historial", label: isMobile ? "📜 Historial" : "📜 Historial + Conversión" },
           { key: "manual", label: isMobile ? "✏️ Manual" : "✏️ Armar a mano" },
         ].map(v => (
           <button key={v.key} onClick={() => setView(v.key)} style={{
@@ -194,6 +200,17 @@ export const Offers = ({ products = [], sales = [], clients = [], exchangeRate =
           ideas={allIdeas}
           onOpenIdea={openIdea}
           onPickAudience={setAudience}
+          isMobile={isMobile}
+        />
+      )}
+
+      {/* VISTA HISTORIAL */}
+      {view === "historial" && (
+        <HistoryView
+          auditLog={auditLog}
+          sales={sales}
+          clients={clients}
+          products={products}
           isMobile={isMobile}
         />
       )}
@@ -912,6 +929,232 @@ function ManualView({
 // ============================================================================
 // HELPERS
 // ============================================================================
+
+// ============================================================================
+// VISTA HISTORIAL — ofertas mandadas + conversión
+// ============================================================================
+
+function HistoryView({ auditLog, sales, clients, products, isMobile }) {
+  const offers = useMemo(() => extractOffersFromAuditLog(auditLog), [auditLog]);
+  const linked = useMemo(() => linkSalesToOffers(offers, sales), [offers, sales]);
+  const stats = useMemo(() => calcConversionStats(offers, sales), [offers, sales]);
+
+  const clientById = useMemo(() => new Map((clients || []).map(c => [c.id, c])), [clients]);
+  const productById = useMemo(() => new Map((products || []).map(p => [p.id, p])), [products]);
+
+  if (offers.length === 0) {
+    return (
+      <Card>
+        <div style={{ textAlign: "center", padding: isMobile ? 28 : 48, color: "#6B7794" }}>
+          <div style={{ fontSize: 52, marginBottom: 12 }}>📜</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: "#1E2B4A", marginBottom: 6 }}>
+            Todavía no mandaste ofertas
+          </div>
+          <div style={{ fontSize: 13, maxWidth: 460, margin: "0 auto" }}>
+            Cuando empieces a usar las ideas y copies/mandes mensajes, todo el historial va a aparecer acá.
+            Vas a poder ver qué tipo de oferta te convierte más.
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <div>
+      {/* Stats overall */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
+        gap: 10, marginBottom: 14,
+      }}>
+        <StatBox label="Ofertas mandadas" value={stats.totalSent} icon="📨" color="#1E2B4A" />
+        <StatBox label="Con venta" value={stats.totalWithSale} icon="🎯" color="#0F6B5C" />
+        <StatBox label="Conversión total" value={`${stats.overallConversion}%`} icon="📈" color={stats.overallConversion >= 25 ? "#0F6B5C" : "#CB912F"} />
+        <StatBox label="Último envío" value={formatRelative(offers[0]?.timestamp)} icon="⏱️" color="#6B7794" />
+      </div>
+
+      {/* Conversion por categoría */}
+      {Object.keys(stats.byCategory).length > 0 && (
+        <Card style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: "#1E2B4A", marginBottom: 10 }}>
+            🏷️ Conversión por tipo de oferta
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {Object.entries(stats.byCategory)
+              .sort((a, b) => b[1].sent - a[1].sent)
+              .map(([cat, s]) => {
+                const color = CATEGORY_COLORS[cat] || "#1E2B4A";
+                return (
+                  <div key={cat} style={{
+                    display: "flex", alignItems: "center", gap: 10, padding: "6px 10px",
+                    background: "#F8F2E7", borderRadius: 8, border: `1px solid ${color}33`,
+                  }}>
+                    <span style={{
+                      fontSize: 11, fontWeight: 800, color, minWidth: 90,
+                      textTransform: "uppercase",
+                    }}>{cat}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ height: 6, background: "#EFE5CE", borderRadius: 3, overflow: "hidden" }}>
+                        <div style={{
+                          height: "100%", width: `${s.conversion}%`, background: color,
+                        }} />
+                      </div>
+                    </div>
+                    <span style={{ fontSize: 12, fontWeight: 800, color, minWidth: 90, textAlign: "right" }}>
+                      {s.withSale}/{s.sent} ({s.conversion}%)
+                    </span>
+                  </div>
+                );
+              })}
+          </div>
+        </Card>
+      )}
+
+      {/* Conversion por audiencia */}
+      {Object.keys(stats.byAudience).length > 0 && (
+        <Card style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: "#1E2B4A", marginBottom: 10 }}>
+            🎯 Conversión por audiencia
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {Object.entries(stats.byAudience)
+              .sort((a, b) => b[1].sent - a[1].sent)
+              .map(([audKey, s]) => {
+                const aud = AUDIENCES[audKey];
+                return (
+                  <div key={audKey} style={{
+                    display: "flex", alignItems: "center", gap: 10, padding: "6px 10px",
+                    background: "#F8F2E7", borderRadius: 8, border: "1px solid #EFE5CE",
+                  }}>
+                    <span style={{ fontSize: 16 }}>{aud?.icon}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "#1E2B4A", minWidth: isMobile ? 0 : 140, flex: isMobile ? 1 : "none" }}>
+                      {aud?.label || audKey}
+                    </span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ height: 6, background: "#EFE5CE", borderRadius: 3, overflow: "hidden" }}>
+                        <div style={{
+                          height: "100%", width: `${s.conversion}%`,
+                          background: s.conversion >= 25 ? "#0F6B5C" : "#CB912F",
+                        }} />
+                      </div>
+                    </div>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: "#1E2B4A", minWidth: 90, textAlign: "right" }}>
+                      {s.withSale}/{s.sent} ({s.conversion}%)
+                    </span>
+                  </div>
+                );
+              })}
+          </div>
+        </Card>
+      )}
+
+      {/* Lista de ofertas mandadas */}
+      <div style={{ fontSize: 13, fontWeight: 800, color: "#1E2B4A", marginBottom: 8 }}>
+        📨 Últimas ofertas ({offers.length})
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {linked.slice(0, 50).map(({ offer, salesExplicit, salesImplicit }) => {
+          const color = CATEGORY_COLORS[offer.category] || "#1E2B4A";
+          const aud = AUDIENCES[offer.audience];
+          const target = offer.clientId
+            ? (clientById.get(offer.clientId)?.name || "—")
+            : (aud?.label || "—");
+          const allLinked = [...salesExplicit, ...salesImplicit];
+          const hasSale = allLinked.length > 0;
+          return (
+            <div key={offer.id} style={{
+              background: "#FFFFFF", border: `1px solid ${hasSale ? "#0F6B5C" : "#E5DAC2"}`,
+              borderRadius: 10, padding: "10px 12px",
+              borderLeft: `3px solid ${color}`,
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, flexWrap: "wrap" }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 11, fontWeight: 800, color, textTransform: "uppercase", letterSpacing: 0.3 }}>
+                      {offer.category || offer.offerType}
+                    </span>
+                    <span style={{ fontSize: 11, color: "#6B7794" }}>
+                      {aud?.icon} {target}
+                    </span>
+                    <span style={{
+                      fontSize: 10, padding: "2px 6px", background: "#F8F2E7", borderRadius: 4,
+                      color: "#6B7794", fontWeight: 600,
+                    }}>vía {offer.method}</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: "#1E2B4A", marginTop: 3, lineHeight: 1.4 }}>
+                    {offer.description}
+                  </div>
+                  {offer.productIds.length > 0 && (
+                    <div style={{ fontSize: 11, color: "#9AA2B3", marginTop: 4 }}>
+                      {offer.productIds.length} producto{offer.productIds.length === 1 ? "" : "s"}
+                    </div>
+                  )}
+                </div>
+                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                  <div style={{ fontSize: 11, color: "#6B7794" }}>{formatRelative(offer.timestamp)}</div>
+                  {hasSale ? (
+                    <div style={{
+                      marginTop: 6, fontSize: 11, fontWeight: 800, color: "#0F6B5C",
+                      padding: "3px 8px", background: "#DDEDEA", borderRadius: 12,
+                      border: "1px solid #B6D4CC",
+                    }}>
+                      ✓ {allLinked.length} venta{allLinked.length === 1 ? "" : "s"}
+                      {salesImplicit.length > 0 && salesExplicit.length === 0 && (
+                        <span style={{ fontWeight: 500, marginLeft: 4 }}>(sugerida)</span>
+                      )}
+                    </div>
+                  ) : (
+                    <div style={{
+                      marginTop: 6, fontSize: 11, color: "#9AA2B3",
+                      padding: "3px 8px", background: "#F8F2E7", borderRadius: 12,
+                    }}>
+                      sin venta aún
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {linked.length > 50 && (
+        <div style={{ textAlign: "center", padding: 12, color: "#9AA2B3", fontSize: 12 }}>
+          Mostrando 50 de {linked.length}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StatBox({ label, value, icon, color }) {
+  return (
+    <div style={{
+      background: "#FFFFFF", border: "1px solid #E5DAC2", borderRadius: 10,
+      padding: "10px 12px",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+        <span style={{ fontSize: 13 }}>{icon}</span>
+        <span style={{ fontSize: 10, color: "#6B7794", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3 }}>
+          {label}
+        </span>
+      </div>
+      <div style={{ fontSize: 18, fontWeight: 800, color }}>{value}</div>
+    </div>
+  );
+}
+
+function formatRelative(timestamp) {
+  if (!timestamp) return "—";
+  const now = Date.now();
+  const ms = new Date(timestamp).getTime();
+  if (!Number.isFinite(ms)) return "—";
+  const diff = (now - ms) / 1000;
+  if (diff < 60) return "ahora";
+  if (diff < 3600) return `hace ${Math.floor(diff / 60)}m`;
+  if (diff < 86400) return `hace ${Math.floor(diff / 3600)}h`;
+  if (diff < 86400 * 7) return `hace ${Math.floor(diff / 86400)}d`;
+  return new Date(timestamp).toLocaleDateString("es-AR", { day: "numeric", month: "short" });
+}
 
 // Avisa al usuario si el descuento manual baja del margen mínimo (15%).
 // Calcula el peor caso (producto con menor margen) y compara.

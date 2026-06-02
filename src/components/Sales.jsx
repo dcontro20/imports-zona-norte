@@ -15,6 +15,7 @@ import { getClientInsights } from "../lib/clientInsights.js";
 import { calcSaleMargin } from "../finance.js";
 import { generateSaleReceipt } from "../lib/saleReceipt.js";
 import { crossSellPairs } from "../lib/smartOffers.js";
+import { extractOffersFromAuditLog, offersForClient, recentGroupOffers } from "../lib/offerHistory.js";
 
 // ============================================
 // SALES v2 — Full rewrite
@@ -59,12 +60,13 @@ const emptyForm = () => ({
   debtAmount: 0, debtDirection: "",
   debtConfirmed: false, debtReason: "", // "paga_despues" | "precio_acordado"
   notes: "", date: new Date().toISOString().slice(0, 10),
+  linkedOfferId: "",
 });
 
 export const Sales = ({
   sales, setSales, products, setProducts, logStock, exchangeRate, currentUser, logAudit,
   clients, setClients, cashMovements, setCashMovements, monthlyClosures = [],
-  coupons = [], setCoupons,
+  coupons = [], setCoupons, auditLog = [],
 }) => {
   const { isMobile } = useResponsive();
   const [modal, setModal] = useState(false);
@@ -220,6 +222,16 @@ export const Sales = ({
     return getClientInsights(client, sales, products, { exchangeRate });
   }, [form.clientId, clients, sales, products, exchangeRate]);
 
+  // ----- Ofertas candidatas para linkear esta venta -----
+  // Cliente seleccionado en últimos 14d + grupales en últimos 7d.
+  // Si no hay candidatos, el dropdown no aparece.
+  const candidateOffers = useMemo(() => {
+    const allOffers = extractOffersFromAuditLog(auditLog);
+    const personal = form.clientId ? offersForClient(allOffers, form.clientId) : [];
+    const group = recentGroupOffers(allOffers);
+    return [...personal, ...group];
+  }, [auditLog, form.clientId]);
+
   // ----- Margen de la venta en curso (ganancia con costo real) -----
   const saleMargin = useMemo(() => {
     const items = form.items.filter(i => i.productId).map(i => ({
@@ -374,6 +386,7 @@ export const Sales = ({
       debtDirection: sale.debtDirection || "",
       notes: sale.notes || "",
       date: sale.date ? sale.date.slice(0, 10) : new Date().toISOString().slice(0, 10),
+      linkedOfferId: sale.linkedOfferId || "",
     });
     if (sale.clientName) setClientSearch(sale.clientName);
     setEditing(sale.id);
@@ -492,6 +505,7 @@ export const Sales = ({
       date: form.date ? `${form.date}T${new Date().toTimeString().slice(0, 8)}` : new Date().toISOString(),
       exchangeRate: activeRate,
       createdBy: currentUser?.name || "",
+      linkedOfferId: form.linkedOfferId || "",
     };
 
     // ---- Execute ----
@@ -1939,6 +1953,37 @@ export const Sales = ({
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+            {candidateOffers.length > 0 && (
+              <div style={{
+                background: "#FFFFFF", border: "1px solid #E5DAC2", borderRadius: 10,
+                padding: "10px 12px", marginBottom: 14,
+              }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#1E2B4A", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 6 }}>
+                  🎯 ¿Esta venta vino de una oferta?
+                </div>
+                <select
+                  value={form.linkedOfferId || ""}
+                  onChange={e => setForm(f => ({ ...f, linkedOfferId: e.target.value }))}
+                  style={{
+                    width: "100%", padding: "10px 12px", minHeight: isMobile ? 44 : "auto",
+                    background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 8,
+                    color: "#1E2B4A", fontSize: isMobile ? 16 : 13, outline: "none",
+                    fontFamily: "inherit", boxSizing: "border-box",
+                  }}
+                >
+                  <option value="">— No, venta independiente —</option>
+                  {candidateOffers.map(o => {
+                    const when = new Date(o.timestamp);
+                    const daysAgo = Math.floor((Date.now() - when.getTime()) / 86400000);
+                    const label = `${o.description?.slice(0, 60) || o.category} · hace ${daysAgo}d`;
+                    return <option key={o.id} value={o.id}>{label}</option>;
+                  })}
+                </select>
+                <div style={{ fontSize: 10, color: "#9AA2B3", marginTop: 6 }}>
+                  Linkear ayuda a trackear qué tipo de oferta te rinde más en Ofertas → Historial.
+                </div>
               </div>
             )}
             <Select label="Canal de venta" options={CHANNELS} value={form.channel} onChange={e => setForm(f => ({ ...f, channel: e.target.value }))} />
