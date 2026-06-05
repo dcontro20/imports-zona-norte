@@ -17,18 +17,24 @@ import {
   linkSalesToOffers,
   calcConversionStats,
 } from "../lib/offerHistory.js";
+import { WhatsAppMessage } from "./WhatsApp.jsx";
 
-// Módulo "🔥 Ofertas" — generador inteligente de promos para WhatsApp.
+// Módulo "📲 Mensajes" — hub centralizado de mensajes WhatsApp.
 //
-// 3 audiencias (cada una con tono distinto):
+// Default es "📲 Mensaje rápido" (catálogo de stock listo para copiar — flujo
+// más rápido). Para casos más sofisticados están las otras tabs.
+//
+// 5 vistas:
+//   📲 Mensaje rápido — catálogo de stock para copiar/pegar (default)
+//   💡 Hoy            — sugerencias del día + ideas inteligentes por audiencia
+//   📅 Semana         — calendario sugerido lun-dom
+//   📜 Historial      — qué se mandó + conversión real a venta
+//   ✏️ Manual         — generador a mano (oferta puntual)
+//
+// 3 audiencias (afectan el tono de los mensajes de las tabs de ideas):
 //   👤 Cliente individual    — personalizado, link wa.me
 //   📢 Mi grupo de WhatsApp  — broadcast comercial
 //   🎵 Grupo de fiestas       — vibe casual soft-sell
-//
-// 3 vistas:
-//   💡 Hoy     — sugerencias del día + ideas inteligentes filtradas por audiencia
-//   📅 Semana  — calendario sugerido lun-dom
-//   ✏️ Manual  — generador a mano (para casos puntuales)
 
 const CATEGORY_COLORS = {
   liquidar: "#B83232",
@@ -52,7 +58,7 @@ const TYPES = [
   { key: "drop", label: "🆕 Drop", desc: "Sabores nuevos" },
 ];
 
-export const Offers = ({ products = [], sales = [], clients = [], exchangeRate = 1, logAudit, currentUser, auditLog = [] }) => {
+export const Offers = ({ products = [], sales = [], clients = [], exchangeRate = 1, logAudit, currentUser, auditLog = [], initialTab }) => {
   const { isMobile, isTablet } = useResponsive();
 
   // Audiencia activa (filtra qué ideas se muestran)
@@ -60,7 +66,11 @@ export const Offers = ({ products = [], sales = [], clients = [], exchangeRate =
   const audienceConfig = getAudience(audience);
 
   // Vista activa: hoy | semana | manual
-  const [view, setView] = useState("hoy");
+  // Default es "quick" (Mensaje rápido) — el flujo más usado: catálogo de stock
+  // listo para copiar. Las otras tabs son para casos más sofisticados.
+  // Permite override por initialTab (ej: cuando se entra desde "?page=whatsapp" legacy
+  // o desde el widget del Dashboard).
+  const [view, setView] = useState(initialTab || "quick");
 
   // Modal de preview de una idea
   const [previewIdea, setPreviewIdea] = useState(null);
@@ -152,19 +162,22 @@ export const Offers = ({ products = [], sales = [], clients = [], exchangeRate =
       {/* HEADER */}
       <div style={{ marginBottom: 14 }}>
         <h2 style={{ color: "#1E2B4A", margin: 0, fontSize: isMobile ? 22 : 26, fontWeight: 800, letterSpacing: "-0.4px" }}>
-          🔥 Ofertas
+          📲 Mensajes
         </h2>
         <p style={{ color: "#6B7794", fontSize: 13, margin: "4px 0 0" }}>
-          Mensajes listos para mandar — el sistema analiza tus datos y te dice qué oferta conviene según a quién le hablás.
+          Tu hub de mensajes para WhatsApp: catálogo de stock, ideas inteligentes por audiencia, calendario y registro de envíos.
         </p>
       </div>
 
-      {/* SELECTOR DE AUDIENCIA */}
-      <AudienceSelector value={audience} onChange={setAudience} isMobile={isMobile} />
+      {/* SELECTOR DE AUDIENCIA — solo visible en tabs que lo usan */}
+      {view !== "quick" && view !== "historial" && (
+        <AudienceSelector value={audience} onChange={setAudience} isMobile={isMobile} />
+      )}
 
       {/* TABS DE VISTA */}
       <div style={{ display: "flex", gap: 4, marginBottom: 14, borderBottom: "1px solid #E5DAC2", overflowX: "auto" }}>
         {[
+          { key: "quick", label: isMobile ? "📲 Rápido" : "📲 Mensaje rápido" },
           { key: "hoy", label: isMobile ? "💡 Hoy" : "💡 Hoy + Ideas" },
           { key: "semana", label: isMobile ? "📅 Semana" : "📅 Plan semanal" },
           { key: "historial", label: isMobile ? "📜 Historial" : "📜 Historial + Conversión" },
@@ -180,6 +193,11 @@ export const Offers = ({ products = [], sales = [], clients = [], exchangeRate =
           }}>{v.label}</button>
         ))}
       </div>
+
+      {/* VISTA MENSAJE RÁPIDO (default) — embebe el WhatsAppMessage tal cual */}
+      {view === "quick" && (
+        <WhatsAppMessage products={products} />
+      )}
 
       {/* VISTA HOY */}
       {view === "hoy" && (

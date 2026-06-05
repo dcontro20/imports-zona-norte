@@ -84,7 +84,6 @@ const Clients = lazy(() => import("./components/Clients.jsx").then(m => ({ defau
 const Expenses = lazy(() => import("./components/Expenses.jsx").then(m => ({ default: m.Expenses })));
 const Withdrawals = lazy(() => import("./components/Withdrawals.jsx").then(m => ({ default: m.Withdrawals })));
 const CashBox = lazy(() => import("./components/CashBox.jsx").then(m => ({ default: m.CashBox })));
-const WhatsAppMessage = lazy(() => import("./components/WhatsApp.jsx").then(m => ({ default: m.WhatsAppMessage })));
 const ExportData = lazy(() => import("./components/Export.jsx").then(m => ({ default: m.ExportData })));
 const PriceLog = lazy(() => import("./components/PriceLog.jsx").then(m => ({ default: m.PriceLog })));
 const StockLog = lazy(() => import("./components/StockLog.jsx").then(m => ({ default: m.StockLog })));
@@ -221,8 +220,7 @@ const NAV_ITEMS = [
   // Gestión
   { key: "expenses", label: "Gastos", icon: "💸" },
   { key: "withdrawals", label: "Mermas", icon: "📉" },
-  { key: "offers", label: "Ofertas", icon: "🔥" },
-  { key: "whatsapp", label: "WhatsApp", icon: "📲" },
+  { key: "offers", label: "Mensajes", icon: "📲" },
   // Registros / utilidades
   { key: "pricelog", label: "Precios", icon: "💲" },
   { key: "stocklog", label: "Historial", icon: "📋" },
@@ -503,7 +501,7 @@ export default function App() {
 
   const renderPage = () => {
     switch (effectivePage) {
-      case "dashboard": return <Dashboard products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} clients={clients} cashMovements={activeCashMovements} />;
+      case "dashboard": return <Dashboard products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} clients={clients} cashMovements={activeCashMovements} onNavigate={setPage} />;
       case "products": return <Products products={products} setProducts={setProducts} priceLog={priceLog} sales={activeSales} />;
       case "sales": return <Sales sales={sales} setSales={setSales} products={products} setProducts={setProducts} logStock={logStock} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} clients={clients} setClients={setClients} cashMovements={cashMovements} setCashMovements={setCashMovements} monthlyClosures={monthlyClosures} coupons={coupons} setCoupons={setCoupons} auditLog={auditLog} />;
       case "procurement": return <Procurement products={products} setProducts={setProducts} purchases={purchases} setPurchases={setPurchases} sales={activeSales} exchangeRate={exchangeRate} logStock={logStock} currentUser={currentUser} logAudit={logAudit} monthlyClosures={monthlyClosures} supplierProfiles={supplierProfiles} setSupplierProfiles={setSupplierProfiles} supplierAliases={supplierAliases} setSupplierAliases={setSupplierAliases} supplierLists={supplierLists} setSupplierLists={setSupplierLists} />;
@@ -511,7 +509,8 @@ export default function App() {
       case "expenses": return <Expenses expenses={expenses} setExpenses={setExpenses} currentUser={currentUser} exchangeRate={exchangeRate} logAudit={logAudit} monthlyClosures={monthlyClosures} />;
       case "withdrawals": return <Withdrawals withdrawals={withdrawals} setWithdrawals={setWithdrawals} products={products} setProducts={setProducts} sales={activeSales} clients={clients} monthlyClosures={monthlyClosures} logStock={logStock} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} />;
       case "cash": return <CashBox sales={sales} purchases={purchases} expenses={expenses} withdrawals={withdrawals} cashMovements={cashMovements} setCashMovements={setCashMovements} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} currentUser={currentUser} logAudit={logAudit} />;
-      case "whatsapp": return <WhatsAppMessage products={activeProducts} />;
+      // Legacy: ?page=whatsapp ahora redirige al hub "Mensajes" con la tab Mensaje rápido
+      case "whatsapp": return <Offers products={activeProducts} sales={activeSales} clients={clients} exchangeRate={exchangeRate} logAudit={logAudit} currentUser={currentUser} auditLog={auditLog} initialTab="quick" />;
       case "stocklog": return <StockLog stockLog={stockLog} setStockLog={setStockLog} products={activeProducts} />;
       case "pricelog": return <PriceLog priceLog={priceLog} products={activeProducts} setProducts={setProducts} logPrice={logPrice} exchangeRate={exchangeRate} />;
       case "analisis": return <Analisis products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} clients={clients} cashMovements={activeCashMovements} priceLog={priceLog} partnerWithdrawals={partnerWithdrawals} setPartnerWithdrawals={setPartnerWithdrawals} monthlyClosures={monthlyClosures} setMonthlyClosures={setMonthlyClosures} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} />;

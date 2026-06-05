@@ -8,6 +8,9 @@ import { useResponsive } from "../App.jsx";
 import { useAppContext } from "../AppContext.js";
 import { useSettings } from "../useSettings.js";
 import { T, pickAvatarColor } from "../theme.js";
+import { generateFullMessage, quickMessageStats } from "../lib/whatsappMessage.js";
+import { todaySuggestions } from "../lib/offerCalendar.js";
+import { AUDIENCES } from "../lib/offerAudiences.js";
 
 // ---------- helpers ----------
 const resolveItemName = (item, productsById) => {
@@ -118,7 +121,7 @@ const SectionLabel = ({ children, icon, color = T.textMuted, right }) => (
 // ============================================
 // DASHBOARD — Light Notion/Linear aesthetic
 // ============================================
-export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, clients = [], cashMovements }) => {
+export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, clients = [], cashMovements, onNavigate }) => {
   const { exchangeRate } = useAppContext();
   const settings = useSettings();
   const { isMobile, isTablet } = useResponsive();
@@ -653,6 +656,9 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, c
         </div>
         <PeriodSelector value={period} onChange={setPeriod} />
       </div>
+
+      {/* ===== WIDGET: MENSAJE RÁPIDO DE STOCK ===== */}
+      <QuickMessageWidget products={products} exchangeRate={exchangeRate} onNavigate={onNavigate} isMobile={isMobile} />
 
       {/* ===== ALERTS ===== */}
       {alerts.length > 0 && (
@@ -1399,3 +1405,158 @@ const MiniKpi = ({ label, value, sub, accent }) => (
     {sub && <div style={{ fontSize: 11, color: T.textMuted, marginTop: 4 }}>{sub}</div>}
   </PCard>
 );
+
+// =========================================================================
+// QUICK MESSAGE WIDGET — Mensaje de stock a un toque
+// =========================================================================
+
+function QuickMessageWidget({ products, exchangeRate, onNavigate, isMobile }) {
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState("");
+
+  const stats = useMemo(() => quickMessageStats(products), [products]);
+  const message = useMemo(() => generateFullMessage(products, exchangeRate), [products, exchangeRate]);
+  const todaySugs = useMemo(() => todaySuggestions(), []);
+
+  const copyMessage = async () => {
+    try {
+      await navigator.clipboard.writeText(message);
+      setCopied(true);
+      setError("");
+      setTimeout(() => setCopied(false), 2500);
+    } catch (e) {
+      // Fallback para iOS Safari viejo
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = message;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        setCopied(true);
+        setError("");
+        setTimeout(() => setCopied(false), 2500);
+      } catch {
+        setError("No se pudo copiar — abrí el módulo de Mensajes");
+      }
+    }
+  };
+
+  const goToMessages = () => {
+    if (onNavigate) onNavigate("offers");
+  };
+
+  // No mostrar si no hay productos con stock — nada útil que copiar
+  if (stats.inStockCount === 0) return null;
+
+  const todayCount = todaySugs.length;
+  const primaryTodaySug = todaySugs[0];
+  const aud = primaryTodaySug ? AUDIENCES[primaryTodaySug.audience] : null;
+
+  return (
+    <div style={{
+      background: "linear-gradient(135deg, #1E2B4A 0%, #2D3D63 100%)",
+      borderRadius: 16,
+      padding: isMobile ? 16 : 20,
+      marginBottom: 18,
+      color: "#F8F2E7",
+      border: "1px solid rgba(248,242,231,0.08)",
+      boxShadow: "0 4px 16px rgba(30,43,74,0.18)",
+    }}>
+      <div style={{
+        display: "flex",
+        gap: isMobile ? 12 : 16,
+        alignItems: isMobile ? "flex-start" : "center",
+        flexDirection: isMobile ? "column" : "row",
+        flexWrap: "wrap",
+      }}>
+        {/* Icono + título + stats */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flex: "1 1 auto", minWidth: 0 }}>
+          <div style={{
+            fontSize: 32, lineHeight: 1, flexShrink: 0,
+            background: "rgba(248,242,231,0.10)", padding: "10px 12px", borderRadius: 12,
+          }}>📲</div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{
+              fontSize: 11, fontWeight: 700, opacity: 0.75,
+              textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 2,
+            }}>Mensaje rápido</div>
+            <div style={{ fontSize: isMobile ? 16 : 18, fontWeight: 800, lineHeight: 1.2 }}>
+              Catálogo de stock disponible
+            </div>
+            <div style={{ fontSize: 12, opacity: 0.78, marginTop: 4 }}>
+              {stats.inStockCount} sabores · {stats.activeModels} modelos · {stats.totalUnits} unidades
+            </div>
+          </div>
+        </div>
+
+        {/* Botones */}
+        <div style={{
+          display: "flex", gap: 8,
+          flexShrink: 0,
+          width: isMobile ? "100%" : "auto",
+        }}>
+          <button
+            onClick={copyMessage}
+            disabled={!message}
+            style={{
+              flex: isMobile ? 1 : "0 0 auto",
+              padding: "12px 18px", minHeight: 44,
+              background: copied ? "#25D366" : "#F8F2E7",
+              color: copied ? "#FFFFFF" : "#1E2B4A",
+              border: "none", borderRadius: 10,
+              fontSize: 14, fontWeight: 800, cursor: "pointer",
+              fontFamily: "inherit",
+              transition: "all 0.18s ease",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {copied ? "✅ Copiado!" : "📋 Copiar mensaje"}
+          </button>
+          {onNavigate && (
+            <button
+              onClick={goToMessages}
+              style={{
+                padding: "12px 14px", minHeight: 44,
+                background: "transparent",
+                color: "#F8F2E7",
+                border: "1px solid rgba(248,242,231,0.3)",
+                borderRadius: 10,
+                fontSize: 13, fontWeight: 700, cursor: "pointer",
+                fontFamily: "inherit", whiteSpace: "nowrap",
+              }}
+              title="Ir a Mensajes"
+            >Ver más →</button>
+          )}
+        </div>
+      </div>
+
+      {/* Sugerencia del día (si la hay) */}
+      {primaryTodaySug && (
+        <div style={{
+          marginTop: 14, paddingTop: 12,
+          borderTop: "1px solid rgba(248,242,231,0.15)",
+          display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
+          fontSize: 12, color: "rgba(248,242,231,0.85)",
+        }}>
+          <span style={{ fontSize: 14 }}>💡</span>
+          <span>
+            <strong style={{ fontWeight: 700, color: "#F8F2E7" }}>Sugerencia de hoy:</strong>{" "}
+            {primaryTodaySug.reason}
+            {aud && <span style={{ opacity: 0.75 }}> · {aud.icon} {aud.label}</span>}
+          </span>
+          {todayCount > 1 && (
+            <span style={{ opacity: 0.55, fontSize: 11 }}>+{todayCount - 1} más</span>
+          )}
+        </div>
+      )}
+
+      {error && (
+        <div style={{ marginTop: 10, fontSize: 12, color: "#FFD580" }}>{error}</div>
+      )}
+    </div>
+  );
+}

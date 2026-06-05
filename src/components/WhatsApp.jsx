@@ -1,32 +1,11 @@
-import { useState, useMemo, useCallback } from "react";
-import { formatMoney } from "../helpers.js";
+import { useState, useMemo } from "react";
 import { Card, Btn, StatCard } from "./UI.jsx";
-import { BRAND_COLORS } from "../constants.js";
 import { useAppContext } from "../AppContext.js";
-
-// -- WHATSAPP MESSAGE GENERATOR --
-const FLAVOR_EMOJIS = {
-  "banana": "🍌", "coconut": "🥥", "water": "💦", "ice": "🧊", "strawberry": "🍓",
-  "watermelon": "🍉", "dragon": "🐉", "grape": "🍇", "apple": "🍏", "mango": "🥭",
-  "kiwi": "🥝", "pineapple": "🍍", "cherry": "🍒", "blueberry": "🫐", "blue": "💙",
-  "razz": "🧊", "peach": "🍑", "mint": "🌿", "menthol": "❄️", "miami": "🌴",
-  "melon": "🍈", "pomegranate": "🍷", "sour": "😝", "orange": "🍊", "raspberry": "🍹",
-  "lemon": "🍋", "lime": "🍋", "grapefruit": "🍋", "passion": "🥭", "guava": "🥭",
-  "tigers": "🐯", "blood": "🐯", "cool": "🌿", "icy": "🧊", "splash": "💦",
-  "summer": "☀️", "fuse": "🍒", "lush": "🍉", "sweet": "🍭", "hawaiian": "🥤",
-  "sakura": "🌸", "red": "❤️"
-};
-
-const getFlavorEmojis = (flavor) => {
-  const words = flavor.toLowerCase().split(/[\s-]+/);
-  const emojis = [];
-  const seen = new Set();
-  words.forEach(w => {
-    const e = FLAVOR_EMOJIS[w];
-    if (e && !seen.has(e)) { emojis.push(e); seen.add(e); }
-  });
-  return emojis.join("") || "💨";
-};
+import {
+  generateFullMessage,
+  generateShortMessage,
+  quickMessageStats,
+} from "../lib/whatsappMessage.js";
 
 // POC de migración props-drilling → AppContext.
 // exchangeRate ahora se consume via useAppContext() en lugar de recibirse como prop.
@@ -40,91 +19,9 @@ export const WhatsAppMessage = ({ products }) => {
   });
   const [activeTemplateId, setActiveTemplateId] = useState(null);
 
-  // Calculate dynamic ARS prices
-  const productsWithDynamicARS = useMemo(() => 
-    products.map(p => ({ ...p, priceARS: Math.round(p.priceUSD * exchangeRate) }))
-  , [products, exchangeRate]);
-
-  const generateMessage = useCallback(() => {
-    const groups = {};
-    productsWithDynamicARS.forEach(p => {
-      const key = `${p.brand}|||${p.model}|||${p.puffs}|||${p.priceUSD}|||${p.priceARS}`;
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(p);
-    });
-
-    // Define the display order
-    const brandOrder = ["Elfbar", "Geek Bar", "Ignite", "Lost Mary", "Nikbar", "Supreme"];
-    const sortedKeys = Object.keys(groups).sort((a, b) => {
-      const [brandA] = a.split("|||");
-      const [brandB] = b.split("|||");
-      const iA = brandOrder.indexOf(brandA);
-      const iB = brandOrder.indexOf(brandB);
-      if (iA !== iB) return (iA === -1 ? 999 : iA) - (iB === -1 ? 999 : iB);
-      return a.localeCompare(b);
-    });
-
-    let msg = `🔥 IMPORTS ZONA NORTE 🔥\n`;
-    msg += `*IG: @imports.zonanorte*\n\n`;
-    msg += `📲 WhatsApp: 11 6872 5293 / 11 3698 4001\n\n`;
-    msg += `*📥 Grupo exclusivo de promos y pedidos:* https://chat.whatsapp.com/D5Ar7LO7awNKNc98BChdzz\n\n`;
-    msg += `💸 Todos los métodos de pago\n`;
-    msg += `✅ Productos 100% originales e importados\n`;
-    msg += `📦 Venta mayorista y minorista\n`;
-    msg += `🔁 Stock nuevo TODAS las semanas\n`;
-    msg += `🛠 Garantía de 48hs\n`;
-    msg += `🚚 Envíos y retiros GRATIS en Nordelta y Pacheco\n`;
-    msg += `✈️ Envíos a todo el país\n\n`;
-    msg += `-----------------------------------------\n\n`;
-
-    sortedKeys.forEach(key => {
-      const [brand, model, puffs, priceUSD, priceARS] = key.split("|||");
-      const items = groups[key];
-
-      // Only show products with stock > 0
-      const inStock = items.filter(p => p.stock > 0).sort((a, b) => a.flavor.localeCompare(b.flavor));
-      
-      // Skip entire model if nothing in stock
-      if (inStock.length === 0) return;
-
-      // Model header
-      const puffsFormatted = Number(puffs).toLocaleString("es-AR");
-      let iceTag = model.toLowerCase().includes("ice") ? " 🧊" : "";
-      msg += `*${brand.toUpperCase()} ${model}${iceTag} – ${puffsFormatted} PUFFS* 💨\n`;
-      msg += `💰 ${priceUSD} USD / $${Number(priceARS).toLocaleString("es-AR")}\n\n`;
-
-      inStock.forEach(p => {
-        const emojis = getFlavorEmojis(p.flavor);
-        msg += `* ${p.flavor} ${emojis}\n`;
-      });
-
-      msg += `\n`;
-    });
-
-    return msg.trim();
-  }, [productsWithDynamicARS]);
-
-  const fullMessage = useMemo(() => generateMessage(), [generateMessage]);
-
-  // Short version for IG stories / status
-  const shortMessage = useMemo(() => {
-    const groups = {};
-    productsWithDynamicARS.filter(p => p.stock > 0).forEach(p => {
-      const key = `${p.brand}|||${p.model}|||${p.puffs}|||${p.priceARS}`;
-      if (!groups[key]) groups[key] = 0;
-      groups[key] += p.stock;
-    });
-    let msg = `🔥 IMPORTS ZONA NORTE 🔥\n\n`;
-    msg += `📦 STOCK DISPONIBLE:\n\n`;
-    Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0])).forEach(([key, stock]) => {
-      const [brand, model, puffs, priceARS] = key.split("|||");
-      msg += `✅ ${brand} ${model} ${Number(puffs).toLocaleString("es-AR")}p — $${Number(priceARS).toLocaleString("es-AR")} (${stock} uds)\n`;
-    });
-    msg += `\n📲 11 6872 5293 / 11 3698 4001\n`;
-    msg += `📥 Envíos a todo el país\n`;
-    msg += `IG: @imports.zonanorte`;
-    return msg;
-  }, [productsWithDynamicARS]);
+  const fullMessage = useMemo(() => generateFullMessage(products, exchangeRate), [products, exchangeRate]);
+  const shortMessage = useMemo(() => generateShortMessage(products, exchangeRate), [products, exchangeRate]);
+  const stats = useMemo(() => quickMessageStats(products), [products]);
 
   // Persiste templates custom en localStorage
   const persistTemplates = (next) => {
@@ -157,8 +54,7 @@ export const WhatsAppMessage = ({ products }) => {
     : mode === "short" ? shortMessage
     : (activeTemplate?.body || fullMessage);
 
-  const inStockCount = productsWithDynamicARS.filter(p => p.stock > 0).length;
-  const outStockCount = products.filter(p => p.stock === 0).length;
+  const inStockCount = stats.inStockCount;
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(message).then(() => {
@@ -206,13 +102,9 @@ export const WhatsAppMessage = ({ products }) => {
       </div>
 
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 20 }}>
-        <StatCard label="En el mensaje" value={inStockCount} icon="✅" color="#00b894" />
-        <StatCard label="Modelos activos" value={(() => {
-          const models = new Set();
-          productsWithDynamicARS.filter(p => p.stock > 0).forEach(p => models.add(`${p.brand}-${p.model}`));
-          return models.size;
-        })()} icon="📦" color="#1E2B4A" />
-        <StatCard label="Unidades disponibles" value={productsWithDynamicARS.reduce((s, p) => s + (p.stock || 0), 0)} icon="🔥" color="#fdcb6e" />
+        <StatCard label="En el mensaje" value={stats.inStockCount} icon="✅" color="#00b894" />
+        <StatCard label="Modelos activos" value={stats.activeModels} icon="📦" color="#1E2B4A" />
+        <StatCard label="Unidades disponibles" value={stats.totalUnits} icon="🔥" color="#fdcb6e" />
       </div>
 
       <Card style={{ marginBottom: 14, background: "#F8F2E7", border: "1px solid #25d36644" }}>
