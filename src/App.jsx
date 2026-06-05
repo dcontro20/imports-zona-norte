@@ -537,15 +537,26 @@ export default function App() {
     <AppContext.Provider value={ctxValue}>
       <div style={{
         minHeight: "100vh", background: "#F8F2E7", fontFamily: "'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif",
-        color: "#1E2B4A"
+        color: "#1E2B4A",
+        // Padding-top para compensar el header fixed. Igual a la altura del
+        // header (52px contenido) + safe-area-inset-top (notch en iPhone).
+        paddingTop: "calc(52px + env(safe-area-inset-top))",
       }}>
-        {/* Top bar — con logo brand */}
+        {/* Top bar — con logo brand. FIXED en vez de sticky porque sticky
+           se rompe en iOS PWA cuando body tiene overflow:hidden (al abrir
+           el menú mobile). Fixed garantiza que siempre esté visible arriba. */}
         <div style={{
           background: "#FFFFFF", borderBottom: "1px solid #E5DAC2",
-          padding: isMobile ? "10px 14px" : "12px 24px",
           paddingTop: "max(10px, env(safe-area-inset-top))",
+          paddingBottom: isMobile ? "10px" : "12px",
+          // safe-area-inset lateral para que el contenido no quede bajo el
+          // notch en iPhone landscape. El body tiene padding lateral, pero
+          // el header al ser fixed sale del flujo, entonces se lo aplicamos
+          // directamente.
+          paddingLeft: `max(${isMobile ? 14 : 24}px, env(safe-area-inset-left))`,
+          paddingRight: `max(${isMobile ? 14 : 24}px, env(safe-area-inset-right))`,
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          position: "sticky", top: 0, zIndex: 100,
+          position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
           boxShadow: "0 2px 8px rgba(30, 43, 74, 0.04)",
           gap: 8,
         }}>
