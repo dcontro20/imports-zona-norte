@@ -216,11 +216,11 @@ const NAV_ITEMS = [
   { key: "procurement", label: "Compras", icon: "🚚" },
   { key: "products", label: "Stock", icon: "📦" },
   { key: "cash", label: "Caja", icon: "💰" },
+  { key: "offers", label: "Mensajes", icon: "📲" },
   { key: "clients", label: "Clientes", icon: "👥" },
   // Gestión
   { key: "expenses", label: "Gastos", icon: "💸" },
   { key: "withdrawals", label: "Mermas", icon: "📉" },
-  { key: "offers", label: "Mensajes", icon: "📲" },
   // Registros / utilidades
   { key: "pricelog", label: "Precios", icon: "💲" },
   { key: "stocklog", label: "Historial", icon: "📋" },
@@ -501,7 +501,7 @@ export default function App() {
 
   const renderPage = () => {
     switch (effectivePage) {
-      case "dashboard": return <Dashboard products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} clients={clients} cashMovements={activeCashMovements} onNavigate={setPage} />;
+      case "dashboard": return <Dashboard products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} clients={clients} cashMovements={activeCashMovements} />;
       case "products": return <Products products={products} setProducts={setProducts} priceLog={priceLog} sales={activeSales} />;
       case "sales": return <Sales sales={sales} setSales={setSales} products={products} setProducts={setProducts} logStock={logStock} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} clients={clients} setClients={setClients} cashMovements={cashMovements} setCashMovements={setCashMovements} monthlyClosures={monthlyClosures} coupons={coupons} setCoupons={setCoupons} auditLog={auditLog} />;
       case "procurement": return <Procurement products={products} setProducts={setProducts} purchases={purchases} setPurchases={setPurchases} sales={activeSales} exchangeRate={exchangeRate} logStock={logStock} currentUser={currentUser} logAudit={logAudit} monthlyClosures={monthlyClosures} supplierProfiles={supplierProfiles} setSupplierProfiles={setSupplierProfiles} supplierAliases={supplierAliases} setSupplierAliases={setSupplierAliases} supplierLists={supplierLists} setSupplierLists={setSupplierLists} />;
