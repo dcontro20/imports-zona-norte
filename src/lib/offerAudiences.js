@@ -17,7 +17,7 @@ export const AUDIENCES = {
     tone: "warm",
     needsClient: true,
     // Tipos de oferta que tienen sentido en esta audiencia
-    suggestedTypes: ["reactivar", "topseller", "crosssell", "recordatorio", "drop", "destacado"],
+    suggestedTypes: ["reactivar", "topseller", "crosssell", "recordatorio", "drop", "destacado", "duplapack"],
   },
   groupClients: {
     key: "groupClients",
@@ -26,7 +26,8 @@ export const AUDIENCES = {
     description: "Broadcast comercial a tu grupo de clientes",
     tone: "commercial",
     needsClient: false,
-    suggestedTypes: ["stocklist", "liquidar", "topseller", "drop", "restock", "destacado", "liquidacion"],
+    // Multi-sabor pega más en grupos: empuja a llevar más por venta
+    suggestedTypes: ["stocklist", "topseller", "mix", "combomarca", "dupla", "liquidar", "drop", "restock", "destacado", "liquidacion"],
   },
   groupParty: {
     key: "groupParty",
@@ -35,7 +36,7 @@ export const AUDIENCES = {
     description: "Vibe casual para grupos de techno/eventos. Soft-sell.",
     tone: "casual",
     needsClient: false,
-    suggestedTypes: ["packfiesta", "stocklist", "recordatorio", "drop"],
+    suggestedTypes: ["packfiesta", "mix", "combomarca", "stocklist", "recordatorio", "drop"],
   },
 };
 
@@ -47,25 +48,28 @@ export function getAudience(key) {
 
 // Tonos: opener y closer del mensaje según audiencia.
 // ctx puede traer: clientName, weekend (bool), isToday, etc.
+//
+// REGLA: ningún tono firma con nombre personal (Diego). Solo el negocio (IZN).
+// Lenguaje natural, sin frases forzadas tipo "te dejo un mimo".
 export const TONES = {
   warm: {
     opener: (ctx = {}) => ctx.clientName
-      ? `Hola ${ctx.clientName}! 👋`
-      : "Hola! 👋",
-    closer: () => "Cualquier cosa avisame por acá!\n— Diego · IZN 💨",
-    callToAction: "Avisame y te lo aparto",
+      ? `Hola ${ctx.clientName}!`
+      : "Hola!",
+    closer: () => "Cualquier consulta por acá 💬",
+    callToAction: "Avisame y lo aparto",
   },
   commercial: {
-    opener: () => "🔥 *IMPORTS ZONA NORTE* 🔥",
-    closer: () => "📲 Reservás por DM\n— IZN",
-    callToAction: "Reservá por DM",
+    opener: () => "*IMPORTS ZONA NORTE* 🔥",
+    closer: () => "📲 Pedidos y consultas por DM",
+    callToAction: "Pedidos por DM",
   },
   casual: {
     opener: (ctx = {}) => ctx.weekend
-      ? "Hola gente! 🎵\nPreparándose para la finde?"
-      : "Hola gente! 🎵",
-    closer: () => "Si necesitan, escriban x privado 🤙\n— IZN (Zona Norte) 💨",
-    callToAction: "Escriban x privado!",
+      ? "Buenas! 🌙 Para el finde —"
+      : "Buenas gente —",
+    closer: () => "Si quieren algo, mandan DM 🤙",
+    callToAction: "Mandan DM y arreglamos",
   },
 };
 

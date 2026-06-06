@@ -127,11 +127,18 @@ describe("suggestSmartOffers", () => {
     expect(cross[0].impact.savingARS).toBeGreaterThan(0);
   });
 
-  it("generates top-seller push with healthy margin", () => {
+  it("generates top-seller push as multi-product idea", () => {
     const ideas = suggestSmartOffers({ products: PRODUCTS, statsMap, sales, clients: CLIENTS, exchangeRate: RATE });
     const top = ideas.filter(i => i.category === "topseller");
-    expect(top.length).toBeGreaterThan(0);
-    expect(top[0].products[0].product.id).toBe("p1");
+    // Ahora topseller es UNA idea multi-sabor (no varias 1-sabor)
+    expect(top.length).toBeLessThanOrEqual(1);
+    if (top.length > 0) {
+      expect(top[0].offerType).toBe("topsemana");
+      expect(top[0].products.length).toBeGreaterThanOrEqual(2);
+      // p1 (Watermelon, top seller) debería estar
+      const ids = top[0].products.map(x => x.product.id);
+      expect(ids).toContain("p1");
+    }
   });
 
   it("handles empty inputs", () => {

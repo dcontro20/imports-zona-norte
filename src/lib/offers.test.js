@@ -12,6 +12,8 @@ const PRODUCTS = [
   { id: "p1", brand: "Elfbar", model: "TE", flavor: "Watermelon Ice", puffs: "30000", priceARS: 29100, stock: 10 },
   { id: "p2", brand: "Lost Mary", model: "BM", flavor: "Cherry Cola", puffs: "6000", priceUSD: 14, stock: 5 },
   { id: "p3", brand: "Geek", model: "Pulse", flavor: "Mango", puffs: "15000", priceARS: 30000, stock: 2 },
+  { id: "p4", brand: "Elfbar", model: "TE", flavor: "Banana Ice", puffs: "30000", priceARS: 29100, stock: 4 },
+  { id: "p5", brand: "Elfbar", model: "TE", flavor: "Cherry", puffs: "30000", priceARS: 29100, stock: 6 },
 ];
 
 describe("productPriceARS", () => {
@@ -28,7 +30,7 @@ describe("productPriceARS", () => {
 
 describe("applyDiscount", () => {
   it("applies percent and rounds to hundreds", () => {
-    expect(applyDiscount(29100, 20)).toBe(23300); // 23280 → 23300
+    expect(applyDiscount(29100, 20)).toBe(23300);
   });
   it("clamps to 0-100", () => {
     expect(applyDiscount(1000, 150)).toBe(0);
@@ -39,15 +41,15 @@ describe("applyDiscount", () => {
 describe("suggestLiquidation", () => {
   it("suggests slow movers with enough stock", () => {
     const stats = {
-      p1: { velocity30dPerDay: 0.01 }, // muy lento → >60d para 10u
-      p2: { velocity30dPerDay: 5 },    // rápido → no liquidar
-      p3: { velocity30dPerDay: 0 },    // sin ventas
+      p1: { velocity30dPerDay: 0.01 },
+      p2: { velocity30dPerDay: 5 },
+      p3: { velocity30dPerDay: 0 },
     };
     const result = suggestLiquidation(PRODUCTS, stats, { minStock: 3 });
     const ids = result.map(r => r.product.id);
     expect(ids).toContain("p1");
-    expect(ids).not.toContain("p2"); // rápido
-    expect(ids).not.toContain("p3"); // stock 2 < minStock 3
+    expect(ids).not.toContain("p2");
+    expect(ids).not.toContain("p3");
   });
 
   it("includes never-sold products with stock (Infinity daysToClear)", () => {
@@ -57,134 +59,144 @@ describe("suggestLiquidation", () => {
   });
 });
 
-describe("buildOfferMessage", () => {
-  it("builds destacado message", () => {
+describe("buildOfferMessage - tipos básicos", () => {
+  it("destacado incluye producto y precio", () => {
     const offer = { type: "destacado", products: [{ product: PRODUCTS[0] }] };
     const msg = buildOfferMessage(offer, RATE);
-    expect(msg.full).toContain("OFERTA");
-    expect(msg.full).toContain("Elfbar TE Watermelon Ice");
+    expect(msg.full).toContain("Destacados");
+    expect(msg.full).toContain("Watermelon Ice");
     expect(msg.full).toContain("$29.100");
-    expect(msg.stories).toContain("Watermelon Ice");
   });
 
-  it("uses special price when given", () => {
+  it("usa special price cuando se pasa", () => {
     const offer = { type: "destacado", products: [{ product: PRODUCTS[0], specialPriceARS: 25000 }] };
     const msg = buildOfferMessage(offer, RATE);
     expect(msg.full).toContain("$25.000");
     expect(msg.full).not.toContain("$29.100");
   });
 
-  it("builds combo message with saving", () => {
+  it("combo muestra cantidad/precio y calcula ahorro", () => {
     const offer = { type: "combo", comboQty: 3, comboPriceARS: 75000, products: [{ product: PRODUCTS[0] }] };
     const msg = buildOfferMessage(offer, RATE);
-    expect(msg.full).toContain("Llevá");
+    expect(msg.full).toContain("3");
     expect(msg.full).toContain("$75.000");
     expect(msg.full).toMatch(/ahorr/i);
   });
 
-  it("builds liquidacion with struck-through price", () => {
+  it("liquidacion muestra precio tachado con descuento", () => {
     const offer = { type: "liquidacion", discountPct: 20, products: [{ product: PRODUCTS[0] }] };
     const msg = buildOfferMessage(offer, RATE);
-    expect(msg.full).toContain("LIQUIDACIÓN");
+    expect(msg.full).toContain("Liquidación");
     expect(msg.full).toContain("-20%");
-    expect(msg.full).toContain("~$29.100~"); // tachado
+    expect(msg.full).toContain("~$29.100~");
   });
 
-  it("builds descuento general", () => {
+  it("descuento general", () => {
     const offer = { type: "descuento", discountPct: 15, products: [{ product: PRODUCTS[0] }] };
     const msg = buildOfferMessage(offer, RATE);
     expect(msg.full).toContain("15% OFF");
   });
 
-  it("includes footer", () => {
+  it("footer custom cuando no hay audience", () => {
     const offer = { type: "destacado", products: [], footer: "Llamame!" };
     const msg = buildOfferMessage(offer, RATE);
     expect(msg.full).toContain("Llamame!");
   });
+
+  it("ningún mensaje firma con nombre personal Diego", () => {
+    const tipos = ["destacado", "combo", "liquidacion", "descuento", "stocklist", "recordatorio"];
+    tipos.forEach(t => {
+      const msg = buildOfferMessage(
+        { type: t, products: [{ product: PRODUCTS[0] }], discountPct: 10, comboQty: 2, comboPriceARS: 40000 },
+        RATE,
+        { audience: "individual", ctx: { clientName: "Pedro" } }
+      );
+      expect(msg.full).not.toContain("Diego");
+    });
+  });
+
+  it("usa emoji de sabor en productos", () => {
+    const offer = { type: "destacado", products: [{ product: PRODUCTS[0] }] };
+    const msg = buildOfferMessage(offer, RATE);
+    // Watermelon Ice → 🍉🧊
+    expect(msg.full).toContain("🍉");
+  });
 });
 
 describe("whatsappLink", () => {
-  it("builds link with phone and encoded text", () => {
+  it("link con phone y texto encoded", () => {
     const link = whatsappLink("Hola mundo", "+595 991 234567");
     expect(link).toBe("https://wa.me/595991234567?text=Hola%20mundo");
   });
-  it("works without phone", () => {
+  it("sin phone", () => {
     expect(whatsappLink("hi")).toBe("https://wa.me/?text=hi");
   });
 });
 
-describe("buildOfferMessage - audiencias", () => {
-  it("aplica opener warm para audiencia individual con clientName", () => {
+describe("buildOfferMessage - audiencias (sin Diego, lenguaje natural)", () => {
+  it("warm con clientName saluda con su nombre, sin Diego en closer", () => {
     const msg = buildOfferMessage(
       { type: "destacado", products: [{ product: PRODUCTS[0] }] },
       RATE,
       { audience: "individual", ctx: { clientName: "Juan" } }
     );
     expect(msg.full).toMatch(/Hola Juan/);
-    expect(msg.full).toMatch(/Diego.*IZN/);
+    expect(msg.full).not.toContain("Diego");
+    expect(msg.full).toMatch(/consulta|DM/i);
   });
 
-  it("aplica opener commercial para grupo de clientes", () => {
+  it("commercial es broadcast comercial firmado solo con IZN", () => {
     const msg = buildOfferMessage(
       { type: "destacado", products: [{ product: PRODUCTS[0] }] },
       RATE,
       { audience: "groupClients" }
     );
     expect(msg.full).toMatch(/IMPORTS ZONA NORTE/);
-    expect(msg.full).toMatch(/Reservás por DM/);
+    expect(msg.full).toMatch(/DM/);
+    expect(msg.full).not.toContain("Diego");
   });
 
-  it("aplica opener casual para grupo de fiestas en finde", () => {
+  it("casual menciona finde si weekend y no usa Diego", () => {
     const msg = buildOfferMessage(
       { type: "packfiesta", products: [{ product: PRODUCTS[0] }, { product: PRODUCTS[1] }], comboQty: 2, comboPriceARS: 40000 },
       RATE,
       { audience: "groupParty", ctx: { weekend: true } }
     );
-    expect(msg.full).toMatch(/Hola gente/);
-    expect(msg.full).toMatch(/finde/);
-    expect(msg.full).toMatch(/x privado/);
-  });
-
-  it("no aplica tono si no se pasa audiencia (legacy)", () => {
-    const msg = buildOfferMessage(
-      { type: "destacado", products: [{ product: PRODUCTS[0] }], footer: "Footer custom" },
-      RATE
-    );
-    expect(msg.full).toMatch(/Footer custom/);
-    expect(msg.full).not.toMatch(/Hola/);
+    expect(msg.full).toMatch(/finde/i);
+    expect(msg.full).toMatch(/DM/);
+    expect(msg.full).not.toContain("Diego");
   });
 });
 
-describe("buildOfferMessage - nuevos tipos", () => {
-  it("stocklist agrupa por marca con precio", () => {
+describe("buildOfferMessage - tipos info", () => {
+  it("stocklist agrupa por marca con emojis de sabor", () => {
     const msg = buildOfferMessage(
       { type: "stocklist", products: PRODUCTS.map(p => ({ product: p })) },
       RATE
     );
     expect(msg.full).toMatch(/ELFBAR/);
     expect(msg.full).toMatch(/LOST MARY/);
-    expect(msg.full).toMatch(/GEEK/);
     expect(msg.full).toMatch(/Watermelon Ice/);
+    expect(msg.full).toContain("🍉"); // emoji de sabor watermelon
   });
 
-  it("packfiesta muestra cantidad y precio del pack", () => {
+  it("packfiesta muestra cantidad, precio y ahorro", () => {
     const msg = buildOfferMessage(
-      { type: "packfiesta", products: [{ product: PRODUCTS[0] }, { product: PRODUCTS[1] }], comboQty: 2, comboPriceARS: 50000 },
+      { type: "packfiesta", products: [{ product: PRODUCTS[0] }, { product: PRODUCTS[1] }], comboQty: 2, comboPriceARS: 40000 },
       RATE
     );
-    expect(msg.full).toMatch(/PACK PARA LA FINDE/);
-    expect(msg.full).toMatch(/Llevate \*2\*/);
-    expect(msg.full).toMatch(/50.000/);
+    expect(msg.full).toMatch(/Pack del finde/i);
+    expect(msg.full).toContain("$40.000");
+    expect(msg.full).toMatch(/Ahorro/i);
   });
 
-  it("recordatorio es casual sin push duro", () => {
+  it("recordatorio sin push duro", () => {
     const msg = buildOfferMessage(
       { type: "recordatorio", products: [{ product: PRODUCTS[0] }] },
       RATE
     );
-    expect(msg.full).toMatch(/Zona Norte/);
-    expect(msg.full).not.toMatch(/OFERTA/);
-    expect(msg.full).not.toMatch(/DESCUENTO/);
+    expect(msg.full).not.toMatch(/OFERTA|LIQUIDACIÓN|DESCUENTO/);
+    expect(msg.full).toMatch(/stock|💨/i);
   });
 
   it("drop anuncia productos nuevos", () => {
@@ -192,8 +204,7 @@ describe("buildOfferMessage - nuevos tipos", () => {
       { type: "drop", products: [{ product: PRODUCTS[0] }] },
       RATE
     );
-    expect(msg.full).toMatch(/DROP NUEVO/);
-    expect(msg.full).toMatch(/acaban de llegar/);
+    expect(msg.full).toMatch(/nuevos|llegaron/i);
   });
 
   it("restock muestra productos que volvieron", () => {
@@ -201,7 +212,75 @@ describe("buildOfferMessage - nuevos tipos", () => {
       { type: "restock", products: [{ product: PRODUCTS[0] }] },
       RATE
     );
-    expect(msg.full).toMatch(/VOLVIÓ EL STOCK/);
-    expect(msg.full).toMatch(/Watermelon Ice/);
+    expect(msg.full).toMatch(/Volvieron/);
+    expect(msg.full).toContain("Watermelon Ice");
+  });
+});
+
+describe("buildOfferMessage - nuevos tipos multi-sabor para vender más", () => {
+  it("mix3x2 ofrece lleva-N-paga-(N-1) sobre selección", () => {
+    const msg = buildOfferMessage(
+      { type: "mix3x2", comboQty: 3, products: [{ product: PRODUCTS[0] }, { product: PRODUCTS[1] }, { product: PRODUCTS[2] }] },
+      RATE
+    );
+    expect(msg.full).toMatch(/Llevás 3.*pagás 2/);
+    expect(msg.full).toMatch(/regalo|gratis/i);
+    expect(msg.full).toContain("Watermelon Ice");
+    expect(msg.full).toContain("Cherry Cola");
+    expect(msg.full).toContain("Mango");
+  });
+
+  it("combomarca arma combo de N sabores de la misma marca", () => {
+    const msg = buildOfferMessage(
+      {
+        type: "combomarca",
+        comboQty: 3,
+        comboPriceARS: 75000,
+        products: [
+          { product: PRODUCTS[0] }, // Elfbar
+          { product: PRODUCTS[3] }, // Elfbar
+          { product: PRODUCTS[4] }, // Elfbar
+        ],
+      },
+      RATE
+    );
+    expect(msg.full).toMatch(/Combo Elfbar/i);
+    expect(msg.full).toContain("$75.000");
+    expect(msg.full).toContain("Watermelon Ice");
+    expect(msg.full).toContain("Banana Ice");
+  });
+
+  it("duplapack ofrece 2da unidad al 50%", () => {
+    const msg = buildOfferMessage(
+      { type: "duplapack", products: [{ product: PRODUCTS[0] }, { product: PRODUCTS[1] }] },
+      RATE
+    );
+    expect(msg.full).toMatch(/2da unidad/i);
+    expect(msg.full).toMatch(/50%/);
+    expect(msg.full).toContain("Watermelon Ice");
+    expect(msg.full).toContain("Cherry Cola");
+  });
+
+  it("topsemana muestra top con descuento si lleva 2+", () => {
+    const msg = buildOfferMessage(
+      { type: "topsemana", discountPct: 10, products: PRODUCTS.slice(0, 3).map(p => ({ product: p })) },
+      RATE
+    );
+    expect(msg.full).toMatch(/más pedidos/i);
+    expect(msg.full).toMatch(/-10%/);
+    expect(msg.full).toMatch(/2 o más/);
+    expect(msg.full).toContain("Watermelon Ice");
+  });
+
+  it("ningún nuevo tipo firma con Diego", () => {
+    const tipos = ["mix3x2", "combomarca", "duplapack", "topsemana"];
+    tipos.forEach(t => {
+      const msg = buildOfferMessage(
+        { type: t, products: PRODUCTS.slice(0, 3).map(p => ({ product: p })), comboQty: 3, comboPriceARS: 70000, discountPct: 10 },
+        RATE,
+        { audience: "individual", ctx: { clientName: "Pedro" } }
+      );
+      expect(msg.full).not.toContain("Diego");
+    });
   });
 });

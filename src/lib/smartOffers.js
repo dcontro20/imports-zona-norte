@@ -248,31 +248,49 @@ export function suggestSmartOffers({
     });
   });
 
-  // ---- 4) EMPUJAR top-sellers con margen sano ----
-  const topSellers = Object.values(statsMap)
-    .filter(s => s.product && !s.product.isDeleted && s.velocity30dPerDay > 0)
+  // ---- 4) TOP SEMANA — los 3-5 más rotados con descuento por llevar 2+ ----
+  // (antes generaba 5 ideas individuales; ahora 1 idea multi-sabor que empuja
+  //  a llevar MÁS de uno, aumentando el ticket promedio sin sacrificar margen)
+  const topSellersAll = Object.values(statsMap)
+    .filter(s => s.product && !s.product.isDeleted && s.velocity30dPerDay > 0
+                && (Number(s.product.stock) || 0) > 0)
     .sort((a, b) => b.velocity30dPerDay - a.velocity30dPerDay)
     .slice(0, 5);
-  topSellers.forEach(s => {
-    const p = s.product;
-    const stock = Number(p.stock) || 0;
-    if (stock <= 0) return; // sin stock no promociono
-    const guard = maxDiscountForMargin(p, targetMargin);
-    if (!guard || guard.currentMarginPct < 25) return; // solo si hay margen para jugar
-    const discount = Math.min(15, Math.max(5, Math.round(guard.maxDiscountPct)));
-    const impact = offerProfitImpact(p, discount, Math.min(stock, 10), exchangeRate);
-    ideas.push({
-      id: `top_${p.id}`,
-      category: "topseller",
-      icon: "🚀",
-      title: `Empujar ${p.brand} ${p.flavor}`,
-      reason: `Tu top-seller (${s.velocity30dPerDay}/d). Margen ${guard.currentMarginPct}%: podés dar -${discount}% y seguir ganando`,
-      products: [{ product: p, discountPct: discount }],
-      suggestedDiscountPct: discount,
-      offerType: "destacado",
-      impact: { ...impact, marginAfterPct: impact.marginPct, currentMarginPct: guard.currentMarginPct },
-    });
+  const topEligible = topSellersAll.filter(s => {
+    const g = maxDiscountForMargin(s.product, targetMargin);
+    return g && g.currentMarginPct >= 25;
   });
+  if (topEligible.length >= 2) {
+    // Descuento conservador que respeta el margen del producto MÁS ajustado
+    const safeMaxDisc = Math.min(
+      ...topEligible.map(s => {
+        const g = maxDiscountForMargin(s.product, 20);
+        return g ? g.maxDiscountPct : 10;
+      })
+    );
+    const discount = Math.min(12, Math.max(5, Math.floor(safeMaxDisc)));
+    const avgMargin = Math.round(
+      topEligible.reduce((sum, s) => {
+        const g = maxDiscountForMargin(s.product, targetMargin);
+        return sum + (g?.currentMarginPct || 0);
+      }, 0) / topEligible.length
+    );
+    ideas.push({
+      id: "topsemana",
+      category: "topseller",
+      icon: "📈",
+      title: `Top ${topEligible.length} de la semana`,
+      reason: `Los más rotados. -${discount}% si llevan 2 o más → empuja el ticket sin pisar el margen.`,
+      products: topEligible.map(s => ({ product: s.product, discountPct: discount })),
+      suggestedDiscountPct: discount,
+      offerType: "topsemana",
+      impact: {
+        currentMarginPct: avgMargin,
+        marginAfterPct: Math.max(0, avgMargin - discount),
+        productCount: topEligible.length,
+      },
+    });
+  }
 
   // ---- 5) STOCK LIST — catálogo agrupado por marca para mandar a grupos ----
   const inStock = Object.values(statsMap)
@@ -377,6 +395,108 @@ export function suggestSmartOffers({
       offerType: "drop",
       impact: {
         newProducts: recent.length,
+      },
+    });
+  }
+
+  // ---- 9) MIX 3x2 — selección curada con margen para regalar el más barato ----
+  // Marketing: el regalo (≈33% off) se cubre con el ticket de 3 unidades.
+  // Necesita margen alto en cada uno para que no perdamos plata.
+  const mixPool = Object.values(statsMap)
+    .filter(s => {
+      if (!s.product || s.product.isDeleted) return false;
+      if ((Number(s.product.stock) || 0) < 3) return false;
+      const g = maxDiscountForMargin(s.product, 20);
+      return g && g.currentMarginPct >= 30;
+    })
+    .sort((a, b) => (b.velocity30dPerDay || 0) - (a.velocity30dPerDay || 0))
+    .slice(0, 5);
+  if (mixPool.length >= 3) {
+    ideas.push({
+      id: "mix3x2",
+      category: "mix",
+      icon: "🤝",
+      title: `3x2 mixto — ${mixPool.length} sabores`,
+      reason: `Llevan 3, pagan 2 (el más barato va de regalo). Empuja a probar varios sabores en una compra.`,
+      products: mixPool.map(s => ({ product: s.product })),
+      suggestedDiscountPct: 33,
+      offerType: "mix3x2",
+      comboQty: 3,
+      impact: {
+        productCount: mixPool.length,
+        effectiveDiscount: 33,
+      },
+    });
+  }
+
+  // ---- 10) COMBO MARCA — N sabores de la marca con más sabores en stock ----
+  // Marketing: clientes que ya conocen una marca suelen probar más sabores
+  // de la misma marca antes que cambiar de marca.
+  const flavorsByBrand = {};
+  Object.values(statsMap).forEach(s => {
+    if (!s.product || s.product.isDeleted || !s.product.brand) return;
+    if ((Number(s.product.stock) || 0) <= 0) return;
+    const b = s.product.brand;
+    if (!flavorsByBrand[b]) flavorsByBrand[b] = [];
+    flavorsByBrand[b].push(s);
+  });
+  const bestBrandEntry = Object.entries(flavorsByBrand)
+    .sort((a, b) => b[1].length - a[1].length)[0];
+  if (bestBrandEntry && bestBrandEntry[1].length >= 3) {
+    const [brandName, brandFlavors] = bestBrandEntry;
+    const picks = brandFlavors
+      .sort((a, b) => (b.velocity30dPerDay || 0) - (a.velocity30dPerDay || 0))
+      .slice(0, 5);
+    const comboQty = Math.min(3, picks.length);
+    const regularTotal = picks.slice(0, comboQty)
+      .reduce((sum, s) => sum + productPriceARS(s.product, exchangeRate), 0);
+    const comboPrice = applyDiscount(regularTotal, 12);
+    ideas.push({
+      id: `combomarca_${brandName.replace(/\s+/g, "_")}`,
+      category: "combomarca",
+      icon: "🎯",
+      title: `Combo ${brandName} — elegí ${comboQty}`,
+      reason: `${brandFlavors.length} sabores de ${brandName} con stock. Pack de ${comboQty} a -12%: ticket más alto, mismo cliente.`,
+      products: picks.map(s => ({ product: s.product })),
+      suggestedDiscountPct: 12,
+      offerType: "combomarca",
+      comboQty,
+      comboPriceARS: comboPrice,
+      impact: {
+        comboRegularARS: regularTotal,
+        comboPriceARS: comboPrice,
+        savingARS: regularTotal - comboPrice,
+        brand: brandName,
+        flavorsAvailable: brandFlavors.length,
+      },
+    });
+  }
+
+  // ---- 11) DUPLA PACK — 2da unidad al 50%, sabores con margen alto ----
+  // Marketing: psicológicamente "2da al 50%" pega más que "25% off" aunque
+  // matemáticamente es lo mismo si llevan 2.
+  const duplaPool = Object.values(statsMap)
+    .filter(s => {
+      if (!s.product || s.product.isDeleted) return false;
+      if ((Number(s.product.stock) || 0) < 2) return false;
+      const g = maxDiscountForMargin(s.product, 15);
+      return g && g.currentMarginPct >= 40;
+    })
+    .sort((a, b) => (b.velocity30dPerDay || 0) - (a.velocity30dPerDay || 0))
+    .slice(0, 6);
+  if (duplaPool.length >= 3) {
+    ideas.push({
+      id: "duplapack",
+      category: "dupla",
+      icon: "🎁",
+      title: `2da al 50% — ${duplaPool.length} sabores`,
+      reason: `Sabores con margen suficiente. "2da al 50%" pega más que "-25%" — empuja al cliente a llevar par.`,
+      products: duplaPool.map(s => ({ product: s.product })),
+      suggestedDiscountPct: 25,
+      offerType: "duplapack",
+      impact: {
+        productCount: duplaPool.length,
+        effectiveDiscount: 25,
       },
     });
   }

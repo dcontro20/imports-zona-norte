@@ -38,11 +38,20 @@ describe("TONES", () => {
   it("warm sin clientName saluda genérico", () => {
     expect(TONES.warm.opener({})).toMatch(/Hola/);
   });
-  it("commercial firma IZN", () => {
-    expect(TONES.commercial.closer({})).toMatch(/IZN/);
+  it("commercial opener identifica al negocio", () => {
+    expect(TONES.commercial.opener({})).toMatch(/IMPORTS ZONA NORTE/);
+  });
+  it("commercial closer pide DM", () => {
+    expect(TONES.commercial.closer({})).toMatch(/DM/);
   });
   it("casual menciona finde si weekend", () => {
     expect(TONES.casual.opener({ weekend: true })).toMatch(/finde/);
+  });
+  it("ningún tono firma con nombre personal Diego", () => {
+    Object.values(TONES).forEach(t => {
+      expect(t.opener({ clientName: "Pedro" })).not.toContain("Diego");
+      expect(t.closer({})).not.toContain("Diego");
+    });
   });
 });
 

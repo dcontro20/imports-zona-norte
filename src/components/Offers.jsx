@@ -45,17 +45,26 @@ const CATEGORY_COLORS = {
   packfiesta: "#D4691C",
   recordatorio: "#6B7794",
   drop: "#0F6B5C",
+  mix: "#2383E2",
+  combomarca: "#0F6B5C",
+  dupla: "#D4691C",
 };
 
 const TYPES = [
+  // Promos multi-sabor (las que más empujan el ticket)
+  { key: "topsemana", label: "📈 Top semana", desc: "3-5 sabores top con -% al llevar 2+" },
+  { key: "mix3x2", label: "🤝 3x2 mixto", desc: "Llevás 3, pagás 2" },
+  { key: "combomarca", label: "🎯 Combo marca", desc: "N sabores de la misma marca" },
+  { key: "duplapack", label: "🎁 2da al 50%", desc: "2da unidad al 50%" },
+  { key: "packfiesta", label: "🎉 Pack finde", desc: "Combo 3-4u pre-finde" },
+  // Promos individuales / catálogo
   { key: "destacado", label: "🔥 Destacado", desc: "Productos con precio" },
-  { key: "combo", label: "🎁 Combo", desc: "Llevá N x precio" },
-  { key: "liquidacion", label: "📉 Liquidación", desc: "Con % off" },
+  { key: "liquidacion", label: "📉 Liquidación", desc: "Stock parado con % off" },
   { key: "descuento", label: "✨ Descuento", desc: "% off general" },
   { key: "stocklist", label: "📋 Stock list", desc: "Catálogo por marca" },
-  { key: "packfiesta", label: "🎵 Pack fiesta", desc: "Combo pre-finde" },
-  { key: "recordatorio", label: "💬 Recordatorio", desc: "Casual sin venta" },
   { key: "drop", label: "🆕 Drop", desc: "Sabores nuevos" },
+  { key: "restock", label: "✅ Restock", desc: "Productos que volvieron" },
+  { key: "recordatorio", label: "💬 Recordatorio", desc: "Casual sin venta" },
 ];
 
 export const Offers = ({ products = [], sales = [], clients = [], exchangeRate = 1, logAudit, currentUser, auditLog = [], initialTab }) => {
@@ -469,7 +478,7 @@ function ImpactRow({ idea: rawIdea }) {
     display: "flex", gap: 12, flexWrap: "wrap",
     padding: "8px 10px", background: "#F8F2E7", borderRadius: 8, border: "1px solid #EFE5CE",
   };
-  const hasContent = ["liquidar","reactivar","crosssell","topseller","stocklist","packfiesta","recordatorio","drop"].includes(idea.category);
+  const hasContent = ["liquidar","reactivar","crosssell","topseller","stocklist","packfiesta","recordatorio","drop","mix","combomarca","dupla"].includes(idea.category);
   if (!hasContent) return null;
   return (
     <div style={wrap}>
@@ -518,6 +527,27 @@ function ImpactRow({ idea: rawIdea }) {
       )}
       {idea.category === "drop" && (
         <Impact label="Sabores nuevos" value={`${idea.impact.newProducts}`} color="#0F6B5C" />
+      )}
+      {idea.category === "mix" && (
+        <>
+          <Impact label="Sabores en la promo" value={`${idea.impact.productCount}`} color="#2383E2" />
+          <Impact label="Desc. efectivo" value={`-${idea.impact.effectiveDiscount}%`} color="#2383E2" />
+          <Impact label="Empuja" value="x3 ticket" color="#0F6B5C" />
+        </>
+      )}
+      {idea.category === "combomarca" && (
+        <>
+          <Impact label="Marca" value={idea.impact.brand || "—"} color="#0F6B5C" />
+          <Impact label="Combo" value={formatMoney(idea.impact.comboPriceARS)} color="#0F6B5C" />
+          <Impact label="Ahorro" value={formatMoney(idea.impact.savingARS)} color="#2383E2" />
+        </>
+      )}
+      {idea.category === "dupla" && (
+        <>
+          <Impact label="Sabores incluidos" value={`${idea.impact.productCount}`} color="#D4691C" />
+          <Impact label="Desc. efectivo" value={`-${idea.impact.effectiveDiscount}%`} color="#D4691C" />
+          <Impact label="Empuja" value="x2 ticket" color="#0F6B5C" />
+        </>
       )}
     </div>
   );
