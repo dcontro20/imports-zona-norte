@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { uid, formatMoney } from "../helpers.js";
 import { Modal, Btn, Badge } from "./UI.jsx";
 import { WITHDRAW_PERSONS, BRAND_COLORS } from "../constants.js";
@@ -27,6 +27,17 @@ export const QuickWithdrawal = ({
   const [submitting, setSubmitting] = useState(false);
   const [confirmingDup, setConfirmingDup] = useState(null);
   const [draftId, setDraftId] = useState(() => uid());
+
+  // Cleanup de timeouts pendientes al desmontar — evita warnings React
+  // por setState en componente desmontado si se cierra el modal antes.
+  const submitTimerRef = useRef(null);
+  const closeTimerRef = useRef(null);
+  useEffect(() => {
+    return () => {
+      if (submitTimerRef.current) clearTimeout(submitTimerRef.current);
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    };
+  }, []);
 
   // ---- productos disponibles (con stock) ----
   const available = useMemo(() => products.filter(p => !p.isDeleted && (p.stock || 0) > 0), [products]);
@@ -59,9 +70,13 @@ export const QuickWithdrawal = ({
   // ---- costo del producto seleccionado ----
   const priceUSD = selected ? Number(selected.priceUSD) || 0 : 0;
   const costUSDTunit = selected ? Number(selected.costUSDT) || 0 : 0;
+  // 0.55 = costo estimado típico cuando no hay costUSDT cargado (~55% del PVP USD)
   const costPerUnitUSD = costUSDTunit > 0 ? costUSDTunit : priceUSD * 0.55;
   const costRealUSD = costPerUnitUSD * qty;
-  const costRealARS = Math.round(costRealUSD * (exchangeRate || 0));
+  // Solo calculamos costRealARS si tenemos exchangeRate válido; sino null
+  // (en lugar de mostrar $0 ARS que confunde, no mostramos nada)
+  const safeRate = Number(exchangeRate) > 0 ? Number(exchangeRate) : 0;
+  const costRealARS = safeRate > 0 ? Math.round(costRealUSD * safeRate) : null;
 
   // ---- duplicado en últimos 5min ----
   const findRecentDuplicate = () => {
@@ -99,7 +114,9 @@ export const QuickWithdrawal = ({
 
     setSubmitting(true);
     persist();
-    setTimeout(() => {
+    if (submitTimerRef.current) clearTimeout(submitTimerRef.current);
+    submitTimerRef.current = setTimeout(() => {
+      submitTimerRef.current = null;
       setDraftId(uid());
       setSubmitting(false);
       setConfirmingDup(null);
@@ -127,7 +144,7 @@ export const QuickWithdrawal = ({
       costRealUSD,
       lucroCesanteUSD,
       costEstimateUSD: costRealUSD,
-      costEstimateARS: costRealARS,
+      costEstimateARS: costRealARS || 0,
       date: dateISO,
       createdAtMs: nowMs,
       createdAt: dateISO,
@@ -153,7 +170,11 @@ export const QuickWithdrawal = ({
     }
 
     setSuccess(true);
-    setTimeout(() => close(), 1400);
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = setTimeout(() => {
+      closeTimerRef.current = null;
+      close();
+    }, 1400);
   };
 
   if (!open) return null;
@@ -309,7 +330,7 @@ export const QuickWithdrawal = ({
             </div>
             <div style={{ textAlign: "right" }}>
               <div style={{ fontSize: 18, fontWeight: 800, color: "#E03E3E" }}>{formatMoney(costRealUSD, "USD")}</div>
-              {exchangeRate > 0 && <div style={{ fontSize: 12, color: "#6B7794" }}>≈ {formatMoney(costRealARS)} ARS</div>}
+              {costRealARS !== null && <div style={{ fontSize: 12, color: "#6B7794" }}>≈ {formatMoney(costRealARS)} ARS</div>}
             </div>
           </div>
 

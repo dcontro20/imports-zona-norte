@@ -1,7 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { uid, formatMoney } from "../helpers.js";
 import { Modal, Btn, Badge } from "./UI.jsx";
 import { PAYMENT_METHODS, MP_ACCOUNTS, BRAND_COLORS } from "../constants.js";
+import { productPriceARS } from "../lib/offers.js";
 
 // ============================================
 // QUICK SALE — Mobile-optimized one-tap sale
@@ -15,15 +16,18 @@ const ACCOUNT_MAP = {
   "USD Cash": "usdCash",
   "USDT": "lemonUSDT",
 };
-const resolveAccount = (method) => {
-  if (method === "Mercado Pago") return "mpDiego";
+const resolveAccount = (method, mpAccount) => {
+  if (method === "Mercado Pago") {
+    // mpAccount típicamente "MP Diego" → "mpDiego"
+    if (mpAccount === "MP Diego" || !mpAccount) return "mpDiego";
+    return mpAccount.toLowerCase().replace(/\s+/g, "");
+  }
   return ACCOUNT_MAP[method] || "";
 };
 
 export const QuickSale = ({
   open, onClose, products, setProducts, sales, setSales,
   logStock, exchangeRate, currentUser, logAudit,
-  cashMovements, setCashMovements,
 }) => {
   const [step, setStep] = useState(1); // 1=pick product, 2=confirm+pay
   const [search, setSearch] = useState("");
@@ -33,6 +37,16 @@ export const QuickSale = ({
   const [mpAccount, setMpAccount] = useState("MP Diego");
   const [customPrice, setCustomPrice] = useState("");
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState("");
+
+  // Cleanup de timeouts pendientes al desmontar — evita warnings de React
+  // por setState en componente desmontado.
+  const closeTimerRef = useRef(null);
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    };
+  }, []);
 
   const available = useMemo(() => {
     return products.filter(p => !p.isDeleted && p.stock > 0);
@@ -56,8 +70,12 @@ export const QuickSale = ({
     return Object.entries(map).sort((a, b) => a[0].localeCompare(b[0]));
   }, [filtered]);
 
+  // FIX: usar productPriceARS (maneja priceUSD || priceARS) en lugar de solo priceUSD
+  // Antes: productos cargados solo en ARS daban unitPrice=0 → botón disabled
+  // silencioso → "toco y toco y no pasa nada".
+  const basePriceARS = selected ? productPriceARS(selected, exchangeRate) : 0;
   const unitPrice = selected
-    ? (customPrice !== "" ? Number(customPrice) : (selected.priceUSD || 0) * exchangeRate)
+    ? (customPrice !== "" ? Number(customPrice) : basePriceARS)
     : 0;
   const total = unitPrice * qty;
 
@@ -70,9 +88,14 @@ export const QuickSale = ({
     setMpAccount("MP Diego");
     setCustomPrice("");
     setSuccess(false);
+    setError("");
   };
 
   const handleClose = () => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
     reset();
     onClose();
   };
@@ -81,16 +104,33 @@ export const QuickSale = ({
     setSelected(p);
     setCustomPrice("");
     setQty(1);
+    setError("");
     setStep(2);
   };
 
   const confirm = () => {
-    if (!selected || qty <= 0) return;
+    // Validaciones explícitas con mensaje al usuario (antes era disabled mudo)
+    if (!selected) {
+      setError("Elegí un producto antes de confirmar.");
+      return;
+    }
+    if (qty <= 0) {
+      setError("La cantidad tiene que ser mayor a 0.");
+      return;
+    }
+    if (qty > (selected.stock || 0)) {
+      setError(`Solo hay ${selected.stock} en stock.`);
+      return;
+    }
+    if (total <= 0) {
+      setError("El precio del producto es 0. Cargá un precio manual antes de confirmar.");
+      return;
+    }
+    setError("");
 
     const saleId = uid();
     const now = new Date().toISOString();
 
-    // Build sale object
     const sale = {
       id: saleId,
       date: now,
@@ -109,41 +149,43 @@ export const QuickSale = ({
         account: resolveAccount(payMethod, mpAccount),
       }],
       paymentMethod: payMethod,
+      mpAccount: payMethod === "Mercado Pago" ? mpAccount : "",
       channel: "Presencial",
       clientId: "", clientName: "",
       discountAmount: 0,
+      exchangeRate: Number(exchangeRate) || 0,
       createdBy: currentUser?.name || "",
       quickSale: true,
     };
 
-    // Save sale
-    setSales(prev => [sale, ...prev]);
-
-    // Decrease stock
-    setProducts(prev => prev.map(p =>
-      p.id === selected.id ? { ...p, stock: Math.max(0, p.stock - qty) } : p
-    ));
-
-    // Log stock
-    logStock({
-      productId: selected.id,
-      type: "venta",
-      qty: -qty,
-      reason: `Venta rápida #${saleId.slice(-5)}`,
-      refId: saleId,
-    });
-
-    // Log audit
-    if (logAudit) {
-      logAudit("create", "sale", saleId,
-        `Venta rápida: ${qty}x ${selected.brand} ${selected.model} - ${selected.flavor} · ${formatMoney(total)}`
-      );
+    try {
+      setSales(prev => [sale, ...prev]);
+      setProducts(prev => prev.map(p =>
+        p.id === selected.id ? { ...p, stock: Math.max(0, p.stock - qty) } : p
+      ));
+      if (logStock) {
+        logStock({
+          productId: selected.id,
+          type: "venta",
+          qty: -qty,
+          reason: `Venta rápida #${saleId.slice(-5)}`,
+          refId: saleId,
+        });
+      }
+      if (logAudit) {
+        logAudit("create", "sale", saleId,
+          `Venta rápida: ${qty}x ${selected.brand} ${selected.model} - ${selected.flavor} · ${formatMoney(total)}`
+        );
+      }
+      setSuccess(true);
+      closeTimerRef.current = setTimeout(() => {
+        closeTimerRef.current = null;
+        handleClose();
+      }, 1500);
+    } catch (e) {
+      console.error("[QuickSale] error al confirmar:", e);
+      setError("Hubo un error guardando la venta. Probá de nuevo.");
     }
-
-    setSuccess(true);
-    setTimeout(() => {
-      handleClose();
-    }, 1200);
   };
 
   if (!open) return null;
@@ -206,7 +248,7 @@ export const QuickSale = ({
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: "#0F7B6C" }}>
-                      {formatMoney(p.priceUSD * exchangeRate)}
+                      {formatMoney(productPriceARS(p, exchangeRate))}
                     </div>
                     <Badge color={p.stock <= 3 ? "#E03E3E" : "#0F7B6C"}>{p.stock} uds</Badge>
                   </div>
@@ -258,7 +300,7 @@ export const QuickSale = ({
         </label>
         <input
           type="number"
-          value={customPrice !== "" ? customPrice : Math.round((selected?.priceUSD || 0) * exchangeRate)}
+          value={customPrice !== "" ? customPrice : Math.round(basePriceARS)}
           onChange={e => setCustomPrice(e.target.value)}
           style={{
             width: "100%", padding: "10px 12px", background: "#F8F2E7",
@@ -307,10 +349,21 @@ export const QuickSale = ({
         {qty > 1 && <div style={{ fontSize: 12, color: "#6B7794" }}>{qty} x {formatMoney(unitPrice)}</div>}
       </div>
 
+      {/* Mensaje de error (validación o excepción) */}
+      {error && (
+        <div style={{
+          background: "#FBE4E4", border: "1px solid #F1B8B6",
+          borderRadius: 8, padding: "10px 12px", marginBottom: 12,
+          fontSize: 13, color: "#B83232", fontWeight: 600,
+        }}>
+          ⚠️ {error}
+        </div>
+      )}
+
       {/* Actions */}
       <div style={{ display: "flex", gap: 10 }}>
         <Btn variant="secondary" onClick={() => setStep(1)} style={{ flex: 1 }}>Volver</Btn>
-        <Btn onClick={confirm} style={{ flex: 2 }} disabled={!selected || qty <= 0 || total <= 0}>
+        <Btn onClick={confirm} style={{ flex: 2 }}>
           Confirmar Venta
         </Btn>
       </div>

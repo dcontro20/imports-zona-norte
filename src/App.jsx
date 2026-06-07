@@ -824,8 +824,6 @@ export default function App() {
             exchangeRate={exchangeRate}
             currentUser={currentUser}
             logAudit={logAudit}
-            cashMovements={cashMovements}
-            setCashMovements={setCashMovements}
           />
         </Suspense>
 

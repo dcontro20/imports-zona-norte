@@ -1257,36 +1257,137 @@ const BUCKET_META = {
   opportunity: { label: "Oportunidad", emoji: "🔵", borderColor: "#DAE8F5", bg: "#F7FAFC", titleColor: "#2383E2" },
 };
 
+// Estado persistido del despliegue: cada bucket recuerda si Diego lo dejó
+// abierto o cerrado, separado por bucket (urgent/week/opportunity).
+// Default: urgent abierto, week y opportunity cerrados — para no ocupar
+// pantalla con todo desplegado.
+const ALERTS_OPEN_KEY = "izn_dashboardAlertsOpen";
+const DEFAULT_ALERTS_OPEN = { urgent: true, week: false, opportunity: false };
+
+function loadAlertsOpenState() {
+  try {
+    const raw = localStorage.getItem(ALERTS_OPEN_KEY);
+    if (!raw) return DEFAULT_ALERTS_OPEN;
+    const parsed = JSON.parse(raw);
+    return { ...DEFAULT_ALERTS_OPEN, ...parsed };
+  } catch {
+    return DEFAULT_ALERTS_OPEN;
+  }
+}
+
+function saveAlertsOpenState(state) {
+  try {
+    localStorage.setItem(ALERTS_OPEN_KEY, JSON.stringify(state));
+  } catch {/* localStorage lleno o restringido — ignorar */}
+}
+
 function AlertsSection({ groups, onNavigate, isMobile }) {
+  const [openState, setOpenState] = useState(loadAlertsOpenState);
+
+  const toggle = (bucket) => {
+    setOpenState(prev => {
+      const next = { ...prev, [bucket]: !prev[bucket] };
+      saveAlertsOpenState(next);
+      return next;
+    });
+  };
+
+  const collapseAll = () => {
+    const next = { urgent: false, week: false, opportunity: false };
+    setOpenState(next);
+    saveAlertsOpenState(next);
+  };
+
+  const expandAll = () => {
+    const next = { urgent: true, week: true, opportunity: true };
+    setOpenState(next);
+    saveAlertsOpenState(next);
+  };
+
+  const allOpen = openState.urgent && openState.week && openState.opportunity;
+  const visibleBuckets = ["urgent", "week", "opportunity"].filter(b => groups[b]?.length > 0);
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 18 }}>
-      {["urgent", "week", "opportunity"].map(bucket => {
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 18 }}>
+      {/* Header: título + toggle expandir/colapsar todo */}
+      <div style={{
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        marginBottom: 2,
+      }}>
+        <div style={{
+          fontSize: 11, fontWeight: 700, color: T.textMuted,
+          textTransform: "uppercase", letterSpacing: 0.5,
+        }}>
+          🔔 Alertas ({groups.totalCount})
+        </div>
+        {visibleBuckets.length > 0 && (
+          <button onClick={allOpen ? collapseAll : expandAll} style={{
+            background: "none", border: "none", color: T.primary,
+            fontSize: 11, fontWeight: 700, cursor: "pointer",
+            fontFamily: "inherit", padding: "4px 8px", borderRadius: 6,
+          }}>
+            {allOpen ? "▲ Colapsar todo" : "▼ Expandir todo"}
+          </button>
+        )}
+      </div>
+
+      {visibleBuckets.map(bucket => {
         const items = groups[bucket];
-        if (!items || items.length === 0) return null;
         const meta = BUCKET_META[bucket];
+        const isOpen = openState[bucket];
         return (
           <div key={bucket} style={{
             background: meta.bg, border: `1px solid ${meta.borderColor}`,
             borderRadius: 12, overflow: "hidden",
           }}>
-            <div style={{
-              padding: "8px 14px", display: "flex", alignItems: "center", gap: 8,
-              borderBottom: `1px solid ${meta.borderColor}`, background: "rgba(255,255,255,0.5)",
-            }}>
-              <span>{meta.emoji}</span>
+            {/* Header clickeable — toggle */}
+            <button
+              onClick={() => toggle(bucket)}
+              style={{
+                width: "100%",
+                padding: "10px 14px",
+                display: "flex", alignItems: "center", gap: 8,
+                background: "rgba(255,255,255,0.5)",
+                border: "none",
+                borderBottom: isOpen ? `1px solid ${meta.borderColor}` : "none",
+                cursor: "pointer", fontFamily: "inherit",
+                minHeight: 44,
+              }}
+            >
+              <span style={{ fontSize: 14 }}>{meta.emoji}</span>
               <span style={{
-                fontSize: 11, fontWeight: 800, color: meta.titleColor,
+                fontSize: 12, fontWeight: 800, color: meta.titleColor,
                 textTransform: "uppercase", letterSpacing: 0.5,
               }}>{meta.label}</span>
               <span style={{
-                fontSize: 11, color: T.textMuted, marginLeft: "auto",
+                fontSize: 11, fontWeight: 700, color: meta.titleColor,
+                background: "rgba(255,255,255,0.7)", padding: "2px 8px",
+                borderRadius: 999, marginLeft: 4,
               }}>{items.length}</span>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              {items.map((a, i) => (
-                <AlertRow key={`${bucket}-${i}`} alert={a} onNavigate={onNavigate} isMobile={isMobile} isLast={i === items.length - 1} />
-              ))}
-            </div>
+              {!isOpen && (
+                <span style={{
+                  fontSize: 11, color: T.textMuted, marginLeft: 8,
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                  minWidth: 0, flex: 1, textAlign: "left",
+                }}>
+                  {items[0]?.icon} {items[0]?.title}
+                  {items.length > 1 && ` · +${items.length - 1} más`}
+                </span>
+              )}
+              <span style={{
+                marginLeft: isOpen ? "auto" : 0,
+                fontSize: 14, color: T.textMuted,
+                transition: "transform 0.2s",
+                transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)",
+              }}>▼</span>
+            </button>
+            {isOpen && (
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                {items.map((a, i) => (
+                  <AlertRow key={`${bucket}-${i}`} alert={a} onNavigate={onNavigate} isMobile={isMobile} isLast={i === items.length - 1} />
+                ))}
+              </div>
+            )}
           </div>
         );
       })}
