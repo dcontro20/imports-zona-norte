@@ -1,13 +1,15 @@
 import { useState, useMemo, useEffect } from "react";
 import { formatMoney, formatDate, safeRate } from "../helpers.js";
 import { calcTotalRevenue, calcTotalRevenueUSD } from "../calcs.js";
-import { buildProductSalesStats, findVelocityDrops } from "../productIntelligence.js";
-import { findLowMarginProducts } from "../pricing.js";
+import { buildProductSalesStats } from "../productIntelligence.js";
 import { BRAND_COLORS, isGarantia } from "../constants.js";
 import { useResponsive } from "../App.jsx";
 import { useAppContext } from "../AppContext.js";
 import { useSettings } from "../useSettings.js";
 import { T, pickAvatarColor } from "../theme.js";
+import { generateDashboardAlerts } from "../lib/dashboardAlerts.js";
+import { getActionOfTheDay } from "../lib/dashboardAction.js";
+import { calcMonthGoalProgress } from "../lib/dashboardGoal.js";
 
 // ---------- helpers ----------
 const resolveItemName = (item, productsById) => {
@@ -118,12 +120,11 @@ const SectionLabel = ({ children, icon, color = T.textMuted, right }) => (
 // ============================================
 // DASHBOARD — Light Notion/Linear aesthetic
 // ============================================
-export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, clients = [], cashMovements }) => {
+export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, clients = [], cashMovements, onNavigate }) => {
   const { exchangeRate } = useAppContext();
   const settings = useSettings();
   const { isMobile, isTablet } = useResponsive();
   const [period, setPeriod] = useState("month"); // today | week | month
-  const [showAllAlerts, setShowAllAlerts] = useState(false);
   const [reorderModal, setReorderModal] = useState(false);
   const [reorderQty, setReorderQty] = useState({}); // productId -> qty sugerida/editada
   const [copyToast, setCopyToast] = useState("");
@@ -342,285 +343,28 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, c
   }, [sales, expenses, withdrawals, productsById, exchangeRate]);
 
   // ---- alerts ----
-  const alerts = useMemo(() => {
-    const list = [];
-    if (outOfStock.length > 0) list.push({
-      t: "danger", msg: `${outOfStock.length} agotado${outOfStock.length > 1 ? "s" : ""}`,
-      detail: outOfStock.slice(0, 3).map(p => `${p.brand} ${p.model}`).join(", "),
-    });
-    if (lowStock.length > 0) list.push({
-      t: "warning", msg: `${lowStock.length} con stock bajo (≤${settings.lowStockThreshold})`,
-      detail: lowStock.slice(0, 3).map(p => `${p.brand} ${p.model} (${p.stock})`).join(", "),
-    });
+  // Reemplaza la lógica anterior (~270 líneas) por la lib pura testeada
+  // src/lib/dashboardAlerts.js que ya filtra el catálogo fantasma y agrupa
+  // por urgencia (urgent / week / opportunity), cada una con acción concreta.
+  const alertsGrouped = useMemo(
+    () => generateDashboardAlerts({
+      products, sales, purchases, clients, settings, exchangeRate, now,
+    }),
+    [products, sales, purchases, clients, settings, exchangeRate, now]
+  );
 
-    const sevenAgo = new Date(now.getTime() - 7 * msPerDay).toISOString();
-    const weekItems = {};
-    sales.filter(s => !s.isDeleted && s.date >= sevenAgo).forEach(s => (s.items || []).forEach(i => { weekItems[i.productId] = (weekItems[i.productId] || 0) + (i.qty || 1); }));
-    const willRunOut = products.filter(p =>
-      p.stock > 0 && p.stock <= settings.willRunOutMaxStock &&
-      weekItems[p.id] > 0 &&
-      p.stock / (weekItems[p.id] / 7) <= settings.willRunOutDays
-    );
-    if (willRunOut.length > 0) list.push({
-      t: "warning",
-      msg: `${willRunOut.length} se agota${willRunOut.length > 1 ? "n" : ""} en ≤${settings.willRunOutDays} días`,
-      detail: willRunOut.slice(0, 3).map(p => `${p.brand} ${p.model}`).join(", "),
-    });
+  // Acción del día — la próxima jugada concreta para vender más
+  const actionOfDay = useMemo(
+    () => getActionOfTheDay({ sales, clients, products, exchangeRate, now }),
+    [sales, clients, products, exchangeRate, now]
+  );
 
-    const staleAgo = new Date(now.getTime() - settings.staleProductDays * msPerDay).toISOString();
-    const recentItems = {};
-    sales.filter(s => !s.isDeleted && s.date >= staleAgo).forEach(s => (s.items || []).forEach(i => { recentItems[i.productId] = (recentItems[i.productId] || 0) + (i.qty || 1); }));
-    const stale = products.filter(p => p.stock > 0 && !recentItems[p.id]);
-    if (stale.length > 0) list.push({
-      t: "info", msg: `${stale.length} sin vender hace ${settings.staleProductDays}+ días`,
-      detail: stale.slice(0, 3).map(p => `${p.brand} ${p.model}`).join(", "),
-    });
+  // Meta del mes — progreso vs objetivo configurado
+  const monthGoal = useMemo(
+    () => calcMonthGoalProgress(sales, settings.monthlyRevenueGoalARS, exchangeRate, now),
+    [sales, settings.monthlyRevenueGoalARS, exchangeRate, now]
+  );
 
-    // Cumpleaños de hoy
-    const todayMM = String(now.getMonth() + 1).padStart(2, "0");
-    const todayDD = String(now.getDate()).padStart(2, "0");
-    const birthdays = clients.filter(c => {
-      if (!c.dateOfBirth) return false;
-      const dob = c.dateOfBirth;
-      return dob.slice(5, 7) === todayMM && dob.slice(8, 10) === todayDD;
-    });
-    if (birthdays.length > 0) list.push({
-      t: "info", msg: `🎂 ${birthdays.length} cliente${birthdays.length > 1 ? "s" : ""} cumple${birthdays.length > 1 ? "n" : ""} hoy`,
-      detail: birthdays.slice(0, 3).map(c => c.name).join(", "),
-    });
-
-    const debtors = clients.filter(c => (c.balance || 0) < 0);
-    const totalDebt = debtors.reduce((s, c) => s + Math.abs(c.balance), 0);
-    if (debtors.length > 0 && totalDebt > settings.debtTotalAlertARS) list.push({
-      t: "warning", msg: `${debtors.length} cliente${debtors.length > 1 ? "s" : ""} con deuda`,
-      detail: `Total: ${formatMoney(totalDebt)}`,
-    });
-
-    // === S14.9 — Tax tracking monotributo (AR) ===
-    // Si el usuario configuró un techo anual, alertar al 75/85/100% del cupo.
-    if (settings.monotributoYearlyLimitARS > 0) {
-      const year = now.getFullYear();
-      const yearSales = sales.filter(s => !s.isDeleted && new Date(s.date).getFullYear() === year);
-      const fallbackRate = safeRate(exchangeRate);
-      const ytdRevenue = yearSales.reduce((sum, sale) => {
-        const cur = sale.currency || "ARS";
-        const total = sale.total || 0;
-        const rate = sale.exchangeRate || fallbackRate || 1;
-        return sum + ((cur === "USD" || cur === "USDT") ? total * rate : total);
-      }, 0);
-      const limit = settings.monotributoYearlyLimitARS;
-      const pct = (ytdRevenue / limit) * 100;
-      if (pct >= 100) list.push({
-        t: "danger",
-        msg: `🏛️ Monotributo: superaste el techo anual (${pct.toFixed(0)}%)`,
-        detail: `Facturado YTD: ${formatMoney(ytdRevenue)} de ${formatMoney(limit)}. Re-categorizá YA.`,
-      });
-      else if (pct >= 85) list.push({
-        t: "warning",
-        msg: `🏛️ Monotributo: ${pct.toFixed(0)}% del techo anual`,
-        detail: `Facturado YTD: ${formatMoney(ytdRevenue)} de ${formatMoney(limit)}. Preparate para re-categorizar.`,
-      });
-      else if (pct >= 75) list.push({
-        t: "info",
-        msg: `🏛️ Monotributo: ${pct.toFixed(0)}% del techo anual`,
-        detail: `Facturado YTD: ${formatMoney(ytdRevenue)} de ${formatMoney(limit)}.`,
-      });
-    }
-
-    // === S15.8 — Pérdida de velocidad de productos ===
-    // Si productos top venían vendiendo bien y la última semana cayeron ≥50%,
-    // alerta para investigar (¿competencia? ¿stock visible? ¿agotamiento?).
-    const stats = buildProductSalesStats(products, sales, exchangeRate);
-    const drops = findVelocityDrops(stats, { minMonthlyQty: 5, minDropPct: 50 });
-    if (drops.length > 0) list.push({
-      t: "warning",
-      msg: `📉 ${drops.length} producto${drops.length > 1 ? "s" : ""} con caída de ventas`,
-      detail: drops.slice(0, 3).map(d =>
-        `${d.product.brand} ${d.product.model}${d.product.flavor ? ` · ${d.product.flavor}` : ""} (-${d.dropPct}%)`
-      ).join(", "),
-    });
-
-    // === S16.8 — Productos con margen bajo ===
-    // Identifica productos que tienen costUSDT cargado pero margen <25% (warning)
-    // o <15% (danger). Evita vender en pérdida sin darse cuenta.
-    const lowMargin = findLowMarginProducts(products, { dangerPct: 15, warningPct: 25 });
-    const dangerMargin = lowMargin.filter(x => x.severity === "danger");
-    if (dangerMargin.length > 0) list.push({
-      t: "danger",
-      msg: `💸 ${dangerMargin.length} producto${dangerMargin.length > 1 ? "s" : ""} con margen crítico (<15%)`,
-      detail: dangerMargin.slice(0, 3).map(d =>
-        `${d.product.brand} ${d.product.model}${d.product.flavor ? ` · ${d.product.flavor}` : ""} (${d.marginPct}%)`
-      ).join(", "),
-    });
-    const warningMargin = lowMargin.filter(x => x.severity === "warning");
-    if (warningMargin.length > 0 && dangerMargin.length === 0) list.push({
-      t: "warning",
-      msg: `📉 ${warningMargin.length} producto${warningMargin.length > 1 ? "s" : ""} con margen bajo (<25%)`,
-      detail: warningMargin.slice(0, 3).map(d =>
-        `${d.product.brand} ${d.product.model}${d.product.flavor ? ` · ${d.product.flavor}` : ""} (${d.marginPct}%)`
-      ).join(", "),
-    });
-
-    // === MERMAS ===
-    const wActive = (withdrawals || []).filter(w => !w.isDeleted);
-    const wCost = (w) => Number(w.costRealUSD || w.costEstimateUSD) || 0;
-
-    // 8.1 Consumo personal del mes vs promedio últimos 3 meses
-    const consumoUSDInMonth = (monthOffset) => {
-      const target = new Date(now.getFullYear(), now.getMonth() - monthOffset, 1);
-      return wActive
-        .filter(w => w.withdrawType === "Consumo propio")
-        .filter(w => {
-          const d = new Date(w.date);
-          return d.getMonth() === target.getMonth() && d.getFullYear() === target.getFullYear();
-        });
-    };
-    const currentConsumo = consumoUSDInMonth(0);
-    const currentTotal = currentConsumo.reduce((s, w) => s + wCost(w), 0);
-    const prev3 = [1, 2, 3].map(i => consumoUSDInMonth(i).reduce((s, w) => s + wCost(w), 0));
-    const avgPrev3 = prev3.reduce((s, x) => s + x, 0) / 3;
-    if (avgPrev3 > 0 && currentTotal > avgPrev3 * 1.5) {
-      list.push({
-        t: "warning",
-        msg: "Consumo propio inusualmente alto este mes",
-        detail: `${formatMoney(currentTotal, "USD")} (prom. anterior ${formatMoney(avgPrev3, "USD")})`,
-      });
-    }
-
-    // 8.2 Reclamables a proveedor — info para próximo pedido
-    const reclamables = wActive.filter(w => w.reclamableProveedor);
-    if (reclamables.length > 0) {
-      const reclamablesUSD = reclamables.reduce((s, w) => s + wCost(w), 0);
-      const reclamablesQty = reclamables.reduce((s, w) => s + (w.qty || 0), 0);
-      list.push({
-        t: "info",
-        msg: `${formatMoney(reclamablesUSD, "USD")} en garantías reclamables al proveedor`,
-        detail: `${reclamablesQty} uds — recordá contemplarlo en el próximo pedido`,
-      });
-    }
-
-    // 8.3 Modelo con alta tasa de falla este mes
-    // Para cada modelo único: count de garantías del mes / ventas del mes del mismo modelo
-    // Si tasa > 3% Y count >= 2: alerta roja
-    const garantiasMes = wActive.filter(w => isGarantia(w.withdrawType) && isThisMonth(w.date));
-    if (garantiasMes.length > 0) {
-      // Contar garantías por modelo (usando failedProductId si existe, sino productId)
-      const garantiasByModel = {}; // modelKey -> { count, productName }
-      garantiasMes.forEach(w => {
-        const pid = w.failedProductId || w.productId;
-        const p = productsById[pid];
-        if (!p) return;
-        const key = `${p.brand}|${p.model}`;
-        if (!garantiasByModel[key]) garantiasByModel[key] = { count: 0, qty: 0, name: `${p.brand} ${p.model}` };
-        garantiasByModel[key].count += 1;
-        garantiasByModel[key].qty += (w.qty || 0);
-      });
-      // Contar ventas del mes por modelo
-      const ventasByModel = {};
-      sales.filter(s => !s.isDeleted && isThisMonth(s.date)).forEach(s => {
-        (s.items || []).forEach(i => {
-          const p = productsById[i.productId];
-          if (!p) return;
-          const key = `${p.brand}|${p.model}`;
-          ventasByModel[key] = (ventasByModel[key] || 0) + (i.qty || 1);
-        });
-      });
-      // Detectar modelos problemáticos
-      const problemModels = [];
-      Object.keys(garantiasByModel).forEach(key => {
-        const g = garantiasByModel[key];
-        const ventas = ventasByModel[key] || 0;
-        if (g.count >= settings.warrantyMonthlyCount && ventas > 0) {
-          const rate = g.count / ventas;
-          if (rate > settings.warrantyRatePct / 100) {
-            problemModels.push({ name: g.name, count: g.count, ventas, rate });
-          }
-        }
-      });
-      if (problemModels.length > 0) {
-        const top = problemModels.sort((a, b) => b.rate - a.rate).slice(0, 2);
-        list.push({
-          t: "danger",
-          msg: `${problemModels.length} modelo${problemModels.length > 1 ? "s" : ""} con alta tasa de falla este mes`,
-          detail: top.map(m => `${m.name}: ${m.count} cambios sobre ${m.ventas} ventas (${(m.rate * 100).toFixed(1)}%)`).join(" · "),
-        });
-      }
-    }
-
-    // 8.4 Cambios por daño de envío Paraguay (umbral configurable)
-    const dañoEnvio = garantiasMes.filter(w => w.failureReason === "Daño de envío Paraguay");
-    if (dañoEnvio.length >= settings.shippingDamageMonthly) {
-      const qty = dañoEnvio.reduce((s, w) => s + (w.qty || 0), 0);
-      const usd = dañoEnvio.reduce((s, w) => s + wCost(w), 0);
-      list.push({
-        t: "warning",
-        msg: `${dañoEnvio.length} cambios por daño de envío este mes`,
-        detail: `${qty} uds · ${formatMoney(usd, "USD")} — revisar embalaje con proveedor`,
-      });
-    }
-
-    // 8.45 Productos próximos a vencer (expiryDate ≤ 30 días) o ya vencidos
-    const expireBefore = now.getTime() + settings.expiringDaysAhead * msPerDay;
-    const expiringSoon = products.filter(p => {
-      if (!p.expiryDate || !p.stock || p.stock <= 0) return false;
-      const t = new Date(p.expiryDate).getTime();
-      return !Number.isNaN(t) && t <= expireBefore;
-    });
-    const expired = expiringSoon.filter(p => new Date(p.expiryDate).getTime() < now.getTime());
-    const soonNotExpired = expiringSoon.filter(p => new Date(p.expiryDate).getTime() >= now.getTime());
-    if (expired.length > 0) {
-      list.push({
-        t: "danger",
-        msg: `${expired.length} producto${expired.length > 1 ? "s" : ""} vencido${expired.length > 1 ? "s" : ""} con stock`,
-        detail: expired.slice(0, 3).map(p => `${p.brand} ${p.model}: ${p.stock} uds · venció ${formatDate(p.expiryDate)}`).join(" · "),
-      });
-    }
-    if (soonNotExpired.length > 0) {
-      list.push({
-        t: "warning",
-        msg: `${soonNotExpired.length} producto${soonNotExpired.length > 1 ? "s" : ""} vence${soonNotExpired.length === 1 ? "" : "n"} en ≤${settings.expiringDaysAhead} días`,
-        detail: soonNotExpired.slice(0, 3).map(p => `${p.brand} ${p.model}: ${formatDate(p.expiryDate)}`).join(" · "),
-      });
-    }
-
-    // 8.5 Lotes Paraguay sin rotar (configurable: días + % stock restante)
-    const stagnantBefore = now.getTime() - settings.stagnantLoteMinDays * msPerDay;
-    const stagnantLotes = (purchases || [])
-      .filter(p => !p.isDeleted && p.status === "verificado" && new Date(p.date).getTime() < stagnantBefore)
-      .map(p => {
-        const items = p.items || [];
-        const totalLoteQty = items.reduce((s, i) => s + (Number(i.qty) || 0), 0);
-        if (totalLoteQty === 0) return null;
-        const currentStock = items.reduce((s, i) => {
-          const prod = productsById[i.productId];
-          return s + (prod?.stock || 0);
-        }, 0);
-        const pct = totalLoteQty > 0 ? currentStock / totalLoteQty : 0;
-        return { p, totalLoteQty, currentStock, pct };
-      })
-      .filter(x => x && x.pct >= settings.stagnantLoteMinPct)
-      .sort((a, b) => new Date(a.p.date) - new Date(b.p.date));
-    if (stagnantLotes.length > 0) {
-      const top = stagnantLotes.slice(0, 2);
-      list.push({
-        t: "info",
-        msg: `${stagnantLotes.length} lote${stagnantLotes.length > 1 ? "s" : ""} sin rotar (≥${Math.round(settings.stagnantLoteMinPct * 100)}% stock, >${settings.stagnantLoteMinDays}d)`,
-        detail: top.map(x => {
-          const label = x.p.loteNumber ? `${x.p.loteNumber} (${x.p.supplier || "?"})` : (x.p.supplier || "Lote sin nombre");
-          const days = Math.floor((now.getTime() - new Date(x.p.date).getTime()) / msPerDay);
-          return `${label}: ${x.currentStock}/${x.totalLoteQty} · ${days}d`;
-        }).join(" · "),
-      });
-    }
-
-    return list;
-  }, [outOfStock, lowStock, products, productsById, sales, clients, withdrawals, purchases, settings]);
-
-  const alertStyles = {
-    danger: { bg: T.redBg, border: T.redBorder, dot: T.red },
-    warning: { bg: T.amberBg, border: T.amberBorder, dot: T.amber },
-    info: { bg: T.blueBg, border: T.blueBorder, dot: T.blue },
-  };
 
   // ---- mermas & descuentos ----
   const mermasQty = monthWithdrawals.reduce((s, w) => s + (w.qty || 0), 0);
@@ -654,35 +398,19 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, c
         <PeriodSelector value={period} onChange={setPeriod} />
       </div>
 
-      {/* ===== ALERTS ===== */}
-      {alerts.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 18 }}>
-          {(showAllAlerts ? alerts : alerts.slice(0, 3)).map((a, i) => {
-            const st = alertStyles[a.t];
-            return (
-              <div key={i} style={{
-                display: "flex", alignItems: "center", gap: 10,
-                padding: "10px 14px", background: st.bg,
-                border: `1px solid ${st.border}`, borderRadius: 10,
-              }}>
-                <span style={{ width: 6, height: 6, borderRadius: "50%", background: st.dot, flexShrink: 0 }} />
-                <div style={{ flex: 1, fontSize: 13, color: T.text, lineHeight: 1.4 }}>
-                  <b style={{ color: st.dot, fontWeight: 600 }}>{a.msg}</b>
-                  {a.detail && <span style={{ marginLeft: 8, color: T.textSub, fontSize: 12 }}>· {a.detail}</span>}
-                </div>
-              </div>
-            );
-          })}
-          {alerts.length > 3 && (
-            <button onClick={() => setShowAllAlerts(!showAllAlerts)} style={{
-              background: "none", border: "none", color: T.primary, fontSize: 12,
-              cursor: "pointer", fontWeight: 600, fontFamily: "inherit",
-              textAlign: "left", padding: "4px 2px", width: "fit-content",
-            }}>
-              {showAllAlerts ? "Ver menos" : `+${alerts.length - 3} alertas más`}
-            </button>
-          )}
-        </div>
+      {/* ===== ACCIÓN DEL DÍA (la próxima jugada concreta) ===== */}
+      {actionOfDay && (
+        <ActionOfDayCard action={actionOfDay} onNavigate={onNavigate} isMobile={isMobile} />
+      )}
+
+      {/* ===== META DEL MES (si está configurada) ===== */}
+      {monthGoal && (
+        <MonthGoalCard goal={monthGoal} isMobile={isMobile} />
+      )}
+
+      {/* ===== ALERTAS AGRUPADAS POR URGENCIA ===== */}
+      {alertsGrouped.totalCount > 0 && (
+        <AlertsSection groups={alertsGrouped} onNavigate={onNavigate} isMobile={isMobile} />
       )}
 
       {/* ===== HERO KPIs ===== */}
@@ -1400,3 +1128,202 @@ const MiniKpi = ({ label, value, sub, accent }) => (
   </PCard>
 );
 
+
+// =========================================================================
+// ACCIÓN DEL DÍA — card prominente arriba con la próxima jugada
+// =========================================================================
+function ActionOfDayCard({ action, onNavigate, isMobile }) {
+  const handleClick = () => {
+    if (onNavigate && action.action?.page) onNavigate(action.action.page);
+  };
+  return (
+    <button
+      onClick={handleClick}
+      disabled={!action.action?.page || !onNavigate}
+      style={{
+        width: "100%", marginBottom: 14,
+        background: "linear-gradient(135deg, #1E2B4A 0%, #2D3D63 100%)",
+        color: "#F8F2E7", border: "none",
+        borderRadius: 14, padding: isMobile ? 14 : 16,
+        cursor: action.action?.page && onNavigate ? "pointer" : "default",
+        fontFamily: "inherit", textAlign: "left",
+        boxShadow: "0 4px 12px rgba(30,43,74,0.18)",
+        display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap",
+      }}
+    >
+      <div style={{
+        fontSize: 32, lineHeight: 1, flexShrink: 0,
+        background: "rgba(248,242,231,0.10)", padding: "10px 12px", borderRadius: 12,
+      }}>{action.icon}</div>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{
+          fontSize: 11, fontWeight: 700, opacity: 0.75,
+          textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 2,
+        }}>🎯 Hoy te conviene</div>
+        <div style={{ fontSize: isMobile ? 15 : 17, fontWeight: 800, lineHeight: 1.25 }}>{action.title}</div>
+        {action.subtitle && (
+          <div style={{ fontSize: 12, opacity: 0.82, marginTop: 4, lineHeight: 1.4 }}>{action.subtitle}</div>
+        )}
+      </div>
+      {action.action?.label && (
+        <div style={{
+          padding: "10px 16px", flexShrink: 0,
+          background: "#F8F2E7", color: "#1E2B4A",
+          borderRadius: 8, fontSize: 13, fontWeight: 800,
+          whiteSpace: "nowrap",
+        }}>{action.action.label} →</div>
+      )}
+    </button>
+  );
+}
+
+// =========================================================================
+// META DEL MES — barra de progreso vs objetivo configurado
+// =========================================================================
+function MonthGoalCard({ goal, isMobile }) {
+  const pct = Math.min(100, goal.pct);
+  const onTrack = goal.onTrack;
+  const barColor = onTrack ? T.green : T.amber;
+  const statusText = onTrack
+    ? `🟢 Vas bien — ${Math.round(goal.pct)}% de la meta`
+    : `🟡 Atrasado vs ritmo esperado (${Math.round(goal.pct)}%)`;
+
+  return (
+    <div style={{
+      background: T.card, border: `1px solid ${T.borderSoft}`,
+      borderRadius: 14, padding: isMobile ? 14 : 16, marginBottom: 14,
+    }}>
+      <div style={{
+        display: "flex", justifyContent: "space-between", alignItems: "baseline",
+        gap: 8, marginBottom: 10, flexWrap: "wrap",
+      }}>
+        <div>
+          <div style={{
+            fontSize: 11, fontWeight: 700, color: T.textMuted,
+            textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2,
+          }}>🎯 Meta del mes</div>
+          <div style={{ fontSize: isMobile ? 18 : 20, fontWeight: 800, color: T.text }}>
+            {formatMoney(goal.revenueARS)} <span style={{ color: T.textMuted, fontSize: 14, fontWeight: 600 }}>de {formatMoney(goal.goalARS)}</span>
+          </div>
+        </div>
+        <div style={{
+          padding: "5px 10px", borderRadius: 999, fontSize: 11, fontWeight: 700,
+          background: onTrack ? T.greenBg : T.amberBg,
+          color: onTrack ? T.green : T.amber,
+          border: `1px solid ${onTrack ? T.greenBorder : T.amberBorder}`,
+        }}>{statusText}</div>
+      </div>
+      {/* Barra */}
+      <div style={{
+        position: "relative", height: 10, background: T.surface2,
+        borderRadius: 5, overflow: "hidden",
+      }}>
+        <div style={{
+          position: "absolute", left: 0, top: 0, bottom: 0,
+          width: `${pct}%`, background: barColor,
+          transition: "width 0.3s ease",
+        }} />
+        {/* Marca del "esperado a esta altura" */}
+        {goal.expectedByNowARS > 0 && goal.goalARS > 0 && (
+          <div style={{
+            position: "absolute", top: -2, bottom: -2,
+            left: `${Math.min(100, (goal.expectedByNowARS / goal.goalARS) * 100)}%`,
+            width: 2, background: T.text, opacity: 0.4,
+          }} title="Esperado a esta altura del mes" />
+        )}
+      </div>
+      <div style={{
+        display: "flex", justifyContent: "space-between", marginTop: 8,
+        fontSize: 11, color: T.textMuted, flexWrap: "wrap", gap: 4,
+      }}>
+        <span>Promedio diario: <strong style={{ color: T.text }}>{formatMoney(goal.dailyAvg)}</strong></span>
+        {goal.daysRemaining > 0 && goal.dailyNeeded > goal.dailyAvg && (
+          <span>Para llegar: <strong style={{ color: T.text }}>{formatMoney(goal.dailyNeeded)}/día</strong> · {goal.daysRemaining}d restantes</span>
+        )}
+        {goal.daysRemaining > 0 && goal.dailyNeeded <= goal.dailyAvg && (
+          <span>Mantené el ritmo · {goal.daysRemaining}d restantes</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// =========================================================================
+// SECCIÓN DE ALERTAS — 3 buckets (urgent / week / opportunity) con CTA
+// =========================================================================
+const BUCKET_META = {
+  urgent: { label: "Urgente", emoji: "🔴", borderColor: "#FBE4E4", bg: "#FFF8F8", titleColor: "#B83232" },
+  week: { label: "Esta semana", emoji: "🟡", borderColor: "#FDECC8", bg: "#FFFCF5", titleColor: "#CB912F" },
+  opportunity: { label: "Oportunidad", emoji: "🔵", borderColor: "#DAE8F5", bg: "#F7FAFC", titleColor: "#2383E2" },
+};
+
+function AlertsSection({ groups, onNavigate, isMobile }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 18 }}>
+      {["urgent", "week", "opportunity"].map(bucket => {
+        const items = groups[bucket];
+        if (!items || items.length === 0) return null;
+        const meta = BUCKET_META[bucket];
+        return (
+          <div key={bucket} style={{
+            background: meta.bg, border: `1px solid ${meta.borderColor}`,
+            borderRadius: 12, overflow: "hidden",
+          }}>
+            <div style={{
+              padding: "8px 14px", display: "flex", alignItems: "center", gap: 8,
+              borderBottom: `1px solid ${meta.borderColor}`, background: "rgba(255,255,255,0.5)",
+            }}>
+              <span>{meta.emoji}</span>
+              <span style={{
+                fontSize: 11, fontWeight: 800, color: meta.titleColor,
+                textTransform: "uppercase", letterSpacing: 0.5,
+              }}>{meta.label}</span>
+              <span style={{
+                fontSize: 11, color: T.textMuted, marginLeft: "auto",
+              }}>{items.length}</span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              {items.map((a, i) => (
+                <AlertRow key={`${bucket}-${i}`} alert={a} onNavigate={onNavigate} isMobile={isMobile} isLast={i === items.length - 1} />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function AlertRow({ alert, onNavigate, isMobile, isLast }) {
+  const handleClick = () => {
+    if (onNavigate && alert.action?.page) onNavigate(alert.action.page);
+  };
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 10,
+      padding: "10px 14px",
+      borderTop: isLast ? "none" : "1px solid rgba(0,0,0,0.04)",
+      flexWrap: "wrap",
+    }}>
+      <span style={{ fontSize: 18, flexShrink: 0 }}>{alert.icon}</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: T.text, lineHeight: 1.3 }}>
+          {alert.title}
+        </div>
+        {alert.detail && (
+          <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2, lineHeight: 1.3 }}>
+            {alert.detail}
+          </div>
+        )}
+      </div>
+      {alert.action?.label && onNavigate && (
+        <button onClick={handleClick} style={{
+          flexShrink: 0, padding: "6px 12px", minHeight: isMobile ? 36 : 32,
+          background: T.text, color: T.card, border: "none",
+          borderRadius: 8, fontSize: 12, fontWeight: 700,
+          cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
+        }}>{alert.action.label}</button>
+      )}
+    </div>
+  );
+}
