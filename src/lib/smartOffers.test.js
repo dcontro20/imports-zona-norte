@@ -41,6 +41,15 @@ describe("dormantClients", () => {
     expect(c1.orderCount).toBe(2);
     expect(c1.avgTicketARS).toBe(25000);
   });
+  it("EXCLUYE clientes marcados como inactivos (ej: viven afuera)", () => {
+    const inactiveClient = { ...CLIENTS[0], inactive: true };
+    const result = dormantClients(
+      [inactiveClient, ...CLIENTS.slice(1)],
+      sales,
+      { daysThreshold: 30, exchangeRate: RATE }
+    );
+    expect(result.map(r => r.client.id)).not.toContain(inactiveClient.id);
+  });
   it("sorts by historical value desc", () => {
     const sales2 = [
       { clientId: "c1", date: daysAgo(45), currency: "ARS", total: 10000, items: [] },

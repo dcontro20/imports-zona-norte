@@ -736,8 +736,10 @@ export default function App() {
           }} />
         )}
 
-        {/* Mobile FAB con menú expandible: venta rápida + consumo propio */}
-        {isMobile && !quickSaleOpen && !quickMermaOpen && (
+        {/* FAB con menú expandible: venta rápida + consumo propio.
+            Visible en todos los dispositivos (antes era isMobile-only).
+            En desktop/iPad queda como burbujita en bottom-right, no invasivo. */}
+        {!quickSaleOpen && !quickMermaOpen && (
           <>
             {/* Backdrop click-out cuando el menú está abierto */}
             {fabMenuOpen && (

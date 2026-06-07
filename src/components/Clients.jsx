@@ -53,7 +53,7 @@ export const Clients = ({ clients, setClients, sales, products, withdrawals = []
   const [zoneFilter, setZoneFilter] = useState("");
   const [monthFilter, setMonthFilter] = useState(""); // "" | "YYYY-MM"
   const [modal, setModal] = useState(false);
-  const [form, setForm] = useState({ name: "", phone: "", email: "", instagram: "", zona: "", notes: "", dateOfBirth: "", isBlocked: false, blockReason: "", tier: "regular" });
+  const [form, setForm] = useState({ name: "", phone: "", email: "", instagram: "", zona: "", notes: "", dateOfBirth: "", isBlocked: false, blockReason: "", tier: "regular", inactive: false, inactiveReason: "" });
   const [editing, setEditing] = useState(null);
   const [phoneError, setPhoneError] = useState("");
 
@@ -238,12 +238,13 @@ export const Clients = ({ clients, setClients, sales, products, withdrawals = []
   }, [sales]);
 
   // ---- actions ----
-  const openNew = () => { setForm({ name: "", phone: "", email: "", instagram: "", zona: "", notes: "", dateOfBirth: "", isBlocked: false, blockReason: "", tier: "regular" }); setEditing(null); setPhoneError(""); setModal(true); };
+  const openNew = () => { setForm({ name: "", phone: "", email: "", instagram: "", zona: "", notes: "", dateOfBirth: "", isBlocked: false, blockReason: "", tier: "regular", inactive: false, inactiveReason: "" }); setEditing(null); setPhoneError(""); setModal(true); };
   const openEdit = (c) => { setForm({
     name: c.name || "", phone: c.phone || "", email: c.email || "", instagram: c.instagram || "",
     zona: c.zona || "", notes: c.notes || "",
     dateOfBirth: c.dateOfBirth || "", isBlocked: !!c.isBlocked, blockReason: c.blockReason || "",
     tier: c.tier || "regular",
+    inactive: !!c.inactive, inactiveReason: c.inactiveReason || "",
   }); setEditing(c.id); setPhoneError(""); setModal(true); };
 
   const save = () => {
@@ -516,6 +517,13 @@ const ClientCard = memo(({ client: c, stats, productsById, gestures, onEdit, onH
                 fontSize: 11, color: "#fff", background: T.red, padding: "3px 8px", borderRadius: 999,
                 fontWeight: 700,
               }}>🚫 Bloqueado</span>
+            )}
+            {c.inactive && (
+              <span title={c.inactiveReason || "Cliente inactivo — no aparece en alertas"} style={{
+                display: "inline-flex", alignItems: "center", gap: 4,
+                fontSize: 11, color: "#fff", background: T.blue, padding: "3px 8px", borderRadius: 999,
+                fontWeight: 700,
+              }}>🌍 Inactivo</span>
             )}
             {(() => {
               const seg = stats?.segment;
@@ -902,6 +910,38 @@ const ClientForm = ({ form, setForm, phoneError, setPhoneError, knownZones, edit
             placeholder="Razón (ej: no pagó, dirección falsa, devolvió producto roto)"
             style={{ ...fieldStyle(), marginTop: 8 }}
           />
+        )}
+      </div>
+
+      {/* Cliente inactivo — no aparece en alertas de "dormidos" ni cumpleaños.
+          Útil para clientes que se fueron del país, dejaron de fumar, etc. */}
+      <div style={{
+        padding: 12, background: form.inactive ? "#E8F0FE" : T.surface2,
+        border: `1px solid ${form.inactive ? "#3B82F655" : T.borderSoft}`,
+        borderRadius: 10,
+      }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, color: T.text, fontWeight: 600 }}>
+          <input
+            type="checkbox"
+            checked={!!form.inactive}
+            onChange={e => setForm(f => ({ ...f, inactive: e.target.checked }))}
+            style={{ width: 16, height: 16, cursor: "pointer" }}
+          />
+          🌍 Marcar como inactivo (no sugerir como dormido)
+        </label>
+        {form.inactive && (
+          <>
+            <input
+              type="text"
+              value={form.inactiveReason || ""}
+              onChange={e => setForm(f => ({ ...f, inactiveReason: e.target.value }))}
+              placeholder="Motivo (ej: vive en Europa, dejó de fumar, sin contacto)"
+              style={{ ...fieldStyle(), marginTop: 8 }}
+            />
+            <div style={{ fontSize: 11, color: T.textMuted, marginTop: 6, lineHeight: 1.4 }}>
+              No aparecerá en alertas de "clientes dormidos" ni cumpleaños. Si vuelve algún día, lo desmarcás.
+            </div>
+          </>
         )}
       </div>
 

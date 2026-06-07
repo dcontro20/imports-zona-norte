@@ -29,6 +29,9 @@ const MS_PER_DAY = 86400000;
 // Clientes que compraron alguna vez pero no compran hace >daysThreshold.
 // Devuelve [{ client, lastPurchase, daysSince, totalSpentARS, orderCount, avgTicketARS }]
 // ordenados por valor histórico (los más valiosos primero).
+//
+// EXCLUYE clientes con `inactive: true` (ej: se mudaron al exterior, dejaron
+// de fumar, etc.). Esos no son "dormidos" — no van a comprar más por ahora.
 export function dormantClients(clients, sales, { daysThreshold = 30, exchangeRate = 1, now = new Date() } = {}) {
   const nowMs = now.getTime();
   const byClient = {};
@@ -48,6 +51,7 @@ export function dormantClients(clients, sales, { daysThreshold = 30, exchangeRat
   const result = [];
   (clients || []).forEach(c => {
     if (!c || c.isDeleted) return;
+    if (c.inactive) return; // skip clientes marcados como inactivos
     const data = byClient[c.id];
     if (!data || data.count === 0 || data.lastMs === 0) return; // nunca compró
     const daysSince = Math.floor((nowMs - data.lastMs) / MS_PER_DAY);

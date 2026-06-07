@@ -199,11 +199,11 @@ export function generateDashboardAlerts({
     });
   }
 
-  // Cumpleaños de hoy
+  // Cumpleaños de hoy — excluye clientes inactivos (ej: viven afuera)
   const todayMM = String(now.getMonth() + 1).padStart(2, "0");
   const todayDD = String(now.getDate()).padStart(2, "0");
   const birthdays = (clients || []).filter(c => {
-    if (!c || c.isDeleted || !c.dateOfBirth) return false;
+    if (!c || c.isDeleted || c.inactive || !c.dateOfBirth) return false;
     return c.dateOfBirth.slice(5, 7) === todayMM && c.dateOfBirth.slice(8, 10) === todayDD;
   });
   if (birthdays.length > 0) {
