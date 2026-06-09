@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "firebase": "^10.8.0",
-    "googleapis": "^171.4.0",
     "jspdf": "^4.2.1",
     "pdfjs-dist": "^5.7.284",
     "react": "^18.2.0",
@@ -21,6 +20,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.1",
+    "googleapis": "^173.0.0",
     "vite": "^5.1.0",
     "vitest": "^4.1.4"
   }
