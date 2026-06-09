@@ -737,8 +737,10 @@ export default function App() {
         )}
 
         {/* FAB con menú expandible: venta rápida + consumo propio.
-            Visible en todos los dispositivos (antes era isMobile-only).
-            En desktop/iPad queda como burbujita en bottom-right, no invasivo. */}
+            Visible en todos los dispositivos. Tap en la burbuja abre el menú
+            con DOS botones reales (antes la pastilla "Venta rápida" era
+            decorativa con pointerEvents:none y tocaba volver a tocar el FAB
+            — nadie entendía eso, parecía roto). */}
         {!quickSaleOpen && !quickMermaOpen && (
           <>
             {/* Backdrop click-out cuando el menú está abierto */}
@@ -748,35 +750,57 @@ export default function App() {
               }} />
             )}
 
-            {/* FAB secundario: Consumo propio (solo cuando menú abierto) */}
+            {/* Opción 1: Venta rápida (botón real, clickeable) */}
+            {fabMenuOpen && (
+              <button onClick={() => { setFabMenuOpen(false); setQuickSaleOpen(true); }}
+                aria-label="Venta rápida"
+                style={{
+                  position: "fixed",
+                  bottom: "calc(max(20px, env(safe-area-inset-bottom)) + 144px)",
+                  right: 20,
+                  display: "flex", alignItems: "center", gap: 10,
+                  padding: "12px 18px 12px 16px",
+                  minHeight: 48,
+                  borderRadius: 999,
+                  background: "linear-gradient(135deg, #0F7B6C 0%, #0a5f54 100%)",
+                  border: "none", color: "#fff",
+                  fontSize: 15, fontWeight: 700, cursor: "pointer",
+                  zIndex: 91,
+                  boxShadow: "0 6px 18px rgba(15,123,108,0.45), 0 2px 6px rgba(15,15,15,0.12)",
+                  fontFamily: "inherit",
+                  animation: "fabPop 0.18s ease-out",
+                }}>
+                <span style={{ fontSize: 20 }}>🛒</span> Venta rápida
+              </button>
+            )}
+
+            {/* Opción 2: Consumo propio (botón real, clickeable) */}
             {fabMenuOpen && (
               <button onClick={() => { setFabMenuOpen(false); setQuickMermaOpen(true); }}
                 aria-label="Anotar consumo propio"
                 style={{
                   position: "fixed",
-                  bottom: "calc(max(20px, env(safe-area-inset-bottom)) + 76px)",
-                  right: 24,
+                  bottom: "calc(max(20px, env(safe-area-inset-bottom)) + 84px)",
+                  right: 20,
                   display: "flex", alignItems: "center", gap: 10,
-                  padding: "10px 16px 10px 14px",
+                  padding: "12px 18px 12px 16px",
+                  minHeight: 48,
                   borderRadius: 999,
                   background: "linear-gradient(135deg, #e17055 0%, #d35400 100%)",
                   border: "none", color: "#fff",
-                  fontSize: 14, fontWeight: 700, cursor: "pointer",
+                  fontSize: 15, fontWeight: 700, cursor: "pointer",
                   zIndex: 91,
                   boxShadow: "0 6px 18px rgba(225,112,85,0.45), 0 2px 6px rgba(15,15,15,0.12)",
                   fontFamily: "inherit",
-                  animation: "fabPop 0.18s ease-out",
+                  animation: "fabPop 0.22s ease-out",
                 }}>
                 <span style={{ fontSize: 20 }}>📉</span> Anoté un consumo
               </button>
             )}
 
-            {/* FAB principal: toggle menú */}
-            <button onClick={() => {
-              if (fabMenuOpen) { setFabMenuOpen(false); setQuickSaleOpen(true); }
-              else setFabMenuOpen(true);
-            }}
-              aria-label={fabMenuOpen ? "Venta rápida" : "Acciones rápidas"}
+            {/* FAB principal: abre/cierra el menú (nada más) */}
+            <button onClick={() => setFabMenuOpen(o => !o)}
+              aria-label={fabMenuOpen ? "Cerrar acciones rápidas" : "Acciones rápidas"}
               style={{
                 position: "fixed",
                 bottom: "max(20px, env(safe-area-inset-bottom))",
@@ -792,23 +816,6 @@ export default function App() {
                 transform: fabMenuOpen ? "rotate(45deg)" : "rotate(0)",
                 transition: "transform 0.18s ease-out",
               }}>{fabMenuOpen ? "+" : "🛒"}</button>
-
-            {/* Hint text al lado del FAB principal cuando menú abierto */}
-            {fabMenuOpen && (
-              <div style={{
-                position: "fixed",
-                bottom: "max(20px, env(safe-area-inset-bottom))",
-                right: 92,
-                height: 60,
-                display: "flex", alignItems: "center",
-                fontSize: 13, fontWeight: 600, color: "#fff",
-                background: "linear-gradient(135deg, #1E2B4A 0%, #3A4868 100%)",
-                padding: "0 14px", borderRadius: 999,
-                zIndex: 91,
-                boxShadow: "0 6px 18px rgba(30,43,74,0.45), 0 2px 6px rgba(15,15,15,0.12)",
-                pointerEvents: "none",
-              }}>🛒 Venta rápida</div>
-            )}
           </>
         )}
         <style>{`@keyframes fabPop { from { opacity: 0; transform: translateY(10px) scale(0.92); } to { opacity: 1; transform: none; } }`}</style>
