@@ -5,6 +5,7 @@ import { Finance } from "./Finance.jsx";
 import { Reports } from "./Reports.jsx";
 import { Partners } from "./Partners.jsx";
 import { MonthlyClosures } from "./Closures.jsx";
+import { FinanceProjections } from "./analisis/FinanceProjections.jsx";
 
 // Hub "📊 Análisis" — consolida toda la visión financiera del negocio en
 // un solo lugar con tabs. Los módulos existentes entran en modo embedded.
@@ -27,6 +28,7 @@ export const Analisis = (props) => {
 
   const TABS = [
     { key: "summary", label: "📊 Resumen" },
+    { key: "projections", label: "📐 Proyecciones" },
     { key: "results", label: "📈 Resultados" },
     { key: "reports", label: "🛒 Reportes" },
     { key: "patrimony", label: "💼 Patrimonio" },
@@ -75,6 +77,12 @@ export const Analisis = (props) => {
         <AnalysisSummary
           sales={sales} purchases={purchases} expenses={expenses} withdrawals={withdrawals}
           products={products} exchangeRate={exchangeRate} onGoToTab={setTab}
+        />
+      )}
+      {tab === "projections" && (
+        <FinanceProjections
+          sales={sales} purchases={purchases} expenses={expenses}
+          products={products} exchangeRate={exchangeRate}
         />
       )}
       {tab === "results" && (
