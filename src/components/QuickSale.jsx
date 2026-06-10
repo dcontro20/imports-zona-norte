@@ -210,14 +210,16 @@ export const QuickSale = ({
   if (step === 1) {
     return (
       <Modal open={true} onClose={handleClose} title="Venta Rápida">
+        {/* Sin autoFocus: en iOS dispara el teclado apenas abre el modal y
+            desplaza el viewport (se ve como que "se traba"). fontSize 16
+            evita el auto-zoom de iOS al enfocar. */}
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Buscar producto..."
-          autoFocus
           style={{
             width: "100%", padding: "12px 14px", background: "#F8F2E7",
-            border: "1px solid #E5DAC2", borderRadius: 10, fontSize: 15,
+            border: "1px solid #E5DAC2", borderRadius: 10, fontSize: 16,
             outline: "none", boxSizing: "border-box", marginBottom: 12,
           }}
         />

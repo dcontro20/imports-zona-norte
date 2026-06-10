@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { formatMoney, formatDate, formatDateTime } from "../../helpers.js";
 import { useResponsive } from "../../App.jsx";
-import { Btn } from "../UI.jsx";
+import { Btn, useBodyScrollLock } from "../UI.jsx";
 import { SupplierBadge } from "../supplier/Sparkline.jsx";
 import {
   resolvePurchaseProfile,
@@ -27,6 +27,9 @@ export function PurchaseDetailDrawer({
   onEdit,
 }) {
   const { isMobile } = useResponsive();
+  // Lock del scroll de fondo mientras el drawer está abierto (iOS).
+  // Importante: llamarlo ANTES del early-return para no romper reglas de hooks.
+  useBodyScrollLock(!!purchase);
   const profile = useMemo(() => resolvePurchaseProfile(purchase, supplierProfiles), [purchase, supplierProfiles]);
   const timeline = useMemo(() => buildTimeline(purchase), [purchase]);
   const eta = useMemo(() => expectedDelivery(purchase, profile), [purchase, profile]);

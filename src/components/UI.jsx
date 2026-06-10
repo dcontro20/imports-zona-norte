@@ -4,6 +4,43 @@ import { useResponsive } from "../App.jsx";
 // Mobile-first: altura mínima 44px en todo lo tocable (Apple HIG).
 // padding: 12px vertical + 14px horizontal + fontSize: 14 ≈ 44px.
 
+// Body scroll lock iOS-proof mientras un overlay está abierto.
+// overflow:hidden solo NO alcanza en iOS Safari/PWA: el touch scroll del
+// fondo sigue funcionando ("scroll bleed-through") y se siente como que el
+// fondo se mueve/traba detrás del modal. La técnica robusta: position:fixed
+// en el body guardando el scrollY, y restaurarlo al cerrar.
+// Usalo en cualquier overlay custom: useBodyScrollLock(isOpen)
+export function useBodyScrollLock(active) {
+  useEffect(() => {
+    if (!active) return;
+    const body = document.body;
+    const scrollY = window.scrollY;
+    const prev = {
+      position: body.style.position,
+      top: body.style.top,
+      left: body.style.left,
+      right: body.style.right,
+      width: body.style.width,
+      overflow: body.style.overflow,
+    };
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.left = "0";
+    body.style.right = "0";
+    body.style.width = "100%";
+    body.style.overflow = "hidden";
+    return () => {
+      body.style.position = prev.position;
+      body.style.top = prev.top;
+      body.style.left = prev.left;
+      body.style.right = prev.right;
+      body.style.width = prev.width;
+      body.style.overflow = prev.overflow;
+      window.scrollTo(0, scrollY);
+    };
+  }, [active]);
+}
+
 export const Modal = ({ open, onClose, title, children }) => {
   const { isMobile, isTablet } = useResponsive();
   // Ref al contenedor scrolleable + state para indicador "hay más abajo".
@@ -34,6 +71,8 @@ export const Modal = ({ open, onClose, title, children }) => {
     };
   }, [open, children]);
 
+  useBodyScrollLock(open);
+
   if (!open) return null;
   return (
     <div style={{
@@ -47,8 +86,12 @@ export const Modal = ({ open, onClose, title, children }) => {
         padding: isMobile ? "16px" : "24px",
         maxWidth: isMobile ? "100%" : isTablet ? 680 : 520,
         width: "100%",
-        maxHeight: isMobile ? "92vh" : "85vh",
+        maxHeight: isMobile ? "92dvh" : "85vh",
         overflowY: "auto",
+        // contain: el scroll del modal no encadena al body cuando llega
+        // al tope/fondo (evita el rubber-band del fondo en iOS)
+        overscrollBehavior: "contain",
+        WebkitOverflowScrolling: "touch",
         border: isMobile ? "none" : "1px solid #E5DAC2",
         boxShadow: "0 24px 48px rgba(15,15,15,0.14)",
         boxSizing: "border-box",

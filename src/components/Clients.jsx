@@ -796,7 +796,7 @@ const ClientForm = ({ form, setForm, phoneError, setPhoneError, knownZones, edit
         <label style={{ fontSize: 11, fontWeight: 600, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6, display: "block" }}>
           Nombre *
         </label>
-        <input autoFocus value={form.name}
+        <input value={form.name}
           onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
           placeholder="Ej: Juan Pérez"
           style={fieldStyle()} />

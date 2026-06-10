@@ -7,6 +7,7 @@ import { useResponsive } from "../App.jsx";
 import { useAppContext } from "../AppContext.js";
 import { useSettings } from "../useSettings.js";
 import { T, pickAvatarColor } from "../theme.js";
+import { useBodyScrollLock } from "./UI.jsx";
 import { generateDashboardAlerts } from "../lib/dashboardAlerts.js";
 import { getActionOfTheDay } from "../lib/dashboardAction.js";
 import { calcMonthGoalProgress } from "../lib/dashboardGoal.js";
@@ -813,6 +814,7 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, c
 // TrendingProductModal — histórico 30d de un producto
 // ============================================
 const TrendingProductModal = ({ product, sales, onClose }) => {
+  useBodyScrollLock(true);
   const dailyData = useMemo(() => {
     const now = new Date();
     const days = [];
@@ -939,6 +941,7 @@ const TrendingProductModal = ({ product, sales, onClose }) => {
 
 const ReorderModal = ({ products, qtyMap, setQtyMap, onClose, onCopied }) => {
   const { isMobile, isTablet } = useResponsive();
+  useBodyScrollLock(true);
 
   // Agrupar por marca para el mensaje
   const byBrand = useMemo(() => {

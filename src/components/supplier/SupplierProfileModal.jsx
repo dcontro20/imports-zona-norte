@@ -61,7 +61,6 @@ export function SupplierProfileModal({ open, profile, existingProfiles = [], onC
         value={form.name}
         onChange={e => set("name", e.target.value)}
         placeholder="Ej: Paraguay 1"
-        autoFocus
       />
 
       {/* Color picker */}

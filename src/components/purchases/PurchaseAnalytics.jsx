@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { formatMoney, formatDate } from "../../helpers.js";
 import { useResponsive } from "../../App.jsx";
-import { Card } from "../UI.jsx";
+import { Card, useBodyScrollLock } from "../UI.jsx";
 import { SupplierBadge, Sparkline } from "../supplier/Sparkline.jsx";
 import { buildProductSalesStats } from "../../productIntelligence.js";
 import {
@@ -264,6 +264,7 @@ export function PurchaseAnalytics({
 }
 
 function CostHistoryModal({ product, history, onClose }) {
+  useBodyScrollLock(true);
   const max = Math.max(1, ...history.map(h => h.costUSDT));
   const min = Math.min(...history.map(h => h.costUSDT), max);
   return (

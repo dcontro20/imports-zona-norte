@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { uid, formatMoney } from "../helpers.js";
-import { Modal, Card, Btn, Input, Select, Table, Badge, SearchBar } from "./UI.jsx";
+import { Modal, Card, Btn, Input, Select, Table, Badge, SearchBar, useBodyScrollLock } from "./UI.jsx";
 import { BRANDS, BRAND_COLORS } from "../constants.js";
 import { useResponsive } from "../App.jsx";
 import { useAppContext } from "../AppContext.js";
@@ -111,6 +111,8 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
   const [tagFilter, setTagFilter] = useState("");
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState("");
+  // Lock del scroll de fondo mientras el lightbox está abierto (iOS)
+  useBodyScrollLock(!!lightboxUrl);
 
   // Quick edit handlers
   const startQuickEdit = () => {
