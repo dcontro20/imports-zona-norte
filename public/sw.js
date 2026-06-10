@@ -6,7 +6,7 @@
 //
 // El CACHE_VERSION se debe bumpear en cada cambio grande que requiera invalidación.
 
-const CACHE_VERSION = "izn-v29";
+const CACHE_VERSION = "izn-v30";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -37,6 +37,26 @@ self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "SKIP_WAITING") {
     self.skipWaiting();
   }
+});
+
+// Push remota (FCM): el server manda data-messages y este handler renderiza
+// la notificación. Funciona con la app CERRADA — el browser/iOS despierta
+// al SW cuando llega el push.
+self.addEventListener("push", (event) => {
+  let payload = {};
+  try { payload = event.data ? event.data.json() : {}; } catch {}
+  // FCM data-message → { data: {...} }. Tolerar también notification payload.
+  const d = payload.data || payload.notification || payload || {};
+  const title = d.title || "Imports Zona Norte";
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: d.body || "",
+      icon: "/apple-touch-icon.svg",
+      badge: "/icon.svg",
+      tag: d.slot ? `izn-daily-${d.slot}` : "izn-push",
+      data: { slot: d.slot, url: d.url || "/?page=offers" },
+    })
+  );
 });
 
 // Click en notificación: enfocar la ventana existente o abrir nueva.

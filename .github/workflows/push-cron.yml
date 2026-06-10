@@ -1,0 +1,42 @@
+# Cron de push diarias: pinguea el endpoint de Vercel cada 10 minutos.
+# El endpoint decide si es hora de mandar (ventana de 45 min + dedupe por
+# día/slot en Firestore), así que pings de más son inofensivos.
+#
+# OJO: los crons de GitHub Actions pueden atrasarse 5-20 min en horas pico.
+# Por eso la ventana del endpoint es generosa (45 min): la notificación
+# puede llegar unos minutos tarde, pero llega.
+#
+# Secret requerido (repo → Settings → Secrets and variables → Actions):
+#   PUSH_CRON_SECRET  — mismo valor que la env var de Vercel
+
+name: Push diario
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+    inputs:
+      test:
+        description: "Mandar push de prueba YA (ignora horarios y dedupe)"
+        type: boolean
+        default: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Llamar al endpoint
+        env:
+          SECRET: ${{ secrets.PUSH_CRON_SECRET }}
+        run: |
+          if [ -z "$SECRET" ]; then
+            echo "::error::Falta el secret PUSH_CRON_SECRET en el repo"
+            exit 1
+          fi
+          URL="https://imports-zona-norte.vercel.app/api/send-daily-push"
+          if [ "${{ inputs.test }}" = "true" ]; then
+            URL="$URL?test=1"
+          fi
+          RESPONSE=$(curl -fsS -X POST "$URL" -H "Authorization: Bearer $SECRET")
+          echo "Respuesta: $RESPONSE"

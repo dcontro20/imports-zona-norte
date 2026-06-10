@@ -273,34 +273,67 @@ export default function App() {
     });
   }, [currentUser]);
 
-  // Programa las notificaciones diarias locales según settings.
-  // Se vuelve a programar cuando: 1) el usuario cambia los horarios,
-  // 2) cambia el toggle on/off, 3) pasa la medianoche (re-programar día nuevo).
+  // Notificaciones diarias. Estrategia en capas:
+  //   1. Push REMOTAS (FCM): si el setup está completo (VAPID key pegada),
+  //      registra/refresca el token del dispositivo y sincroniza horarios
+  //      a Firestore. El server manda — llegan con la app CERRADA.
+  //   2. Locales como FALLBACK: si el push remoto no está configurado o
+  //      falla el registro, programa timers locales para el día actual.
+  // Re-corre cuando cambian toggle/horarios, y a medianoche (día nuevo).
   const settings = useSettings();
   useEffect(() => {
     if (!currentUser) return;
-    if (!settings.notificationsEnabled || !hasPermission()) {
-      cancelScheduled();
-      return;
-    }
-    scheduleDailyNotifications({
-      slotNoonTime: settings.notificationNoonTime || "12:00",
-      slotEveningTime: settings.notificationEveningTime || "18:30",
-    });
-    // Re-programar diariamente: timer hasta la próxima medianoche
-    const now = new Date();
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(0, 0, 30, 0); // 00:00:30 para no chocar con el día anterior
-    const msToMidnight = tomorrow.getTime() - now.getTime();
-    const midnightTimer = setTimeout(() => {
-      scheduleDailyNotifications({
-        slotNoonTime: settings.notificationNoonTime || "12:00",
-        slotEveningTime: settings.notificationEveningTime || "18:30",
-      });
-    }, msToMidnight);
+    let cancelled = false;
+    let midnightTimer = null;
+
+    const noonTime = settings.notificationNoonTime || "12:00";
+    const eveningTime = settings.notificationEveningTime || "18:30";
+
+    const scheduleLocal = () => {
+      scheduleDailyNotifications({ slotNoonTime: noonTime, slotEveningTime: eveningTime });
+      const now = new Date();
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(0, 0, 30, 0);
+      midnightTimer = setTimeout(scheduleLocal, tomorrow.getTime() - now.getTime());
+    };
+
+    (async () => {
+      const push = await import("./lib/push.js");
+      const everHadPush = push.isPushConfigured() || push.getStoredPushToken();
+
+      if (!settings.notificationsEnabled || !hasPermission()) {
+        cancelScheduled();
+        // Avisar al server que no mande más (solo si alguna vez hubo push)
+        if (everHadPush) {
+          push.syncPushConfig({ enabled: false, noonTime, eveningTime }).catch(() => {});
+        }
+        return;
+      }
+
+      // Intentar push remoto primero
+      let remoteOk = false;
+      if (push.isPushConfigured()) {
+        try {
+          remoteOk = (await push.enablePush()).ok;
+        } catch {}
+      }
+      if (everHadPush) {
+        push.syncPushConfig({ enabled: remoteOk, noonTime, eveningTime }).catch(() => {});
+      }
+      if (cancelled) return;
+
+      if (remoteOk) {
+        // El server se encarga — no duplicar con timers locales
+        cancelScheduled();
+      } else {
+        scheduleLocal();
+      }
+    })();
+
     return () => {
-      clearTimeout(midnightTimer);
+      cancelled = true;
+      if (midnightTimer) clearTimeout(midnightTimer);
       cancelScheduled();
     };
   }, [

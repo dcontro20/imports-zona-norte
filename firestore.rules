@@ -22,6 +22,16 @@ service cloud.firestore {
       allow read, write: if isOwner();
     }
 
+    // Push remotas (FCM): tokens de dispositivos + config de horarios.
+    // El cliente (Diego logueado) escribe acá; el endpoint serverless
+    // lee con Admin SDK (bypasea rules).
+    match /pushTokens/{token} {
+      allow read, write: if isOwner();
+    }
+    match /push/{docId} {
+      allow read, write: if isOwner();
+    }
+
     // Fallback: cualquier otra colección — cerrada
     match /{document=**} {
       allow read, write: if false;

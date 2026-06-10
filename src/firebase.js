@@ -15,6 +15,7 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+export const firebaseApp = app; // usado por lib/push.js para FCM
 
 // Persistencia offline de Firestore via IndexedDB:
 //   - Lecturas: los docs cacheados se devuelven instantáneamente al abrir sin red

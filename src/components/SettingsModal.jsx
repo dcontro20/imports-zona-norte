@@ -3,6 +3,7 @@ import { Modal, Card, Btn, Input } from "./UI.jsx";
 import { T } from "../theme.js";
 import { DEFAULT_SETTINGS, loadSettings, saveSettings, resetSettings } from "../settings.js";
 import { isSupported as notifSupported, getPermission, requestPermission } from "../lib/notifications.js";
+import { isPushConfigured, getStoredPushToken } from "../lib/push.js";
 
 // SettingsModal — configuración de thresholds del sistema.
 // Owner ajusta cómo el sistema dispara alertas (stock bajo, caja baja, etc).
@@ -155,6 +156,25 @@ function NotificationsSection({ draft, setDraft }) {
   const supported = notifSupported();
   const [perm, setPerm] = useState(supported ? getPermission() : "unsupported");
   const [requesting, setRequesting] = useState(false);
+  // Push remoto: "active" (token registrado), "ready" (configurado, falta
+  // registrar — pasa solo al guardar), "unconfigured" (falta VAPID key)
+  const [pushState, setPushState] = useState(() => {
+    if (!isPushConfigured()) return "unconfigured";
+    return getStoredPushToken() ? "active" : "ready";
+  });
+  const [registering, setRegistering] = useState(false);
+
+  const registerPushNow = async () => {
+    setRegistering(true);
+    try {
+      const { enablePush } = await import("../lib/push.js");
+      const r = await enablePush();
+      setPushState(r.ok ? "active" : "error");
+    } catch {
+      setPushState("error");
+    }
+    setRegistering(false);
+  };
 
   // Re-checkear el permiso por si el usuario lo cambió en otro lado
   useEffect(() => {
@@ -222,6 +242,31 @@ function NotificationsSection({ draft, setDraft }) {
               </Btn>
             )}
           </div>
+
+          {/* Estado del push remoto (FCM) */}
+          {perm === "granted" && (
+            <div style={{
+              padding: "8px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600,
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              gap: 8, flexWrap: "wrap",
+              background: pushState === "active" ? T.greenBg : pushState === "unconfigured" ? T.amberBg : T.cardAlt || T.card,
+              border: `1px solid ${pushState === "active" ? T.greenBorder : pushState === "unconfigured" ? T.amberBorder : T.borderSoft}`,
+              color: pushState === "active" ? T.green : pushState === "unconfigured" ? T.amber : T.textMuted,
+            }}>
+              {pushState === "active" && <span>📡 Push remoto activo — te llega aunque la app esté cerrada</span>}
+              {pushState === "unconfigured" && (
+                <span>📡 Push remoto: falta setup (ver <strong>docs/PUSH_SETUP.md</strong>). Mientras tanto, recordatorios locales.</span>
+              )}
+              {(pushState === "ready" || pushState === "error") && (
+                <>
+                  <span>{pushState === "error" ? "📡 Falló el registro — reintentá" : "📡 Push remoto listo para activar"}</span>
+                  <Btn onClick={registerPushNow} disabled={registering}>
+                    {registering ? "Registrando…" : "Activar en este dispositivo"}
+                  </Btn>
+                </>
+              )}
+            </div>
+          )}
 
           {/* Horarios */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
