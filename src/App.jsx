@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, lazy, Suspense, Component } from "react";
 import { uid, formatMoney, formatDate } from "./helpers.js";
+import { useSettings } from "./useSettings.js";
+import { scheduleDailyNotifications, cancelScheduled, hasPermission } from "./lib/notifications.js";
 import { useFirebaseSync } from "./useFirebaseSync.js";
 import { AppContext } from "./AppContext.js";
 import { loginWithEmail, logout, onAuthChange, getUserProfile } from "./firebase.js";
@@ -270,6 +272,68 @@ export default function App() {
       if (shouldShowOnboarding()) setOnboardingOpen(true);
     });
   }, [currentUser]);
+
+  // Programa las notificaciones diarias locales según settings.
+  // Se vuelve a programar cuando: 1) el usuario cambia los horarios,
+  // 2) cambia el toggle on/off, 3) pasa la medianoche (re-programar día nuevo).
+  const settings = useSettings();
+  useEffect(() => {
+    if (!currentUser) return;
+    if (!settings.notificationsEnabled || !hasPermission()) {
+      cancelScheduled();
+      return;
+    }
+    scheduleDailyNotifications({
+      slotNoonTime: settings.notificationNoonTime || "12:00",
+      slotEveningTime: settings.notificationEveningTime || "18:30",
+    });
+    // Re-programar diariamente: timer hasta la próxima medianoche
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 30, 0); // 00:00:30 para no chocar con el día anterior
+    const msToMidnight = tomorrow.getTime() - now.getTime();
+    const midnightTimer = setTimeout(() => {
+      scheduleDailyNotifications({
+        slotNoonTime: settings.notificationNoonTime || "12:00",
+        slotEveningTime: settings.notificationEveningTime || "18:30",
+      });
+    }, msToMidnight);
+    return () => {
+      clearTimeout(midnightTimer);
+      cancelScheduled();
+    };
+  }, [
+    currentUser,
+    settings.notificationsEnabled,
+    settings.notificationNoonTime,
+    settings.notificationEveningTime,
+  ]);
+
+  // Escucha mensajes del SW (notificationclick → "NAVIGATE")
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !navigator.serviceWorker) return;
+    const onMessage = (event) => {
+      if (event.data?.type === "NAVIGATE" && event.data?.page) {
+        setPage(event.data.page);
+        setMenuOpen(false);
+      }
+    };
+    navigator.serviceWorker.addEventListener("message", onMessage);
+    return () => navigator.serviceWorker.removeEventListener("message", onMessage);
+  }, []);
+
+  // También chequeo ?page=offers en la URL al cargar (cuando la notificación
+  // abre la app desde frío). El SW no puede mandar mensajes a una ventana
+  // que recién está cargando.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const pageParam = params.get("page");
+    if (pageParam && ["dashboard", "sales", "procurement", "products", "cash", "offers", "clients", "expenses", "withdrawals", "analisis", "pricelog", "stocklog", "exchange", "export", "audit", "trash"].includes(pageParam)) {
+      setPage(pageParam);
+    }
+  }, []);
 
   // Atajo global CMD+K / Ctrl+K para abrir command palette
   useEffect(() => {

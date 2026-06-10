@@ -6,7 +6,7 @@
 //
 // El CACHE_VERSION se debe bumpear en cada cambio grande que requiera invalidación.
 
-const CACHE_VERSION = "izn-v28";
+const CACHE_VERSION = "izn-v29";
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -37,6 +37,28 @@ self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "SKIP_WAITING") {
     self.skipWaiting();
   }
+});
+
+// Click en notificación: enfocar la ventana existente o abrir nueva.
+// Lleva al usuario directo a la tab "Mensajes → Hoy" para que copie y mande.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || "/?page=offers";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      // Si hay una ventana abierta de la app, foco a esa y mensaje para navegar
+      for (const client of clients) {
+        if (client.url.includes(self.location.origin) && "focus" in client) {
+          client.postMessage({ type: "NAVIGATE", page: "offers", source: "notification" });
+          return client.focus();
+        }
+      }
+      // Sino, abrir nueva con el path target
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(targetUrl);
+      }
+    })
+  );
 });
 
 // No interceptamos requests a Firebase/Firestore/Googleapis — dejamos que el SDK

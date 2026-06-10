@@ -34,6 +34,12 @@ export const DEFAULT_SETTINGS = {
   // barra de progreso con "esperado a esta altura del mes" para saber si
   // vamos bien encaminados o atrasados.
   monthlyRevenueGoalARS: 0,
+
+  // Notificaciones diarias: recordatorios para mandar el mensaje de stock
+  // al grupo. Solo locales por ahora (se programan al abrir la app cada día).
+  notificationsEnabled: false,        // off por default; el user lo activa
+  notificationNoonTime: "12:00",      // formato HH:MM
+  notificationEveningTime: "18:30",   // formato HH:MM
 };
 
 export function loadSettings() {
