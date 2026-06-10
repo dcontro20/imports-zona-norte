@@ -505,6 +505,36 @@ export function suggestSmartOffers({
     });
   }
 
+  // ---- 12) COMBO AMIGOS — mecánica viral de adquisición ----
+  // "2 vapes -10% c/u, 3+ -15% c/u". El cliente recluta amigos para
+  // conseguir el descuento → clientes nuevos a costo cero.
+  // Guard: solo sabores que aguantan -15% manteniendo margen >= 20%.
+  const amigosPool = Object.values(statsMap)
+    .filter(s => {
+      if (!s.product || s.product.isDeleted) return false;
+      if ((Number(s.product.stock) || 0) < 2) return false;
+      const g = maxDiscountForMargin(s.product, 20);
+      return g && g.maxDiscountPct >= 15;
+    })
+    .sort((a, b) => (b.velocity30dPerDay || 0) - (a.velocity30dPerDay || 0))
+    .slice(0, 8);
+  if (amigosPool.length >= 3) {
+    ideas.push({
+      id: "comboamigos",
+      category: "comboamigos",
+      icon: "👥",
+      title: `Combo amigos — ${amigosPool.length} sabores`,
+      reason: `Mecánica viral: el cliente junta amigos para el descuento → te traen clientes nuevos gratis. Margen protegido (-15% máx, todos aguantan).`,
+      products: amigosPool.map(s => ({ product: s.product })),
+      suggestedDiscountPct: 15,
+      offerType: "comboamigos",
+      impact: {
+        productCount: amigosPool.length,
+        effectiveDiscount: 15,
+      },
+    });
+  }
+
   return ideas;
 }
 

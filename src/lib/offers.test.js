@@ -288,6 +288,18 @@ describe("buildOfferMessage - nuevos tipos multi-sabor para vender más", () => 
     expect(msg.full).toContain("Watermelon Ice");
   });
 
+  it("comboamigos explica la mecánica 2/-10% y 3+/-15%", () => {
+    const msg = buildOfferMessage(
+      { type: "comboamigos", products: PRODUCTS.slice(0, 3).map(p => ({ product: p })) },
+      RATE
+    );
+    expect(msg.full).toMatch(/amigos/i);
+    expect(msg.full).toMatch(/-10%/);
+    expect(msg.full).toMatch(/-15%/);
+    expect(msg.full).toContain("Watermelon Ice");
+    expect(msg.full).not.toContain("Diego");
+  });
+
   it("ningún nuevo tipo firma con Diego", () => {
     const tipos = ["mix3x2", "combomarca", "duplapack", "topsemana"];
     tipos.forEach(t => {

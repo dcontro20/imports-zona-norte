@@ -27,7 +27,7 @@ export const AUDIENCES = {
     tone: "commercial",
     needsClient: false,
     // Multi-sabor pega más en grupos: empuja a llevar más por venta
-    suggestedTypes: ["stocklist", "topseller", "mix", "combomarca", "dupla", "liquidar", "drop", "restock", "destacado", "liquidacion"],
+    suggestedTypes: ["stocklist", "topseller", "mix", "combomarca", "dupla", "comboamigos", "liquidar", "drop", "restock", "destacado", "liquidacion"],
   },
   groupParty: {
     key: "groupParty",
@@ -36,7 +36,7 @@ export const AUDIENCES = {
     description: "Vibe casual para grupos de techno/eventos. Soft-sell.",
     tone: "casual",
     needsClient: false,
-    suggestedTypes: ["packfiesta", "mix", "combomarca", "stocklist", "recordatorio", "drop"],
+    suggestedTypes: ["packfiesta", "mix", "combomarca", "comboamigos", "stocklist", "recordatorio", "drop"],
   },
 };
 

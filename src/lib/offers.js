@@ -335,6 +335,24 @@ export function buildOfferMessage(offer, exchangeRate, opts = {}) {
     storyLines.push(title || "🎁 2do al 50%");
   }
 
+  // ---- COMBO AMIGOS — mecánica viral: juntate con amigos y ahorran todos ----
+  else if (type === "comboamigos") {
+    lines.push(title || "👥 *Juntate con amigos y ahorran todos*", "");
+    lines.push("• Llevando *2* → *-10%* cada uno");
+    lines.push("• Llevando *3 o más* → *-15%* cada uno");
+    lines.push("");
+    if (products.length > 0) {
+      lines.push("Sabores con stock para combinar:");
+      products.slice(0, 8).forEach(({ product }) => {
+        const price = productPriceARS(product, exchangeRate);
+        lines.push(`${getFlavorEmojis(product.flavor)} ${product.brand} ${product.flavor} — ${money(price)}`);
+      });
+      lines.push("");
+    }
+    lines.push("_Un solo pedido, un solo envío — se ahorran el costo entre todos._");
+    storyLines.push(title || "👥 COMBO AMIGOS", "2 → -10% c/u · 3+ → -15% c/u");
+  }
+
   // ---- TOP SEMANA — los más pedidos con micro-descuento ----
   else if (type === "topsemana") {
     lines.push(title || "📈 *Los más pedidos esta semana*", "");

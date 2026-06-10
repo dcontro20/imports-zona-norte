@@ -18,6 +18,8 @@ import {
   calcConversionStats,
 } from "../lib/offerHistory.js";
 import { checkCooldown } from "../lib/messageCooldown.js";
+import { buildDailyPlan, calcMessageStreak } from "../lib/dailyPlan.js";
+import { pickWeeklyPromo } from "../lib/weeklyPromo.js";
 import { generateStoryImage, downloadBlob } from "../lib/storyImageGenerator.js";
 import { createCatalogSnapshot, encodeCatalogToURL, catalogShareMessage } from "../lib/publicCatalog.js";
 import { WhatsAppMessage } from "./WhatsApp.jsx";
@@ -51,11 +53,13 @@ const CATEGORY_COLORS = {
   mix: "#2383E2",
   combomarca: "#0F6B5C",
   dupla: "#D4691C",
+  comboamigos: "#5B3592",
 };
 
 const TYPES = [
   // Promos multi-sabor (las que más empujan el ticket)
   { key: "topsemana", label: "📈 Top semana", desc: "3-5 sabores top con -% al llevar 2+" },
+  { key: "comboamigos", label: "👥 Combo amigos", desc: "2 → -10% c/u · 3+ → -15% c/u" },
   { key: "mix3x2", label: "🤝 3x2 mixto", desc: "Llevás 3, pagás 2" },
   { key: "combomarca", label: "🎯 Combo marca", desc: "N sabores de la misma marca" },
   { key: "duplapack", label: "🎁 2da al 50%", desc: "2da unidad al 50%" },
@@ -214,14 +218,15 @@ export const Offers = ({ products = [], sales = [], clients = [], exchangeRate =
         </>
       )}
 
-      {/* VISTA HOY */}
+      {/* VISTA HOY — Plan de hoy: 2 slots fijos + promo de la semana */}
       {view === "hoy" && (
         <TodayView
-          todaySugs={todaySugs}
           audience={audience}
           ideas={ideasForAudience}
           allIdeas={allIdeas}
+          auditLog={auditLog}
           onOpenIdea={openIdea}
+          onPickAudience={setAudience}
           isMobile={isMobile}
         />
       )}
@@ -329,107 +334,228 @@ function AudienceSelector({ value, onChange, isMobile }) {
 // VISTA HOY
 // ============================================================================
 
-function TodayView({ todaySugs, audience, ideas, allIdeas, onOpenIdea, isMobile }) {
-  // Sugerencias del día filtradas por audiencia activa
-  const todayForAud = todaySugs.filter(s => s.audience === audience);
-  const todayAll = todaySugs;
+// Mapea el tipo de un slot del plan diario a la mejor idea disponible.
+// Con fallbacks: si no hay drop, usa restock; si no, recordatorio, etc.
+function matchIdeaForSlot(slot, allIdeas, weeklyMain) {
+  if (!slot?.type) return null;
+  if (slot.type === "weeklypromo") return weeklyMain || null;
+  const FALLBACKS = {
+    stocklist: ["stocklist"],
+    reactivar: ["reactivar"],
+    topsemana: ["topseller"],
+    destacado: ["topseller", "recordatorio"],
+    comboamigos: ["comboamigos", "mix", "dupla"],
+    drop: ["drop", "stocklist"],
+    packfiesta: ["packfiesta", "mix"],
+    recordatorio: ["recordatorio", "stocklist"],
+  };
+  const chain = FALLBACKS[slot.type] || [slot.type];
+  for (const cat of chain) {
+    const found = allIdeas.find(i => i.category === cat || i.offerType === cat);
+    if (found) return found;
+  }
+  return null;
+}
+
+function TodayView({ audience, ideas, allIdeas, auditLog, onOpenIdea, onPickAudience, isMobile }) {
+  const [showAllIdeas, setShowAllIdeas] = useState(false);
+  const [showAlternatives, setShowAlternatives] = useState(false);
+
+  const plan = useMemo(() => buildDailyPlan({ auditLog, now: new Date() }), [auditLog]);
+  const streak = useMemo(() => calcMessageStreak(auditLog, new Date()), [auditLog]);
+  const weekly = useMemo(() => pickWeeklyPromo(allIdeas, { now: new Date() }), [allIdeas]);
+
+  // Abre el mensaje de un slot: primero cambia la audiencia a la del slot
+  // (así el tono del mensaje sale correcto) y después abre el preview.
+  const openSlot = (slot) => {
+    const idea = matchIdeaForSlot(slot, allIdeas, weekly.main);
+    if (!idea) return;
+    if (slot.audience) onPickAudience(slot.audience);
+    onOpenIdea(idea);
+  };
+
+  const slotsDone = plan.slots.filter(s => s.sent || s.rest).length;
+  const allDone = slotsDone === plan.slots.length;
 
   return (
     <div>
-      {/* Sugerencias del día para la audiencia activa */}
-      {todayForAud.length > 0 && (
-        <Card style={{
-          background: "linear-gradient(135deg, #1E2B4A 0%, #2D3D63 100%)",
-          color: "#F8F2E7", border: "none", marginBottom: 14,
-        }}>
-          <div style={{ fontSize: 11, fontWeight: 700, opacity: 0.7, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 6 }}>
-            🎯 Hoy te conviene mandar
-          </div>
-          {todayForAud.map((sug, i) => {
-            const matchingIdea = ideas.find(idea => idea.offerType === sug.type || idea.category === sug.type);
-            return (
-              <div key={i} style={{
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                gap: 10, marginTop: i === 0 ? 6 : 10,
-                paddingTop: i === 0 ? 0 : 10,
-                borderTop: i === 0 ? "none" : "1px solid rgba(248,242,231,0.18)",
-                flexWrap: "wrap",
-              }}>
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: "#F8F2E7" }}>
-                    {TYPES.find(t => t.key === sug.type)?.label || sug.type}
-                  </div>
-                  <div style={{ fontSize: 12, opacity: 0.82, marginTop: 2 }}>{sug.reason}</div>
-                </div>
-                {matchingIdea && (
-                  <button
-                    onClick={() => onOpenIdea(matchingIdea)}
-                    style={{
-                      background: "#F8F2E7", color: "#1E2B4A", border: "none",
-                      padding: "8px 14px", borderRadius: 8, fontSize: 13, fontWeight: 800,
-                      cursor: "pointer", fontFamily: "inherit", flexShrink: 0,
-                    }}
-                  >Ver mensaje →</button>
-                )}
-              </div>
-            );
-          })}
-        </Card>
-      )}
-
-      {/* Si HOY no aplica para la audiencia activa, mostrar sugerencias de otras audiencias */}
-      {todayForAud.length === 0 && todayAll.length > 0 && (
-        <Card style={{ background: "#FDECC8", border: "1px solid #F2D59A", marginBottom: 14 }}>
-          <div style={{ fontSize: 12, color: "#8B6A1E", fontWeight: 700, marginBottom: 6 }}>
-            ℹ️ Hoy no es el día ideal para mandar a {AUDIENCES[audience].label.toLowerCase()}
-          </div>
-          <div style={{ fontSize: 12, color: "#8B6A1E", marginBottom: 8 }}>
-            Pero hoy te convendría mandar a otras audiencias:
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {todayAll.map((sug, i) => (
-              <div key={i} style={{ fontSize: 12, color: "#5F4A14" }}>
-                <strong>{AUDIENCES[sug.audience]?.icon} {AUDIENCES[sug.audience]?.label}:</strong> {sug.reason}
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
-
-      {/* Ideas inteligentes para la audiencia activa */}
-      <div style={{ marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-        <div style={{ fontSize: 14, fontWeight: 800, color: "#1E2B4A" }}>
-          💡 Ideas para {AUDIENCES[audience].label.toLowerCase()}
+      {/* ===== STREAK + ESTADO DEL DÍA ===== */}
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        gap: 10, marginBottom: 14, flexWrap: "wrap",
+      }}>
+        <div style={{ fontSize: 14, fontWeight: 800, color: "#1E2B4A", textTransform: "capitalize" }}>
+          📅 Plan de hoy · {plan.dayName}
         </div>
-        <div style={{ fontSize: 12, color: "#6B7794" }}>
-          {ideas.length} {ideas.length === 1 ? "idea" : "ideas"}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 6,
+          padding: "6px 12px", borderRadius: 999,
+          background: streak.current > 0 ? "#FDECC8" : "#F8F2E7",
+          border: `1px solid ${streak.current > 0 ? "#F2D59A" : "#E5DAC2"}`,
+          fontSize: 12, fontWeight: 800,
+          color: streak.current > 0 ? "#B07A1F" : "#6B7794",
+        }}>
+          🔥 {streak.current} {streak.current === 1 ? "día" : "días"} seguidos
+          {streak.best > streak.current && (
+            <span style={{ fontWeight: 500, opacity: 0.7 }}>· récord {streak.best}</span>
+          )}
         </div>
       </div>
 
-      {ideas.length === 0 ? (
-        <Card>
-          <div style={{ textAlign: "center", padding: isMobile ? 28 : 48, color: "#6B7794" }}>
-            <div style={{ fontSize: 52, marginBottom: 12 }}>💡</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: "#1E2B4A", marginBottom: 6 }}>
-              No hay ideas disponibles para esta audiencia
+      {/* ===== LOS 2 SLOTS DEL DÍA ===== */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 18 }}>
+        {plan.slots.map(slot => {
+          const idea = matchIdeaForSlot(slot, allIdeas, weekly.main);
+          const aud = AUDIENCES[slot.audience];
+          const done = slot.sent;
+          return (
+            <div key={slot.id} style={{
+              display: "flex", alignItems: "center", gap: 14,
+              padding: isMobile ? "14px 16px" : "16px 20px",
+              borderRadius: 14,
+              background: done ? "#F0F9F6" : slot.rest ? "#F8F2E7" : "#FFFFFF",
+              border: done ? "2px solid #0F7B6C" : "1px solid #E5DAC2",
+              opacity: slot.rest ? 0.7 : 1,
+            }}>
+              <div style={{
+                fontSize: 28, flexShrink: 0, width: 44, textAlign: "center",
+              }}>{done ? "✅" : slot.emoji}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#6B7794", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  {slot.timeLabel}{aud ? ` · ${aud.icon} ${aud.label}` : ""}
+                </div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: "#1E2B4A", marginTop: 2 }}>
+                  {slot.label}
+                </div>
+                <div style={{ fontSize: 12, color: "#6B7794", marginTop: 3, lineHeight: 1.4 }}>
+                  {slot.why}
+                </div>
+              </div>
+              {!slot.rest && !done && idea && (
+                <button onClick={() => openSlot(slot)} style={{
+                  flexShrink: 0, padding: "12px 18px", minHeight: 48,
+                  background: "#1E2B4A", color: "#F8F2E7", border: "none",
+                  borderRadius: 10, fontSize: 14, fontWeight: 800,
+                  cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
+                }}>Ver mensaje →</button>
+              )}
+              {!slot.rest && !done && !idea && (
+                <span style={{ fontSize: 11, color: "#9AA2B3", flexShrink: 0, maxWidth: 110, textAlign: "right" }}>
+                  Sin datos suficientes para armarlo
+                </span>
+              )}
+              {done && (
+                <span style={{ fontSize: 12, fontWeight: 800, color: "#0F7B6C", flexShrink: 0 }}>
+                  Enviado
+                </span>
+              )}
             </div>
-            <div style={{ fontSize: 13, maxWidth: 460, margin: "0 auto" }}>
-              Cuando tengas más ventas y movimiento de stock, acá vas a ver ideas concretas
-              filtradas para esta audiencia.
+          );
+        })}
+        {allDone && (
+          <div style={{
+            textAlign: "center", padding: "10px", fontSize: 13, fontWeight: 700,
+            color: "#0F7B6C",
+          }}>
+            🎉 Plan de hoy completo — mañana hay más
+          </div>
+        )}
+      </div>
+
+      {/* ===== PROMO DE LA SEMANA ===== */}
+      {weekly.main && (
+        <div style={{ marginBottom: 18 }}>
+          <div style={{ fontSize: 14, fontWeight: 800, color: "#1E2B4A", marginBottom: 8 }}>
+            ⭐ Promo de la semana
+            <span style={{ fontSize: 11, color: "#6B7794", fontWeight: 500, marginLeft: 8 }}>
+              fija de lunes a domingo — la repetición vende
+            </span>
+          </div>
+          <div style={{
+            background: "linear-gradient(135deg, #1E2B4A 0%, #2D3D63 100%)",
+            borderRadius: 14, padding: isMobile ? 16 : 20, color: "#F8F2E7",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 30 }}>{weekly.main.icon}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 16, fontWeight: 800 }}>{weekly.main.title}</div>
+                <div style={{ fontSize: 12, opacity: 0.8, marginTop: 3, lineHeight: 1.4 }}>{weekly.main.reason}</div>
+              </div>
+              <button onClick={() => onOpenIdea(weekly.main)} style={{
+                flexShrink: 0, padding: "12px 18px", minHeight: 48,
+                background: "#F8F2E7", color: "#1E2B4A", border: "none",
+                borderRadius: 10, fontSize: 14, fontWeight: 800,
+                cursor: "pointer", fontFamily: "inherit",
+              }}>Ver promo →</button>
             </div>
           </div>
-        </Card>
-      ) : (
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(340px, 1fr))",
-          gap: 12,
-        }}>
-          {ideas.map(idea => (
-            <IdeaCard key={idea.id} idea={idea} onClick={() => onOpenIdea(idea)} />
-          ))}
+          {weekly.alternatives.length > 0 && (
+            <div style={{ marginTop: 8 }}>
+              <button onClick={() => setShowAlternatives(v => !v)} style={{
+                background: "none", border: "none", color: "#6B7794",
+                fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", padding: "4px 0",
+              }}>
+                {showAlternatives ? "▲ Ocultar alternativas" : `▼ ¿No te convence? Ver ${weekly.alternatives.length} alternativa${weekly.alternatives.length > 1 ? "s" : ""}`}
+              </button>
+              {showAlternatives && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 6 }}>
+                  {weekly.alternatives.map(alt => (
+                    <div key={alt.id} style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      padding: "10px 14px", background: "#FFFFFF",
+                      border: "1px solid #E5DAC2", borderRadius: 10,
+                    }}>
+                      <span style={{ fontSize: 20 }}>{alt.icon}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "#1E2B4A" }}>{alt.title}</div>
+                        <div style={{ fontSize: 11, color: "#6B7794", marginTop: 1 }}>{alt.reason}</div>
+                      </div>
+                      <button onClick={() => onOpenIdea(alt)} style={{
+                        flexShrink: 0, padding: "8px 12px", minHeight: 40,
+                        background: "transparent", color: "#1E2B4A", border: "1px solid #E5DAC2",
+                        borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                      }}>Ver</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
+
+      {/* ===== TODAS LAS IDEAS (colapsado por default — anti-saturación visual) ===== */}
+      <div>
+        <button onClick={() => setShowAllIdeas(v => !v)} style={{
+          width: "100%", padding: "12px 16px", minHeight: 48,
+          background: "transparent", border: "1px dashed #E5DAC2",
+          borderRadius: 12, color: "#6B7794", fontSize: 13, fontWeight: 700,
+          cursor: "pointer", fontFamily: "inherit",
+        }}>
+          {showAllIdeas
+            ? "▲ Ocultar el resto de las ideas"
+            : `▼ Explorar todas las ideas para ${AUDIENCES[audience].label.toLowerCase()} (${ideas.length})`}
+        </button>
+        {showAllIdeas && (
+          ideas.length === 0 ? (
+            <Card style={{ marginTop: 10 }}>
+              <div style={{ textAlign: "center", padding: isMobile ? 24 : 40, color: "#6B7794", fontSize: 13 }}>
+                Sin ideas para esta audiencia todavía — cuando haya más ventas, aparecen acá.
+              </div>
+            </Card>
+          ) : (
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(340px, 1fr))",
+              gap: 12, marginTop: 10,
+            }}>
+              {ideas.map(idea => (
+                <IdeaCard key={idea.id} idea={idea} onClick={() => onOpenIdea(idea)} />
+              ))}
+            </div>
+          )
+        )}
+      </div>
     </div>
   );
 }
@@ -485,7 +611,7 @@ function ImpactRow({ idea: rawIdea }) {
     display: "flex", gap: 12, flexWrap: "wrap",
     padding: "8px 10px", background: "#F8F2E7", borderRadius: 8, border: "1px solid #EFE5CE",
   };
-  const hasContent = ["liquidar","reactivar","crosssell","topseller","stocklist","packfiesta","recordatorio","drop","mix","combomarca","dupla"].includes(idea.category);
+  const hasContent = ["liquidar","reactivar","crosssell","topseller","stocklist","packfiesta","recordatorio","drop","mix","combomarca","dupla","comboamigos"].includes(idea.category);
   if (!hasContent) return null;
   return (
     <div style={wrap}>
@@ -547,6 +673,13 @@ function ImpactRow({ idea: rawIdea }) {
           <Impact label="Marca" value={idea.impact.brand || "—"} color="#0F6B5C" />
           <Impact label="Combo" value={formatMoney(idea.impact.comboPriceARS)} color="#0F6B5C" />
           <Impact label="Ahorro" value={formatMoney(idea.impact.savingARS)} color="#2383E2" />
+        </>
+      )}
+      {idea.category === "comboamigos" && (
+        <>
+          <Impact label="Sabores incluidos" value={`${idea.impact.productCount}`} color="#5B3592" />
+          <Impact label="Desc. máx" value={`-${idea.impact.effectiveDiscount}%`} color="#5B3592" />
+          <Impact label="Trae" value="clientes nuevos" color="#0F6B5C" />
         </>
       )}
       {idea.category === "dupla" && (

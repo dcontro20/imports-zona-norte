@@ -134,6 +134,8 @@ export function urgencyLine(offerType, ctx = {}) {
     case "drop":
     case "restock":
       return "_Recién entraron — primero el que avisa._";
+    case "comboamigos":
+      return "_Un solo pedido entre todos — ahorran descuento y envío._";
     case "mix3x2":
     case "duplapack":
     case "combomarca":
