@@ -19,6 +19,7 @@ import {
 } from "../lib/offerHistory.js";
 import { checkCooldown } from "../lib/messageCooldown.js";
 import { buildDailyPlan, calcMessageStreak } from "../lib/dailyPlan.js";
+import { generateFullMessage } from "../lib/whatsappMessage.js";
 import { pickWeeklyPromo } from "../lib/weeklyPromo.js";
 import { generateStoryImage, downloadBlob } from "../lib/storyImageGenerator.js";
 import { createCatalogSnapshot, encodeCatalogToURL, catalogShareMessage } from "../lib/publicCatalog.js";
@@ -218,15 +219,19 @@ export const Offers = ({ products = [], sales = [], clients = [], exchangeRate =
         </>
       )}
 
-      {/* VISTA HOY — Plan de hoy: 2 slots fijos + promo de la semana */}
+      {/* VISTA HOY — Plan de hoy: 2 envíos de presencia + promos sugeridas */}
       {view === "hoy" && (
         <TodayView
           audience={audience}
           ideas={ideasForAudience}
           allIdeas={allIdeas}
           auditLog={auditLog}
+          products={products}
+          exchangeRate={exchangeRate}
+          logAudit={logAudit}
           onOpenIdea={openIdea}
           onPickAudience={setAudience}
+          onGoQuick={() => setView("quick")}
           isMobile={isMobile}
         />
       )}
@@ -334,47 +339,46 @@ function AudienceSelector({ value, onChange, isMobile }) {
 // VISTA HOY
 // ============================================================================
 
-// Mapea el tipo de un slot del plan diario a la mejor idea disponible.
-// Con fallbacks: si no hay drop, usa restock; si no, recordatorio, etc.
-function matchIdeaForSlot(slot, allIdeas, weeklyMain) {
-  if (!slot?.type) return null;
-  if (slot.type === "weeklypromo") return weeklyMain || null;
-  const FALLBACKS = {
-    stocklist: ["stocklist"],
-    reactivar: ["reactivar"],
-    topsemana: ["topseller"],
-    destacado: ["topseller", "recordatorio"],
-    comboamigos: ["comboamigos", "mix", "dupla"],
-    drop: ["drop", "stocklist"],
-    packfiesta: ["packfiesta", "mix"],
-    recordatorio: ["recordatorio", "stocklist"],
-  };
-  const chain = FALLBACKS[slot.type] || [slot.type];
-  for (const cat of chain) {
-    const found = allIdeas.find(i => i.category === cat || i.offerType === cat);
-    if (found) return found;
-  }
-  return null;
-}
-
-function TodayView({ audience, ideas, allIdeas, auditLog, onOpenIdea, onPickAudience, isMobile }) {
+function TodayView({ audience, ideas, allIdeas, auditLog, products, exchangeRate, logAudit, onOpenIdea, onPickAudience, onGoQuick, isMobile }) {
   const [showAllIdeas, setShowAllIdeas] = useState(false);
   const [showAlternatives, setShowAlternatives] = useState(false);
+  const [copiedSlot, setCopiedSlot] = useState(null);
 
   const plan = useMemo(() => buildDailyPlan({ auditLog, now: new Date() }), [auditLog]);
   const streak = useMemo(() => calcMessageStreak(auditLog, new Date()), [auditLog]);
   const weekly = useMemo(() => pickWeeklyPromo(allIdeas, { now: new Date() }), [allIdeas]);
 
-  // Abre el mensaje de un slot: primero cambia la audiencia a la del slot
-  // (así el tono del mensaje sale correcto) y después abre el preview.
-  const openSlot = (slot) => {
-    const idea = matchIdeaForSlot(slot, allIdeas, weekly.main);
-    if (!idea) return;
-    if (slot.audience) onPickAudience(slot.audience);
-    onOpenIdea(idea);
+  // El mensaje de presencia ES el mensaje de stock clásico de la sección
+  // WhatsApp — exactamente el mismo formato, sin tocar.
+  const presenceMessage = useMemo(
+    () => generateFullMessage(products, exchangeRate),
+    [products, exchangeRate]
+  );
+
+  // Copia el mensaje de presencia y lo registra en el audit log → el slot
+  // queda ✓ y la racha suma.
+  const copyPresence = async (slot) => {
+    try {
+      await navigator.clipboard.writeText(presenceMessage);
+    } catch {
+      prompt("Copiá el mensaje:", presenceMessage);
+    }
+    setCopiedSlot(slot.id);
+    setTimeout(() => setCopiedSlot(null), 3000);
+    if (logAudit) {
+      logAudit("create", "offer", `presence-${slot.id}-${Date.now()}`,
+        `Mensaje de presencia (stock) al grupo · ${slot.id === "noon" ? "mediodía" : "tarde"}`, {
+          audience: "groupClients",
+          ideaCategory: "presencia",
+          offerType: "stocklist",
+          method: "copia",
+          productIds: [],
+          suggestedDiscountPct: 0,
+        });
+    }
   };
 
-  const slotsDone = plan.slots.filter(s => s.sent || s.rest).length;
+  const slotsDone = plan.slots.filter(s => s.sent).length;
   const allDone = slotsDone === plan.slots.length;
 
   return (
@@ -402,27 +406,29 @@ function TodayView({ audience, ideas, allIdeas, auditLog, onOpenIdea, onPickAudi
         </div>
       </div>
 
-      {/* ===== LOS 2 SLOTS DEL DÍA ===== */}
+      {/* ===== LOS 2 ENVÍOS DE PRESENCIA DEL DÍA =====
+          Ambos copian EL MISMO mensaje de stock clásico de WhatsApp.
+          Tocás "Copiar mensaje" → portapapeles → lo pegás en el grupo.
+          El slot se marca ✓ y la racha suma. */}
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 18 }}>
         {plan.slots.map(slot => {
-          const idea = matchIdeaForSlot(slot, allIdeas, weekly.main);
-          const aud = AUDIENCES[slot.audience];
           const done = slot.sent;
+          const justCopied = copiedSlot === slot.id;
           return (
             <div key={slot.id} style={{
               display: "flex", alignItems: "center", gap: 14,
               padding: isMobile ? "14px 16px" : "16px 20px",
               borderRadius: 14,
-              background: done ? "#F0F9F6" : slot.rest ? "#F8F2E7" : "#FFFFFF",
+              background: done ? "#F0F9F6" : "#FFFFFF",
               border: done ? "2px solid #0F7B6C" : "1px solid #E5DAC2",
-              opacity: slot.rest ? 0.7 : 1,
+              flexWrap: isMobile ? "wrap" : "nowrap",
             }}>
               <div style={{
                 fontSize: 28, flexShrink: 0, width: 44, textAlign: "center",
               }}>{done ? "✅" : slot.emoji}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: "#6B7794", textTransform: "uppercase", letterSpacing: 0.5 }}>
-                  {slot.timeLabel}{aud ? ` · ${aud.icon} ${aud.label}` : ""}
+                  {slot.timeLabel} · 📢 Mi grupo
                 </div>
                 <div style={{ fontSize: 15, fontWeight: 800, color: "#1E2B4A", marginTop: 2 }}>
                   {slot.label}
@@ -431,18 +437,17 @@ function TodayView({ audience, ideas, allIdeas, auditLog, onOpenIdea, onPickAudi
                   {slot.why}
                 </div>
               </div>
-              {!slot.rest && !done && idea && (
-                <button onClick={() => openSlot(slot)} style={{
+              {!done && (
+                <button onClick={() => copyPresence(slot)} style={{
                   flexShrink: 0, padding: "12px 18px", minHeight: 48,
-                  background: "#1E2B4A", color: "#F8F2E7", border: "none",
+                  background: justCopied ? "#0F7B6C" : "#25d366",
+                  color: "#FFF", border: "none",
                   borderRadius: 10, fontSize: 14, fontWeight: 800,
                   cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
-                }}>Ver mensaje →</button>
-              )}
-              {!slot.rest && !done && !idea && (
-                <span style={{ fontSize: 11, color: "#9AA2B3", flexShrink: 0, maxWidth: 110, textAlign: "right" }}>
-                  Sin datos suficientes para armarlo
-                </span>
+                  width: isMobile ? "100%" : "auto",
+                }}>
+                  {justCopied ? "✓ Copiado — pegalo en el grupo" : "📋 Copiar mensaje"}
+                </button>
               )}
               {done && (
                 <span style={{ fontSize: 12, fontWeight: 800, color: "#0F7B6C", flexShrink: 0 }}>
@@ -452,14 +457,19 @@ function TodayView({ audience, ideas, allIdeas, auditLog, onOpenIdea, onPickAudi
             </div>
           );
         })}
-        {allDone && (
-          <div style={{
-            textAlign: "center", padding: "10px", fontSize: 13, fontWeight: 700,
-            color: "#0F7B6C",
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
+          <button onClick={onGoQuick} style={{
+            background: "none", border: "none", color: "#6B7794",
+            fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", padding: "4px 0",
           }}>
-            🎉 Plan de hoy completo — mañana hay más
-          </div>
-        )}
+            👁 Ver / editar el mensaje en "Mensaje rápido" →
+          </button>
+          {allDone && (
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#0F7B6C" }}>
+              🎉 Presencia de hoy completa
+            </span>
+          )}
+        </div>
       </div>
 
       {/* ===== PROMO DE LA SEMANA ===== */}

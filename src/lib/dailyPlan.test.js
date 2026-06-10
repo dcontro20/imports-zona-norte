@@ -9,25 +9,23 @@ const offerEntry = (isoTimestamp, audience = "groupClients") => ({
 });
 
 describe("buildDailyPlan", () => {
-  it("lunes tiene 2 slots: stocklist mediodía + reactivar tarde", () => {
+  it("todos los días tienen 2 slots de presencia (mediodía + tarde)", () => {
     const plan = buildDailyPlan({ now: new Date("2026-06-08T10:00:00") }); // lunes
     expect(plan.slots).toHaveLength(2);
-    expect(plan.slots[0].type).toBe("stocklist");
+    expect(plan.slots[0].kind).toBe("presence");
     expect(plan.slots[0].audience).toBe("groupClients");
-    expect(plan.slots[1].type).toBe("reactivar");
-    expect(plan.slots[1].audience).toBe("individual");
+    expect(plan.slots[1].kind).toBe("presence");
   });
 
-  it("jueves manda packfiesta al grupo de fiestas al mediodía", () => {
-    const plan = buildDailyPlan({ now: new Date("2026-06-11T10:00:00") }); // jueves
-    expect(plan.slots[0].type).toBe("packfiesta");
-    expect(plan.slots[0].audience).toBe("groupParty");
-  });
-
-  it("domingo el slot del mediodía es descanso", () => {
+  it("domingo también tiene los 2 slots (presencia diaria sin excepción)", () => {
     const plan = buildDailyPlan({ now: new Date("2026-06-14T10:00:00") }); // domingo
-    expect(plan.slots[0].rest).toBe(true);
-    expect(plan.slots[1].type).toBe("reactivar");
+    expect(plan.slots).toHaveLength(2);
+    expect(plan.slots[0].kind).toBe("presence");
+  });
+
+  it("incluye sugerencia de promo extra del día (opcional)", () => {
+    const plan = buildDailyPlan({ now: new Date("2026-06-11T10:00:00") }); // jueves
+    expect(plan.promoSuggestion).toBeTruthy();
   });
 
   it("marca slot mediodía como enviado si hay envío antes de las 16h", () => {

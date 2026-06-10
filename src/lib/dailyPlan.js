@@ -34,6 +34,15 @@ import { extractOffersFromAuditLog } from "./offerHistory.js";
 
 const MS_PER_DAY = 86400000;
 
+// === NOTA DE DISEÑO (pedido explícito de Diego) ===
+// Los 2 slots diarios son SIEMPRE el mensaje de stock clásico de la sección
+// WhatsApp (generateFullMessage) — copy/paste tal cual, sin variaciones.
+// El objetivo es PRESENCIA: que el grupo lo vea todos los días.
+// Las promos/ideas inteligentes viven aparte como sugerencias.
+//
+// La rotación semanal de abajo queda SOLO como sugerencia de promo extra
+// del día (se muestra aparte, no reemplaza el mensaje de presencia).
+
 // Plan por día de semana (0=Dom ... 6=Sáb)
 const WEEKLY_ROTATION = {
   1: { // Lunes
@@ -66,63 +75,54 @@ const WEEKLY_ROTATION = {
   },
 };
 
-// Devuelve el plan del día con los 2 slots y si ya fueron enviados
-// (lo detecta del auditLog por audiencia+fecha).
+// Devuelve el plan del día: 2 slots de PRESENCIA (mediodía + tarde),
+// ambos con el mensaje de stock clásico de WhatsApp. Detecta si ya fueron
+// enviados desde el auditLog (enviado <16h = mediodía, >=16h = tarde).
 export function buildDailyPlan({ auditLog = [], now = new Date() } = {}) {
   const dow = now.getDay();
-  const rotation = WEEKLY_ROTATION[dow] || WEEKLY_ROTATION[1];
 
   // Mensajes enviados HOY (del audit log)
   const todayStr = now.toISOString().slice(0, 10);
   const sentToday = extractOffersFromAuditLog(auditLog)
     .filter(o => (o.timestamp || "").slice(0, 10) === todayStr);
 
-  // Heurística de "slot cumplido": mediodía = enviado antes de las 16h,
-  // tarde = enviado después de las 16h. Si mandó 2+, ambos check.
-  const noonSent = sentToday.some(o => {
-    const h = new Date(o.timestamp).getHours();
-    return h < 16;
-  });
-  const eveningSent = sentToday.some(o => {
-    const h = new Date(o.timestamp).getHours();
-    return h >= 16;
-  });
+  const noonSent = sentToday.some(o => new Date(o.timestamp).getHours() < 16);
+  const eveningSent = sentToday.some(o => new Date(o.timestamp).getHours() >= 16);
 
-  const slots = [];
-  if (rotation.noon) {
-    slots.push({
+  const slots = [
+    {
       id: "noon",
       emoji: "☀️",
       timeLabel: "Mediodía (~12:00)",
-      ...rotation.noon,
+      kind: "presence",
+      audience: "groupClients",
+      label: "Mensaje de stock al grupo",
+      why: "Presencia diaria: que el grupo vea que estás activo y qué hay disponible",
       sent: noonSent,
-    });
-  } else {
-    slots.push({
-      id: "noon",
-      emoji: "😴",
-      timeLabel: "Mediodía",
-      type: null,
-      label: "Descanso — hoy no satures",
-      why: "Domingo al mediodía la gente desconecta. Mejor guardar la bala.",
-      sent: false,
-      rest: true,
-    });
-  }
-  if (rotation.evening) {
-    slots.push({
+    },
+    {
       id: "evening",
       emoji: "🌆",
       timeLabel: "Tarde (~18:30)",
-      ...rotation.evening,
+      kind: "presence",
+      audience: "groupClients",
+      label: "Mensaje de stock al grupo",
+      why: "Segunda pasada: agarra a los que no vieron el del mediodía",
       sent: eveningSent,
-    });
-  }
+    },
+  ];
+
+  // Sugerencia de promo extra del día (NO reemplaza la presencia — es opcional)
+  const rotation = WEEKLY_ROTATION[dow] || {};
+  const promoSuggestion = rotation.noon && rotation.noon.type !== "stocklist"
+    ? rotation.noon
+    : rotation.evening || null;
 
   return {
     dayOfWeek: dow,
     dayName: now.toLocaleDateString("es-AR", { weekday: "long" }),
     slots,
+    promoSuggestion,
     sentCountToday: sentToday.length,
   };
 }
