@@ -96,6 +96,36 @@ export const SettingsModal = ({ open, onClose }) => {
         </Card>
       ))}
 
+      {/* Sección: utilidades de la app */}
+      <Card style={{ marginTop: 10 }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: T.text, marginBottom: 10 }}>
+          🎓 Utilidades
+        </div>
+        <button onClick={async () => {
+          const m = await import("./OnboardingTour.jsx");
+          m.resetOnboarding();
+          alert("Tour de bienvenida activado para la próxima sesión. Cerrá y volvé a abrir la app.");
+        }} style={{
+          padding: "10px 14px", background: "transparent", border: `1px solid ${T.borderSoft}`,
+          borderRadius: 8, color: T.textMuted, fontSize: 13, fontWeight: 600,
+          cursor: "pointer", fontFamily: "inherit", width: "100%", textAlign: "left",
+        }}>↺ Volver a ver el tour de bienvenida</button>
+        <button onClick={async () => {
+          const m = await import("../lib/errorReporter.js");
+          const stats = m.errorStats();
+          if (stats.total === 0) {
+            alert("Sin errores registrados. 👍");
+            return;
+          }
+          const top = stats.topMessages.slice(0, 5).map(t => `${t.count}× ${t.msg}`).join("\n");
+          alert(`Total: ${stats.total} errores\nÚltimos 24h: ${stats.last24h}\nÚltimos 7d: ${stats.last7d}\n\nTop:\n${top}`);
+        }} style={{
+          padding: "10px 14px", marginTop: 8, background: "transparent", border: `1px solid ${T.borderSoft}`,
+          borderRadius: 8, color: T.textMuted, fontSize: 13, fontWeight: 600,
+          cursor: "pointer", fontFamily: "inherit", width: "100%", textAlign: "left",
+        }}>🐛 Ver errores del sistema (debug)</button>
+      </Card>
+
       <div style={{ display: "flex", gap: 10, justifyContent: "space-between", marginTop: 16, flexWrap: "wrap" }}>
         <button onClick={handleReset} style={{
           padding: "10px 16px", minHeight: 40,

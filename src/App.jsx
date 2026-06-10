@@ -94,6 +94,8 @@ const Trash = lazy(() => import("./components/Trash.jsx").then(m => ({ default: 
 const SettingsModal = lazy(() => import("./components/SettingsModal.jsx").then(m => ({ default: m.SettingsModal })));
 const QuickSale = lazy(() => import("./components/QuickSale.jsx").then(m => ({ default: m.QuickSale })));
 const QuickWithdrawal = lazy(() => import("./components/QuickWithdrawal.jsx").then(m => ({ default: m.QuickWithdrawal })));
+const CommandPalette = lazy(() => import("./components/CommandPalette.jsx").then(m => ({ default: m.CommandPalette })));
+const OnboardingTour = lazy(() => import("./components/OnboardingTour.jsx").then(m => ({ default: m.OnboardingTour })));
 const Procurement = lazy(() => import("./components/Procurement.jsx").then(m => ({ default: m.Procurement })));
 const Analisis = lazy(() => import("./components/Analisis.jsx").then(m => ({ default: m.Analisis })));
 
@@ -258,6 +260,28 @@ export default function App() {
   const [quickMermaOpen, setQuickMermaOpen] = useState(false);
   const [fabMenuOpen, setFabMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
+
+  // Mostrar tour la primera vez (después del login + después que el sync inicial cargue)
+  useEffect(() => {
+    if (!currentUser) return;
+    import("./components/OnboardingTour.jsx").then(({ shouldShowOnboarding }) => {
+      if (shouldShowOnboarding()) setOnboardingOpen(true);
+    });
+  }, [currentUser]);
+
+  // Atajo global CMD+K / Ctrl+K para abrir command palette
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setPaletteOpen(open => !open);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // Safety net: si saveToFirestore falla, mostramos toast rojo al usuario.
   // El evento "izn:write-error" lo dispara firebase.js cuando un write fracasa
@@ -576,6 +600,7 @@ export default function App() {
                 <input value={globalSearch} onChange={e => { setGlobalSearch(e.target.value); setShowGlobalResults(true); }}
                   onFocus={() => setShowGlobalResults(true)}
                   placeholder="Buscar..."
+                  aria-label="Búsqueda global de productos, ventas y clientes"
                   style={{ padding: "7px 14px 7px 32px", background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 8, color: "#1E2B4A", fontSize: 13, width: 180, outline: "none" }} />
                 <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "#9AA2B3", pointerEvents: "none" }}>🔍</span>
                 {showGlobalResults && globalResults.length > 0 && (
@@ -819,6 +844,29 @@ export default function App() {
           </>
         )}
         <style>{`@keyframes fabPop { from { opacity: 0; transform: translateY(10px) scale(0.92); } to { opacity: 1; transform: none; } }`}</style>
+
+        {/* Command Palette — ⌘K para abrir desde cualquier lado */}
+        <Suspense fallback={null}>
+          {paletteOpen && (
+            <CommandPalette
+              open={paletteOpen}
+              onClose={() => setPaletteOpen(false)}
+              onNavigate={(page) => { setPage(page); setMenuOpen(false); }}
+              onAction={(action) => {
+                if (action === "quickSale") setQuickSaleOpen(true);
+                else if (action === "quickWithdrawal") setQuickMermaOpen(true);
+                else if (action === "settings") setSettingsOpen(true);
+              }}
+            />
+          )}
+        </Suspense>
+
+        {/* Onboarding tour — primera vez después del login */}
+        <Suspense fallback={null}>
+          {onboardingOpen && (
+            <OnboardingTour open={onboardingOpen} onClose={() => setOnboardingOpen(false)} />
+          )}
+        </Suspense>
 
         {/* Quick Sale Modal */}
         <Suspense fallback={null}>
