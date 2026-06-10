@@ -17,6 +17,8 @@ import {
   linkSalesToOffers,
   calcConversionStats,
 } from "../lib/offerHistory.js";
+import { checkCooldown } from "../lib/messageCooldown.js";
+import { generateStoryImage, downloadBlob } from "../lib/storyImageGenerator.js";
 import { WhatsAppMessage } from "./WhatsApp.jsx";
 
 // Módulo "📲 Mensajes" — hub centralizado de mensajes WhatsApp.
@@ -272,6 +274,7 @@ export const Offers = ({ products = [], sales = [], clients = [], exchangeRate =
           onEditManual={useIdeaManual}
           isMobile={isMobile}
           logAudit={logAudit}
+          auditLog={auditLog}
         />
       )}
     </div>
@@ -629,11 +632,18 @@ function WeekView({ week, ideas, onOpenIdea, onPickAudience, isMobile }) {
 // MODAL PREVIEW DE IDEA
 // ============================================================================
 
-function IdeaPreviewModal({ idea, audience, clients, exchangeRate, onClose, onEditManual, isMobile, logAudit }) {
+function IdeaPreviewModal({ idea, audience, clients, exchangeRate, onClose, onEditManual, isMobile, logAudit, auditLog = [] }) {
   const audienceConfig = getAudience(audience);
   const needsClient = audienceConfig.needsClient;
   const [selectedClientId, setSelectedClientId] = useState(idea.clientId || "");
   const [copied, setCopied] = useState(false);
+
+  // Anti-saturación: chequea cuántos mensajes ya mandó a este destinatario
+  // y avisa si estaría saturando. NO bloquea — Diego decide.
+  const cooldown = useMemo(() => {
+    const effClientId = selectedClientId || idea.clientId || null;
+    return checkCooldown(auditLog, { audience, clientId: effClientId, now: new Date() });
+  }, [auditLog, audience, selectedClientId, idea.clientId]);
 
   // Cliente seleccionado para individual
   const selectedClient = useMemo(
@@ -709,11 +719,47 @@ function IdeaPreviewModal({ idea, audience, clients, exchangeRate, onClose, onEd
     }
   };
 
+  // Genera imagen 1080×1920 con productos de la idea y la descarga.
+  // Útil para subirla como Story de Instagram / Estado de WhatsApp.
+  const [generatingImage, setGeneratingImage] = useState(false);
+  const downloadStoryImage = async () => {
+    setGeneratingImage(true);
+    try {
+      const prods = (idea.products || []).map(x => x.product).filter(Boolean);
+      const blob = await generateStoryImage(prods, {
+        title: idea.title || "Stock disponible",
+        headline: idea.reason || "",
+        exchangeRate,
+      });
+      if (blob) {
+        const date = new Date().toISOString().slice(0, 10);
+        downloadBlob(blob, `izn-${idea.category || "stories"}-${date}.png`);
+        logOfferSent("imagen_stories");
+      }
+    } finally {
+      setGeneratingImage(false);
+    }
+  };
+
   const color = CATEGORY_COLORS[idea.category] || "#1E2B4A";
 
   return (
     <Modal open={true} onClose={onClose} title={`${audienceConfig.icon} ${audienceConfig.label}`}>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+
+        {/* Aviso anti-saturación si aplica (no bloquea, solo avisa) */}
+        {cooldown.warning && (
+          <div style={{
+            padding: "10px 12px",
+            background: cooldown.ok ? "#FDECC8" : "#FBE4E4",
+            border: `1px solid ${cooldown.ok ? "#F2D59A" : "#F1B8B6"}`,
+            borderRadius: 10,
+            fontSize: 12,
+            color: cooldown.ok ? "#8B6A1E" : "#9C2A2A",
+            fontWeight: 600,
+            lineHeight: 1.4,
+          }}>{cooldown.warning}</div>
+        )}
 
         {/* Encabezado idea */}
         <div style={{
@@ -790,6 +836,19 @@ function IdeaPreviewModal({ idea, audience, clients, exchangeRate, onClose, onEd
             <Btn onClick={shareNative} style={{ gridColumn: isMobile ? "span 2" : "auto" }}>📤 Compartir</Btn>
           )}
         </div>
+
+        {/* Imagen para Stories (Instagram / Estado de WhatsApp) */}
+        {(idea.products || []).length > 0 && (
+          <button onClick={downloadStoryImage} disabled={generatingImage} style={{
+            width: "100%", padding: "10px 14px", minHeight: 44,
+            background: "transparent", border: "1px solid #E5DAC2",
+            borderRadius: 10, color: "#1E2B4A", fontSize: 13, fontWeight: 700,
+            cursor: generatingImage ? "wait" : "pointer", fontFamily: "inherit",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+          }}>
+            {generatingImage ? "Generando…" : "📸 Descargar imagen para Stories"}
+          </button>
+        )}
 
         <button onClick={() => onEditManual(idea)} style={{
           background: "transparent", border: "1px dashed #E5DAC2",

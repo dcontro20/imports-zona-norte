@@ -18,6 +18,7 @@ import { filterRealProducts } from "./realProducts.js";
 import { buildProductSalesStats, findVelocityDrops } from "../productIntelligence.js";
 import { findLowMarginProducts } from "../pricing.js";
 import { dormantClients } from "./smartOffers.js";
+import { clientsCloseToReward } from "./loyalty.js";
 
 const MS_PER_DAY = 86400000;
 
@@ -196,6 +197,21 @@ export function generateDashboardAlerts({
       title: `${stale.length} sin vender hace ${staleProductDays}+ días`,
       detail: stale.slice(0, 3).map(p => `${p.brand} ${p.flavor || p.model}`).join(" · "),
       action: { label: "Crear oferta", page: "offers" },
+    });
+  }
+
+  // Loyalty: clientes a un paso del próximo reward (75-99% del próximo)
+  // Empujarlos con un "te falta poco para tu premio" genera engagement.
+  const closeReward = clientsCloseToReward(clients, sales, { exchangeRate });
+  if (closeReward.length > 0) {
+    opportunity.push({
+      level: "opportunity",
+      icon: "🏆",
+      title: `${closeReward.length} cliente${closeReward.length > 1 ? "s" : ""} a un paso de su premio`,
+      detail: closeReward.slice(0, 3).map(x =>
+        `${x.client.name} (${x.pointsToNext} pts para ${x.next.label})`
+      ).join(" · "),
+      action: { label: "Ver clientes", page: "clients" },
     });
   }
 

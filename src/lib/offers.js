@@ -31,6 +31,7 @@ import { safeRate } from "../helpers.js";
 import { getAudience, TONES } from "./offerAudiences.js";
 import { isWeekend } from "./offerCalendar.js";
 import { getFlavorEmojis } from "./whatsappMessage.js";
+import { pickOpener, pickCloser, urgencyLine } from "./messageTones.js";
 
 // Precio ARS de un producto (usa priceARS, fallback a priceUSD × rate).
 export function productPriceARS(product, exchangeRate) {
@@ -96,13 +97,18 @@ export function buildOfferMessage(offer, exchangeRate, opts = {}) {
   } = offer || {};
 
   const audience = opts.audience ? getAudience(opts.audience) : null;
-  const tone = audience ? TONES[audience.tone] : null;
+  const toneName = audience ? audience.tone : null;
   const ctx = { ...opts.ctx, weekend: opts.ctx?.weekend ?? isWeekend() };
+  // Seed estable basado en el tipo + audiencia + (opcionalmente) ID de idea
+  // → mensajes del mismo tipo a la misma audiencia consecutivos varían.
+  // Sin seed (undefined) sería 100% random — preferimos determinístico para
+  // que copiar 2 veces seguidas dé el mismo mensaje (no confunde a Diego).
+  const toneSeed = opts.seed || `${type}-${opts.audience || "any"}-${(products[0]?.product?.id) || ""}`;
 
   const lines = [];
   const storyLines = [];
 
-  if (tone) lines.push(tone.opener(ctx), "");
+  if (toneName) lines.push(pickOpener(toneName, ctx, toneSeed), "");
 
   // ---- DESTACADO ----
   if (type === "destacado") {
@@ -351,9 +357,18 @@ export function buildOfferMessage(offer, exchangeRate, opts = {}) {
     });
   }
 
-  // CLOSER por tono o footer legacy
-  if (tone) {
-    lines.push("", tone.closer(ctx));
+  // CTA con urgencia/escasez según tipo (antes del closer, si aplica)
+  if (toneName) {
+    // Contexto para urgencia: stock del primer producto, cantidad combo, etc.
+    const firstStock = Number(products[0]?.product?.stock) || 0;
+    const cta = urgencyLine(type, {
+      stock: firstStock,
+      comboQty: offer.comboQty,
+      recentBuyers: opts.ctx?.recentBuyers,
+      daysLeft: opts.ctx?.daysLeft,
+    });
+    if (cta) lines.push("", cta);
+    lines.push("", pickCloser(toneName, ctx, toneSeed));
   } else {
     lines.push(footer);
   }

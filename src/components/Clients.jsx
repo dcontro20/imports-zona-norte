@@ -7,6 +7,9 @@ import { T, pickAvatarColor } from "../theme.js";
 import { resolveItemName, digitsOnly, isValidPhone, cleanIG } from "./clients/helpers.js";
 import { Sparkline, Avatar } from "./clients/primitives.jsx";
 import HistoryModal from "./clients/HistoryModal.jsx";
+import { segmentAllClients, SEGMENT_LABELS } from "../lib/clientSegments.js";
+import { calcPoints, getRewardStatus } from "../lib/loyalty.js";
+import { useAppContext } from "../AppContext.js";
 
 const waNumber = (phone) => {
   const d = digitsOnly(phone);
@@ -45,6 +48,13 @@ const Pill = ({ active, onClick, children, color = T.primary }) => (
 // CLIENTS — redesigned with Notion/Linear warmth
 // ============================================
 export const Clients = ({ clients, setClients, sales, products, withdrawals = [] }) => {
+  const { exchangeRate } = useAppContext();
+  // Segmentación automática (memo): clasifica TODOS los clientes en una
+  // sola pasada, usa p75 del ticket para "high_ticket".
+  const segments = useMemo(
+    () => segmentAllClients(clients, sales, { exchangeRate, now: new Date() }),
+    [clients, sales, exchangeRate]
+  );
   const { isMobile } = useResponsive();
 
   // ---- UI state ----
@@ -398,20 +408,27 @@ export const Clients = ({ clients, setClients, sales, products, withdrawals = []
           gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(340px, 1fr))",
           gap: isMobile ? 12 : 16,
         }}>
-          {filtered.slice(0, visibleCount).map(c => (
-            <ClientCard
-              key={c.id}
-              client={c}
-              stats={clientStats[c.id]}
-              productsById={productsById}
-              gestures={gesturesByClient[c.id]}
-              onEdit={() => openEdit(c)}
-              onHistory={() => setHistoryClient(c.id)}
-              onBalance={() => openBalanceAdjust(c)}
-              onDelete={() => handleDelete(c)}
-              confirmDelete={confirmDel === c.id}
-            />
-          ))}
+          {filtered.slice(0, visibleCount).map(c => {
+            const pts = calcPoints(c, sales, { exchangeRate });
+            const reward = getRewardStatus(pts.total);
+            return (
+              <ClientCard
+                key={c.id}
+                client={c}
+                stats={clientStats[c.id]}
+                segment={segments[c.id]}
+                points={pts.total}
+                reward={reward}
+                productsById={productsById}
+                gestures={gesturesByClient[c.id]}
+                onEdit={() => openEdit(c)}
+                onHistory={() => setHistoryClient(c.id)}
+                onBalance={() => openBalanceAdjust(c)}
+                onDelete={() => handleDelete(c)}
+                confirmDelete={confirmDel === c.id}
+              />
+            );
+          })}
           {filtered.length > visibleCount && (
             <button onClick={() => setVisibleCount(v => v + 50)} style={{
               gridColumn: "1 / -1",
@@ -471,7 +488,7 @@ export const Clients = ({ clients, setClients, sales, products, withdrawals = []
 // incluyen callbacks inline del parent (onEdit, onHistory, etc), idealmente
 // el parent las envuelve en useCallback. Aún sin eso, memo evita renders
 // cuando cambian campos no relacionados del state del parent (ej: modal abierto).
-const ClientCard = memo(({ client: c, stats, productsById, gestures, onEdit, onHistory, onBalance, onDelete, confirmDelete }) => {
+const ClientCard = memo(({ client: c, stats, segment, points = 0, reward, productsById, gestures, onEdit, onHistory, onBalance, onDelete, confirmDelete }) => {
   const [hover, setHover] = useState(false);
   const st = stats || {};
   const bal = c.balance || 0;
@@ -524,6 +541,41 @@ const ClientCard = memo(({ client: c, stats, productsById, gestures, onEdit, onH
                 fontSize: 11, color: "#fff", background: T.blue, padding: "3px 8px", borderRadius: 999,
                 fontWeight: 700,
               }}>🌍 Inactivo</span>
+            )}
+            {/* Segmento automático: VIP / Frecuente / Fanatic / Explorer / etc.
+                Si está inactivo o bloqueado, no lo mostramos (ya hay badge). */}
+            {!c.inactive && !c.isBlocked && segment && segment.primarySegment !== "regular" && segment.primarySegment !== "unknown" && SEGMENT_LABELS[segment.primarySegment] && (
+              (() => {
+                const meta = SEGMENT_LABELS[segment.primarySegment];
+                const tooltip = segment.favoriteBrand
+                  ? `Segmento ${meta.label}${segment.favoriteShare ? ` · ${segment.favoriteShare}% ${segment.favoriteBrand}` : ""}`
+                  : `Segmento: ${meta.label}`;
+                return (
+                  <span title={tooltip} style={{
+                    display: "inline-flex", alignItems: "center", gap: 4,
+                    fontSize: 11, color: "#fff", background: meta.color, padding: "3px 8px", borderRadius: 999,
+                    fontWeight: 700,
+                  }}>{meta.emoji} {meta.label}</span>
+                );
+              })()
+            )}
+            {/* Loyalty: puntos acumulados. Tooltip muestra próximo reward. */}
+            {!c.inactive && !c.isBlocked && points > 0 && (
+              <span title={
+                reward?.claimable
+                  ? `${points} puntos · puede canjear: ${reward.claimable.label}`
+                  : reward?.next
+                    ? `${points} puntos · faltan ${reward.pointsToNext} para "${reward.next.label}"`
+                    : `${points} puntos`
+              } style={{
+                display: "inline-flex", alignItems: "center", gap: 4,
+                fontSize: 11,
+                color: reward?.claimable ? "#fff" : "#1E2B4A",
+                background: reward?.claimable ? "#0F7B6C" : "#F8F2E7",
+                padding: "3px 8px", borderRadius: 999,
+                fontWeight: 700,
+                border: reward?.claimable ? "none" : "1px solid #E5DAC2",
+              }}>{reward?.claimable ? "🏆" : "⭐"} {points} pts</span>
             )}
             {(() => {
               const seg = stats?.segment;
