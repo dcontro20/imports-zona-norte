@@ -1,6 +1,12 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
+import { initErrorReporter } from './lib/errorReporter.js'
+
+// Captura errores globales (window.onerror + unhandledrejection) y los
+// almacena en localStorage. Visible en ⚙️ Ajustes → Errores del sistema.
+// Si querés enviarlos a un endpoint, pasá { endpoint: 'https://...' }
+initErrorReporter({ maxStored: 100 })
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
