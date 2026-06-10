@@ -927,6 +927,7 @@ const ClientForm = ({ form, setForm, phoneError, setPhoneError, knownZones, edit
           <option value="regular">Regular (sin descuento)</option>
           <option value="vip">VIP (-5% automático)</option>
           <option value="diamante">Diamante (-10% automático)</option>
+          <option value="mayorista">Mayorista (-10% / -15% por volumen)</option>
         </select>
       </div>
 

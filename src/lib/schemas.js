@@ -76,7 +76,7 @@ export const ClientSchema = z.object({
   email: strOpt,
   instagram: strOpt,
   zona: strOpt,
-  tier: z.enum(["regular", "vip", "diamante"]).optional().default("regular"),
+  tier: z.enum(["regular", "vip", "diamante", "mayorista"]).optional().default("regular"),
   balance: numLoose.transform(v => v ?? 0),
   dateOfBirth: strOpt,
   inactive: boolOpt,

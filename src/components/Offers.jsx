@@ -19,6 +19,7 @@ import {
 } from "../lib/offerHistory.js";
 import { checkCooldown } from "../lib/messageCooldown.js";
 import { generateStoryImage, downloadBlob } from "../lib/storyImageGenerator.js";
+import { createCatalogSnapshot, encodeCatalogToURL, catalogShareMessage } from "../lib/publicCatalog.js";
 import { WhatsAppMessage } from "./WhatsApp.jsx";
 
 // Módulo "📲 Mensajes" — hub centralizado de mensajes WhatsApp.
@@ -207,7 +208,10 @@ export const Offers = ({ products = [], sales = [], clients = [], exchangeRate =
 
       {/* VISTA MENSAJE RÁPIDO (default) — embebe el WhatsAppMessage tal cual */}
       {view === "quick" && (
-        <WhatsAppMessage products={products} />
+        <>
+          <PublicCatalogGenerator products={products} exchangeRate={exchangeRate} />
+          <WhatsAppMessage products={products} />
+        </>
       )}
 
       {/* VISTA HOY */}
@@ -1319,5 +1323,120 @@ function inputStyle(isMobile) {
     background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 10, color: "#1E2B4A",
     fontSize: isMobile ? 16 : 14,
     outline: "none", boxSizing: "border-box", fontFamily: "inherit",
+  };
+}
+
+// ============================================================================
+// PUBLIC CATALOG GENERATOR — botón "Generar link público"
+// ============================================================================
+
+function PublicCatalogGenerator({ products = [], exchangeRate = 1 }) {
+  const [generated, setGenerated] = useState(null);
+  const [copied, setCopied] = useState(false);
+  const [promoNote, setPromoNote] = useState("");
+  const [expiresInDays, setExpiresInDays] = useState(14);
+
+  const generate = () => {
+    const snap = createCatalogSnapshot({
+      products,
+      exchangeRate,
+      promoNote: promoNote.trim() || null,
+      expiresInDays: Number(expiresInDays) || 14,
+    });
+    const url = encodeCatalogToURL(snap);
+    const shareMsg = catalogShareMessage(snap, url);
+    setGenerated({ snap, url, shareMsg });
+    setCopied(false);
+  };
+
+  const copyShareMsg = async () => {
+    if (!generated) return;
+    try {
+      await navigator.clipboard.writeText(generated.shareMsg);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      prompt("Copiá este mensaje:", generated.shareMsg);
+    }
+  };
+
+  const openLink = () => {
+    if (generated) window.open(generated.url, "_blank", "noopener");
+  };
+
+  return (
+    <Card style={{ marginBottom: 14, background: "linear-gradient(135deg, #1E2B4A 0%, #2D3D63 100%)", color: "#F8F2E7", border: "none" }}>
+      <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 4 }}>
+        🌐 Catálogo público compartible
+      </div>
+      <div style={{ fontSize: 12, opacity: 0.78, marginBottom: 14, lineHeight: 1.5 }}>
+        Generá un link tipo <code style={{ background: "rgba(248,242,231,0.15)", padding: "1px 6px", borderRadius: 4 }}>/c/junio-x4k2</code>{" "}
+        que tus clientes abren y ven tu stock con precios + botón "Pedir por WhatsApp" pre-armado.
+      </div>
+
+      {!generated ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <input
+            value={promoNote}
+            onChange={e => setPromoNote(e.target.value)}
+            placeholder="Mensaje promocional (opcional, ej: '🎁 Envío gratis esta semana')"
+            style={{
+              padding: "10px 12px", background: "rgba(248,242,231,0.10)",
+              border: "1px solid rgba(248,242,231,0.2)", borderRadius: 8,
+              fontSize: 14, color: "#F8F2E7", outline: "none", fontFamily: "inherit",
+            }}
+          />
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <span style={{ fontSize: 12, opacity: 0.78 }}>Expira en</span>
+            <input type="number" min={1} max={60} value={expiresInDays}
+              onChange={e => setExpiresInDays(e.target.value)}
+              style={{
+                width: 60, padding: "6px 8px", background: "rgba(248,242,231,0.10)",
+                border: "1px solid rgba(248,242,231,0.2)", borderRadius: 8,
+                color: "#F8F2E7", fontSize: 14, outline: "none", textAlign: "center",
+              }} />
+            <span style={{ fontSize: 12, opacity: 0.78 }}>días</span>
+          </div>
+          <button onClick={generate} style={{
+            padding: "12px 18px", minHeight: 48,
+            background: "#F8F2E7", color: "#1E2B4A", border: "none",
+            borderRadius: 10, fontSize: 14, fontWeight: 800,
+            cursor: "pointer", fontFamily: "inherit",
+          }}>🔗 Generar link público</button>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{
+            padding: "10px 12px", background: "rgba(248,242,231,0.10)",
+            border: "1px solid rgba(248,242,231,0.2)", borderRadius: 8,
+            fontSize: 12, fontFamily: "monospace", wordBreak: "break-all",
+            maxHeight: 80, overflowY: "auto",
+          }}>{generated.url}</div>
+          <div style={{ fontSize: 11, opacity: 0.78 }}>
+            Incluye {generated.snap.items.length} productos · {generated.snap.stats.totalUnits} unidades · expira el{" "}
+            {new Date(generated.snap.expiresAt).toLocaleDateString("es-AR")}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+            <button onClick={copyShareMsg} style={btnStyle("#F8F2E7", "#1E2B4A")}>
+              {copied ? "✓ Copiado" : "📋 Copiar mensaje"}
+            </button>
+            <button onClick={openLink} style={btnStyle("transparent", "#F8F2E7", "1px solid rgba(248,242,231,0.3)")}>
+              👁 Ver
+            </button>
+            <button onClick={() => setGenerated(null)} style={btnStyle("transparent", "#F8F2E7", "1px solid rgba(248,242,231,0.3)")}>
+              ↺ Otro
+            </button>
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function btnStyle(bg, color, border = "none") {
+  return {
+    padding: "10px 14px", minHeight: 44, background: bg, color, border,
+    borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer",
+    fontFamily: "inherit", whiteSpace: "nowrap",
   };
 }
