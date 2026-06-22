@@ -11,4 +11,4 @@
 // Mientras esté vacía, la app cae automáticamente al modo de
 // notificaciones LOCALES (funcionan solo si abriste la app en el día).
 // Guía completa: docs/PUSH_SETUP.md
-export const VAPID_PUBLIC_KEY = "";
+export const VAPID_PUBLIC_KEY = "BNKdf78FkNF4EjHHqDJwanY4VZiRaUKLNrhAMbPZ25jFcOwmlJc_E9U_OqSxibwcSUMkeZyIuxPb5yuV1GbaH-4";
