@@ -528,8 +528,22 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    await logout();
-    // onAuthChange will set currentUser to null
+    try { await logout(); } catch {}
+    // Seguridad: borrar del dispositivo toda la data cacheada del negocio
+    // (clientes con PII, finanzas, caja) para que no quede accesible tras
+    // cerrar sesión en un dispositivo compartido/robado.
+    try {
+      Object.keys(localStorage)
+        .filter(k => k.startsWith("vapestock_") || k.startsWith("izn:") || k.startsWith("izn_"))
+        .forEach(k => localStorage.removeItem(k));
+      sessionStorage.clear();
+    } catch {}
+    try {
+      const { clearFirestoreCache } = await import("./firebase.js");
+      await clearFirestoreCache();
+    } catch {}
+    // Recargar para arrancar de cero, sin datos en memoria ni en cache.
+    try { window.location.reload(); } catch {}
   };
 
   // ---- Loading screen ----

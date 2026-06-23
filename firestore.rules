@@ -20,8 +20,15 @@ service cloud.firestore {
               || request.auth.token.email == "gcontro99@gmail.com");
     }
 
+    // Cada doc es { data: "<JSON string>", updatedAt: "<ISO>" }.
+    // Validamos forma y tamaño para evitar writes malformados o gigantes
+    // (un JSON > ~900KB rompería la app al hacer JSON.parse y/o inflaría costos).
     match /appData/{key} {
-      allow read, write: if isOwner();
+      allow read: if isOwner();
+      allow write: if isOwner()
+        && request.resource.data.data is string
+        && request.resource.data.data.size() < 900000
+        && request.resource.data.updatedAt is string;
     }
 
     // Push remotas (FCM): tokens de dispositivos + config de horarios.

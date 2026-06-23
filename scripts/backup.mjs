@@ -40,15 +40,17 @@ const log = (...args) => { if (!QUIET) console.log(...args); };
 function resolveFirebasePassword() {
   const envPass = process.env.FIREBASE_PASSWORD;
   if (envPass) return envPass;
+  // Sin fallback hardcodeado (seguridad): la password NUNCA vive en el repo.
+  // Local: exportá FIREBASE_PASSWORD antes de correr, o ponela en
+  // ~/.izn-secrets.env y sourcealo desde el LaunchAgent.
+  // CI: configurala como secret de GitHub Actions.
+  console.error("❌ FIREBASE_PASSWORD no está seteada.");
   if (IS_CI) {
-    console.error("❌ CI detectado (GITHUB_ACTIONS=true) pero FIREBASE_PASSWORD no está seteada.");
     console.error("   Configurala en: GitHub → Settings → Secrets and variables → Actions");
-    process.exit(1);
+  } else {
+    console.error("   Local: export FIREBASE_PASSWORD='...' antes de correr el backup.");
   }
-  // Fallback legacy para LaunchAgent local. El password se considera de dominio
-  // personal de Diego (misma cuenta que usa en la app). Ver docs/BACKUP_AUTOMATION.md
-  // para mover esto a ~/.izn-secrets.env en el futuro si querés endurecer local.
-  return "Poncharelo20!";
+  process.exit(1);
 }
 
 function resolveDriveToken() {

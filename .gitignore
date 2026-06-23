@@ -3,3 +3,8 @@ dist/
 .DS_Store
 backups/
 .credentials/
+.env
+.env.*
+*.local
+*-service-account*.json
+*-adminsdk-*.json

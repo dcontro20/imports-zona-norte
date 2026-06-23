@@ -2,6 +2,7 @@ import { initializeApp } from "firebase/app";
 import {
   initializeFirestore, doc, setDoc, getDoc, onSnapshot, collection,
   persistentLocalCache, persistentMultipleTabManager,
+  terminate, clearIndexedDbPersistence,
 } from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "firebase/auth";
 
@@ -28,9 +29,40 @@ export const db = initializeFirestore(app, {
 });
 export const auth = getAuth(app);
 
+// Firebase App Check — ata cada request a una instancia verificada de TU app
+// (vía reCAPTCHA v3), bloqueando clones, scripts y bots aunque tengan login.
+// Pegá la site key generada en: Firebase Console → App Check → Apps →
+// registrar la web app con reCAPTCHA v3. Mientras esté vacía, App Check no se
+// activa y la app funciona igual. Guía completa: docs/SECURITY.md
+export const APP_CHECK_SITE_KEY = "";
+if (APP_CHECK_SITE_KEY && typeof window !== "undefined") {
+  import("firebase/app-check").then(({ initializeAppCheck, ReCaptchaV3Provider }) => {
+    try {
+      initializeAppCheck(app, {
+        provider: new ReCaptchaV3Provider(APP_CHECK_SITE_KEY),
+        isTokenAutoRefreshEnabled: true,
+      });
+    } catch (e) {
+      console.warn("[firebase] App Check init falló:", e?.message);
+    }
+  }).catch(() => {});
+}
+
 // Auth helpers
 export const loginWithEmail = (email, password) => signInWithEmailAndPassword(auth, email, password);
 export const logout = () => signOut(auth);
+
+// Borra el cache offline de Firestore (IndexedDB) — usado al cerrar sesión
+// para no dejar data del negocio (PII + finanzas) en el dispositivo.
+// Tras terminar Firestore el `db` queda inutilizable: el caller debe recargar.
+export async function clearFirestoreCache() {
+  try {
+    await terminate(db);
+    await clearIndexedDbPersistence(db);
+  } catch (e) {
+    console.warn("[firebase] no se pudo limpiar cache offline:", e?.code || e?.message);
+  }
+}
 export const onAuthChange = (callback) => onAuthStateChanged(auth, callback);
 
 // User mapping: Firebase Auth UID → app user profile

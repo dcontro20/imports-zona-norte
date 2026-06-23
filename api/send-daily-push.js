@@ -21,7 +21,17 @@
 //   PUSH_CRON_SECRET          string random compartido con GitHub Actions
 
 import admin from "firebase-admin";
+import { timingSafeEqual } from "node:crypto";
 import { nowInTZ, dueSlots } from "../src/lib/pushWindow.js";
+
+// Comparación de strings resistente a timing attacks. Devuelve false si las
+// longitudes difieren (sin leak) o si el contenido no coincide.
+function safeEqual(a, b) {
+  const ba = Buffer.from(String(a || ""), "utf8");
+  const bb = Buffer.from(String(b || ""), "utf8");
+  if (ba.length !== bb.length) return false;
+  return timingSafeEqual(ba, bb);
+}
 
 function getAdminApp() {
   if (admin.apps.length) return admin.app();
@@ -61,10 +71,11 @@ async function sendSlot(db, messaging, slot, tokens) {
 }
 
 export default async function handler(req, res) {
-  // Auth: solo el cron (o Diego con el secret) puede disparar esto
+  // Auth: solo el cron (o Diego con el secret) puede disparar esto.
+  // Comparación timing-safe para no filtrar el secreto byte a byte.
   const auth = req.headers.authorization || "";
   const secret = process.env.PUSH_CRON_SECRET;
-  if (!secret || auth !== `Bearer ${secret}`) {
+  if (!secret || !safeEqual(auth, `Bearer ${secret}`)) {
     return res.status(401).json({ error: "unauthorized" });
   }
 
@@ -74,7 +85,9 @@ export default async function handler(req, res) {
     db = admin.firestore(app);
     messaging = admin.messaging(app);
   } catch (e) {
-    return res.status(500).json({ error: "admin_init_failed", detail: e.message });
+    // No devolver e.message al cliente (puede revelar detalle del service account).
+    console.error("[push] admin init failed:", e?.message || e);
+    return res.status(500).json({ error: "admin_init_failed" });
   }
 
   const isTest = req.query?.test === "1" || req.query?.test === "true";

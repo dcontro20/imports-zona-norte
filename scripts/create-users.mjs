@@ -16,13 +16,21 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-// IMPORTANTE: completar la password de Gustavo antes de correr el script.
-// Después de crear el usuario, Gustavo puede cambiarla desde "Forgot password"
-// en la pantalla de login (recibe el reset por mail).
+// Las passwords NO viven en el repo (es público). Se pasan por variables de
+// entorno al correr el script. Ejemplo:
+//   DIEGO_PW='...' GUSTAVO_PW='...' node scripts/create-users.mjs
+// Alternativa más cómoda: crear los usuarios desde la web
+//   Firebase Console → Authentication → Users → Add user
 const users = [
-  { email: "dcontro20@gmail.com", password: "Poncharelo20!" },
-  { email: "gcontro99@gmail.com", password: "Chapu2299" },
-];
+  { email: "dcontro20@gmail.com", password: process.env.DIEGO_PW },
+  { email: "gcontro99@gmail.com", password: process.env.GUSTAVO_PW },
+].filter(u => {
+  if (!u.password) {
+    console.error(`⏭️  Salteado ${u.email}: falta su variable de entorno (DIEGO_PW / GUSTAVO_PW)`);
+    return false;
+  }
+  return true;
+});
 
 for (const u of users) {
   try {
