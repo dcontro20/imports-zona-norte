@@ -253,12 +253,12 @@ La API de dolarapi.com solo actualiza el exchangeRate si Firestore no mandó uno
 - Firebase Auth con email/password — Diego es único usuario (owner).
 - Setup en `docs/FIREBASE_AUTH_SETUP.md`; scripts en `scripts/create-users.mjs`
 
-### Single-user (post 2026-05-22)
-- Gustavo dejó de ser socio. Diego es 100% dueño.
-- Todos los conceptos de "splits 50/50", roles owner/manager y dual partner se eliminaron.
-- `calcPartnerBalances` mantiene la firma pero `halfProfit === netProfitComun` y los campos `gustavo*` quedan en 0 por compat con consumers (Dashboard, Reports, Closures).
-- Las cuentas MP Gustavo / mpGustavo, WITHDRAW_PERSONS["Gustavo"], el filtro "Por socio" del libro de caja, las cards "Socios del mes" del Dashboard, los breakdowns Diego/Gustavo en Withdrawals/Reports — todos eliminados.
-- Existe `scripts/migrate-remove-gustavo.mjs` con modos `--dry-run` y `--apply` por si hubiera data histórica que reasignar (en la corrida del 2026-05-22 detectó 0 registros).
+### Modelo de socios (al 2026-06-23)
+- **Dos socios 50/50:** Diego (`dcontro20@gmail.com`) + Gustavo (`gcontro99@gmail.com`), ambos role `owner` con acceso total.
+- **Corte por fecha:** `PARTNERSHIP_START = "2026-06-22"` en `calcs.js`. Las transacciones con `date < PARTNERSHIP_START` quedan 100% Diego (era pre-sociedad — Gustavo había estado afuera del 2026-05-22 al 2026-06-22); las `>= PARTNERSHIP_START` se reparten 50/50. El corte aplica solo a la GANANCIA del pozo común: consumo personal y retiros de capital siempre afectan al socio individual sin importar la era.
+- `calcPartnerBalances` devuelve `poolSolo`, `poolSociedad`, `diegoPoolShare`, `gustavoPoolShare`, `{socio}Balance`, `consumo{Socio}`, `{socio}Total`. La firma acepta `partnershipStart` opcional para tests / futura reconfiguración.
+- Cuentas de caja: `mpDiego` y `mpGustavo` separadas. `ACCOUNT_METHOD_MAP.mpDiego` absorbe los pagos MP sin `mpAccount` marcado (legacy pre-fase: antes existía una sola cuenta MP, eran de Diego). `mpGustavo` solo matchea `p.mpAccount === "MP Gustavo"`.
+- Existe `scripts/migrate-remove-gustavo.mjs` (histórico) — la corrida del 2026-05-22 detectó 0 registros. **No** se creó el espejo de re-incorporación: como Gustavo nunca llegó a tener data, no hay nada que des-migrar.
 
 ---
 
@@ -336,7 +336,27 @@ A partir del 14/04/2026, GitHub está sincronizado y es la fuente de verdad del 
 
 ---
 
-## Estado del proyecto al 22/06/2026
+## Estado del proyecto al 23/06/2026
+
+### 👥 Vuelve Gustavo: sociedad 50/50 restaurada (docs/SESSION_2026-06-23_vuelve-gustavo.md)
+
+Diego abrió pidiendo "reconfigurá TODO, volvió Gustavo". Reversión completa
+de la salida del 2026-05-22 en 4 fases (3 commits + setup manual):
+- **Fase 1 backend** (`0c8308a`): `calcs.js` ahora parte el pozo común en
+  dos eras con `PARTNERSHIP_START = "2026-06-22"`. Pre-corte → 100% Diego;
+  post-corte → 50/50. Nueva cuenta `mpGustavo` con matcher que discrimina
+  por `p.mpAccount` (el `mpDiego` absorbe legacy sin marcar).
+- **Fase 3+4 UI** (`e441ca1`): `Partners.jsx` "Mi Cartera" → "Socios" con
+  dos columnas de balance por socio; `Withdrawals` y `Reports` con
+  StatCards/cards separadas Diego/Gustavo.
+- **Fase 2 auth** (`4bb0d55`): `gcontro99@gmail.com` agregado a
+  `USER_PROFILES` + `firestore.rules` (Diego lo creó vía Firebase Console
+  web, no terminal). Login confirmado funcionando en prod.
+
+**+14 tests (776 total).** Decisión clave: corte por fecha en vez de
+retroactivo — evita inflar el saldo de Gustavo con histórico acumulado
+de Diego, y no fuerza recalcular cierres ya cerrados. La sección
+"Modelo de socios" más arriba está actualizada.
 
 ### 🔔 Notificaciones diarias: locales + push remotas FCM (docs/SESSION_2026-06-22_push-notifications.md)
 
