@@ -336,7 +336,7 @@ export const Clients = ({ clients, setClients, sales, products, withdrawals = []
       </div>
 
       {/* Inteligencia de cliente (S17): alertas + segmentos + a tocar */}
-      <ClientIntelligence clients={clients} sales={sales} exchangeRate={exchangeRate} onOpenClient={(id) => setHistoryClient(id)} />
+      <ClientIntelligence clients={clients} sales={sales} products={products} exchangeRate={exchangeRate} onOpenClient={(id) => setHistoryClient(id)} />
 
       {/* Search + Filters */}
       <div style={{
