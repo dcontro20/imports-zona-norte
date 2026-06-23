@@ -150,7 +150,7 @@ export const WhatsAppMessage = ({ products }) => {
               rows={8}
               style={{
                 width: "100%", marginTop: 10, padding: 10, borderRadius: 6,
-                border: "1px solid #E5DAC2", fontSize: 13, fontFamily: "monospace",
+                border: "1px solid #E5DAC2", fontSize: 16, fontFamily: "monospace",
                 background: "#FFF", color: "#1E2B4A", resize: "vertical", outline: "none",
                 boxSizing: "border-box",
               }}

@@ -335,6 +335,7 @@ function MiniStat({ label, value, sub, color }) {
 }
 
 const dateInput = {
-  padding: "8px 12px", fontSize: 14, border: "1px solid #E5DAC2",
-  borderRadius: 8, background: "#FFF", outline: "none",
+  padding: "10px 12px", fontSize: 16, border: "1px solid #E5DAC2",
+  borderRadius: 8, background: "#FFF", outline: "none", minHeight: 44,
+  boxSizing: "border-box",
 };

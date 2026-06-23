@@ -85,8 +85,8 @@ export const Finance = ({
           value={month}
           onChange={e => setMonth(e.target.value)}
           style={{
-            padding: "10px 14px", background: "#FFFFFF", border: "1px solid #E5DAC2",
-            borderRadius: 10, color: "#1E2B4A", fontSize: 14, fontWeight: 600,
+            padding: "10px 14px", minHeight: 44, background: "#FFFFFF", border: "1px solid #E5DAC2",
+            borderRadius: 10, color: "#1E2B4A", fontSize: 16, fontWeight: 600,
             outline: "none", fontFamily: "inherit", cursor: "pointer",
           }}
         >

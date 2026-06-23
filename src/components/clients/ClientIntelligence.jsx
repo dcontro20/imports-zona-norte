@@ -135,6 +135,7 @@ export function ClientIntelligence({ clients = [], sales = [], products = [], ex
         }}>
           <div onClick={e => e.stopPropagation()} style={{
             background: T.card, borderRadius: 14, padding: 18, maxWidth: 420, width: "100%",
+            maxHeight: "92dvh", overflowY: "auto", boxSizing: "border-box",
             border: `1px solid ${T.border}`, boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
           }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: T.text, marginBottom: 10 }}>

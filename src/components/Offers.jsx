@@ -1218,7 +1218,7 @@ function HistoryView({ auditLog, sales, clients, products, isMobile }) {
       {/* Stats overall */}
       <div style={{
         display: "grid",
-        gridTemplateColumns: isMobile || isTablet ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
+        gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)",
         gap: 10, marginBottom: 14,
       }}>
         <StatBox label="Ofertas mandadas" value={stats.totalSent} icon="📨" color="#1E2B4A" />
@@ -1524,9 +1524,9 @@ function PublicCatalogGenerator({ products = [], exchangeRate = 1 }) {
             onChange={e => setPromoNote(e.target.value)}
             placeholder="Mensaje promocional (opcional, ej: '🎁 Envío gratis esta semana')"
             style={{
-              padding: "10px 12px", background: "rgba(248,242,231,0.10)",
+              padding: "12px", background: "rgba(248,242,231,0.10)", minHeight: 44, boxSizing: "border-box",
               border: "1px solid rgba(248,242,231,0.2)", borderRadius: 8,
-              fontSize: 14, color: "#F8F2E7", outline: "none", fontFamily: "inherit",
+              fontSize: 16, color: "#F8F2E7", outline: "none", fontFamily: "inherit",
             }}
           />
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -1534,9 +1534,9 @@ function PublicCatalogGenerator({ products = [], exchangeRate = 1 }) {
             <input type="number" min={1} max={60} value={expiresInDays}
               onChange={e => setExpiresInDays(e.target.value)}
               style={{
-                width: 60, padding: "6px 8px", background: "rgba(248,242,231,0.10)",
+                width: 64, padding: "8px", background: "rgba(248,242,231,0.10)", minHeight: 44, boxSizing: "border-box",
                 border: "1px solid rgba(248,242,231,0.2)", borderRadius: 8,
-                color: "#F8F2E7", fontSize: 14, outline: "none", textAlign: "center",
+                color: "#F8F2E7", fontSize: 16, outline: "none", textAlign: "center",
               }} />
             <span style={{ fontSize: 12, opacity: 0.78 }}>días</span>
           </div>

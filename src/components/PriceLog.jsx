@@ -514,9 +514,9 @@ export const PriceLog = ({ priceLog, products, setProducts, logPrice, exchangeRa
                                 placeholder="0.00"
                                 onChange={e => setNewCosts(prev => ({ ...prev, [m.key]: e.target.value }))}
                                 style={{
-                                  width: 70, padding: "4px 6px", textAlign: "center",
+                                  width: 80, padding: "10px 6px", minHeight: 44, boxSizing: "border-box", textAlign: "center",
                                   background: "#F8F2E7", border: "1px solid #E5DAC2",
-                                  borderRadius: 6, fontSize: 13, fontWeight: 600
+                                  borderRadius: 6, fontSize: 16, fontWeight: 600
                                 }} />
                               {margin && (
                                 <span style={{

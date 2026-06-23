@@ -319,7 +319,7 @@ export const MonthlyClosures = ({ monthlyClosures, setMonthlyClosures, sales, pu
             style={{
               width: "100%", padding: 10, marginTop: 10, marginBottom: 4,
               border: "1px solid #E5DAC2", borderRadius: 8,
-              fontSize: 13, fontFamily: "inherit", resize: "vertical", outline: "none",
+              fontSize: 16, fontFamily: "inherit", resize: "vertical", outline: "none",
               background: "#FFF", color: "#1E2B4A", boxSizing: "border-box",
             }}
           />

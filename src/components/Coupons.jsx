@@ -540,7 +540,7 @@ export const Coupons = ({
                 onChange={e => setBundleForm(f => ({
                   ...f, items: f.items.map((x, j) => j === i ? { ...x, productId: e.target.value } : x),
                 }))}
-                style={{ flex: 1, padding: "6px 8px", borderRadius: 6, border: "1px solid #E5DAC2", fontSize: 12 }}
+                style={{ flex: 1, minWidth: 0, padding: "10px 8px", minHeight: 44, borderRadius: 6, border: "1px solid #E5DAC2", fontSize: 16 }}
               >
                 <option value="">Seleccionar producto…</option>
                 {(products || []).filter(p => !p.isDeleted).map(p => (
@@ -554,7 +554,7 @@ export const Coupons = ({
                 onChange={e => setBundleForm(f => ({
                   ...f, items: f.items.map((x, j) => j === i ? { ...x, qty: e.target.value } : x),
                 }))}
-                style={{ width: 70, padding: "6px 8px", borderRadius: 6, border: "1px solid #E5DAC2", fontSize: 12, textAlign: "center" }}
+                style={{ width: 64, padding: "10px 8px", minHeight: 44, boxSizing: "border-box", borderRadius: 6, border: "1px solid #E5DAC2", fontSize: 16, textAlign: "center" }}
               />
               <button
                 onClick={() => setBundleForm(f => ({ ...f, items: f.items.filter((_, j) => j !== i) }))}

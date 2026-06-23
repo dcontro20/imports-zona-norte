@@ -887,6 +887,7 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, c
 // TrendingProductModal — histórico 30d de un producto
 // ============================================
 const TrendingProductModal = ({ product, sales, onClose }) => {
+  const { isMobile, isTablet } = useResponsive();
   useBodyScrollLock(true);
   const dailyData = useMemo(() => {
     const now = new Date();
@@ -1095,9 +1096,9 @@ const ReorderModal = ({ products, qtyMap, setQtyMap, onClose, onCopied }) => {
                 type="number" min="0" value={qtyMap[p.id] || 0}
                 onChange={e => setQtyMap({ ...qtyMap, [p.id]: Math.max(0, Number(e.target.value) || 0) })}
                 style={{
-                  width: 64, padding: "8px 10px", minHeight: 40,
+                  width: 64, padding: "8px 10px", minHeight: isMobile ? 44 : 40,
                   border: `1px solid ${T.borderSoft}`, borderRadius: 8,
-                  fontSize: 14, fontWeight: 700, textAlign: "center",
+                  fontSize: 16, fontWeight: 700, textAlign: "center",
                   background: T.surface2, color: T.text, outline: "none", fontFamily: "inherit",
                 }} />
             </div>

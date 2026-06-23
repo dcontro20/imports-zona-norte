@@ -366,9 +366,9 @@ export const Clients = ({ clients, setClients, sales, products, withdrawals = []
           <Pill active={filter === "credit"} onClick={() => setFilter("credit")} color={T.green}>Saldo a favor</Pill>
           {availableMonths.length > 0 && (
             <select value={monthFilter} onChange={e => setMonthFilter(e.target.value)} style={{
-              padding: "7px 14px", borderRadius: 999, border: `1px solid ${monthFilter ? T.primary : T.border}`,
+              padding: isMobile ? "9px 14px" : "7px 14px", borderRadius: 999, border: `1px solid ${monthFilter ? T.primary : T.border}`,
               background: monthFilter ? `${T.primary}15` : T.card, color: monthFilter ? T.primary : T.textSub,
-              fontSize: 13, fontFamily: "inherit", cursor: "pointer", outline: "none",
+              fontSize: isMobile ? 16 : 13, fontFamily: "inherit", cursor: "pointer", outline: "none",
             }}>
               <option value="">Filtrar por mes…</option>
               {availableMonths.map(k => <option key={k} value={k}>{new Date(k + "-02").toLocaleDateString("es-AR", { month: "long", year: "numeric" })}</option>)}
@@ -376,9 +376,9 @@ export const Clients = ({ clients, setClients, sales, products, withdrawals = []
           )}
           {knownZones.length > 0 && (
             <select value={zoneFilter} onChange={e => setZoneFilter(e.target.value)} style={{
-              padding: "7px 14px", borderRadius: 999, border: `1px solid ${zoneFilter ? T.primary : T.border}`,
+              padding: isMobile ? "9px 14px" : "7px 14px", borderRadius: 999, border: `1px solid ${zoneFilter ? T.primary : T.border}`,
               background: zoneFilter ? `${T.primary}15` : T.card, color: zoneFilter ? T.primary : T.textSub,
-              fontSize: 13, fontFamily: "inherit", cursor: "pointer", outline: "none",
+              fontSize: isMobile ? 16 : 13, fontFamily: "inherit", cursor: "pointer", outline: "none",
             }}>
               <option value="">Todas las zonas</option>
               {knownZones.map(z => <option key={z} value={z}>{z}</option>)}
@@ -1028,9 +1028,9 @@ const labelStyle = {
 };
 
 const fieldStyle = (error) => ({
-  width: "100%", padding: "11px 14px",
+  width: "100%", padding: "11px 14px", minHeight: 44, boxSizing: "border-box",
   background: T.surface2, border: `1px solid ${error ? T.red : T.borderSoft}`,
-  borderRadius: 10, color: T.text, fontSize: 14, outline: "none",
+  borderRadius: 10, color: T.text, fontSize: 16, outline: "none",
   boxSizing: "border-box", fontFamily: "inherit", transition: "border-color .15s",
 });
 
