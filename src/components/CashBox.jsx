@@ -727,12 +727,16 @@ const SectionTitle = ({ children, right }) => (
 
 const Sparkline = ({ data, color, width = 100, height = 28 }) => {
   if (!data || data.length < 2) return null;
+  // Coordenadas internas fijas (VW); el svg escala vía viewBox. Así `width`
+  // puede ser un número o "100%" sin recalcular nada, y la línea nunca se
+  // dibuja fuera de su caja (overflow hidden) tapando texto vecino.
+  const VW = 100;
   const max = Math.max(...data);
   const min = Math.min(...data);
   const range = (max - min) || 1;
   const n = data.length;
   const points = data.map((v, i) => {
-    const x = (i / (n - 1)) * (width - 2) + 1;
+    const x = (i / (n - 1)) * (VW - 2) + 1;
     const y = height - 2 - ((v - min) / range) * (height - 4);
     return [x, y];
   });
@@ -740,7 +744,8 @@ const Sparkline = ({ data, color, width = 100, height = 28 }) => {
   const area = `${path} L${points[n - 1][0]},${height} L${points[0][0]},${height} Z`;
   const gradId = `sp-${Math.random().toString(36).slice(2)}`;
   return (
-    <svg width={width} height={height} style={{ display: "block", overflow: "visible" }}>
+    <svg width={width} height={height} viewBox={`0 0 ${VW} ${height}`} preserveAspectRatio="none"
+      style={{ display: "block", overflow: "hidden", flexShrink: 0 }}>
       <defs>
         <linearGradient id={gradId} x1="0" x2="0" y1="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity="0.22" />
@@ -748,7 +753,7 @@ const Sparkline = ({ data, color, width = 100, height = 28 }) => {
         </linearGradient>
       </defs>
       <path d={area} fill={`url(#${gradId})`} />
-      <path d={path} fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={path} fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
     </svg>
   );
 };
@@ -857,7 +862,9 @@ const AccountCard = ({ account, balance, exchangeRate, sparkData, lastMovement, 
             <div style={{ fontSize: 10, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 600 }}>{account.sub}</div>
           </div>
         </div>
-        <Sparkline data={sparkData} color={account.accent} width={60} height={24} />
+        {/* En desktop el sparkline va en el header. En mobile (cards angostas)
+            saldría comiéndole el ancho al nombre → va full-width abajo. */}
+        {!isMobile && <Sparkline data={sparkData} color={account.accent} width={60} height={24} />}
       </div>
 
       <div>
@@ -872,6 +879,11 @@ const AccountCard = ({ account, balance, exchangeRate, sparkData, lastMovement, 
         {arsEquiv != null && (
           <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>
             ≈ {formatMoney(Math.round(arsEquiv))} ARS
+          </div>
+        )}
+        {isMobile && sparkData && sparkData.length >= 2 && (
+          <div style={{ marginTop: 8 }}>
+            <Sparkline data={sparkData} color={account.accent} width="100%" height={22} />
           </div>
         )}
       </div>
