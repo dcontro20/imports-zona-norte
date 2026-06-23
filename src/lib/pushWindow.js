@@ -10,12 +10,10 @@ import { parseTime } from "./notifications.js";
 
 export const ART_TZ = "America/Argentina/Buenos_Aires";
 
-// Ventana de tolerancia: el cron de GitHub Actions corre cada 30 min y puede
-// atrasarse varios minutos. Con 60 min de ventana, cada horario de slot cae
-// dentro de 2 corridas del cron → redundancia (la dedupe evita doble envío).
-// Si el ping llega dentro de los WINDOW_MINUTES posteriores al horario del
-// slot, se manda.
-export const WINDOW_MINUTES = 60;
+// Ventana de tolerancia: el cron de GitHub Actions puede atrasarse varios
+// minutos (a veces 15-20 en horas pico). Si el ping llega dentro de los
+// WINDOW_MINUTES posteriores al horario del slot, igual se manda.
+export const WINDOW_MINUTES = 45;
 
 // Convierte un Date a { date: "YYYY-MM-DD", minutes: 0-1439 } en una TZ dada.
 export function nowInTZ(now = new Date(), tz = ART_TZ) {
