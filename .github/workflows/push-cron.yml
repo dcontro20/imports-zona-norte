@@ -13,7 +13,11 @@ name: Push diario
 
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    # Cada 30 min: ~1.440 min/mes, dentro del límite gratis de GitHub Actions
+    # para repos PRIVADOS (2.000 min/mes). La ventana de tolerancia de 60 min
+    # (src/lib/pushWindow.js) asegura que cada horario sea cubierto por 2
+    # corridas, con redundancia. No bajar a */10 si el repo es privado.
+    - cron: "*/30 * * * *"
   workflow_dispatch:
     inputs:
       test:
