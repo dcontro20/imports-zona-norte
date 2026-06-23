@@ -4,7 +4,8 @@ import { useSettings } from "./useSettings.js";
 import { scheduleDailyNotifications, cancelScheduled, hasPermission } from "./lib/notifications.js";
 import { useFirebaseSync } from "./useFirebaseSync.js";
 import { AppContext } from "./AppContext.js";
-import { loginWithEmail, logout, onAuthChange, getUserProfile } from "./firebase.js";
+import { loginWithEmail, logout, onAuthChange, getUserProfile, updatePresence, subscribePresence } from "./firebase.js";
+import { isPresenceActive, formatRelative } from "./collaboration.js";
 import { LogoMark, LogoFull } from "./components/Logo.jsx";
 
 // Responsive hook — used by UI.jsx, Dashboard.jsx, PriceLog.jsx and others
@@ -255,6 +256,7 @@ export default function App() {
 
   // ---- UI state ----
   const [page, setPage] = useState("dashboard");
+  const [presenceList, setPresenceList] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
   const [showGlobalResults, setShowGlobalResults] = useState(false);
@@ -367,6 +369,37 @@ export default function App() {
       setPage(pageParam);
     }
   }, []);
+
+  // ---- Presencia en tiempo real (colaboración 2 socios) ----
+  // Escribe un heartbeat (qué página miro) cada 45s y al cambiar de página,
+  // y se suscribe para saber si el otro socio está activo.
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+    const pageLabel = (NAV_ITEMS.find(n => n.key === page)?.label) || page;
+    const beat = () => updatePresence(currentUser.uid, { name: currentUser.name, icon: currentUser.icon, page: pageLabel });
+    beat();
+    const id = setInterval(beat, 45000);
+    const onHide = () => { if (!document.hidden) beat(); };
+    document.addEventListener("visibilitychange", onHide);
+    return () => { clearInterval(id); document.removeEventListener("visibilitychange", onHide); };
+  }, [currentUser, page]);
+
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+    const unsub = subscribePresence(setPresenceList);
+    return unsub;
+  }, [currentUser]);
+
+  // El "otro socio" activo (no yo, heartbeat reciente). Se recalcula con el reloj.
+  const [presenceClock, setPresenceClock] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setPresenceClock(Date.now()), 20000);
+    return () => clearInterval(id);
+  }, []);
+  const partnerOnline = useMemo(() => {
+    if (!currentUser?.uid) return null;
+    return presenceList.find(p => p.uid !== currentUser.uid && isPresenceActive(p.lastSeen, presenceClock)) || null;
+  }, [presenceList, currentUser, presenceClock]);
 
   // Atajo global CMD+K / Ctrl+K para abrir command palette
   useEffect(() => {
@@ -636,7 +669,7 @@ export default function App() {
 
   const renderPage = () => {
     switch (effectivePage) {
-      case "dashboard": return <Dashboard products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} clients={clients} cashMovements={activeCashMovements} onNavigate={setPage} />;
+      case "dashboard": return <Dashboard products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} clients={clients} cashMovements={activeCashMovements} partnerWithdrawals={activePartnerWithdrawals} auditLog={auditLog} onNavigate={setPage} />;
       case "products": return <Products products={products} setProducts={setProducts} priceLog={priceLog} sales={activeSales} />;
       case "sales": return <Sales sales={sales} setSales={setSales} products={products} setProducts={setProducts} logStock={logStock} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} clients={clients} setClients={setClients} cashMovements={cashMovements} setCashMovements={setCashMovements} monthlyClosures={monthlyClosures} coupons={coupons} setCoupons={setCoupons} auditLog={auditLog} />;
       case "procurement": return <Procurement products={products} setProducts={setProducts} purchases={purchases} setPurchases={setPurchases} sales={activeSales} exchangeRate={exchangeRate} logStock={logStock} currentUser={currentUser} logAudit={logAudit} monthlyClosures={monthlyClosures} supplierProfiles={supplierProfiles} setSupplierProfiles={setSupplierProfiles} supplierAliases={supplierAliases} setSupplierAliases={setSupplierAliases} supplierLists={supplierLists} setSupplierLists={setSupplierLists} />;
@@ -781,6 +814,20 @@ export default function App() {
                 display: "flex", alignItems: "center", justifyContent: "center",
                 flexShrink: 0, fontFamily: "inherit",
               }}>⚙️</button>
+            {/* Presencia del otro socio (colaboración) */}
+            {partnerOnline && (
+              <div title={`${partnerOnline.name} activo · ${partnerOnline.page || ""} · ${formatRelative(partnerOnline.lastSeen, presenceClock)}`}
+                style={{
+                  display: "flex", alignItems: "center", gap: 5,
+                  background: "#E8F5E9", border: "1px solid #B6E0BC", borderRadius: 999,
+                  padding: isMobile ? "4px 8px" : "5px 10px", flexShrink: 0,
+                }}>
+                <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#22C55E", display: "inline-block", boxShadow: "0 0 0 2px #C7EBCC" }} />
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#15803D", whiteSpace: "nowrap" }}>
+                  {partnerOnline.icon || "👤"} {partnerOnline.name}{!isMobile && partnerOnline.page ? ` · ${partnerOnline.page}` : ""}
+                </span>
+              </div>
+            )}
             {/* User badge */}
             <div style={{
               display: "flex", alignItems: "center", gap: isMobile ? 4 : 6,

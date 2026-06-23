@@ -37,6 +37,12 @@ service cloud.firestore {
     match /pushTokens/{token} {
       allow read, write: if isOwner();
     }
+
+    // Presencia en tiempo real (heartbeat de cada socio). Ambos owners leen
+    // todo y escriben; el doc es chico (name/page/lastSeen).
+    match /presence/{uid} {
+      allow read, write: if isOwner();
+    }
     match /push/{docId} {
       allow read, write: if isOwner();
     }

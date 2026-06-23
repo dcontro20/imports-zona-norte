@@ -53,6 +53,23 @@ if (APP_CHECK_SITE_KEY && typeof window !== "undefined") {
 export const loginWithEmail = (email, password) => signInWithEmailAndPassword(auth, email, password);
 export const logout = () => signOut(auth);
 
+// ---- Presencia en tiempo real (colaboración 2 socios) ----
+// Cada socio escribe su "heartbeat" (qué página mira, cuándo) en presence/{uid}.
+// El otro lo lee para mostrar "Gus activo · en Caja · hace 1m".
+export const updatePresence = (uid, info) => {
+  if (!uid) return Promise.resolve();
+  return setDoc(doc(db, "presence", uid), {
+    ...info, lastSeen: new Date().toISOString(),
+  }, { merge: true }).catch(() => {});
+};
+
+export const subscribePresence = (callback) =>
+  onSnapshot(collection(db, "presence"), (snap) => {
+    const list = [];
+    snap.forEach(d => list.push({ uid: d.id, ...d.data() }));
+    callback(list);
+  }, () => {});
+
 // Borra el cache offline de Firestore (IndexedDB) — usado al cerrar sesión
 // para no dejar data del negocio (PII + finanzas) en el dispositivo.
 // Tras terminar Firestore el `db` queda inutilizable: el caller debe recargar.

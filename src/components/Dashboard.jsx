@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { formatMoney, formatDate, safeRate } from "../helpers.js";
-import { calcTotalRevenue, calcTotalRevenueUSD } from "../calcs.js";
+import { calcTotalRevenue, calcTotalRevenueUSD, calcPartnerBalances, PARTNERSHIP_START } from "../calcs.js";
+import { recentActivity, actionIcon, entityLabel, formatRelative } from "../collaboration.js";
 import { buildProductSalesStats } from "../productIntelligence.js";
 import { BRAND_COLORS, isGarantia } from "../constants.js";
 import { useResponsive } from "../App.jsx";
@@ -121,7 +122,7 @@ const SectionLabel = ({ children, icon, color = T.textMuted, right }) => (
 // ============================================
 // DASHBOARD — Light Notion/Linear aesthetic
 // ============================================
-export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, clients = [], cashMovements, onNavigate }) => {
+export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, clients = [], cashMovements, partnerWithdrawals = [], auditLog = [], onNavigate }) => {
   const { exchangeRate } = useAppContext();
   const settings = useSettings();
   const { isMobile, isTablet } = useResponsive();
@@ -177,6 +178,18 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, c
   const monthSales = sales.filter(s => isThisMonth(s.date));
   const monthExpenses = expenses.filter(e => isThisMonth(e.date));
   const monthWithdrawals = (withdrawals || []).filter(w => isThisMonth(w.date));
+  const monthPurchasesForSplit = (purchases || []).filter(p => isThisMonth(p.date));
+
+  // Reparto del mes en curso entre socios (50/50 desde PARTNERSHIP_START).
+  const partnerMonth = useMemo(() => calcPartnerBalances(
+    monthSales, monthPurchasesForSplit, monthExpenses, monthWithdrawals,
+    partnerWithdrawals, exchangeRate,
+  ), [sales, purchases, expenses, withdrawals, partnerWithdrawals, exchangeRate]); // eslint-disable-line
+  // ¿El mes en curso incluye días de la era-sociedad? (si poolSociedad != 0
+  // o estamos en/después del mes del corte, mostramos la card).
+  const showPartnerCard = (partnerMonth.poolSociedad || 0) !== 0
+    || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}` >= PARTNERSHIP_START.slice(0, 7);
+  const recentActs = useMemo(() => recentActivity(auditLog, 8), [auditLog]);
 
   const periodRevenue = calcTotalRevenue(periodSales, exchangeRate);
   const comparisonRevenue = calcTotalRevenue(comparisonSales, exchangeRate);
@@ -465,6 +478,66 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, c
         <MiniKpi label="Descuentos" value={formatMoney(discountsARS)} sub={`${monthSales.filter(s => (s.discountAmount || 0) > 0).length} ventas`} accent={T.purple} />
         <MiniKpi label="Clientes activos" value={new Set(monthSales.map(s => s.clientId).filter(Boolean)).size} sub={`de ${clients.length}`} accent={T.blue} />
       </div>
+
+      {/* ===== SOCIOS DEL MES (colaboración 50/50) ===== */}
+      {showPartnerCard && (
+        <PCard style={{ marginBottom: 20 }}>
+          <SectionLabel icon="👥">Socios del mes · reparto 50/50</SectionLabel>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12, marginTop: 4 }}>
+            {[
+              { name: "Diego", color: T.primary, icon: "💜", share: partnerMonth.diegoPoolShare, consumo: partnerMonth.consumoDiego, balance: partnerMonth.diegoBalance },
+              { name: "Gustavo", color: T.blue, icon: "💙", share: partnerMonth.gustavoPoolShare, consumo: partnerMonth.consumoGustavo, balance: partnerMonth.gustavoBalance },
+            ].map(s => (
+              <div key={s.name} style={{ padding: 14, borderRadius: 12, background: `${s.color}0D`, border: `1px solid ${s.color}33` }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                  <span style={{ fontSize: 16 }}>{s.icon}</span>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: T.text }}>{s.name}</span>
+                </div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: s.balance >= 0 ? T.text : T.red, fontFamily: T.fontDisplay, letterSpacing: "-0.02em" }}>
+                  {formatMoney(Math.round(s.balance))}
+                </div>
+                <div style={{ fontSize: 11, color: T.textMuted, marginTop: 3 }}>
+                  Su parte: {formatMoney(Math.round(s.share))}
+                  {s.consumo > 0 && <> · consumo −{formatMoney(Math.round(s.consumo))}</>}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 11, color: T.textFaint, marginTop: 10, textAlign: "center" }}>
+            Ganancia común del mes: {formatMoney(Math.round(partnerMonth.netProfitComun))} · detalle completo en Análisis → Patrimonio
+          </div>
+        </PCard>
+      )}
+
+      {/* ===== ACTIVIDAD DE LOS SOCIOS (quién hizo qué) ===== */}
+      {recentActs.length > 0 && (
+        <PCard style={{ marginBottom: 20 }}>
+          <SectionLabel icon="🤝">Lo último que hicieron</SectionLabel>
+          <div style={{ display: "flex", flexDirection: "column", gap: 0, marginTop: 4 }}>
+            {recentActs.map((a, i) => (
+              <div key={a.id || i} style={{
+                display: "flex", alignItems: "center", gap: 10, padding: "8px 0",
+                borderBottom: i < recentActs.length - 1 ? `1px solid ${T.borderSoft}` : "none",
+              }}>
+                <span style={{ fontSize: 15, flexShrink: 0 }}>{actionIcon(a.action)}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, color: T.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {a.description || `${a.action} ${entityLabel(a.entityType)}`}
+                  </div>
+                </div>
+                <span style={{
+                  fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 999, flexShrink: 0,
+                  background: a.user === "Diego" ? T.primarySoft : T.greenBg,
+                  color: a.user === "Diego" ? T.primary : T.green,
+                }}>{a.user}</span>
+                <span style={{ fontSize: 10, color: T.textFaint, flexShrink: 0, minWidth: 44, textAlign: "right" }}>
+                  {formatRelative(a.timestamp)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </PCard>
+      )}
 
       {/* ===== MAIN GRID ===== */}
       <div style={{
