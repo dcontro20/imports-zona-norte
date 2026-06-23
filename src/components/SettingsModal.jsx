@@ -84,10 +84,10 @@ export const SettingsModal = ({ open, onClose }) => {
                   value={draft[f.key]}
                   onChange={e => update(f.key, e.target.value)}
                   style={{
-                    width: 90, padding: "6px 8px", minHeight: 36,
+                    width: 96, padding: "10px 8px", minHeight: 44, boxSizing: "border-box",
                     border: `1px solid ${T.borderSoft}`, borderRadius: 6,
                     background: T.surface2, color: T.text,
-                    fontSize: 14, fontWeight: 600, fontFamily: "inherit",
+                    fontSize: 16, fontWeight: 600, fontFamily: "inherit",
                     textAlign: "right", outline: "none",
                   }}
                 />

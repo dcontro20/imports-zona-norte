@@ -265,8 +265,8 @@ export function Trash({
   });
 
   const btnStyle = {
-    padding: "5px 12px", border: "none", borderRadius: 6, fontSize: 12,
-    fontWeight: 600, cursor: "pointer"
+    padding: "9px 12px", minHeight: 40, border: "none", borderRadius: 6, fontSize: 12,
+    fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
   };
 
   const tabStyle = (active) => ({
@@ -357,7 +357,7 @@ export function Trash({
 
             return (
               <div key={item.id} style={{
-                display: "flex", alignItems: "center", gap: 12, padding: "12px 16px",
+                display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", flexWrap: "wrap",
                 borderBottom: i < filtered.length - 1 ? "1px solid #E5DAC2" : "none",
                 background: selectedIds.includes(item.id) ? "#EAECF940" : "transparent",
               }}>
@@ -369,8 +369,8 @@ export function Trash({
                   aria-label="Seleccionar item"
                 />
                 <span style={{ fontSize: 20 }}>{entityInfo.icon}</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, color: "#1E2B4A", fontWeight: 600 }}>{item._label}</div>
+                <div style={{ flex: 1, minWidth: 140 }}>
+                  <div style={{ fontSize: 13, color: "#1E2B4A", fontWeight: 600, wordBreak: "break-word" }}>{item._label}</div>
                   <div style={{ fontSize: 12, color: "#9AA2B3" }}>
                     {item._sub} · Eliminado por {item.deletedBy || "?"} · {daysLeft} días restantes
                   </div>

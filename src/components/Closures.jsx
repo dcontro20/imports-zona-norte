@@ -486,10 +486,10 @@ export const MonthlyClosures = ({ monthlyClosures, setMonthlyClosures, sales, pu
                     <td style={{ padding: "8px 10px", fontSize: 13, color: "#1E2B4A", borderBottom: "1px solid #EFE5CE" }}>{c.stockTotal} uds</td>
                     <td style={{ padding: "8px 10px", fontSize: 13, color: "#00b894", borderBottom: "1px solid #EFE5CE" }}>${c.exchangeRate}</td>
                     <td style={{ padding: "8px 10px", borderBottom: "1px solid #EFE5CE", display: "flex", gap: 4 }}>
-                      <button onClick={() => downloadCSV(c)} title="Descargar CSV resumen" style={{ background: "none", border: "none", color: "#1E2B4A", cursor: "pointer", fontSize: 14 }}>📥</button>
-                      <button onClick={() => downloadAccountingCSV(c)} title="Libro mayor (CSV contable debe/haber)" style={{ background: "none", border: "none", color: "#0F7B6C", cursor: "pointer", fontSize: 14 }}>📚</button>
-                      <button onClick={() => openWhatsApp(c)} title="Enviar por WhatsApp" style={{ background: "none", border: "none", color: "#25D366", cursor: "pointer", fontSize: 14 }}>📲</button>
-                      <button onClick={() => deleteClosure(c.id)} style={{ background: "none", border: "none", color: "#E03E3E", cursor: "pointer", fontSize: 14 }}>🗑️</button>
+                      <button onClick={() => downloadCSV(c)} title="Descargar CSV resumen" style={{ background: "none", border: "none", color: "#1E2B4A", cursor: "pointer", fontSize: 16, padding: 6, minWidth: 36, minHeight: 36, borderRadius: 6 }}>📥</button>
+                      <button onClick={() => downloadAccountingCSV(c)} title="Libro mayor (CSV contable debe/haber)" style={{ background: "none", border: "none", color: "#0F7B6C", cursor: "pointer", fontSize: 16, padding: 6, minWidth: 36, minHeight: 36, borderRadius: 6 }}>📚</button>
+                      <button onClick={() => openWhatsApp(c)} title="Enviar por WhatsApp" style={{ background: "none", border: "none", color: "#25D366", cursor: "pointer", fontSize: 16, padding: 6, minWidth: 36, minHeight: 36, borderRadius: 6 }}>📲</button>
+                      <button onClick={() => deleteClosure(c.id)} style={{ background: "none", border: "none", color: "#E03E3E", cursor: "pointer", fontSize: 16, padding: 6, minWidth: 36, minHeight: 36, borderRadius: 6 }}>🗑️</button>
                     </td>
                   </tr>
                 ))}

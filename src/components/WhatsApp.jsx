@@ -80,12 +80,12 @@ export const WhatsAppMessage = ({ products }) => {
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <div style={{ display: "flex", gap: 4, background: "#E5DAC2", borderRadius: 8, padding: 3 }}>
             <button onClick={() => setMode("full")} style={{
-              padding: "5px 12px", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer",
+              padding: "10px 14px", minHeight: 40, border: "none", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: "pointer",
               background: mode === "full" ? "#FFFFFF" : "transparent", color: mode === "full" ? "#25d366" : "#6B7794",
               boxShadow: mode === "full" ? "0 1px 3px rgba(0,0,0,0.08)" : "none"
             }}>Completo</button>
             <button onClick={() => setMode("short")} style={{
-              padding: "5px 12px", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer",
+              padding: "10px 14px", minHeight: 40, border: "none", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: "pointer",
               background: mode === "short" ? "#FFFFFF" : "transparent", color: mode === "short" ? "#e1306c" : "#6B7794",
               boxShadow: mode === "short" ? "0 1px 3px rgba(0,0,0,0.08)" : "none"
             }}>Stories</button>
