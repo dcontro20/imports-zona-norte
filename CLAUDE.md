@@ -338,6 +338,36 @@ A partir del 14/04/2026, GitHub está sincronizado y es la fuente de verdad del 
 
 ## Estado del proyecto al 23/06/2026
 
+### 🏗️ Hardening + S14.3 + 4 frentes (docs/SESSION_2026-06-23_hardening-y-4-frentes.md)
+
+Sesión maratónica post-reincorporación de Gustavo: **7 commits, +88 tests
+(749→837), 6 módulos puros nuevos**, todo deployado.
+
+- **Seguridad** (`1d2ec51` + `docs/SECURITY.md`): passwords fuera del repo
+  (env vars), endpoint timing-safe + sin filtrar errores, logout que borra
+  cache del dispositivo, security headers (HSTS/CSP/X-Frame-Options),
+  rules con validación de tamaño, scaffold App Check listo para activar.
+  Pendiente de Diego en consolas: rotar passwords + llave admin, App Check,
+  2FA. Repo PRIVADO descartado (GitHub Actions cobra en privado a */10min).
+- **S14.3 — concurrencia resuelta** (`405bf3c`): nuevo `mergeIntoFirestore`
+  con `runTransaction` que calcula diff por id y mergea atómicamente sobre
+  el server. Ya no se pisan data Diego y Gus al escribir en paralelo. API
+  hacia componentes SIN CAMBIOS — refactor invisible. `src/lib/arrayMerge.js`
+  + 12 tests cubriendo todos los casos. Trade-off documentado: last-write-wins
+  por item (raro, aceptable).
+- **Front 1 — Colaboración 2 socios** (`35b9e70`): presencia en vivo (chip
+  topbar "💙 Gustavo · Caja"), card "Socios del mes" + "Lo último que
+  hicieron" en Dashboard, colección Firestore `presence/{uid}`.
+- **Front 2 — Dashboards ejecutivos S19** (`6c88f82`): card "Salud del
+  negocio" (score 0-100 con 4 factores) + proyección de cierre de mes.
+- **Front 3 — Inteligencia cliente S17** (`9d164dc`): panel "🧠 Inteligencia"
+  arriba de Clientes con segmentos, alertas accionables (VIP que se enfría,
+  reactivar, deuda), "a tocar (por valor)" con predicción de próxima compra.
+- **Front 4 — Marketing puente S17→S18** (`8eb7101`): NO dupliqué el hub
+  (estaba 90% hecho). Agregué `clientMessage.js` que genera mensaje
+  personalizado por cliente con sus favoritos en stock + recencia. Botón
+  💬 en panel inteligencia → modal con copy + WhatsApp.
+
 ### 👥 Vuelve Gustavo: sociedad 50/50 restaurada (docs/SESSION_2026-06-23_vuelve-gustavo.md)
 
 Diego abrió pidiendo "reconfigurá TODO, volvió Gustavo". Reversión completa
