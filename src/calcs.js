@@ -52,14 +52,38 @@ export function calcTotalExpenses(expenses) {
 export const CONSUMO_PERSONAL_TYPE = "Consumo propio";
 
 /**
- * Personas válidas para registrar consumo personal. Diego es el único dueño
- * 100% del negocio — esta lista existe solo para validar el campo `person`
- * en withdrawals y evitar typos.
+ * Personas válidas para registrar consumo personal / ser socio del negocio.
+ * Diego y Gustavo son socios 50/50 (Gustavo volvió el 2026-06-22). Esta lista
+ * valida el campo `person` en withdrawals y partnerWithdrawals y evita typos.
  */
-export const VALID_PARTNERS = ["Diego"];
+export const VALID_PARTNERS = ["Diego", "Gustavo"];
 
 export function isValidPartner(person) {
   return VALID_PARTNERS.includes(person);
+}
+
+/**
+ * Fecha de reincorporación de Gustavo como socio (formato YYYY-MM-DD).
+ * La ganancia del POZO COMÚN se reparte así:
+ *   - Transacciones ANTES de esta fecha → 100% Diego (era de dueño único).
+ *   - Transacciones DESDE esta fecha (inclusive) → 50/50 Diego/Gustavo.
+ * El consumo personal y los retiros de capital reducen el balance de cada
+ * socio individualmente, sin importar la era.
+ */
+export const PARTNERSHIP_START = "2026-06-22";
+
+/** Porcentaje del pozo común de la era-sociedad que le toca a cada socio. */
+export const PARTNER_SPLIT = 0.5;
+
+/**
+ * ¿La transacción cae en la "era sociedad" (fecha >= corte)?
+ * Los registros guardan `date` como string "YYYY-MM-DD…", así que comparar
+ * los primeros 10 chars contra el corte es un orden lexicográfico correcto.
+ * Registros sin fecha se tratan como pre-sociedad (100% Diego), que es el
+ * default seguro para datos viejos.
+ */
+export function isPartnershipEra(record, startDate = PARTNERSHIP_START) {
+  return String(record?.date || "").slice(0, 10) >= startDate;
 }
 
 /**
@@ -136,58 +160,97 @@ export function calcNetProfit(sales, purchases, expenses, withdrawals, exchangeR
 }
 
 /**
- * Calcula el balance del dueño (Diego, 100%).
+ * Calcula el balance de cada socio (Diego + Gustavo, 50/50 desde PARTNERSHIP_START).
  *
- * Desde la salida de Gustavo, no hay split — Diego se queda con todo.
- * Se mantiene la firma y los nombres de los campos para no romper consumers
- * (Dashboard, Reports, Closures), pero los campos `gustavo*` y `halfProfit`
- * quedan como compat: `halfProfit === netProfitComun` y los `gustavo*` son 0.
+ * El pozo común (revenue - costs - expenses - mermasComunes) se parte en dos eras:
+ *   - era SOLO (transacciones antes del corte) → 100% Diego.
+ *   - era SOCIEDAD (transacciones desde el corte) → 50/50.
+ * Reparto del pozo:
+ *   diegoPoolShare   = poolSolo + poolSociedad * 0.5
+ *   gustavoPoolShare = poolSociedad * 0.5
+ * Cada socio resta su propio consumo personal y sus retiros de capital:
+ *   diegoBalance   = diegoPoolShare   - consumoDiego   - retirosDiego
+ *   gustavoBalance = gustavoPoolShare - consumoGustavo - retirosGustavo
  *
- * Pozo del dueño:
- *   netProfitComun = revenue - costs - expenses - mermasComunes
- *   diegoBalance   = netProfitComun - consumoPersonalDiego - retirosDiego
+ * @param {string} partnershipStart — corte YYYY-MM-DD (default PARTNERSHIP_START).
+ *   Permite override en tests y futura configurabilidad.
  */
-export function calcPartnerBalances(sales, purchases, expenses, withdrawals, partnerWithdrawals, exchangeRate) {
+export function calcPartnerBalances(sales, purchases, expenses, withdrawals, partnerWithdrawals, exchangeRate, partnershipStart = PARTNERSHIP_START) {
+  const inEra = (r) => isPartnershipEra(r, partnershipStart);
+
+  // Pozo común por era. Reusa los helpers puros sobre los subconjuntos filtrados.
+  const poolFor = (s, p, e, w) =>
+    calcTotalRevenue(s, exchangeRate)
+    - calcTotalCosts(p)
+    - calcTotalExpenses(e)
+    - calcMermasComunesARS(w, exchangeRate);
+
+  const poolSolo = poolFor(
+    (sales || []).filter(s => !inEra(s)),
+    (purchases || []).filter(p => !inEra(p)),
+    (expenses || []).filter(e => !inEra(e)),
+    (withdrawals || []).filter(w => !inEra(w)),
+  );
+  const poolSociedad = poolFor(
+    (sales || []).filter(s => inEra(s)),
+    (purchases || []).filter(p => inEra(p)),
+    (expenses || []).filter(e => inEra(e)),
+    (withdrawals || []).filter(w => inEra(w)),
+  );
+
+  // Totales del período (sin partir) — para compat con consumers existentes.
   const revenue = calcTotalRevenue(sales, exchangeRate);
   const costs = calcTotalCosts(purchases);
   const expensesTotal = calcTotalExpenses(expenses);
   const mermasComunes = calcMermasComunesARS(withdrawals, exchangeRate);
+  const netProfitComun = poolSolo + poolSociedad; // == revenue - costs - expenses - mermasComunes
+
   const consumoDiego = calcConsumoPersonalARS(withdrawals, "Diego", exchangeRate);
+  const consumoGustavo = calcConsumoPersonalARS(withdrawals, "Gustavo", exchangeRate);
 
-  const netProfitComun = revenue - costs - expensesTotal - mermasComunes;
-  const netProfit = netProfitComun - consumoDiego;
-
+  // Retiros de capital (partnerWithdrawals) por socio, normalizados a ARS.
   const rateForWithdrawals = safeRate(exchangeRate);
-  const diegoTotal = (partnerWithdrawals || [])
-    .filter(w => !w.isDeleted && w.person === "Diego")
+  const sumWithdrawals = (person) => (partnerWithdrawals || [])
+    .filter(w => !w.isDeleted && w.person === person)
     .reduce((sum, w) => {
       if (w.currency === "USD" || w.currency === "USDT") return sum + w.amount * rateForWithdrawals;
       return sum + w.amount;
     }, 0);
+  const diegoTotal = sumWithdrawals("Diego");
+  const gustavoTotal = sumWithdrawals("Gustavo");
+
+  // Reparto del pozo: Diego se lleva todo lo de la era solo + su mitad de la sociedad.
+  const diegoPoolShare = poolSolo + poolSociedad * PARTNER_SPLIT;
+  const gustavoPoolShare = poolSociedad * (1 - PARTNER_SPLIT);
 
   return {
-    // Pozo del dueño
+    // Pozo común
     revenue,
     costs,
     expensesTotal,
     mermasComunes,
     netProfitComun,
-    halfProfit: netProfitComun, // compat: ya no hay split, Diego se lleva todo
+    poolSolo,        // ganancia pre-sociedad (100% Diego)
+    poolSociedad,    // ganancia era-sociedad (se reparte 50/50)
+    halfProfit: gustavoPoolShare, // la "mitad" repartible que le toca a cada socio en la sociedad
 
     // Diego
     consumoDiego,
     diegoTotal,
-    diegoBalance: netProfitComun - consumoDiego - diegoTotal,
+    diegoPoolShare,
+    diegoBalance: diegoPoolShare - consumoDiego - diegoTotal,
 
-    // Compat (ex-Gustavo, ahora siempre 0)
-    consumoGustavo: 0,
-    gustavoTotal: 0,
-    gustavoBalance: 0,
-    totalWithdrawn: diegoTotal,
+    // Gustavo
+    consumoGustavo,
+    gustavoTotal,
+    gustavoPoolShare,
+    gustavoBalance: gustavoPoolShare - consumoGustavo - gustavoTotal,
+
+    totalWithdrawn: diegoTotal + gustavoTotal,
 
     // Compat con código existente
-    netProfit,
-    profitRemaining: netProfitComun - diegoTotal,
+    netProfit: netProfitComun - consumoDiego - consumoGustavo,
+    profitRemaining: netProfitComun - diegoTotal - gustavoTotal,
   };
 }
 
@@ -477,8 +540,8 @@ function filterByMonth(items, month, dateField = "date") {
  *   - consumoPersonalDiego = lo que Diego se fumó, NO afecta el pozo operativo
  *   - netProfitOperativo = revenue - costs - expenses - mermasComunes
  *       (ganancia operativa, alineada con netProfitComun de calcPartnerBalances)
- *   - netProfitTotal = netProfitOperativo - consumoPersonalDiego
- *       (ganancia total descontando lo que Diego consumió personalmente)
+ *   - netProfitTotal = netProfitOperativo - consumoPersonal (Diego + Gustavo)
+ *       (ganancia total descontando lo que cada socio consumió personalmente)
  *
  * @param {string} month — "YYYY-MM"
  * @param {object} ctx — { sales, purchases, expenses, withdrawals, products, exchangeRate }
@@ -525,12 +588,16 @@ export function calcMonthSummary(month, ctx) {
   const consumoDiegoUSD = monthWithdrawals
     .filter(w => w.withdrawType === CONSUMO_PERSONAL_TYPE && w.person === "Diego")
     .reduce((s, w) => s + Number(w.costRealUSD || w.costEstimateUSD || 0), 0);
+  const consumoGustavoUSD = monthWithdrawals
+    .filter(w => w.withdrawType === CONSUMO_PERSONAL_TYPE && w.person === "Gustavo")
+    .reduce((s, w) => s + Number(w.costRealUSD || w.costEstimateUSD || 0), 0);
 
   const rate = safeRate(exchangeRate);
   const mermasComunesARS = Math.round(mermasComunesUSD * rate);
   const consumoDiegoARS = Math.round(consumoDiegoUSD * rate);
-  const consumoPersonalARS = consumoDiegoARS;
-  const totalConsumoUSD = mermasComunesUSD + consumoDiegoUSD;
+  const consumoGustavoARS = Math.round(consumoGustavoUSD * rate);
+  const consumoPersonalARS = consumoDiegoARS + consumoGustavoARS;
+  const totalConsumoUSD = mermasComunesUSD + consumoDiegoUSD + consumoGustavoUSD;
   const totalConsumoARS = mermasComunesARS + consumoPersonalARS;
   const totalConsumoUnits = monthWithdrawals.reduce((s, w) => s + (Number(w.qty) || 0), 0);
 
@@ -577,8 +644,8 @@ export function calcMonthSummary(month, ctx) {
     mermasComunesARS,
     consumoDiegoUSD,
     consumoDiegoARS,
-    consumoGustavoUSD: 0,   // compat: ex-socio
-    consumoGustavoARS: 0,   // compat: ex-socio
+    consumoGustavoUSD,
+    consumoGustavoARS,
     consumoPersonalARS,
     totalConsumoUSD,
     totalConsumoARS,

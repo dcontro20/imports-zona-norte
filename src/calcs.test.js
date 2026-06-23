@@ -168,17 +168,57 @@ describe("calcPartnerBalances", () => {
   const purchases = [{ totalCostARS: 80000 }];
   const expenses = [{ amountARS: 20000 }];
   const withdrawals = []; // no consumo
-  // Net = 200000 - 80000 - 20000 = 100000
-  // Diego es 100% dueño → halfProfit === netProfitComun
+  // Net pool = 200000 - 80000 - 20000 = 100000
+  // Sin fecha → era PRE-sociedad → 100% Diego.
 
-  it("Diego se queda con el 100% del profit (no hay split)", () => {
+  it("transacciones sin fecha (pre-sociedad) van 100% a Diego", () => {
     const result = calcPartnerBalances(sales, purchases, expenses, withdrawals, [], RATE);
     expect(result.netProfit).toBe(100000);
     expect(result.netProfitComun).toBe(100000);
-    expect(result.halfProfit).toBe(100000); // compat: ahora == netProfitComun
+    expect(result.poolSolo).toBe(100000);
+    expect(result.poolSociedad).toBe(0);
     expect(result.diegoBalance).toBe(100000);
-    expect(result.gustavoBalance).toBe(0); // compat ex-socio
+    expect(result.gustavoBalance).toBe(0);
     expect(result.profitRemaining).toBe(100000);
+  });
+
+  it("transacciones en la era-sociedad se reparten 50/50", () => {
+    const eraSales = [{ total: 200000, currency: "ARS", date: "2026-07-01" }];
+    const eraPurch = [{ totalCostARS: 80000, date: "2026-07-01" }];
+    const eraExp = [{ amountARS: 20000, date: "2026-07-01" }];
+    const result = calcPartnerBalances(eraSales, eraPurch, eraExp, [], [], RATE);
+    expect(result.netProfitComun).toBe(100000);
+    expect(result.poolSolo).toBe(0);
+    expect(result.poolSociedad).toBe(100000);
+    expect(result.diegoBalance).toBe(50000);
+    expect(result.gustavoBalance).toBe(50000);
+    expect(result.halfProfit).toBe(50000);
+  });
+
+  it("mezcla pre-sociedad + sociedad: Diego suma lo viejo + su mitad de lo nuevo", () => {
+    const mixSales = [
+      { total: 100000, currency: "ARS", date: "2026-05-01" }, // pre-sociedad (todo Diego)
+      { total: 100000, currency: "ARS", date: "2026-07-01" }, // sociedad (50/50)
+    ];
+    const result = calcPartnerBalances(mixSales, [], [], [], [], RATE);
+    expect(result.poolSolo).toBe(100000);
+    expect(result.poolSociedad).toBe(100000);
+    expect(result.diegoBalance).toBe(150000);   // 100k solo + 50k mitad sociedad
+    expect(result.gustavoBalance).toBe(50000);
+  });
+
+  it("consumo y retiros de Gustavo reducen solo su balance", () => {
+    const eraSales = [{ total: 200000, currency: "ARS", date: "2026-07-01" }];
+    const eraPurch = [{ totalCostARS: 80000, date: "2026-07-01" }];
+    const eraExp = [{ amountARS: 20000, date: "2026-07-01" }];
+    // Gustavo consume 10 USD (10*1400=14000) y retira 5000 ARS
+    const wd = [{ withdrawType: "Consumo propio", person: "Gustavo", costRealUSD: 10, date: "2026-07-02" }];
+    const pw = [{ person: "Gustavo", amount: 5000, currency: "ARS" }];
+    const result = calcPartnerBalances(eraSales, eraPurch, eraExp, wd, pw, RATE);
+    expect(result.consumoGustavo).toBe(10 * RATE);
+    expect(result.gustavoTotal).toBe(5000);
+    expect(result.gustavoBalance).toBe(50000 - 14000 - 5000);
+    expect(result.diegoBalance).toBe(50000); // intacto
   });
 
   it("subtracts ARS partner withdrawals correctly", () => {
@@ -576,13 +616,14 @@ describe("calcAccountBalance", () => {
 // S14 — Tests del bloque de confiabilidad financiera
 // =====================================================================
 
-describe("isValidPartner (S14.15)", () => {
-  it("acepta Diego", () => {
+describe("isValidPartner", () => {
+  it("acepta a los dos socios (Diego + Gustavo)", () => {
     expect(isValidPartner("Diego")).toBe(true);
+    expect(isValidPartner("Gustavo")).toBe(true);
   });
-  it("rechaza Gustavo (ex-socio), typos y vacíos", () => {
-    expect(isValidPartner("Gustavo")).toBe(false);
+  it("rechaza typos y vacíos", () => {
     expect(isValidPartner("Diegoo")).toBe(false);
+    expect(isValidPartner("Gustabo")).toBe(false);
     expect(isValidPartner("")).toBe(false);
     expect(isValidPartner(null)).toBe(false);
     expect(isValidPartner(undefined)).toBe(false);

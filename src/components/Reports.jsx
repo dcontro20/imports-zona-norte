@@ -1072,8 +1072,8 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
           const stockUnits = products.reduce((s, p) => s + (p.stock || 0), 0);
           
           // Cash from INITIAL_BALANCES + sales - purchases - expenses
-          const IB = { lemonPesos: 273646.62, lemonUSDT: 40.12, mpDiego: 0, usdCash: 0, pesosCash: 0 };
-          const totalCashARS = IB.lemonPesos + IB.pesosCash + IB.mpDiego
+          const IB = { lemonPesos: 273646.62, lemonUSDT: 40.12, mpDiego: 0, mpGustavo: 0, usdCash: 0, pesosCash: 0 };
+          const totalCashARS = IB.lemonPesos + IB.pesosCash + IB.mpDiego + IB.mpGustavo
             + sales.filter(s => s.currency !== "USD" && s.paymentMethod !== "USDT").reduce((s, sale) => s + (sale.total || 0), 0)
             - expenses.reduce((s, e) => s + (e.amountARS || 0), 0)
             - purchases.reduce((s, p) => s + (p.paseroCostARS || 0) + (p.envioCostARS || 0), 0);

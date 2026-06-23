@@ -7,12 +7,14 @@ export const INITIAL_BALANCES = {
   lemonPesos: 273646.62,
   lemonUSDT: 40.12,
   mpDiego: 0,
+  mpGustavo: 0,   // saldo inicial cuenta MP de Gustavo (ajustable en Caja)
   usdCash: 0,
   pesosCash: 120000,
 };
 
 export const ACCOUNTS = [
   { id: "mpDiego",    label: "MP Diego",     short: "MP Diego",   currency: "ARS",  icon: "💜", accent: "#8B5CF6", sub: "Mercado Pago" },
+  { id: "mpGustavo",  label: "MP Gustavo",   short: "MP Gust.",   currency: "ARS",  icon: "💙", accent: "#3B82F6", sub: "Mercado Pago" },
   { id: "lemonPesos", label: "Lemon Pesos",  short: "Lemon $",    currency: "ARS",  icon: "🍋", accent: "#CB912F", sub: "Billetera Lemon" },
   { id: "lemonUSDT",  label: "Lemon USDT",   short: "Lemon ₮",    currency: "USDT", icon: "🪙", accent: "#16A34A", sub: "Crypto" },
   { id: "usdCash",    label: "USD Cash",     short: "USD",        currency: "USD",  icon: "💵", accent: "#0F7B6C", sub: "Efectivo físico" },
@@ -61,9 +63,11 @@ export const DUP_WINDOW_MS = 5 * 60 * 1000; // 5 minutos
 export const SUBMIT_DEBOUNCE_MS = 3000;
 
 // Traduce un método de pago (Sales.jsx) al accountId de caja correspondiente.
+// Para Mercado Pago discrimina por mpAccount (Diego vs Gustavo). Si no viene
+// mpAccount (datos viejos), asume Diego — históricamente todo MP era de Diego.
 // Devuelve "" si el método es desconocido — el caller debe guard contra eso.
-export function payMethodToAccountId(method) {
-  if (method === "Mercado Pago") return "mpDiego";
+export function payMethodToAccountId(method, mpAccount) {
+  if (method === "Mercado Pago") return mpAccount === "MP Gustavo" ? "mpGustavo" : "mpDiego";
   if (method === "Lemon") return "lemonPesos";
   if (method === "USDT") return "lemonUSDT";
   if (method === "USD Cash") return "usdCash";
@@ -73,10 +77,13 @@ export function payMethodToAccountId(method) {
 
 // Matchers: qué payment method corresponde a qué cuenta.
 // Usado por calcAccountBalance para sumar la porción de cada venta a la cuenta.
+// Los dos MP discriminan por p.mpAccount; mpDiego absorbe los pagos MP sin
+// cuenta marcada (legacy), porque antes de que volviera Gustavo todo MP era suyo.
 export const ACCOUNT_METHOD_MAP = {
-  mpDiego: (p) => p.method === "Mercado Pago",
+  mpDiego:    (p) => p.method === "Mercado Pago" && p.mpAccount !== "MP Gustavo",
+  mpGustavo:  (p) => p.method === "Mercado Pago" && p.mpAccount === "MP Gustavo",
   lemonPesos: (p) => p.method === "Lemon",
-  lemonUSDT: (p) => p.method === "USDT",
-  usdCash: (p) => p.method === "USD Cash",
-  pesosCash: (p) => p.method === "Pesos Cash",
+  lemonUSDT:  (p) => p.method === "USDT",
+  usdCash:    (p) => p.method === "USD Cash",
+  pesosCash:  (p) => p.method === "Pesos Cash",
 };
