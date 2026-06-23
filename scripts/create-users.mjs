@@ -21,7 +21,7 @@ const auth = getAuth(app);
 // en la pantalla de login (recibe el reset por mail).
 const users = [
   { email: "dcontro20@gmail.com", password: "Poncharelo20!" },
-  { email: "gcontro99@gmail.com", password: "REEMPLAZAR_ANTES_DE_CORRER" },
+  { email: "gcontro99@gmail.com", password: "Chapu2299" },
 ];
 
 for (const u of users) {
