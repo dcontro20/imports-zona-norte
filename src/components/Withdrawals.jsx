@@ -410,7 +410,9 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
     return months;
   }, [active]);
   const [showMermasReport, setShowMermasReport] = useState(false);
-  const totalMine = active.filter(w => w.person === "Diego").reduce((s, w) => s + w.qty, 0);
+  const qtyByPerson = (person) => active.filter(w => w.person === person).reduce((s, w) => s + (w.qty || 0), 0);
+  const totalDiego = qtyByPerson("Diego");
+  const totalGustavo = qtyByPerson("Gustavo");
   const totalCostUSD = active.reduce((s, w) => s + Number(w.costRealUSD || w.costEstimateUSD || 0), 0);
   const totalConsumo = active.filter(w => !w.withdrawType || w.withdrawType === "Consumo propio").reduce((s, w) => s + w.qty, 0);
   const totalGarantia = active.filter(w => isGarantia(w.withdrawType)).reduce((s, w) => s + w.qty, 0);
@@ -505,7 +507,8 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
 
       {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fit, minmax(140px, 1fr))", gap: isMobile ? 8 : 14, marginBottom: 20 }}>
-        <StatCard label="Mías (Diego)" value={`${totalMine} uds`} icon="💜" color="#1E2B4A" />
+        <StatCard label="Diego" value={`${totalDiego} uds`} icon="💜" color="#1E2B4A" />
+        <StatCard label="Gustavo" value={`${totalGustavo} uds`} icon="💙" color="#3B82F6" />
         <StatCard label="Consumo" value={`${totalConsumo}`} icon="🚬" color="#e17055" />
         <StatCard label="Garantías" value={`${totalGarantia}`} icon="🔄" color="#fdcb6e" />
         <StatCard label="Regalos" value={`${totalRegalo}`} icon="🎁" color="#00cec9" />
@@ -554,11 +557,20 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
       {/* ============================================ */}
       {activeTab === "consumo" && (() => {
         const consumo = active.filter(w => !w.withdrawType || w.withdrawType === "Consumo propio");
-        const diegoC = consumo.filter(w => w.person === "Diego");
-        const diegoQty = diegoC.reduce((s, w) => s + (w.qty || 0), 0);
-        const diegoUSD = diegoC.reduce((s, w) => s + (Number(w.costRealUSD || w.costEstimateUSD) || 0), 0);
-        const totalQty = diegoQty;
-        const totalUSD = diegoUSD;
+        const PERSON_META = { Diego: { color: "#1E2B4A", icon: "💜" }, Gustavo: { color: "#3B82F6", icon: "💙" } };
+        const perPerson = WITHDRAW_PERSONS.map(name => {
+          const list = consumo.filter(w => w.person === name);
+          return {
+            name,
+            qty: list.reduce((s, w) => s + (w.qty || 0), 0),
+            usd: list.reduce((s, w) => s + (Number(w.costRealUSD || w.costEstimateUSD) || 0), 0),
+            color: PERSON_META[name]?.color || "#1E2B4A",
+            icon: PERSON_META[name]?.icon || "👤",
+          };
+        });
+        const totalQty = perPerson.reduce((s, p) => s + p.qty, 0);
+        const totalUSD = perPerson.reduce((s, p) => s + p.usd, 0);
+        const maxQty = Math.max(1, ...perPerson.map(p => p.qty));
         return (
           <Card style={{ marginBottom: 12, background: "#F8F2E7" }}>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "auto 1fr", gap: 14 }}>
@@ -568,14 +580,12 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                 <div style={{ fontSize: 12, color: "#6B7794" }}>{formatMoney(totalUSD, "USD")}{exchangeRate ? ` · ${formatMoney(totalUSD * exchangeRate)}` : ""}</div>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0 }}>
-                {[
-                  { name: "Diego", qty: diegoQty, usd: diegoUSD, color: "#1E2B4A", icon: "💜" },
-                ].map(p => (
+                {perPerson.map(p => (
                   <div key={p.name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span style={{ fontSize: 16 }}>{p.icon}</span>
                     <span style={{ fontSize: 13, fontWeight: 600, color: "#1E2B4A", minWidth: 70 }}>{p.name}</span>
                     <div style={{ flex: 1, height: 18, background: "#EFE5CE", borderRadius: 4, overflow: "hidden", minWidth: 60 }}>
-                      <div style={{ width: `${p.qty > 0 ? 100 : 0}%`, height: "100%", background: p.color, borderRadius: 4, transition: "width 0.3s" }} />
+                      <div style={{ width: `${(p.qty / maxQty) * 100}%`, height: "100%", background: p.color, borderRadius: 4, transition: "width 0.3s" }} />
                     </div>
                     <span style={{ fontSize: 13, fontWeight: 700, color: p.color, minWidth: 40, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{p.qty}</span>
                     <span style={{ fontSize: 11, color: "#6B7794", minWidth: 60, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{formatMoney(p.usd, "USD")}</span>

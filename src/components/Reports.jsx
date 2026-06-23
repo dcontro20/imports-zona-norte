@@ -1169,6 +1169,8 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
           const totalARS = totalUSD * (exchangeRate || 0);
           const diegoQty = monthW.filter(w => w.person === "Diego").reduce((s, w) => s + (w.qty || 0), 0);
           const diegoUSD = monthW.filter(w => w.person === "Diego").reduce((s, w) => s + wCost(w), 0);
+          const gustavoQty = monthW.filter(w => w.person === "Gustavo").reduce((s, w) => s + (w.qty || 0), 0);
+          const gustavoUSD = monthW.filter(w => w.person === "Gustavo").reduce((s, w) => s + wCost(w), 0);
 
           // Por tipo (donut)
           const byType = WITHDRAW_TYPES.map(t => ({
@@ -1236,16 +1238,21 @@ export const Reports = ({ products, sales, purchases, expenses, withdrawals, cli
               )}
 
               {/* KPIs del mes */}
-              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)", gap: 8, marginBottom: 14 }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 8, marginBottom: 14 }}>
                 <div style={{ background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 10, padding: "10px 12px" }}>
                   <div style={{ fontSize: 10, fontWeight: 700, color: "#6B7794", textTransform: "uppercase", letterSpacing: 0.5 }}>Mes — total</div>
                   <div style={{ fontSize: 18, fontWeight: 800, color: "#1E2B4A", marginTop: 2 }}>{totalQty} uds</div>
                   <div style={{ fontSize: 11, color: "#6B7794", marginTop: 2 }}>{formatMoney(totalUSD, "USD")} · {formatMoney(Math.round(totalARS))}</div>
                 </div>
                 <div style={{ background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 10, padding: "10px 12px" }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: "#6B7794", textTransform: "uppercase", letterSpacing: 0.5 }}>Mi consumo</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#6B7794", textTransform: "uppercase", letterSpacing: 0.5 }}>Consumo Diego</div>
                   <div style={{ fontSize: 18, fontWeight: 800, color: "#a855f7", marginTop: 2 }}>{diegoQty} uds</div>
                   <div style={{ fontSize: 11, color: "#6B7794", marginTop: 2 }}>{formatMoney(diegoUSD, "USD")}</div>
+                </div>
+                <div style={{ background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 10, padding: "10px 12px" }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#6B7794", textTransform: "uppercase", letterSpacing: 0.5 }}>Consumo Gustavo</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: "#3B82F6", marginTop: 2 }}>{gustavoQty} uds</div>
+                  <div style={{ fontSize: 11, color: "#6B7794", marginTop: 2 }}>{formatMoney(gustavoUSD, "USD")}</div>
                 </div>
                 <div style={{ background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 10, padding: "10px 12px" }}>
                   <div style={{ fontSize: 10, fontWeight: 700, color: "#6B7794", textTransform: "uppercase", letterSpacing: 0.5 }}>Reclamable proveedor</div>

@@ -14,7 +14,7 @@ import { AccountingPanel } from "./analisis/AccountingPanel.jsx";
 //   📊 Resumen     — panorama ejecutivo (nuevo)
 //   📈 Resultados  — Finanzas (P&L, COGS, inventario, flujo de caja)
 //   🛒 Reportes    — Reports (ventas x marca/canal, break-even, ABC)
-//   💼 Patrimonio  — Mi Cartera (capital, ROI, retiros)
+//   💼 Patrimonio  — Socios (patrimonio del negocio + balance 50/50 por socio)
 //   📅 Cierres     — Cierres mensuales
 export const Analisis = (props) => {
   const {

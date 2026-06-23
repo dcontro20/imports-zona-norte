@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { uid, formatMoney, formatDate } from "../helpers.js";
 import {
-  calcPartnerBalances, calcMonthSummary, calcAccountBalance,
+  calcPartnerBalances, calcMonthSummary, calcAccountBalance, PARTNERSHIP_START,
 } from "../calcs.js";
 import {
   ACCOUNTS, INITIAL_BALANCES, ACCOUNT_METHOD_MAP,
@@ -12,11 +12,18 @@ import { T } from "../theme.js";
 import { useResponsive } from "../App.jsx";
 
 // ============================================================================
-// Mi Cartera — perfil financiero de Diego (único dueño 100%)
+// Socios — perfil financiero del negocio (Diego + Gustavo, 50/50)
 //
-// Reemplaza el módulo "Socios" del split 50/50. Diseñado como dashboard
-// personal: patrimonio, composición, rendimiento, ROI, retiros, evolución.
+// Las secciones del NEGOCIO (patrimonio, cuentas, ROI, rendimiento, evolución)
+// son compartidas. La sección "Balance por socio" muestra el reparto: cada uno
+// con su pozo, consumo, retiros y cuánto puede retirar. El split 50/50 aplica
+// desde PARTNERSHIP_START (lo anterior es 100% Diego — ver calcs.js).
 // ============================================================================
+
+const SOCIOS = [
+  { name: "Diego",   color: T.primary, icon: "💜", account: "MP Diego" },
+  { name: "Gustavo", color: T.blue,    icon: "💙", account: "MP Gustavo" },
+];
 
 const PERIODS = [
   { key: "ytd", label: "Año actual" },
@@ -71,6 +78,7 @@ export const Partners = ({
   const [modal, setModal] = useState(false);
   const [confirmDel, setConfirmDel] = useState(null);
   const [period, setPeriod] = useState("ytd");
+  const [histPerson, setHistPerson] = useState("Todos");
   const [form, setForm] = useState({
     person: "Diego",
     amount: "", currency: "ARS", source: "",
@@ -143,17 +151,33 @@ export const Partners = ({
   const periodPurchases = purchases.filter(p => inPeriod(p.date));
   const periodExpenses = expenses.filter(e => inPeriod(e.date));
   const periodWithdrawals = withdrawals.filter(w => inPeriod(w.date));
-  const periodPW = (partnerWithdrawals || [])
-    .filter(w => !w.isDeleted && !w._historicalArchived && w.person === "Diego" && inPeriod(w.date));
-
   const balances = calcPartnerBalances(
     periodSales, periodPurchases, periodExpenses,
     periodWithdrawals, partnerWithdrawals, rate
   );
   const {
     revenue, costs, expensesTotal, mermasComunes, netProfitComun,
-    consumoDiego, diegoTotal, netProfit, profitRemaining, diegoBalance,
+    consumoDiego, consumoGustavo, netProfit, profitRemaining,
   } = balances;
+
+  // Resumen por socio: pozo, consumo, retiros y cuánto puede retirar cada uno.
+  const perSocio = (name) => {
+    const isD = name === "Diego";
+    const poolShare = isD ? balances.diegoPoolShare : balances.gustavoPoolShare;
+    const consumo = isD ? consumoDiego : consumoGustavo;
+    const balance = isD ? balances.diegoBalance : balances.gustavoBalance;
+    const pw = (partnerWithdrawals || [])
+      .filter(w => !w.isDeleted && !w._historicalArchived && w.person === name && inPeriod(w.date));
+    const toARS = (w) => ((w.currency === "USD" || w.currency === "USDT") ? Math.abs(w.amount) * rate : Math.abs(w.amount));
+    const retirado = pw.filter(w => !(w.amount < 0 || w.tipoMovimiento === "aporte")).reduce((s, w) => s + toARS(w), 0);
+    const aportado = pw.filter(w => w.amount < 0 || w.tipoMovimiento === "aporte").reduce((s, w) => s + toARS(w), 0);
+    return {
+      name, poolShare, consumo, balance, retirado, aportado,
+      neto: retirado - aportado,
+      safeWithdraw: Math.max(0, Math.floor(balance * 0.7)),
+    };
+  };
+  const sociosBalances = SOCIOS.map(s => perSocio(s.name));
 
   // Capital invertido en el período: costos de compras del período + stock actual a costo.
   // (El stock actual ya es capital que está "atado" en mercadería.)
@@ -196,24 +220,6 @@ export const Partners = ({
   const maxCum = Math.max(...cumulativeSeries.map(m => m.cumValue), 1);
   const minCum = Math.min(...cumulativeSeries.map(m => m.cumValue), 0);
 
-  // ---------- Retiros / Aportes del período ----------
-  const retiradoARS = periodPW
-    .filter(w => !(w.amount < 0 || w.tipoMovimiento === "aporte"))
-    .reduce((s, w) => {
-      const amt = Math.abs(w.amount);
-      return s + ((w.currency === "USD" || w.currency === "USDT") ? amt * rate : amt);
-    }, 0);
-  const aportadoARS = periodPW
-    .filter(w => w.amount < 0 || w.tipoMovimiento === "aporte")
-    .reduce((s, w) => {
-      const amt = Math.abs(w.amount);
-      return s + ((w.currency === "USD" || w.currency === "USDT") ? amt * rate : amt);
-    }, 0);
-  const netoRetirado = retiradoARS - aportadoARS;
-
-  // Sugerencia de retiro: 70% del balance disponible (deja 30% como capital trabajando)
-  const safeWithdraw = Math.max(0, Math.floor(diegoBalance * 0.7));
-
   // ---------- Deudas/créditos clientes (info extra de cartera) ----------
   const clientsWithDebt = clients.filter(c => Number(c.balance || 0) < 0);
   const clientsWithCredit = clients.filter(c => Number(c.balance || 0) > 0);
@@ -254,12 +260,13 @@ export const Partners = ({
   const exportYearCsv = () => {
     const year = new Date().getFullYear();
     const rows = (partnerWithdrawals || [])
-      .filter(w => !w.isDeleted && w.person === "Diego" && new Date(w.date).getFullYear() === year)
+      .filter(w => !w.isDeleted && !w._historicalArchived && (histPerson === "Todos" || w.person === histPerson) && new Date(w.date).getFullYear() === year)
       .sort((a, b) => (a.date || "").localeCompare(b.date || ""));
-    const header = "fecha,tipo,monto,moneda,source,descripcion";
+    const header = "fecha,socio,tipo,monto,moneda,source,descripcion";
     const escape = s => `"${String(s || "").replace(/"/g, '""')}"`;
     const csv = [header, ...rows.map(r => [
       r.date,
+      escape(r.person),
       r.amount < 0 ? "aporte" : (r.tipoMovimiento || "retiro"),
       Math.abs(r.amount),
       r.currency || "ARS",
@@ -269,7 +276,7 @@ export const Partners = ({
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = `IZN_MiCartera_${year}.csv`;
+    a.href = url; a.download = `IZN_Socios_${year}.csv`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
@@ -284,11 +291,11 @@ export const Partners = ({
         <div>
           {!embedded && (
             <h2 style={{ color: T.text, margin: 0, fontSize: 24, fontFamily: T.fontDisplay, letterSpacing: "-0.02em" }}>
-              💼 Mi Cartera
+              👥 Socios
             </h2>
           )}
           <div style={{ color: T.textSub, fontSize: 13, marginTop: 4 }}>
-            Diego — 100% dueño de Imports Zona Norte
+            Diego &amp; Gustavo — sociedad 50/50 en Imports Zona Norte
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -403,7 +410,8 @@ export const Partners = ({
           <Row label="− Costos importación" value={`−${formatMoney(Math.round(costs))}`} color={T.red} />
           <Row label="− Gastos operativos" value={`−${formatMoney(Math.round(expensesTotal))}`} color={T.red} />
           <Row label="− Mermas comunes" value={`−${formatMoney(Math.round(mermasComunes))}`} color={T.amber} />
-          <Row label="− Mi consumo personal" value={`−${formatMoney(Math.round(consumoDiego))}`} color={T.amber} />
+          <Row label="− Consumo Diego" value={`−${formatMoney(Math.round(consumoDiego))}`} color={T.amber} />
+          <Row label="− Consumo Gustavo" value={`−${formatMoney(Math.round(consumoGustavo))}`} color={T.amber} />
           <div style={{ borderTop: `1px solid ${T.borderSoft}`, marginTop: 6, paddingTop: 6 }}>
             <Row label="Ganancia neta" value={formatMoney(Math.round(netProfit))} color={netProfit >= 0 ? T.green : T.red} bold />
           </div>
@@ -488,56 +496,56 @@ export const Partners = ({
         })()}
       </Card>
 
-      {/* LO QUE ME LLEVÉ VS LO QUE QUEDA */}
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 14, marginBottom: 14 }}>
-        <Card style={{ background: `${T.amber}10`, border: `1px solid ${T.amber}33` }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: T.amber, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 6 }}>
-            Lo que me llevé
+      {/* BALANCE POR SOCIO (50/50) */}
+      <Card style={{ marginBottom: 14 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.6 }}>
+            Balance por socio · 50/50 desde {formatDate(PARTNERSHIP_START)}
           </div>
-          <div style={{ fontSize: 26, fontWeight: 800, color: T.text, fontFamily: T.fontDisplay, letterSpacing: "-0.02em" }}>
-            {formatMoney(Math.round(netoRetirado))}
+          <div style={{ fontSize: 11, color: T.textMuted }}>
+            Capital trabajando en el negocio: <strong style={{ color: T.text }}>{formatMoney(Math.round(profitRemaining))}</strong>
           </div>
-          <div style={{ fontSize: 11, color: T.textMuted, marginTop: 4 }}>
-            Retirado: {formatMoney(Math.round(retiradoARS))}
-            {aportadoARS > 0 && <> · Aportado: {formatMoney(Math.round(aportadoARS))}</>}
-          </div>
-        </Card>
-
-        <Card style={{ background: `${T.green}10`, border: `1px solid ${T.green}33` }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: T.green, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 6 }}>
-            Lo que sigue trabajando
-          </div>
-          <div style={{ fontSize: 26, fontWeight: 800, color: T.text, fontFamily: T.fontDisplay, letterSpacing: "-0.02em" }}>
-            {formatMoney(Math.round(profitRemaining))}
-          </div>
-          <div style={{ fontSize: 11, color: T.textMuted, marginTop: 4 }}>
-            Capital en la empresa
-          </div>
-        </Card>
-
-        <Card style={{ background: `${T.primary}10`, border: `1px solid ${T.primary}33` }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: T.primary, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 6 }}>
-            Podés retirar
-          </div>
-          <div style={{ fontSize: 26, fontWeight: 800, color: safeWithdraw > 0 ? T.green : T.textMuted, fontFamily: T.fontDisplay, letterSpacing: "-0.02em" }}>
-            {formatMoney(safeWithdraw)}
-          </div>
-          <div style={{ fontSize: 11, color: T.textMuted, marginTop: 4 }}>
-            Deja 30% como capital de trabajo · saldo {formatMoney(Math.round(diegoBalance))}
-          </div>
-          {safeWithdraw > 0 && (
-            <button onClick={() => {
-              setForm(f => ({ ...f, amount: safeWithdraw, source: "MP Diego", description: "Retiro sugerido", tipoMovimiento: "retiro" }));
-              setModal(true);
-            }} style={{
-              marginTop: 10, width: "100%", padding: "8px 12px", minHeight: 36,
-              background: T.primary, border: "none", borderRadius: 8,
-              color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer",
-              fontFamily: "inherit",
-            }}>💸 Retirar {formatMoney(safeWithdraw)}</button>
-          )}
-        </Card>
-      </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14 }}>
+          {sociosBalances.map((s) => {
+            const meta = SOCIOS.find(x => x.name === s.name);
+            return (
+              <div key={s.name} style={{ padding: 16, borderRadius: 12, background: `${meta.color}0D`, border: `1px solid ${meta.color}33` }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                  <span style={{ fontSize: 18 }}>{meta.icon}</span>
+                  <span style={{ fontSize: 15, fontWeight: 800, color: T.text }}>{s.name}</span>
+                </div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: meta.color, textTransform: "uppercase", letterSpacing: 0.6 }}>Saldo a favor</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: s.balance >= 0 ? T.text : T.red, fontFamily: T.fontDisplay, letterSpacing: "-0.02em", lineHeight: 1.1 }}>
+                  {formatMoney(Math.round(s.balance))}
+                </div>
+                <div style={{ marginTop: 10 }}>
+                  <Row label="Su parte de la ganancia" value={formatMoney(Math.round(s.poolShare))} />
+                  <Row label="− Consumo personal" value={`−${formatMoney(Math.round(s.consumo))}`} color={T.amber} />
+                  <Row label="− Ya retiró (neto)" value={`−${formatMoney(Math.round(s.neto))}`} color={T.red} />
+                </div>
+                <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${T.borderSoft}`, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                  <div>
+                    <div style={{ fontSize: 10, color: T.textMuted, fontWeight: 600 }}>PODÉS RETIRAR (70%)</div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: s.safeWithdraw > 0 ? T.green : T.textMuted, fontFamily: T.fontDisplay }}>
+                      {formatMoney(s.safeWithdraw)}
+                    </div>
+                  </div>
+                  {s.safeWithdraw > 0 && (
+                    <button onClick={() => {
+                      setForm(f => ({ ...f, person: s.name, amount: s.safeWithdraw, source: meta.account, description: "Retiro sugerido", tipoMovimiento: "retiro" }));
+                      setModal(true);
+                    }} style={{
+                      padding: "8px 12px", minHeight: 36, background: meta.color, border: "none", borderRadius: 8,
+                      color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                    }}>💸 Retirar</button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
 
       {/* DEUDAS / CRÉDITOS CON CLIENTES */}
       {(clientsWithDebt.length > 0 || clientsWithCredit.length > 0) && (
@@ -578,14 +586,31 @@ export const Partners = ({
           <div style={{ fontSize: 11, fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.6 }}>
             Histórico de retiros y aportes
           </div>
-          <button onClick={exportYearCsv} style={{
-            padding: "6px 10px", borderRadius: 6, border: `1px solid ${T.primary}`,
-            background: `${T.primary}15`, color: T.primary, fontSize: 11, fontWeight: 600,
-            cursor: "pointer", fontFamily: "inherit",
-          }}>📥 Exportar CSV {new Date().getFullYear()}</button>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <div style={{ display: "inline-flex", background: T.surface2, borderRadius: 8, padding: 3, border: `1px solid ${T.border}` }}>
+              {["Todos", "Diego", "Gustavo"].map(p => (
+                <button key={p} onClick={() => setHistPerson(p)} style={{
+                  padding: "5px 10px", fontSize: 12, fontWeight: 600, border: "none", borderRadius: 6,
+                  background: histPerson === p ? "#FFFFFF" : "transparent",
+                  color: histPerson === p ? T.text : T.textSub,
+                  boxShadow: histPerson === p ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
+                  cursor: "pointer", fontFamily: "inherit",
+                }}>{p}</button>
+              ))}
+            </div>
+            <button onClick={exportYearCsv} style={{
+              padding: "6px 10px", borderRadius: 6, border: `1px solid ${T.primary}`,
+              background: `${T.primary}15`, color: T.primary, fontSize: 11, fontWeight: 600,
+              cursor: "pointer", fontFamily: "inherit",
+            }}>📥 Exportar CSV {new Date().getFullYear()}</button>
+          </div>
         </div>
         <Table columns={[
           { key: "date", label: "Fecha", render: r => formatDate(r.date) },
+          { key: "person", label: "Socio", render: r => {
+            const meta = SOCIOS.find(x => x.name === r.person);
+            return <span style={{ color: meta?.color || T.text, fontWeight: 700 }}>{meta?.icon} {r.person}</span>;
+          }},
           { key: "tipo", label: "Tipo", render: r => {
             const isAporte = r.amount < 0 || r.tipoMovimiento === "aporte";
             return <Badge color={isAporte ? T.green : T.red}>{isAporte ? "💰 Aporte" : "💸 Retiro"}</Badge>;
@@ -602,7 +627,7 @@ export const Partners = ({
               ? <button onClick={() => deleteW(r.id)} style={{ background: "#F7D7D6", border: `1px solid ${T.red}55`, color: T.red, padding: isMobile ? "10px 14px" : "3px 8px", minHeight: isMobile ? 40 : "auto", borderRadius: 6, cursor: "pointer", fontSize: isMobile ? 13 : 11, fontWeight: 600 }}>Confirmar</button>
               : <button onClick={() => deleteW(r.id)} style={{ background: "none", border: "none", color: T.red, cursor: "pointer", fontSize: 14 }}>🗑️</button>
           )},
-        ]} data={(partnerWithdrawals || []).filter(w => !w.isDeleted && !w._historicalArchived && w.person === "Diego")} emptyMsg="No hay movimientos registrados" />
+        ]} data={(partnerWithdrawals || []).filter(w => !w.isDeleted && !w._historicalArchived && (histPerson === "Todos" || w.person === histPerson))} emptyMsg="No hay movimientos registrados" />
       </Card>
 
       {/* Modal nuevo movimiento */}
@@ -629,6 +654,28 @@ export const Partners = ({
               <span style={{ fontSize: 10, fontWeight: 500, opacity: 0.7 }}>{opt.hint}</span>
             </button>
           ))}
+        </div>
+        {/* Selector de socio */}
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: T.textSub, marginBottom: 6 }}>¿Quién?</div>
+          <div style={{ display: "flex", gap: 8 }}>
+            {SOCIOS.map(s => (
+              <button
+                key={s.name}
+                type="button"
+                onClick={() => setForm(f => ({ ...f, person: s.name, source: f.source || s.account }))}
+                style={{
+                  flex: 1, padding: "10px 14px", minHeight: 44, borderRadius: 8,
+                  border: `1px solid ${form.person === s.name ? s.color : T.border}`,
+                  background: form.person === s.name ? `${s.color}15` : "transparent",
+                  color: form.person === s.name ? s.color : T.text,
+                  fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                }}
+              >
+                {s.icon} {s.name}
+              </button>
+            ))}
+          </div>
         </div>
         <Input label="Fecha" type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
         <div style={{ display: "flex", gap: 12 }}>
