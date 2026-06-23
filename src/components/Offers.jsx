@@ -1559,7 +1559,7 @@ function PublicCatalogGenerator({ products = [], exchangeRate = 1 }) {
             Incluye {generated.snap.items.length} productos · {generated.snap.stats.totalUnits} unidades · expira el{" "}
             {new Date(generated.snap.expiresAt).toLocaleDateString("es-AR")}
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 8 }}>
             <button onClick={copyShareMsg} style={btnStyle("#F8F2E7", "#1E2B4A")}>
               {copied ? "✓ Copiado" : "📋 Copiar mensaje"}
             </button>
