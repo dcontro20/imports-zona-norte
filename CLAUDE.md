@@ -336,7 +336,32 @@ A partir del 14/04/2026, GitHub está sincronizado y es la fuente de verdad del 
 
 ---
 
-## Estado del proyecto al 22/05/2026
+## Estado del proyecto al 22/06/2026
+
+### 🔔 Notificaciones diarias: locales + push remotas FCM (docs/SESSION_2026-06-22_push-notifications.md)
+
+Diego quería recordatorios a su iPhone para mandar los 2 mensajes de stock
+diarios al grupo. Implementamos **2 capas**:
+- **Locales** (`src/lib/notifications.js`): timers `setTimeout`, funcionan
+  solo si abrió la app en el día. Fallback automático.
+- **Push remotas FCM** (`src/lib/push.js` + `api/send-daily-push.js` +
+  `.github/workflows/push-cron.yml`): llegan SIEMPRE, app cerrada incluida.
+  Cron GitHub Actions (cada 10min) → Vercel Serverless Function (firebase-admin)
+  → FCM → SW v30 renderiza. Dedupe atómico con Firestore `.create()`, ventana
+  de tolerancia 45min, lógica pura testeada en `src/lib/pushWindow.js`.
+
+App.jsx usa estrategia en capas: intenta remoto, cae a local si no configurado.
+Configurable en ⚙️ Ajustes → "🔔 Recordatorios diarios" (toggle + horarios).
+**Funcionando en producción** (probado end-to-end). Setup manual documentado
+en `docs/PUSH_SETUP.md`. **773 tests** (+11).
+
+**⚠️ Datos clave para futuro:**
+- Hay **2 proyectos Vercel**: `imports-zona-norte` (app gestión, donde vive el
+  endpoint `/api/send-daily-push`) y `importszn-shop` (catálogo público).
+- El endpoint requiere env vars en Vercel (`FIREBASE_SERVICE_ACCOUNT` +
+  `PUSH_CRON_SECRET`) + el mismo `PUSH_CRON_SECRET` como secret de GitHub Actions.
+- Colecciones Firestore nuevas: `pushTokens` (1 doc/dispositivo) + `push`
+  (config + dedupe `sent_{fecha}_{slot}`).
 
 ### 📋 Plan maestro de mejoras S14–S22
 
