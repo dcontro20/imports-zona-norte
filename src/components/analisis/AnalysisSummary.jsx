@@ -3,6 +3,7 @@ import { formatMoney, monthKey } from "../../helpers.js";
 import { useResponsive } from "../../App.jsx";
 import { Card } from "../UI.jsx";
 import { buildProductSalesStats } from "../../productIntelligence.js";
+import { businessHealthScore, monthRunRate, deadStockPct } from "../../executiveMetrics.js";
 import {
   financeKPIs,
   buildPnL,
@@ -15,7 +16,7 @@ import {
 // con comparativo vs el mes anterior. Para el detalle, los otros tabs.
 export function AnalysisSummary({
   sales = [], purchases = [], expenses = [], withdrawals = [],
-  products = [], exchangeRate = 1, onGoToTab,
+  products = [], clients = [], exchangeRate = 1, onGoToTab,
 }) {
   const { isMobile } = useResponsive();
 
@@ -60,8 +61,70 @@ export function AnalysisSummary({
   const revDelta = delta(kpis.revenue, prevPnl.revenue);
   const profitDelta = delta(kpis.netProfit, prevPnl.netProfit);
 
+  // ---- Salud del negocio (score 0-100) ----
+  const deadPct = useMemo(() => deadStockPct(products, sales, 60), [products, sales]);
+  const totalDebt = useMemo(
+    () => (clients || []).reduce((s, c) => s + (Number(c.balance) < 0 ? Math.abs(c.balance) : 0), 0),
+    [clients]
+  );
+  const debtRatio = kpis.revenue > 0 ? totalDebt / kpis.revenue : 0;
+  const health = useMemo(() => businessHealthScore({
+    netMarginPct: kpis.netMarginPct,
+    revenueDeltaPct: revDelta ?? 0,
+    deadStockPct: deadPct,
+    debtRatio,
+  }), [kpis.netMarginPct, revDelta, deadPct, debtRatio]);
+
+  // ---- Proyección de cierre del mes (run-rate) ----
+  const nowD = new Date();
+  const daysInMonth = new Date(nowD.getFullYear(), nowD.getMonth() + 1, 0).getDate();
+  const revProj = monthRunRate({ valueSoFar: kpis.revenue, dayOfMonth: nowD.getDate(), daysInMonth });
+  const profitProj = monthRunRate({ valueSoFar: kpis.netProfit, dayOfMonth: nowD.getDate(), daysInMonth });
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* Salud del negocio — score ejecutivo */}
+      <Card>
+        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 14 : 20, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 110 }}>
+            <div style={{ fontSize: 11, color: "#6B7794", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 4 }}>Salud del negocio</div>
+            <div style={{ fontSize: 46, fontWeight: 800, color: health.color, lineHeight: 1, letterSpacing: "-1px" }}>{health.score}</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: health.color, marginTop: 2 }}>{health.label}</div>
+          </div>
+          <div style={{ flex: 1, minWidth: 220, display: "flex", flexDirection: "column", gap: 8 }}>
+            {health.factors.map(f => (
+              <div key={f.key} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 11, color: "#3A4868", fontWeight: 600, minWidth: 110 }}>{f.label}</span>
+                <div style={{ flex: 1, height: 8, background: "#EFE5CE", borderRadius: 4, overflow: "hidden" }}>
+                  <div style={{ width: `${(f.score / f.max) * 100}%`, height: "100%", background: health.color, borderRadius: 4 }} />
+                </div>
+                <span style={{ fontSize: 11, color: "#6B7794", fontWeight: 700, minWidth: 38, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{f.score}/{f.max}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Card>
+
+      {/* Proyección de cierre de mes (run-rate) */}
+      <Card style={{ background: "#FAF7F0" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: "#1E2B4A" }}>
+            📐 Proyección de cierre del mes
+            <span style={{ fontSize: 11, fontWeight: 600, color: "#9AA2B3", marginLeft: 8 }}>al ritmo actual · día {nowD.getDate()}/{daysInMonth}</span>
+          </div>
+          <div style={{ display: "flex", gap: 22, flexWrap: "wrap" }}>
+            <div>
+              <div style={{ fontSize: 10, color: "#6B7794", fontWeight: 700, textTransform: "uppercase" }}>Ingresos proyectados</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: "#1E2B4A" }}>{formatMoney(revProj.projected)}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 10, color: "#6B7794", fontWeight: 700, textTransform: "uppercase" }}>Ganancia proyectada</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: profitProj.projected >= 0 ? "#0F6B5C" : "#B83232" }}>{formatMoney(profitProj.projected)}</div>
+            </div>
+          </div>
+        </div>
+      </Card>
+
       {/* Hero KPIs */}
       <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fit, minmax(${isMobile ? "150px" : "200px"}, 1fr))`, gap: 12 }}>
         <HeroKPI label="Ingresos del mes" value={formatMoney(kpis.revenue)} delta={revDelta} color="#1E2B4A" />

@@ -78,7 +78,7 @@ export const Analisis = (props) => {
       {tab === "summary" && (
         <AnalysisSummary
           sales={sales} purchases={purchases} expenses={expenses} withdrawals={withdrawals}
-          products={products} exchangeRate={exchangeRate} onGoToTab={setTab}
+          products={products} clients={clients} exchangeRate={exchangeRate} onGoToTab={setTab}
         />
       )}
       {tab === "projections" && (
