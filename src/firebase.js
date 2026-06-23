@@ -34,9 +34,11 @@ export const logout = () => signOut(auth);
 export const onAuthChange = (callback) => onAuthStateChanged(auth, callback);
 
 // User mapping: Firebase Auth UID → app user profile
-// Diego es el único dueño 100% del negocio (single-user app).
+// Diego y Gustavo son socios 50/50 (Gustavo volvió el 2026-06-22).
+// Ambos tienen role "owner" — acceso total.
 const USER_PROFILES = {
-  "dcontro20@gmail.com": { name: "Diego", color: "#1E2B4A", icon: "💜", role: "owner" },
+  "dcontro20@gmail.com": { name: "Diego",   color: "#1E2B4A", icon: "💜", role: "owner" },
+  "gcontro99@gmail.com": { name: "Gustavo", color: "#3B82F6", icon: "💙", role: "owner" },
 };
 export const getUserProfile = (firebaseUser) => {
   if (!firebaseUser) return null;

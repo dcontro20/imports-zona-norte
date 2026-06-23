@@ -16,8 +16,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
+// IMPORTANTE: completar la password de Gustavo antes de correr el script.
+// Después de crear el usuario, Gustavo puede cambiarla desde "Forgot password"
+// en la pantalla de login (recibe el reset por mail).
 const users = [
   { email: "dcontro20@gmail.com", password: "Poncharelo20!" },
+  { email: "gcontro99@gmail.com", password: "REEMPLAZAR_ANTES_DE_CORRER" },
 ];
 
 for (const u of users) {

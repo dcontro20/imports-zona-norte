@@ -4,7 +4,8 @@ rules_version = '2';
 // Deploy: firebase deploy --only firestore:rules
 //
 // Modelo de permisos:
-//   - Owner (Diego, dcontro20@gmail.com): único usuario con acceso total.
+//   - Socios (Diego dcontro20@gmail.com + Gustavo gcontro99@gmail.com):
+//     ambos con acceso total (sociedad 50/50 desde 2026-06-22).
 //   - Cualquier otro usuario: denied.
 //
 // Storage pattern: todos los datos viven en /appData/{key} como doc único
@@ -15,7 +16,8 @@ service cloud.firestore {
 
     function isOwner() {
       return request.auth != null
-          && request.auth.token.email == "dcontro20@gmail.com";
+          && (request.auth.token.email == "dcontro20@gmail.com"
+              || request.auth.token.email == "gcontro99@gmail.com");
     }
 
     match /appData/{key} {
