@@ -7,6 +7,7 @@ import { T, pickAvatarColor } from "../theme.js";
 import { resolveItemName, digitsOnly, isValidPhone, cleanIG } from "./clients/helpers.js";
 import { Sparkline, Avatar } from "./clients/primitives.jsx";
 import HistoryModal from "./clients/HistoryModal.jsx";
+import { ClientIntelligence } from "./clients/ClientIntelligence.jsx";
 import { segmentAllClients, SEGMENT_LABELS } from "../lib/clientSegments.js";
 import { calcPoints, getRewardStatus } from "../lib/loyalty.js";
 import { useAppContext } from "../AppContext.js";
@@ -333,6 +334,9 @@ export const Clients = ({ clients, setClients, sales, products, withdrawals = []
         <MetricCard label="Gasto promedio" value={formatMoney(Math.round(globalStats.avgSpend))} sub="por cliente" accent={T.purple} />
         <ZoneMapCard zones={globalStats.topZones} onSelect={(z) => setZoneFilter(zoneFilter === z ? "" : z)} selected={zoneFilter} />
       </div>
+
+      {/* Inteligencia de cliente (S17): alertas + segmentos + a tocar */}
+      <ClientIntelligence clients={clients} sales={sales} exchangeRate={exchangeRate} onOpenClient={(id) => setHistoryClient(id)} />
 
       {/* Search + Filters */}
       <div style={{
