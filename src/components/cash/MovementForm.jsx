@@ -350,9 +350,9 @@ const lblStyle = {
   textTransform: "uppercase", letterSpacing: 0.7, marginBottom: 6,
 };
 const fieldStyle = (err) => ({
-  width: "100%", padding: "11px 14px",
+  width: "100%", padding: "11px 14px", minHeight: 44,
   background: T.surface2, border: `1px solid ${err ? T.red : T.borderSoft}`,
-  borderRadius: 10, color: T.text, fontSize: 14, outline: "none",
+  borderRadius: 10, color: T.text, fontSize: 16, outline: "none",
   boxSizing: "border-box", fontFamily: "inherit",
 });
 
@@ -406,9 +406,9 @@ const HistoryList = ({ ledger, isMobile, onDelete, confirmDel, currentExchangeRa
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Buscar descripción, cuenta, categoría..."
             style={{
-              width: "100%", padding: "9px 12px 9px 34px", background: T.surface2,
+              width: "100%", padding: "11px 12px 11px 34px", minHeight: 44, background: T.surface2,
               border: `1px solid ${T.borderSoft}`, borderRadius: 10,
-              fontSize: 13, outline: "none", fontFamily: "inherit", boxSizing: "border-box",
+              fontSize: 16, outline: "none", fontFamily: "inherit", boxSizing: "border-box",
               color: T.text,
             }} />
         </div>
@@ -627,9 +627,9 @@ const HistoryEntry = ({ entry: e, onDelete, confirmDel, isMobile }) => {
 };
 
 const selectStyle = () => ({
-  width: "100%", padding: "9px 12px",
+  width: "100%", padding: "11px 12px", minHeight: 44,
   background: T.card, border: `1px solid ${T.borderSoft}`,
-  borderRadius: 10, color: T.text, fontSize: 13,
+  borderRadius: 10, color: T.text, fontSize: 16,
   outline: "none", fontFamily: "inherit", boxSizing: "border-box",
 });
 

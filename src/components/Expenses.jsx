@@ -258,25 +258,25 @@ export const Expenses = ({ expenses, setExpenses, currentUser, exchangeRate, log
           onChange={e => setSearch(e.target.value)}
           placeholder="🔍 Buscar descripción..."
           style={{
-            flex: "1 1 200px", padding: "7px 12px", borderRadius: 8,
-            border: "1px solid #E5DAC2", fontSize: 13, outline: "none",
+            flex: "1 1 200px", padding: "10px 12px", minHeight: 44, boxSizing: "border-box", borderRadius: 8,
+            border: "1px solid #E5DAC2", fontSize: 16, outline: "none",
             background: "#fff", fontFamily: "inherit",
           }}
         />
         <input
           type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
           title="Desde"
-          style={{ padding: "7px 10px", borderRadius: 8, border: "1px solid #E5DAC2", fontSize: 12, outline: "none", background: "#fff", fontFamily: "inherit" }}
+          style={{ padding: "10px", minHeight: 44, boxSizing: "border-box", borderRadius: 8, border: "1px solid #E5DAC2", fontSize: 16, outline: "none", background: "#fff", fontFamily: "inherit" }}
         />
         <input
           type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
           title="Hasta"
-          style={{ padding: "7px 10px", borderRadius: 8, border: "1px solid #E5DAC2", fontSize: 12, outline: "none", background: "#fff", fontFamily: "inherit" }}
+          style={{ padding: "10px", minHeight: 44, boxSizing: "border-box", borderRadius: 8, border: "1px solid #E5DAC2", fontSize: 16, outline: "none", background: "#fff", fontFamily: "inherit" }}
         />
         <input
           type="number" value={minAmount} onChange={e => setMinAmount(e.target.value)}
           placeholder="Min ARS"
-          style={{ width: 100, padding: "7px 10px", borderRadius: 8, border: "1px solid #E5DAC2", fontSize: 12, outline: "none", background: "#fff", fontFamily: "inherit" }}
+          style={{ width: 110, padding: "10px", minHeight: 44, boxSizing: "border-box", borderRadius: 8, border: "1px solid #E5DAC2", fontSize: 16, outline: "none", background: "#fff", fontFamily: "inherit" }}
         />
         {(search || dateFrom || dateTo || minAmount) && (
           <button onClick={() => { setSearch(""); setDateFrom(""); setDateTo(""); setMinAmount(""); }} style={{

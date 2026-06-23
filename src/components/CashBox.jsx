@@ -509,9 +509,10 @@ export const CashBox = ({ sales, purchases, expenses, withdrawals, cashMovements
               Blue
               <input type="number" value={exchangeRate} onChange={e => setExchangeRate(Number(e.target.value))}
                 style={{
-                  width: 70, padding: "3px 8px", background: T.surface2,
+                  width: isMobile ? 84 : 70, padding: isMobile ? "8px" : "3px 8px", minHeight: isMobile ? 40 : "auto",
+                  boxSizing: "border-box", background: T.surface2,
                   border: `1px solid ${T.borderSoft}`, borderRadius: 6,
-                  color: T.text, fontSize: 13, fontWeight: 700, fontFamily: "inherit", outline: "none",
+                  color: T.text, fontSize: 16, fontWeight: 700, fontFamily: "inherit", outline: "none",
                 }} />
             </span>
           </p>
@@ -797,7 +798,7 @@ const PatrimonyHero = ({ patrimonyARS, patrimonyUSD, totals, trend, exchangeRate
         </div>
 
         {/* Breakdown */}
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr 1fr" : "1fr 1fr 1fr", gap: isMobile ? 6 : 10, flex: "1 1 100%", width: "100%" }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: isMobile ? 8 : 10, flex: "1 1 100%", width: "100%" }}>
           <MiniBreakdown label="Pesos" value={formatMoney(totals.ars)} color={T.primary} />
           <MiniBreakdown label="USD" value={formatMoney(totals.usd, "USD")} sub={totals.usd > 0 ? `${formatMoney(totals.usd * exchangeRate)} ARS` : ""} color={T.green} />
           <MiniBreakdown label="USDT" value={formatMoney(totals.usdt, "USDT")} sub={totals.usdt > 0 ? `${formatMoney(totals.usdt * exchangeRate)} ARS` : ""} color={T.amber} />
@@ -816,7 +817,7 @@ const MiniBreakdown = ({ label, value, sub, color }) => (
       <span style={{ width: 5, height: 5, borderRadius: "50%", background: color }} />
       <span style={{ fontSize: 10, fontWeight: 700, color: T.textMuted, textTransform: "uppercase", letterSpacing: 0.6 }}>{label}</span>
     </div>
-    <div style={{ fontSize: 15, fontWeight: 800, color: T.text, fontFamily: T.fontDisplay, lineHeight: 1.1, letterSpacing: "-0.01em" }}>{value}</div>
+    <div style={{ fontSize: 15, fontWeight: 800, color: T.text, fontFamily: T.fontDisplay, lineHeight: 1.1, letterSpacing: "-0.01em", overflow: "hidden", textOverflow: "ellipsis", wordBreak: "break-word" }}>{value}</div>
     {sub && <div style={{ fontSize: 10, color: T.textMuted, marginTop: 3 }}>{sub}</div>}
   </div>
 );

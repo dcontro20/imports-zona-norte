@@ -701,7 +701,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           {/* Tipo */}
           <select value={filterType} onChange={e => setFilterType(e.target.value)} style={{
-            padding: "6px 10px", fontSize: 12, borderRadius: 7,
+            padding: "10px 10px", minHeight: 44, fontSize: 16, borderRadius: 7,
             border: `1px solid ${filterType ? "#1E2B4A" : "#E5DAC2"}`,
             background: filterType ? "#E8EBF2" : "#FFFFFF",
             color: filterType ? "#1E2B4A" : "#3A4868",
@@ -754,7 +754,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
           <input value={filterProductSearch} onChange={e => setFilterProductSearch(e.target.value)}
             placeholder="Buscar producto..."
             style={{
-              padding: "7px 10px", fontSize: 12, borderRadius: 7, flex: "1 1 140px", minWidth: 140,
+              padding: "10px 10px", minHeight: 44, fontSize: 16, borderRadius: 7, flex: "1 1 140px", minWidth: 140,
               border: `1px solid ${filterProductSearch ? "#1E2B4A" : "#E5DAC2"}`,
               background: "#F8F2E7", color: "#1E2B4A",
               fontFamily: "inherit", outline: "none", boxSizing: "border-box",
@@ -1071,8 +1071,8 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                   onFocus={() => setShowSaleDropdown(true)}
                   placeholder="Buscar por cliente o producto..."
                   style={{
-                    width: "100%", padding: "10px 14px", background: "#FDECC8", border: "1px solid #fcd34d",
-                    borderRadius: 10, fontSize: 14, outline: "none", boxSizing: "border-box",
+                    width: "100%", padding: "12px 14px", minHeight: 44, background: "#FDECC8", border: "1px solid #fcd34d",
+                    borderRadius: 10, fontSize: 16, outline: "none", boxSizing: "border-box",
                   }} />
                 {showSaleDropdown && (
                   <div style={{
@@ -1167,9 +1167,9 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                       value={form.failedProductId}
                       onChange={e => setForm(f => ({ ...f, failedProductId: e.target.value }))}
                       style={{
-                        width: "100%", padding: "10px 12px", background: "#F8F2E7",
+                        width: "100%", padding: "12px", minHeight: 44, boxSizing: "border-box", background: "#F8F2E7",
                         border: "1px solid #E5DAC2", borderRadius: 8,
-                        fontSize: 14, fontFamily: "inherit", color: "#1E2B4A",
+                        fontSize: 16, fontFamily: "inherit", color: "#1E2B4A",
                       }}>
                       <option value="">Elegí cuál...</option>
                       {saleItems.map((it, i) => {
@@ -1232,9 +1232,9 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                       }));
                     }}
                     style={{
-                      width: "100%", padding: "10px 12px", background: "#F8F2E7",
+                      width: "100%", padding: "12px", minHeight: 44, boxSizing: "border-box", background: "#F8F2E7",
                       border: `1px solid ${reason ? reasonColor : "#E5DAC2"}`, borderRadius: 8,
-                      fontSize: 14, fontFamily: "inherit", color: reason ? reasonColor : "#6B7794",
+                      fontSize: 16, fontFamily: "inherit", color: reason ? reasonColor : "#6B7794",
                       fontWeight: 600,
                     }}>
                     <option value="">Elegí una razón...</option>
@@ -1249,10 +1249,10 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                     onChange={e => setForm(f => ({ ...f, failureNotes: e.target.value }))}
                     placeholder={reason === "Otro" ? "Describí qué pasó (obligatorio, mín. 5 chars)" : "Detalle adicional (opcional)"}
                     style={{
-                      width: "100%", padding: "10px 12px", background: "#F8F2E7",
+                      width: "100%", padding: "12px", minHeight: 44, background: "#F8F2E7",
                       border: `1px solid ${reason === "Otro" && (form.failureNotes || "").trim().length < 5 ? "#E03E3E" : "#E5DAC2"}`,
                       borderRadius: 8,
-                      fontSize: 14, fontFamily: "inherit", boxSizing: "border-box",
+                      fontSize: 16, fontFamily: "inherit", boxSizing: "border-box",
                     }} />
                 )}
               </div>
@@ -1492,7 +1492,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
                 type="date"
                 value={form.providerReturnDate || ""}
                 onChange={e => setForm(f => ({ ...f, providerReturnDate: e.target.value }))}
-                style={{ width: "100%", padding: "8px 10px", borderRadius: 6, border: "1px solid #E5DAC2", fontSize: 13, fontFamily: "inherit", background: "#fff" }}
+                style={{ width: "100%", padding: "11px 10px", minHeight: 44, boxSizing: "border-box", borderRadius: 6, border: "1px solid #E5DAC2", fontSize: 16, fontFamily: "inherit", background: "#fff" }}
               />
             </div>
             <div>
@@ -1502,7 +1502,7 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
               <select
                 value={form.replacedVsReturned || ""}
                 onChange={e => setForm(f => ({ ...f, replacedVsReturned: e.target.value }))}
-                style={{ width: "100%", padding: "8px 10px", borderRadius: 6, border: "1px solid #E5DAC2", fontSize: 13, fontFamily: "inherit", background: "#fff" }}
+                style={{ width: "100%", padding: "11px 10px", minHeight: 44, boxSizing: "border-box", borderRadius: 6, border: "1px solid #E5DAC2", fontSize: 16, fontFamily: "inherit", background: "#fff" }}
               >
                 <option value="">Pendiente…</option>
                 <option value="reemplazado">✓ Reemplazado</option>
@@ -1525,8 +1525,8 @@ export const Withdrawals = ({ withdrawals, setWithdrawals, products, setProducts
               onChange={e => setForm(f => ({ ...f, failurePhotoUrl: e.target.value }))}
               placeholder="https://..."
               style={{
-                width: "100%", padding: "8px 10px", borderRadius: 6,
-                border: "1px solid #E5DAC2", fontSize: 13, fontFamily: "inherit",
+                width: "100%", padding: "11px 10px", minHeight: 44, borderRadius: 6,
+                border: "1px solid #E5DAC2", fontSize: 16, fontFamily: "inherit",
                 background: "#fff", boxSizing: "border-box",
               }}
             />

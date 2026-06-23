@@ -1065,8 +1065,8 @@ export const Sales = ({
             onFocus={() => setShowClientDropdown(true)}
             placeholder="Buscar cliente por nombre, tel o IG..."
             style={{
-              width: "100%", padding: "10px 14px", background: "#F8F2E7", border: "1px solid #E5DAC2",
-              borderRadius: 10, fontSize: 14, outline: "none", boxSizing: "border-box",
+              width: "100%", padding: "12px 14px", minHeight: 44, background: "#F8F2E7", border: "1px solid #E5DAC2",
+              borderRadius: 10, fontSize: 16, outline: "none", boxSizing: "border-box",
             }}
           />
           {showClientDropdown && (clientSearch.length > 0) && (
@@ -1641,9 +1641,9 @@ export const Sales = ({
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Buscar producto o cliente..."
             style={{
-              width: "100%", padding: "12px 14px 12px 40px", background: T.surface2,
+              width: "100%", padding: "12px 14px 12px 40px", minHeight: 44, background: T.surface2,
               border: `1px solid ${T.borderSoft}`, borderRadius: 10, color: T.text,
-              fontSize: 14, outline: "none", boxSizing: "border-box", fontFamily: "inherit",
+              fontSize: 16, outline: "none", boxSizing: "border-box", fontFamily: "inherit",
               transition: "border-color .15s",
             }}
             onFocus={e => e.currentTarget.style.borderColor = T.primary}
@@ -2137,8 +2137,8 @@ const TimelineView = ({ sales, clients, products, onEdit }) => {
 };
 
 const selectStyle = (active) => ({
-  padding: "7px 12px", borderRadius: 999, border: `1px solid ${active ? T.primary : T.border}`,
+  padding: "9px 12px", minHeight: 40, borderRadius: 999, border: `1px solid ${active ? T.primary : T.border}`,
   background: active ? `${T.primary}15` : T.card, color: active ? T.primary : T.textSub,
-  fontSize: 13, fontFamily: "inherit", cursor: "pointer", outline: "none",
+  fontSize: 16, fontFamily: "inherit", cursor: "pointer", outline: "none",
 });
 

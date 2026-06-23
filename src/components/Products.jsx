@@ -820,8 +820,8 @@ const BulkImportModal = ({ products, setProducts, logAudit, onClose }) => {
         onChange={e => { setCsv(e.target.value); setPreview(null); }}
         placeholder="Pega aquí el CSV o subí un archivo arriba..."
         style={{
-          width: "100%", minHeight: 140, padding: 10, borderRadius: 8,
-          border: `1px solid ${T.borderSoft}`, fontFamily: "monospace", fontSize: 12,
+          width: "100%", minHeight: 140, padding: 10, borderRadius: 8, boxSizing: "border-box",
+          border: `1px solid ${T.borderSoft}`, fontFamily: "monospace", fontSize: 16,
           background: T.surface2, color: T.text, marginBottom: 10, resize: "vertical",
         }}
       />
