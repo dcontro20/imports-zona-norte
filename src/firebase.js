@@ -2,9 +2,10 @@ import { initializeApp } from "firebase/app";
 import {
   initializeFirestore, doc, setDoc, getDoc, onSnapshot, collection,
   persistentLocalCache, persistentMultipleTabManager,
-  terminate, clearIndexedDbPersistence,
+  terminate, clearIndexedDbPersistence, runTransaction,
 } from "firebase/firestore";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "firebase/auth";
+import { diffArraysById, applyDiff } from "./lib/arrayMerge.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyDAL85SFntaHyupAbrPxJGIpdSSSnecql4",
@@ -120,6 +121,69 @@ export const saveToFirestore = async (key, data) => {
         return false;
       }
     }
+};
+
+// Escritura concurrente-segura para arrays con items por `id`.
+//
+// En vez del full-overwrite de saveToFirestore (que pisa lo que escribió la
+// otra sesión entre nuestro read y nuestro write), esta función:
+//   1. Calcula el diff entre el estado local anterior y el nuevo (qué agregué,
+//      qué modifiqué, qué eliminé YO).
+//   2. Dentro de una transacción atómica, lee la versión del server, aplica
+//      MI diff encima, y escribe el resultado. Si otra sesión escribió en
+//      paralelo, su cambio se preserva.
+//
+// Es el path principal para todos los arrays sincronizados. saveToFirestore
+// se mantiene como fallback para escalares (exchangeRate) y como "primer write"
+// (cuando prevLocal es undefined, no hay diff que calcular).
+//
+// Devuelve el array resultante post-merge (para que el caller actualice su
+// snapshot local), o null si falló.
+export const mergeIntoFirestore = async (key, prevLocal, nextLocal) => {
+  // Sin diff, no escribimos: ahorra writes y cuota.
+  const diff = diffArraysById(prevLocal, nextLocal);
+  if (diff.adds.length === 0 && diff.updates.length === 0 && diff.removeIds.length === 0) {
+    return Array.isArray(nextLocal) ? nextLocal : prevLocal;
+  }
+
+  const docRef = doc(db, "appData", key);
+  const attempt = async () => {
+    return await runTransaction(db, async (tx) => {
+      const snap = await tx.get(docRef);
+      let serverArr = [];
+      if (snap.exists()) {
+        try { serverArr = JSON.parse(snap.data().data); }
+        catch { serverArr = []; }
+        if (!Array.isArray(serverArr)) serverArr = [];
+      }
+      const merged = applyDiff(serverArr, diff);
+      const now = new Date().toISOString();
+      tx.set(docRef, { data: JSON.stringify(merged), updatedAt: now });
+      lastKnownTimestamps[key] = now;
+      return merged;
+    });
+  };
+
+  try {
+    const merged = await attempt();
+    lastWriteError = null;
+    return merged;
+  } catch (e) {
+    console.error(`[MERGE] First attempt failed for ${key}:`, e.code || e.message);
+    try {
+      await new Promise(r => setTimeout(r, 1000));
+      const merged = await attempt();
+      lastWriteError = null;
+      return merged;
+    } catch (e2) {
+      console.error(`[MERGE] Retry failed for ${key}:`, e2.code || e2.message);
+      lastWriteError = { key, error: e2.code || e2.message, time: new Date().toISOString() };
+      try {
+        window.dispatchEvent(new CustomEvent("izn:write-error", { detail: lastWriteError }));
+      } catch {}
+      return null;
+    }
+  }
 };
 
 // Helper to subscribe to real-time changes

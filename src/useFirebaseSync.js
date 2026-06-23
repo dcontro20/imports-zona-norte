@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { saveToFirestore, subscribeToFirestore, auth } from "./firebase.js";
+import { saveToFirestore, mergeIntoFirestore, subscribeToFirestore, auth } from "./firebase.js";
 import { onAuthStateChanged } from "firebase/auth";
 import { DEFAULT_PRODUCTS } from "./constants.js";
 import { loadData, uid } from "./helpers.js";
@@ -83,6 +83,11 @@ export function useFirebaseSync() {
   // del usuario, el flag quedaba true y el primer write del usuario se perdía
   // silenciosamente. Bug evidenciado el 2026-04-25 con persistentLocalCache N9.
   const lastFirestoreData = useRef({});
+  // lastLocalState[key] = referencia al ÚLTIMO array que vio el sync (sea por
+  // smartSave o por onSnapshot). smartSave usa esto como `prev` para calcular
+  // el diff contra `next`. Sin esto no se puede mergear concurrentemente,
+  // habría que hacer full-overwrite y se perdería data en concurrent edits.
+  const lastLocalState = useRef({});
   // lastWriteAt[key] = timestamp ms del último smartSave hacia Firestore.
   // Se compara contra el momento en que llega un onSnapshot con data distinta:
   // si la diferencia es < 3s, hay alta chance de concurrent edit (otra pestaña o dispositivo).
@@ -108,6 +113,7 @@ export function useFirebaseSync() {
         initialLoadDone.current = {};
         fromFirestore.current = {};
         lastWriteAt.current = {};
+        lastLocalState.current = {};
         writeFailCount.current = 0;
         setSyncStatus("syncing");
         setDataReady(false);
@@ -164,7 +170,7 @@ export function useFirebaseSync() {
           const lastWrite = lastWriteAt.current[key] || 0;
           const recentlyWrote = (Date.now() - lastWrite) < 3000;
           if (prev !== undefined && prev !== serialized && recentlyWrote && initialLoadDone.current[key]) {
-            console.warn(`[SYNC] Concurrent edit detectado en "${key}" — otra sesión escribió en paralelo`);
+            console.info(`[SYNC] Edición concurrente en "${key}" — el merge atómico preservó ambos cambios`);
             try {
               window.dispatchEvent(new CustomEvent("izn:concurrent-edit", {
                 detail: { key, at: new Date().toISOString() },
@@ -172,6 +178,10 @@ export function useFirebaseSync() {
             } catch {}
           }
           lastFirestoreData.current[key] = serialized;
+          // Sincronizar lastLocalState con lo que ahora tenemos. El próximo
+          // smartSave calculará el diff contra ESTO (no contra la versión
+          // pre-onSnapshot), así un cambio del otro socio queda incorporado.
+          lastLocalState.current[key] = data;
           safeSetItem(`vapestock_${key}`, serialized);
           setter(data);
           markKeyLoaded(key);
@@ -216,48 +226,64 @@ export function useFirebaseSync() {
     };
   }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ---- smartSave: localStorage + Firestore ----
+  // ---- smartSave: localStorage + Firestore con merge concurrente-seguro ----
   // Algoritmo:
-  //   1. Serializar data entrante a JSON
-  //   2. Guardar en localStorage siempre (instant, offline-safe)
-  //   3. Bloquear si firestoreReady es false (initial load no completó)
-  //   4. Si la data serializada es IDÉNTICA a la última que vino de Firestore
-  //      (lastFirestoreData[key]), es un loop del setter — skipear write
-  //   5. Si es DISTINTA, es mutación del usuario — escribir + actualizar
-  //      lastFirestoreData para que el próximo onSnapshot del mismo write
-  //      no dispare otra escritura
+  //   1. Serializar data entrante a JSON y guardar en localStorage (instant)
+  //   2. Bloquear si firestoreReady es false (initial load no completó)
+  //   3. Anti-loop: si la data es IDÉNTICA a la última que vino de Firestore,
+  //      es un setter loop — skipear
+  //   4. Para arrays: usar mergeIntoFirestore (transacción atómica con diff)
+  //      → resuelve concurrent edits: si Gus escribió en paralelo, su cambio
+  //      sobrevive, el nuestro se agrega encima sin pisarlo.
+  //   5. Para escalares (exchangeRate): saveToFirestore tradicional.
+  //   6. Primer write (sin lastLocalState): también saveToFirestore — no hay
+  //      "antes" contra el cual hacer diff.
   const smartSave = useCallback((key, data) => {
     const serialized = JSON.stringify(data);
-
-    // Always save to localStorage first
     safeSetItem(`vapestock_${key}`, serialized);
 
-    // Block writes until initial load completes
     if (!firestoreReady.current) return;
-
-    // Anti-loop: si la data es exactamente la que tenemos en Firestore, skipear.
-    // Esto cubre tanto el primer onSnapshot del initial load como los snapshots
-    // generados por nuestros propios writes (cuando Firestore confirma).
     if (lastFirestoreData.current[key] === serialized) return;
 
-    // Es una mutación real del usuario. Actualizamos lastFirestoreData ANTES
-    // de escribir, así el snapshot que vendrá como confirmación del write no
-    // dispara un segundo write.
+    const prevLocal = lastLocalState.current[key];
+    // Pinear la nueva versión local AHORA — el próximo smartSave la usará como prev.
+    lastLocalState.current[key] = data;
+    // Actualizar lastFirestoreData con lo que estamos por mandar evita que
+    // el onSnapshot de confirmación dispare un segundo smartSave en loop.
     lastFirestoreData.current[key] = serialized;
-    // Marcamos timestamp de write para detección de concurrent edits
     lastWriteAt.current[key] = Date.now();
 
-    saveToFirestore(key, data).then(ok => {
+    const handleResult = (ok) => {
       if (!ok) {
         writeFailCount.current++;
-        if (writeFailCount.current >= 3) {
-          setSyncStatus("error");
-        }
+        if (writeFailCount.current >= 3) setSyncStatus("error");
       } else {
         writeFailCount.current = 0;
         setSyncStatus("online");
       }
-    });
+    };
+
+    // Camino concurrente-seguro: solo para arrays con items por id, y solo
+    // cuando ya tenemos una versión previa contra la cual hacer diff.
+    if (Array.isArray(data) && Array.isArray(prevLocal)) {
+      mergeIntoFirestore(key, prevLocal, data).then(merged => {
+        if (merged === null) {
+          handleResult(false);
+          return;
+        }
+        // Si el merge devolvió un array distinto al que mandamos (Gus había
+        // agregado cosas), sincronizar lastFirestoreData con el resultado real
+        // para no disparar otro write innecesario al recibir el onSnapshot.
+        const mergedSerialized = JSON.stringify(merged);
+        lastFirestoreData.current[key] = mergedSerialized;
+        lastLocalState.current[key] = merged;
+        handleResult(true);
+      });
+      return;
+    }
+
+    // Fallback: full-overwrite para escalares (exchangeRate) y primer write.
+    saveToFirestore(key, data).then(handleResult);
   }, []);
 
   // ---- Auto-save on state changes ----
