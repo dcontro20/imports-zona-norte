@@ -1,46 +1,37 @@
-// Vercel Serverless Function: 🤖 AGENTE REDACTOR.
+// Vercel Serverless Function: 🤖 AGENTE REDACTOR (versión sin costo de API).
 //
-// Genera el COPY del mensaje de stock diario y lo guarda en Firestore para que
-// la app (y, opcionalmente, la push) lo lean ya escrito. La IA escribe sólo el
-// marco humano (gancho + urgencia + cierre); el catálogo lo arma generateFullMessage
-// de forma determinista. Toda la lógica pura vive en src/lib/messageAgent.js.
+// Genera el mensaje de stock diario y lo guarda en Firestore para que la app
+// (y, opcionalmente, la push) lo lean ya escrito. NO llama a ninguna API paga:
+// el copy creativo sale del BANCO de copys (src/lib/messageCopyBank.js), que
+// Claude escribe en la sesión de Diego (plan MAX) y se refresca con el comando
+// /regenerar-banco-mensajes. El catálogo lo arma generateFullMessage de forma
+// determinista. Toda la lógica vive en src/lib/* y está testeada.
 //
 // Lo llama un cron de GitHub Actions (.github/workflows/message-agent-cron.yml)
-// ~15 min antes de cada slot de push, con Authorization: Bearer $PUSH_CRON_SECRET.
+// ~30 min antes de cada slot, con Authorization: Bearer $PUSH_CRON_SECRET.
 //
 // Flujo:
 //   1. Auth timing-safe (mismo secreto que la push: PUSH_CRON_SECRET).
 //   2. Determina el slot (?slot=noon|evening, default por hora ART).
 //   3. Dedupe: si ya existe dailyMessage/{fecha}_{slot}, salta (salvo ?force=1).
 //   4. Lee products + sales + exchangeRate de Firestore (colección appData).
-//   5. Arma el contexto y pide el copy a Claude. Si no hay ANTHROPIC_API_KEY o
-//      falla, cae al copy de template (igual da variedad por día/slot).
+//   5. Arma el contexto, elige el copy del banco (rotado por día/slot/situación).
 //   6. Ensambla el mensaje final y lo guarda en dailyMessage/{fecha}_{slot}.
 //
 // Modo prueba: POST /api/generate-daily-message?test=1[&slot=evening] genera YA,
 // ignora el dedupe y NO requiere que el slot esté "vencido".
 //
-// Env vars (Vercel → Settings → Environment Variables):
-//   FIREBASE_SERVICE_ACCOUNT  JSON del service account (una línea) — ya existe para la push
-//   PUSH_CRON_SECRET          string random compartido con GitHub Actions — ya existe
-//   ANTHROPIC_API_KEY         (opcional) si falta, el agente usa el copy de template
-//   MESSAGE_AGENT_MODEL       (opcional) override del modelo; default claude-opus-4-8
+// Env vars (Vercel → Settings → Environment Variables) — TODAS YA EXISTEN:
+//   FIREBASE_SERVICE_ACCOUNT  JSON del service account (lo usa la push)
+//   PUSH_CRON_SECRET          string random compartido con GitHub Actions
+//   (NO se necesita ninguna API key — cero costo extra.)
 
 import admin from "firebase-admin";
 import { timingSafeEqual } from "node:crypto";
 import { nowInTZ } from "../src/lib/pushWindow.js";
 import { generateFullMessage } from "../src/lib/whatsappMessage.js";
-import {
-  buildCatalogContext,
-  templateCopy,
-  normalizeCopy,
-  composeDailyMessage,
-  buildSystemPrompt,
-  buildUserPrompt,
-  MESSAGE_COPY_SCHEMA,
-} from "../src/lib/messageAgent.js";
-
-const DEFAULT_MODEL = "claude-opus-4-8";
+import { buildCatalogContext, composeDailyMessage } from "../src/lib/messageAgent.js";
+import { pickDailyCopy } from "../src/lib/messageCopyBank.js";
 
 // Comparación de strings resistente a timing attacks.
 function safeEqual(a, b) {
@@ -87,45 +78,6 @@ function resolveSlot(querySlot, minutes) {
   return minutes < 15 * 60 ? "noon" : "evening";
 }
 
-// Llama a Claude para generar el copy. Devuelve el objeto copy normalizado, o
-// null si no hay API key / falla (el caller cae al template).
-async function generateAiCopy(context) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return null;
-
-  let Anthropic;
-  try {
-    ({ default: Anthropic } = await import("@anthropic-ai/sdk"));
-  } catch {
-    console.error("[redactor] @anthropic-ai/sdk no instalado — uso template");
-    return null;
-  }
-
-  try {
-    const client = new Anthropic({ apiKey });
-    const model = process.env.MESSAGE_AGENT_MODEL || DEFAULT_MODEL;
-    const response = await client.messages.create({
-      model,
-      max_tokens: 1024,
-      system: buildSystemPrompt(),
-      output_config: { format: { type: "json_schema", schema: MESSAGE_COPY_SCHEMA } },
-      messages: [{ role: "user", content: buildUserPrompt(context) }],
-    });
-
-    if (response.stop_reason === "refusal") {
-      console.error("[redactor] respuesta rechazada por el modelo — uso template");
-      return null;
-    }
-    const textBlock = (response.content || []).find(b => b.type === "text");
-    if (!textBlock) return null;
-    const parsed = JSON.parse(textBlock.text);
-    return normalizeCopy({ ...parsed, source: "ai" }, "ai");
-  } catch (e) {
-    console.error("[redactor] error llamando a Claude — uso template:", e?.message || e);
-    return null;
-  }
-}
-
 export default async function handler(req, res) {
   // Auth: mismo secreto que la push (no obliga a Diego a crear uno nuevo).
   const auth = req.headers.authorization || "";
@@ -148,7 +100,7 @@ export default async function handler(req, res) {
   const slot = resolveSlot(req.query?.slot, minutes);
   const docId = `${date}_${slot}`;
 
-  // Dedupe: si ya está generado para hoy+slot, no quemamos tokens de nuevo.
+  // Dedupe: si ya está generado para hoy+slot, no rehacemos el trabajo.
   if (!force) {
     const existing = await db.doc(`dailyMessage/${docId}`).get();
     if (existing.exists) {
@@ -164,10 +116,9 @@ export default async function handler(req, res) {
   ]);
   const exchangeRate = coerceRate(rateRaw);
 
-  // Contexto + copy (IA con fallback a template) + catálogo determinista.
+  // Contexto + copy del banco (rotado, contextual) + catálogo determinista.
   const context = buildCatalogContext({ products, sales, now: new Date(), slot });
-  const aiCopy = await generateAiCopy(context);
-  const copy = aiCopy || templateCopy(context);
+  const copy = pickDailyCopy(context);
   const catalogBody = generateFullMessage(products, exchangeRate);
   const message = composeDailyMessage(copy, catalogBody);
 
@@ -176,7 +127,8 @@ export default async function handler(req, res) {
     slot,
     message,
     copy,
-    source: copy.source,
+    source: copy.source,        // "bank"
+    situation: copy.situation,  // novedad | agotando | top | normal
     stats: context.stats,
     generatedAt: new Date().toISOString(),
   };
@@ -190,6 +142,7 @@ export default async function handler(req, res) {
     date,
     slot,
     source: copy.source,
+    situation: copy.situation,
     chars: message.length,
     preview: message.slice(0, 280),
   });

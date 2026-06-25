@@ -9,9 +9,9 @@
 # Reusa el MISMO secret que la push (no hay que crear uno nuevo):
 #   PUSH_CRON_SECRET — repo → Settings → Secrets and variables → Actions
 #
-# La generación con IA requiere ANTHROPIC_API_KEY como env var en Vercel.
-# Si falta, el agente igual genera el mensaje con el copy de template (variedad
-# por día/horario), sin romper nada.
+# CERO COSTO EXTRA: el copy sale del banco (src/lib/messageCopyBank.js), que
+# Claude escribe en la sesión de Diego (plan MAX) vía /regenerar-banco-mensajes.
+# El endpoint NO llama a ninguna API paga.
 
 name: Agente Redactor (mensaje diario)
 

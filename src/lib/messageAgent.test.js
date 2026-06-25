@@ -2,12 +2,8 @@ import { describe, it, expect } from "vitest";
 import {
   MESSAGE_SLOTS,
   buildCatalogContext,
-  templateCopy,
   normalizeCopy,
   composeDailyMessage,
-  buildSystemPrompt,
-  buildUserPrompt,
-  MESSAGE_COPY_SCHEMA,
 } from "./messageAgent.js";
 
 // Fecha fija para tests deterministas: jueves 11/06/2026 12:00 ART (15:00 UTC).
@@ -80,37 +76,6 @@ describe("buildCatalogContext", () => {
   });
 });
 
-describe("templateCopy", () => {
-  it("varía el gancho según el día de la semana", () => {
-    const jueves = templateCopy(buildCatalogContext({ products: mkProducts(), now: NOW, slot: "noon" }));
-    const lunes = templateCopy(buildCatalogContext({ products: mkProducts(), now: new Date("2026-06-08T15:00:00Z"), slot: "noon" }));
-    expect(jueves.hook).not.toBe(lunes.hook);
-  });
-
-  it("el slot de la tarde cambia el cierre (CTA con urgencia horaria)", () => {
-    const ctx = buildCatalogContext({ products: mkProducts(), now: NOW, slot: "evening" });
-    const copy = templateCopy(ctx);
-    expect(copy.cta.toLowerCase()).toContain("horas");
-  });
-
-  it("prioriza novedades en la línea de urgencia", () => {
-    const ctx = buildCatalogContext({ products: mkProducts(), now: NOW, slot: "noon" });
-    const copy = templateCopy(ctx);
-    expect(copy.urgency).toContain("🆕");
-  });
-
-  it("sin novedades, cae a últimas unidades", () => {
-    const noNew = mkProducts().map(p => ({ ...p, createdAt: undefined, addedDate: undefined }));
-    const ctx = buildCatalogContext({ products: noNew, now: NOW, slot: "noon" });
-    const copy = templateCopy(ctx);
-    expect(copy.urgency).toContain("Últimas unidades");
-  });
-
-  it("marca source=template", () => {
-    expect(templateCopy(buildCatalogContext({})).source).toBe("template");
-  });
-});
-
 describe("normalizeCopy", () => {
   it("recorta strings largos y respeta null en urgency", () => {
     const out = normalizeCopy({ hook: "x".repeat(500), urgency: null, cta: "dale" }, "ai");
@@ -153,38 +118,10 @@ describe("composeDailyMessage", () => {
     expect(msg).toContain("Jueves pre-finde");
   });
 
-  it("funciona con copy de template", () => {
-    const ctx = buildCatalogContext({ products: mkProducts(), now: NOW, slot: "noon" });
-    const msg = composeDailyMessage(templateCopy(ctx), catalog);
-    expect(msg).toContain("IMPORTS ZONA NORTE");
-    expect(msg.length).toBeGreaterThan(catalog.length);
-  });
-
   it("si no hay catálogo igual arma el copy", () => {
     const msg = composeDailyMessage(copy, "");
     expect(msg).toContain("Jueves");
     expect(msg).toContain("Escribime");
-  });
-});
-
-describe("prompts", () => {
-  it("el system prompt prohíbe inventar productos/precios", () => {
-    const sp = buildSystemPrompt();
-    expect(sp.toLowerCase()).toContain("no inventes");
-    expect(sp.toLowerCase()).toContain("json");
-  });
-
-  it("el user prompt incluye día, horario y señales del contexto", () => {
-    const ctx = buildCatalogContext({ products: mkProducts(), sales: mkSales(), now: NOW, slot: "evening" });
-    const up = buildUserPrompt(ctx);
-    expect(up).toContain("tarde");
-    expect(up).toMatch(/sabores/);
-    expect(up).toContain("Watermelon"); // top seller / novedad mencionado
-  });
-
-  it("el schema pide los 3 campos y no permite extras", () => {
-    expect(MESSAGE_COPY_SCHEMA.required).toEqual(["hook", "urgency", "cta"]);
-    expect(MESSAGE_COPY_SCHEMA.additionalProperties).toBe(false);
   });
 });
 
