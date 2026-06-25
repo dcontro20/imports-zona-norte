@@ -1,0 +1,52 @@
+# 🤖 Agente Redactor: genera el copy del mensaje de stock diario ANTES de cada
+# slot de push, así cuando llega la notificación el mensaje ya está escrito.
+#
+# Corre 2 veces por día, ~30 min antes de cada slot (12:00 y 18:30 ART = UTC-3):
+#   - 14:30 UTC = 11:30 ART  → el endpoint resuelve slot "noon"
+#   - 21:00 UTC = 18:00 ART  → el endpoint resuelve slot "evening"
+# El endpoint deduplica por fecha+slot, así que pings de más son inofensivos.
+#
+# Reusa el MISMO secret que la push (no hay que crear uno nuevo):
+#   PUSH_CRON_SECRET — repo → Settings → Secrets and variables → Actions
+#
+# La generación con IA requiere ANTHROPIC_API_KEY como env var en Vercel.
+# Si falta, el agente igual genera el mensaje con el copy de template (variedad
+# por día/horario), sin romper nada.
+
+name: Agente Redactor (mensaje diario)
+
+on:
+  schedule:
+    - cron: "30 14 * * *" # 11:30 ART → slot mediodía
+    - cron: "0 21 * * *"  # 18:00 ART → slot tarde
+  workflow_dispatch:
+    inputs:
+      slot:
+        description: "Forzar slot (noon | evening). Vacío = por hora."
+        type: string
+        default: ""
+      test:
+        description: "Generar YA, ignorando el dedupe"
+        type: boolean
+        default: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Llamar al endpoint redactor
+        env:
+          SECRET: ${{ secrets.PUSH_CRON_SECRET }}
+        run: |
+          if [ -z "$SECRET" ]; then
+            echo "::error::Falta el secret PUSH_CRON_SECRET en el repo"
+            exit 1
+          fi
+          URL="https://imports-zona-norte.vercel.app/api/generate-daily-message"
+          SEP="?"
+          if [ -n "${{ inputs.slot }}" ]; then URL="${URL}${SEP}slot=${{ inputs.slot }}"; SEP="&"; fi
+          if [ "${{ inputs.test }}" = "true" ]; then URL="${URL}${SEP}test=1"; SEP="&"; fi
+          echo "POST $URL"
+          RESPONSE=$(curl -fsS -X POST "$URL" -H "Authorization: Bearer $SECRET")
+          echo "Respuesta: $RESPONSE"
