@@ -1,0 +1,48 @@
+# Snapshot nocturno de la estructura del sistema.
+#
+# Corre todas las noches: lee el código, regenera docs/ESTRUCTURA.md, y si
+# hay diff (cambió la estructura) hace commit + push automático con un
+# mensaje claro. Si no hay diff, no commitea — no infla el historial.
+#
+# 100% determinístico: mismo código → mismo doc. Sin IA.
+# Gratis: repo público + corrida diaria de ~30 segundos.
+
+name: Estructura nocturna
+
+on:
+  schedule:
+    # 06:30 UTC = 03:30 ART. Después del backup (que corre 03:03 AM ART local).
+    - cron: "30 6 * * *"
+  workflow_dispatch:   # permite dispararlo a mano desde la UI de GitHub
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # necesario para que el commit del bot pueda pushear
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Regenerar ESTRUCTURA.md
+        run: node scripts/generate-structure-doc.mjs
+
+      - name: Commit y push si hubo cambios
+        run: |
+          if git diff --quiet -- docs/ESTRUCTURA.md; then
+            echo "Sin cambios estructurales hoy — nada que commitear."
+            exit 0
+          fi
+          git config user.name "izn-bot"
+          git config user.email "bot@imports-zona-norte.local"
+          git add docs/ESTRUCTURA.md
+          git commit -m "chore(docs): snapshot nocturno de estructura
+
+          Regenerado automáticamente por structure-snapshot.yml.
+          Refleja el estado del código al cierre del día."
+          git push

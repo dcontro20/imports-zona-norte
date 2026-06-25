@@ -139,14 +139,15 @@ Acá vive toda la matemática del negocio, separada para poder testearla (837 te
 
 ## 📚 Dónde está cada documentación
 
-| Archivo | Qué tiene |
-|---|---|
-| `CLAUDE.md` | Documentación técnica completa + historia de cada sesión. |
-| `docs/MAPA_DEL_SISTEMA.md` | Este archivo (el mapa humano). |
-| `docs/SESSION_*.md` | Journal de cada sesión de trabajo (el "por qué"). |
-| `docs/PLAN_S14_S22.md` | Roadmap de mejoras. |
-| `docs/SECURITY.md` | Checklist de seguridad. |
-| `docs/PUSH_SETUP.md` · `BACKUP_SETUP.md` | Guías de setup. |
+| Archivo | Qué tiene | Cómo se mantiene |
+|---|---|---|
+| `docs/MAPA_DEL_SISTEMA.md` | **Este archivo** (el mapa humano: pantallas + capas). | Manual, cuando hay cambios estructurales grandes. |
+| `docs/ESTRUCTURA.md` | **Snapshot exhaustivo y al día** de cada archivo, sus líneas, qué hace. | **Automático cada noche** (`structure-snapshot.yml` lo regenera leyendo el código; solo commitea si cambió). |
+| `CLAUDE.md` | Documentación técnica completa + historia. | Manual via `/persist-session`. |
+| `docs/SESSION_*.md` | Journal de cada sesión de trabajo (el "por qué"). | Manual via `/persist-session`. |
+| `docs/PLAN_S14_S22.md` | Roadmap de mejoras. | Manual. |
+| `docs/SECURITY.md` | Checklist de seguridad. | Manual. |
+| `docs/PUSH_SETUP.md` · `BACKUP_SETUP.md` | Guías de setup. | Manual. |
 
 ---
 
