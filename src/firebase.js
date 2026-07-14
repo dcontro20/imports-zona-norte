@@ -7,14 +7,22 @@ import {
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "firebase/auth";
 import { diffArraysById, applyDiff } from "./lib/arrayMerge.js";
 
+// Config de Firebase. Por defecto usa PRODUCCIÓN, pero se puede apuntar a un
+// proyecto de PRUEBA seteando env vars VITE_FIREBASE_* en el build de Vite.
+// Así el mismo código sirve para prod y para un entorno de test aislado, sin
+// forkear. La config web de Firebase NO es secreta (se embebe en el browser);
+// las env vars sólo mantienen el código limpio para el merge a main.
+const env = (typeof import.meta !== "undefined" && import.meta.env) || {};
 const firebaseConfig = {
-    apiKey: "AIzaSyDAL85SFntaHyupAbrPxJGIpdSSSnecql4",
-    authDomain: "imports-zona-norte.firebaseapp.com",
-    projectId: "imports-zona-norte",
-    storageBucket: "imports-zona-norte.firebasestorage.app",
-    messagingSenderId: "255382859803",
-    appId: "1:255382859803:web:e263d95ee4a57358d908be"
+    apiKey: env.VITE_FIREBASE_API_KEY || "AIzaSyDAL85SFntaHyupAbrPxJGIpdSSSnecql4",
+    authDomain: env.VITE_FIREBASE_AUTH_DOMAIN || "imports-zona-norte.firebaseapp.com",
+    projectId: env.VITE_FIREBASE_PROJECT_ID || "imports-zona-norte",
+    storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET || "imports-zona-norte.firebasestorage.app",
+    messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID || "255382859803",
+    appId: env.VITE_FIREBASE_APP_ID || "1:255382859803:web:e263d95ee4a57358d908be"
 };
+// Log del proyecto activo — útil para confirmar que el test env NO pega a prod.
+if (typeof console !== "undefined") console.info(`[firebase] proyecto activo: ${firebaseConfig.projectId}`);
 
 const app = initializeApp(firebaseConfig);
 export const firebaseApp = app; // usado por lib/push.js para FCM
