@@ -338,6 +338,23 @@ A partir del 14/04/2026, GitHub está sincronizado y es la fuente de verdad del 
 
 ## Estado del proyecto al 14/07/2026
 
+### 🏪 PIVOTE MAYORISTA — FASE 4 completa (docs/PLAN_MAYORISTA.md + docs/SESSION_2026-07-14_mayorista_fase4.md)
+
+**FASE 4 — Cuenta corriente B2B (completa, apagada por default):**
+- `lib/creditAccount.js` (14 tests): adeudado DERIVADO de las ventas (total − pagos),
+  NO de `client.balance` (evita el conflicto de signo: en retail negativo = debe).
+  creditStatus, canChargeOnAccount, oldestUnpaidDays, isOverdue, allocatePayment.
+- **Puente con la caja:** cobrar = agregar un `payment` al sale → el ledger de
+  CashBox acredita la cuenta (payMethodToAccountId). Sin doble conteo. Cobro contra
+  entrega desde Routes ("💵 Cobrar" con método/cuenta); cobro a cuenta desde
+  `components/CuentasCorrientes.jsx` (allocatePayment reparte más viejas primero).
+- Kioscos ficha: `creditEnabled` (default OFF) + `creditLimitARS`. WholesaleOrder
+  muestra debe/límite/disponible. `lib/wholesaleMessage.js`: mensaje de cobranza.
+
+**Baseline:** 928 tests verdes. Build OK. Pantalla nueva: Cuentas corrientes.
+
+**Siguiente:** FASE 5 — Inteligencia B2B + Dashboard mayorista.
+
 ### 🏪 PIVOTE MAYORISTA — FASE 3 completa (docs/PLAN_MAYORISTA.md + docs/SESSION_2026-07-14_mayorista_fase3.md)
 
 **FASE 3 — Logística / Rutas (4 bloques, nivel básico):**

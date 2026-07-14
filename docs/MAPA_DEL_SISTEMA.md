@@ -144,7 +144,10 @@ Ver `docs/PLAN_MAYORISTA.md` (roadmap fase por fase).
 - **FASE 3** ✅ logística: `src/routes.js` + `lib/routeSheet.js` (agrupar pedidos por zona,
   orden manual, hoja de ruta), `components/Routes.jsx` (armado de ruta + fulfillment
   armado→en_ruta→entregado→cobrado). Colección `routes`. optimización = stub.
-- Pendiente: cuenta corriente B2B (fase 4).
+- **FASE 4** ✅ cuenta corriente B2B: `lib/creditAccount.js` (adeudado derivado de ventas)
+  + `lib/wholesaleMessage.js` (cobranza) + `components/CuentasCorrientes.jsx`. Puente con
+  la caja: cobrar = payment real en el sale → ledger de CashBox. creditEnabled default OFF.
+- Pendiente: inteligencia B2B + dashboard mayorista (fase 5), pulido (fase 6).
 
 ### Capa 6 — Backend (corre fuera del navegador)
 - `api/send-daily-push.js` — función que dispara las notificaciones push.
