@@ -150,7 +150,11 @@ Ver `docs/PLAN_MAYORISTA.md` (roadmap fase por fase).
 - **FASE 5** ✅ inteligencia B2B: `src/wholesaleIntelligence.js` (recompra esperada, churn B2B,
   ranking por rentabilidad, P&L por canal, KPIs) + `components/DashboardMayorista.jsx`
   (panel mayorista con alertas + P&L mayorista vs minorista).
-- Pendiente: pulido / mobile / power-user B2B (fase 6, última).
+- **FASE 6** ✅ pulido: ⌘K mayorista, `lib/wholesaleExport.js` (CSV de kioscos/prospectos),
+  bulk actions en Kioscos (tier/zona en lote).
+- **🏁 Pivote COMPLETO (0–6)** en `claude/mayorista`, sin mergear a main (pendiente revisión).
+  8 pantallas mayoristas + toggle de modo. Módulos puros: wholesale, wholesaleMigration,
+  prospecting, routes, creditAccount, wholesaleMessage, wholesaleIntelligence, wholesaleExport, routeSheet.
 
 ### Capa 6 — Backend (corre fuera del navegador)
 - `api/send-daily-push.js` — función que dispara las notificaciones push.

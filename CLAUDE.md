@@ -338,6 +338,31 @@ A partir del 14/04/2026, GitHub está sincronizado y es la fuente de verdad del 
 
 ## Estado del proyecto al 14/07/2026
 
+### 🏪 PIVOTE MAYORISTA — COMPLETO (fases 0–6) · en `claude/mayorista`, SIN mergear
+
+El pivote a venta mayorista está **terminado (fases 0–6)** en la branch
+`claude/mayorista`. **NO mergeado a `main`** — a la espera de la revisión final y
+prueba de Diego. PR #2 draft. Fuente de verdad: `docs/PLAN_MAYORISTA.md`.
+
+- **F0** cimientos (eje `type: minorista|mayorista` + `businessType`, colecciones
+  prospects/visits/routes, migración, toggle de modo).
+- **F1** Kioscos + pricing por tier A/B/C (`wholesale.js`, `Kioscos.jsx`, editor de
+  precios por tier, `WholesaleOrder.jsx`).
+- **F2** captación (`prospecting.js`, `Pipeline.jsx` kanban, `ProspectMap.jsx`, visitas).
+- **F3** rutas de reparto (`routes.js`, `routeSheet.js`, `Routes.jsx`, fulfillment).
+- **F4** cuenta corriente B2B (`creditAccount.js`, `CuentasCorrientes.jsx`) — adeudado
+  derivado de ventas (NO de client.balance por el signo), puente con la caja: cobrar =
+  payment real en el sale. creditEnabled default OFF.
+- **F5** inteligencia B2B (`wholesaleIntelligence.js`) + `DashboardMayorista.jsx` (KPIs,
+  P&L mayorista vs minorista, alertas, ranking).
+- **F6** pulido: ⌘K mayorista, export CSV (`wholesaleExport.js`), bulk actions en Kioscos.
+
+**Baseline: 867 → 944 tests verdes (+77, todos verdes). Build OK.** 8 pantallas mayoristas.
+Módulos puros nuevos: wholesale, wholesaleMigration, prospecting, routes, creditAccount,
+wholesaleMessage, wholesaleIntelligence, wholesaleExport, routeSheet.
+
+**Siguiente:** revisión + prueba de Diego → recién ahí mergear a main.
+
 ### 🏪 PIVOTE MAYORISTA — FASE 5 completa (docs/PLAN_MAYORISTA.md + docs/SESSION_2026-07-14_mayorista_fase5.md)
 
 **FASE 5 — Inteligencia B2B + Dashboard mayorista:**
