@@ -21,8 +21,11 @@ const firebaseConfig = {
     messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID || "255382859803",
     appId: env.VITE_FIREBASE_APP_ID || "1:255382859803:web:e263d95ee4a57358d908be"
 };
-// Log del proyecto activo — útil para confirmar que el test env NO pega a prod.
-if (typeof console !== "undefined") console.info(`[firebase] proyecto activo: ${firebaseConfig.projectId}`);
+// Log SOLO si se apuntó a un proyecto de test (override por env var). En prod
+// —el caso normal— no ensucia la consola.
+if (typeof console !== "undefined" && firebaseConfig.projectId !== "imports-zona-norte") {
+  console.info(`[firebase] ⚠️ proyecto de TEST activo: ${firebaseConfig.projectId} (NO es prod)`);
+}
 
 const app = initializeApp(firebaseConfig);
 export const firebaseApp = app; // usado por lib/push.js para FCM
