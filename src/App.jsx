@@ -87,6 +87,7 @@ const Products = lazy(() => import("./components/Products.jsx").then(m => ({ def
 const Sales = lazy(() => import("./components/Sales.jsx").then(m => ({ default: m.Sales })));
 const Clients = lazy(() => import("./components/Clients.jsx").then(m => ({ default: m.Clients })));
 const Kioscos = lazy(() => import("./components/Kioscos.jsx").then(m => ({ default: m.Kioscos })));
+const WholesaleOrder = lazy(() => import("./components/WholesaleOrder.jsx").then(m => ({ default: m.WholesaleOrder })));
 const Expenses = lazy(() => import("./components/Expenses.jsx").then(m => ({ default: m.Expenses })));
 const Withdrawals = lazy(() => import("./components/Withdrawals.jsx").then(m => ({ default: m.Withdrawals })));
 const CashBox = lazy(() => import("./components/CashBox.jsx").then(m => ({ default: m.CashBox })));
@@ -221,6 +222,7 @@ class ErrorBoundary extends Component {
 const NAV_ITEMS = [
   // Mayorista (pivote a kioscos)
   { key: "kioscos", label: "Kioscos", icon: "🏪", group: "mayorista" },
+  { key: "wholesaleOrder", label: "Pedido mayorista", icon: "🧾", group: "mayorista" },
   // Ver / decidir
   { key: "dashboard", label: "Dashboard", icon: "📊", group: "shared" },
   { key: "analisis", label: "Análisis", icon: "📈", group: "shared" },
@@ -714,6 +716,7 @@ export default function App() {
       case "procurement": return <Procurement products={products} setProducts={setProducts} purchases={purchases} setPurchases={setPurchases} sales={activeSales} exchangeRate={exchangeRate} logStock={logStock} currentUser={currentUser} logAudit={logAudit} monthlyClosures={monthlyClosures} supplierProfiles={supplierProfiles} setSupplierProfiles={setSupplierProfiles} supplierAliases={supplierAliases} setSupplierAliases={setSupplierAliases} supplierLists={supplierLists} setSupplierLists={setSupplierLists} />;
       case "clients": return <Clients clients={clients} setClients={setClients} sales={activeSales} products={activeProducts} withdrawals={activeWithdrawals} />;
       case "kioscos": return <Kioscos clients={clients} setClients={setClients} sales={activeSales} products={activeProducts} />;
+      case "wholesaleOrder": return <WholesaleOrder clients={clients} products={products} setProducts={setProducts} sales={activeSales} setSales={setSales} logStock={logStock} />;
       case "expenses": return <Expenses expenses={expenses} setExpenses={setExpenses} currentUser={currentUser} exchangeRate={exchangeRate} logAudit={logAudit} monthlyClosures={monthlyClosures} />;
       case "withdrawals": return <Withdrawals withdrawals={withdrawals} setWithdrawals={setWithdrawals} products={products} setProducts={setProducts} sales={activeSales} clients={clients} monthlyClosures={monthlyClosures} logStock={logStock} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} />;
       case "cash": return <CashBox sales={sales} purchases={purchases} expenses={expenses} withdrawals={withdrawals} cashMovements={cashMovements} setCashMovements={setCashMovements} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} currentUser={currentUser} logAudit={logAudit} />;
