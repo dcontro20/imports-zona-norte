@@ -1,13 +1,15 @@
 import { useState, useMemo } from "react";
 import { uid, formatDate, formatMoney } from "../helpers.js";
 import { useResponsive } from "../App.jsx";
-import { Card, Btn, Modal, Input, StatCard } from "./UI.jsx";
+import { Card, Btn, Modal, Input, Select, StatCard } from "./UI.jsx";
 import { T } from "../theme.js";
+import { PAYMENT_METHODS, MP_ACCOUNTS } from "../constants.js";
 import { useAppContext } from "../AppContext.js";
 import {
   pendingWholesaleOrders, groupOrdersByZone, buildRouteStops,
   resolveStop, routeTotals, moveStop,
 } from "../routes.js";
+import { saleOutstanding } from "../lib/creditAccount.js";
 import { generateRouteSheet } from "../lib/routeSheet.js";
 
 // Rutas de reparto (nivel básico). Crear ruta para una fecha eligiendo pedidos
@@ -31,6 +33,8 @@ export function Routes({ routes = [], setRoutes, clients = [], sales = [], setSa
   const [form, setForm] = useState({ name: "", date: new Date().toISOString().slice(0, 10) });
   const [selected, setSelected] = useState({});   // { orderId: true }
   const [toast, setToast] = useState("");
+  const [cobro, setCobro] = useState(null);        // { routeId, idx, orderId, name, outstanding }
+  const [payForm, setPayForm] = useState({ method: "Mercado Pago", mpAccount: "MP Diego", amount: "" });
 
   const activeRoutes = useMemo(() => routes.filter(r => r && !r.isDeleted), [routes]);
   const pending = useMemo(() => pendingWholesaleOrders(sales), [sales]);
@@ -84,11 +88,30 @@ export function Routes({ routes = [], setRoutes, clients = [], sales = [], setSa
       setSales(prev => prev.map(s => s.id === orderId ? { ...s, fulfillmentStatus: "entregado" } : s));
     }
   };
-  const markCobrado = (r, idx) => {
+  // Abre el modal de cobranza (puente con la caja): elegís método → se registra
+  // un payment real en el sale → la caja acredita la cuenta sola.
+  const openCobro = (r, idx) => {
     const orderId = r.stops[idx].orderId;
-    setSales(prev => prev.map(s => s.id === orderId ? { ...s, fulfillmentStatus: "cobrado" } : s));
-    updateRoute(r.id, x => ({ ...x, stops: x.stops.map((s, i) => i === idx ? { ...s, status: "entregado", deliveredAt: s.deliveredAt || now() } : s) }));
-    flash("Marcado como cobrado");
+    const sale = sales.find(s => s.id === orderId);
+    const outstanding = saleOutstanding(sale);
+    if (outstanding <= 0) { flash("Este pedido ya está cobrado"); return; }
+    const r2 = resolveStop(r.stops[idx], { clients, sales });
+    setPayForm({ method: "Mercado Pago", mpAccount: "MP Diego", amount: String(outstanding) });
+    setCobro({ routeId: r.id, idx, orderId, name: r2.name, outstanding });
+  };
+  const confirmCobro = () => {
+    const amount = Math.round(Number(payForm.amount) || 0);
+    if (amount <= 0) { flash("Ingresá el monto cobrado"); return; }
+    const payment = { method: payForm.method, ...(payForm.method === "Mercado Pago" ? { mpAccount: payForm.mpAccount } : {}), amount, date: now() };
+    // Registrar el pago en el sale → alimenta el ledger de caja (payMethodToAccountId).
+    setSales(prev => prev.map(s => s.id === cobro.orderId
+      ? { ...s, payments: [...(s.payments || []), payment], fulfillmentStatus: saleOutstanding(s) - amount <= 0 ? "cobrado" : "entregado" }
+      : s));
+    // La parada queda entregada.
+    updateRoute(cobro.routeId, x => ({ ...x, stops: x.stops.map((s, i) => i === cobro.idx ? { ...s, status: "entregado", deliveredAt: s.deliveredAt || now() } : s) }));
+    logAudit?.("cobro", "sale", cobro.orderId, `Cobro mayorista ${cobro.name}: ${formatMoney(amount)} (${payForm.method})`);
+    setCobro(null);
+    flash(`💵 Cobrado ${formatMoney(amount)} → ${payForm.method}`);
   };
   const reorder = (r, idx, dir) => updateRoute(r.id, x => ({ ...x, stops: moveStop(x.stops, idx, dir) }));
 
@@ -156,7 +179,7 @@ export function Routes({ routes = [], setRoutes, clients = [], sales = [], setSa
                 </div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
                   <MiniBtn onClick={() => setStopStatus(openRoute, i, "entregado")} color={T.green}>✓ Entregado</MiniBtn>
-                  <MiniBtn onClick={() => markCobrado(openRoute, i)} color={T.green}>💵 Cobrado</MiniBtn>
+                  <MiniBtn onClick={() => openCobro(openRoute, i)} color={T.green}>💵 Cobrar</MiniBtn>
                   <MiniBtn onClick={() => setStopStatus(openRoute, i, "no_estaba")} color={T.red}>🚫 No estaba</MiniBtn>
                   <MiniBtn onClick={() => setStopStatus(openRoute, i, "reprogramar")} color={T.amber}>↻ Reprogramar</MiniBtn>
                 </div>
@@ -168,6 +191,22 @@ export function Routes({ routes = [], setRoutes, clients = [], sales = [], setSa
         <div style={{ marginTop: 20 }}>
           <Btn variant="danger" onClick={() => deleteRoute(openRoute)}>Borrar ruta</Btn>
         </div>
+
+        {/* Modal de cobranza — puente con la caja */}
+        <Modal open={!!cobro} onClose={() => setCobro(null)} title={`Cobrar — ${cobro?.name || ""}`}>
+          <div style={{ fontSize: 13, color: T.textSub, marginBottom: 12 }}>Pendiente: <b>{formatMoney(cobro?.outstanding || 0)}</b></div>
+          <Select label="Método / cuenta" options={PAYMENT_METHODS} value={payForm.method} onChange={e => setPayForm(f => ({ ...f, method: e.target.value }))} />
+          {payForm.method === "Mercado Pago" && (
+            <Select label="Cuenta MP" options={MP_ACCOUNTS} value={payForm.mpAccount} onChange={e => setPayForm(f => ({ ...f, mpAccount: e.target.value }))} />
+          )}
+          <Input label="Monto cobrado (ARS)" type="number" value={payForm.amount} onChange={e => setPayForm(f => ({ ...f, amount: e.target.value }))} />
+          <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 10 }}>Se registra en la cuenta de caja elegida (movimiento real).</div>
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+            <Btn variant="secondary" onClick={() => setCobro(null)}>Cancelar</Btn>
+            <Btn onClick={confirmCobro}>Registrar cobro</Btn>
+          </div>
+        </Modal>
+
         {toast && <Toast msg={toast} />}
       </div>
     );

@@ -5,6 +5,7 @@ import { Card, Btn, Select } from "./UI.jsx";
 import { T } from "../theme.js";
 import { useAppContext } from "../AppContext.js";
 import { resolveTierPrice, hasTierPrice, volumeDiscount, applyPct, orderMargin, validateOrderMinimum } from "../wholesale.js";
+import { creditStatus } from "../lib/creditAccount.js";
 
 // Pedido MAYORISTA: elegís un cliente mayorista → precios de su tier + margen en
 // vivo por línea + total, valida mínimo, y genera un `sale` con saleType=mayorista
@@ -56,6 +57,8 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
   const margin = useMemo(() => orderMargin({ lines: resolvedLines }), [resolvedLines]);
   const totalARS = Math.round(margin.totalRevenueUSD * rate);
   const minCheck = tier ? validateOrderMinimum({ tier, totalUnits, totalARS }) : { ok: true, reasons: [] };
+  const credit = client ? creditStatus(client, sales) : null;
+  const excedeCredito = credit?.enabled && totalARS > credit.availableARS;
 
   const addProduct = (p) => {
     setSearch("");
@@ -173,6 +176,18 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
             </div>
             {client && !tier && (
               <div style={{ color: T.red, fontSize: 13 }}>⚠️ Este cliente no tiene tier asignado — los precios caen al minorista. Asignale un tier en Kioscos.</div>
+            )}
+            {client && credit && (
+              <div style={{ marginTop: 10, fontSize: 12 }}>
+                {credit.enabled ? (
+                  <span style={{ color: excedeCredito ? T.red : T.textSub }}>
+                    💳 Cuenta corriente: debe {formatMoney(credit.owedARS)} · límite {formatMoney(credit.limitARS)} · disponible <b>{formatMoney(credit.availableARS)}</b>
+                    {excedeCredito && <> — ⚠️ este pedido ({formatMoney(totalARS)}) supera el disponible</>}
+                  </span>
+                ) : (
+                  <span style={{ color: T.textMuted }}>💵 Paga contra entrega (sin cuenta corriente). Se cobra en la entrega/ruta.</span>
+                )}
+              </div>
             )}
           </Card>
 

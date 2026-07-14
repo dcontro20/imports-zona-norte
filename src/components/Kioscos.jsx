@@ -29,6 +29,7 @@ const emptyForm = {
   name: "", businessName: "", businessType: "", wholesaleTier: "",
   zone: "", address: "", phone: "", contactName: "", contactPhone: "",
   cuit: "", openingHours: "", pipelineStage: "activo", notes: "",
+  creditEnabled: false, creditLimitARS: "",
 };
 
 export function Kioscos({ clients = [], setClients, sales = [], products = [] }) {
@@ -91,7 +92,7 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] })
 
   const openNew = () => { setForm(emptyForm); setEditing(null); setConverting(false); setErr(""); setModal(true); };
   const openEdit = (c) => {
-    setForm({ ...emptyForm, ...c, businessType: c.businessType || "", wholesaleTier: c.wholesaleTier || "", pipelineStage: c.pipelineStage || "activo" });
+    setForm({ ...emptyForm, ...c, businessType: c.businessType || "", wholesaleTier: c.wholesaleTier || "", pipelineStage: c.pipelineStage || "activo", creditEnabled: !!c.creditEnabled, creditLimitARS: c.creditLimitARS || "" });
     setEditing(c.id); setConverting(false); setErr(""); setModal(true);
   };
   const openConvert = (c) => {
@@ -118,6 +119,8 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] })
       pipelineStage: form.pipelineStage || "activo",
       notes: form.notes.trim(),
       type: "mayorista",
+      creditEnabled: !!form.creditEnabled,
+      creditLimitARS: form.creditEnabled ? (Number(form.creditLimitARS) || 0) : 0,
     };
     if (editing) {
       setClients(prev => prev.map(c => {
@@ -269,6 +272,23 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] })
           <div style={{ flex: 1 }}><Input label="CUIT (opcional)" value={form.cuit} onChange={e => setForm(f => ({ ...f, cuit: e.target.value }))} /></div>
         </div>
         <Input label="Horario de atención" value={form.openingHours} onChange={e => setForm(f => ({ ...f, openingHours: e.target.value }))} />
+
+        {/* Cuenta corriente (default OFF: paga contra entrega) */}
+        <div style={{ background: T.bg, border: `1px solid ${T.borderSoft}`, borderRadius: 10, padding: 12, marginBottom: 14 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, fontWeight: 700, color: T.text }}>
+            <input type="checkbox" checked={form.creditEnabled} onChange={e => setForm(f => ({ ...f, creditEnabled: e.target.checked }))} />
+            💳 Habilitar cuenta corriente (fiado)
+          </label>
+          <div style={{ fontSize: 11, color: T.textMuted, marginTop: 4 }}>
+            Off = paga contra entrega (default). On = puede dejar saldo a cuenta hasta el límite.
+          </div>
+          {form.creditEnabled && (
+            <div style={{ marginTop: 10 }}>
+              <Input label="Límite de crédito (ARS)" type="number" value={form.creditLimitARS} onChange={e => setForm(f => ({ ...f, creditLimitARS: e.target.value }))} />
+            </div>
+          )}
+        </div>
+
         <Input label="Notas" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
         {err && <div style={{ color: T.red, fontSize: 13, marginBottom: 10 }}>{err}</div>}
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 6 }}>
