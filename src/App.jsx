@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense, Comp
 import { uid, formatMoney, formatDate } from "./helpers.js";
 import { migrateToWholesaleModel } from "./wholesaleMigration.js";
 import { useSettings } from "./useSettings.js";
+import { saveSettings } from "./settings.js";
 import { scheduleDailyNotifications, cancelScheduled, hasPermission } from "./lib/notifications.js";
 import { useFirebaseSync } from "./useFirebaseSync.js";
 import { AppContext } from "./AppContext.js";
@@ -213,28 +214,41 @@ class ErrorBoundary extends Component {
 // MAIN APP
 // ============================================
 // Diego es único usuario — ya no hay flags por rol.
+// `group` clasifica cada item para reordenar por modo de negocio (mayorista/
+// minorista). Las pantallas mayoristas (Kioscos, Pipeline, Mapa, Pedido, Rutas)
+// se agregan en fases siguientes con group:"mayorista" y suben solas arriba.
 const NAV_ITEMS = [
   // Ver / decidir
-  { key: "dashboard", label: "Dashboard", icon: "📊" },
-  { key: "analisis", label: "Análisis", icon: "📈" },
+  { key: "dashboard", label: "Dashboard", icon: "📊", group: "shared" },
+  { key: "analisis", label: "Análisis", icon: "📈", group: "shared" },
   // Operación diaria
-  { key: "sales", label: "Ventas", icon: "🛒" },
-  { key: "procurement", label: "Compras", icon: "🚚" },
-  { key: "products", label: "Stock", icon: "📦" },
-  { key: "cash", label: "Caja", icon: "💰" },
-  { key: "offers", label: "Mensajes", icon: "📲" },
-  { key: "clients", label: "Clientes", icon: "👥" },
+  { key: "sales", label: "Ventas", icon: "🛒", group: "minorista" },
+  { key: "procurement", label: "Compras", icon: "🚚", group: "shared" },
+  { key: "products", label: "Stock", icon: "📦", group: "shared" },
+  { key: "cash", label: "Caja", icon: "💰", group: "shared" },
+  { key: "offers", label: "Mensajes", icon: "📲", group: "minorista" },
+  { key: "clients", label: "Clientes", icon: "👥", group: "minorista" },
   // Gestión
-  { key: "expenses", label: "Gastos", icon: "💸" },
-  { key: "withdrawals", label: "Mermas", icon: "📉" },
+  { key: "expenses", label: "Gastos", icon: "💸", group: "shared" },
+  { key: "withdrawals", label: "Mermas", icon: "📉", group: "shared" },
   // Registros / utilidades
-  { key: "pricelog", label: "Precios", icon: "💲" },
-  { key: "stocklog", label: "Historial", icon: "📋" },
-  { key: "exchange", label: "Cotizaciones", icon: "💱" },
-  { key: "export", label: "Exportar", icon: "📥" },
-  { key: "audit", label: "Auditoría", icon: "🔍" },
-  { key: "trash", label: "Papelera", icon: "🗑️" },
+  { key: "pricelog", label: "Precios", icon: "💲", group: "shared" },
+  { key: "stocklog", label: "Historial", icon: "📋", group: "shared" },
+  { key: "exchange", label: "Cotizaciones", icon: "💱", group: "shared" },
+  { key: "export", label: "Exportar", icon: "📥", group: "shared" },
+  { key: "audit", label: "Auditoría", icon: "🔍", group: "shared" },
+  { key: "trash", label: "Papelera", icon: "🗑️", group: "shared" },
 ];
+
+// Reordena la navegación según el modo. Minorista = orden histórico intacto.
+// Mayorista = grupo mayorista arriba, luego compartido, luego minorista abajo.
+// NO oculta nada: ambos modos ven todas las pantallas. Orden estable dentro
+// de cada grupo (respeta el orden de NAV_ITEMS).
+function orderNavByMode(items, mode) {
+  if (mode !== "mayorista") return items; // minorista: sin cambios
+  const rank = { mayorista: 0, shared: 1, minorista: 2 };
+  return [...items].sort((a, b) => (rank[a.group] ?? 1) - (rank[b.group] ?? 1));
+}
 
 export default function App() {
   const { isMobile, isTablet } = useResponsive();
@@ -687,7 +701,7 @@ export default function App() {
   // Diego es único usuario — todas las páginas son accesibles.
   const isOwnerUser = true;
   const effectivePage = page;
-  const visibleNavItems = NAV_ITEMS;
+  const visibleNavItems = useMemo(() => orderNavByMode(NAV_ITEMS, settings.businessMode), [settings.businessMode]);
 
   const renderPage = () => {
     switch (effectivePage) {
@@ -799,6 +813,30 @@ export default function App() {
                 )}
               </div>
             )}
+            {/* Selector de modo de negocio (mayorista / minorista) */}
+            <div style={{ display: "flex", background: "#EFE5CE", borderRadius: 8, padding: 2, flexShrink: 0 }}>
+              {[
+                { m: "mayorista", label: isMobile ? "May" : "Mayorista", icon: "🏪" },
+                { m: "minorista", label: isMobile ? "Min" : "Minorista", icon: "🛒" },
+              ].map(({ m, label, icon }) => {
+                const active = (settings.businessMode || "mayorista") === m;
+                return (
+                  <button key={m}
+                    onClick={() => { if (!active) saveSettings({ ...settings, businessMode: m }); }}
+                    title={`Modo ${m}`}
+                    style={{
+                      border: "none", cursor: "pointer", borderRadius: 6,
+                      padding: isMobile ? "4px 7px" : "4px 10px", fontSize: 12, fontWeight: 700,
+                      background: active ? "#FFFFFF" : "transparent",
+                      color: active ? "#1E2B4A" : "#6B7794",
+                      boxShadow: active ? "0 1px 3px rgba(0,0,0,0.12)" : "none",
+                      display: "flex", alignItems: "center", gap: 4,
+                    }}>
+                    <span>{icon}</span>{label}
+                  </button>
+                );
+              })}
+            </div>
             {/* Sync status badge — solo dot en mobile */}
             <div style={{
               display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600,

@@ -5,6 +5,11 @@
 const STORAGE_KEY = "izn_settings";
 
 export const DEFAULT_SETTINGS = {
+  // Modo de negocio (pivote a kioscos). "mayorista" prioriza las pantallas B2B
+  // en la navegación; "minorista" mantiene el orden histórico. NO oculta nada:
+  // ambos modos ven todas las pantallas, solo cambia el orden.
+  businessMode: "mayorista",
+
   // Stock & inventario
   lowStockThreshold: 3,        // alerta "stock bajo" si stock <= esto
   willRunOutDays: 7,           // alerta "se agota en N días"
