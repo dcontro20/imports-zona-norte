@@ -30,7 +30,7 @@ const MS_PER_DAY = 86400000;
 // Ordenado por monthlyROI descendente.
 export function rankSkuProfitability({ products, sales, purchases, exchangeRate = 1, now = new Date() } = {}) {
   const real = filterRealProducts(products, sales, purchases);
-  const stats = buildProductSalesStats(real, sales, exchangeRate);
+  const stats = buildProductSalesStats(real, sales, exchangeRate, now);
 
   const result = real.map(p => {
     const stat = stats[p.id] || {};
