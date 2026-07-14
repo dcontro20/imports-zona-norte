@@ -8,7 +8,16 @@ import {
   PROSPECT_STAGES_ORDER, CLIENT_STAGES_ORDER,
   funnelSummary, lastVisitFor,
 } from "../prospecting.js";
+import { prospectsToCSV } from "../lib/wholesaleExport.js";
 import { useAppContext } from "../AppContext.js";
+
+function downloadCSV(filename, csv) {
+  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 500);
+}
 
 // Pipeline de captación mayorista (kanban sin drag — botones de avance, anda en
 // mobile). Prospectos en las 3 primeras columnas; clientes mayoristas en las 3
@@ -119,7 +128,10 @@ export function Pipeline({ prospects = [], setProspects, clients = [], setClient
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
         <h2 style={{ color: T.text, margin: 0, fontSize: 22 }}>🎯 Pipeline de captación</h2>
-        <Btn onClick={openNew}>+ Nuevo prospecto</Btn>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {activeProspects.length > 0 && <Btn variant="secondary" onClick={() => downloadCSV(`prospectos_${new Date().toISOString().slice(0, 10)}.csv`, prospectsToCSV(prospects))}>📥 CSV</Btn>}
+          <Btn onClick={openNew}>+ Nuevo prospecto</Btn>
+        </div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)", gap: 12, marginBottom: 16 }}>

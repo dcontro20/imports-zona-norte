@@ -24,6 +24,15 @@ const DEFAULT_COMMANDS = (ctx) => [
   { id: "go-export", title: "Ir a Exportar", icon: "📥", group: "Navegar", action: () => ctx.onNavigate("export"), keywords: "backup csv" },
   { id: "go-audit", title: "Ir a Auditoría", icon: "🔍", group: "Navegar", action: () => ctx.onNavigate("audit"), keywords: "log historial cambios" },
 
+  // === Mayorista (pivote B2B) ===
+  { id: "go-dashMayorista", title: "Ir a Panel mayorista", icon: "📊", group: "Mayorista", action: () => ctx.onNavigate("dashMayorista"), keywords: "b2b dashboard kioscos kpi pnl" },
+  { id: "go-kioscos", title: "Ir a Kioscos", icon: "🏪", group: "Mayorista", action: () => ctx.onNavigate("kioscos"), keywords: "mayorista clientes b2b comercios" },
+  { id: "go-wholesaleOrder", title: "Nuevo pedido mayorista", icon: "🧾", group: "Mayorista", action: () => ctx.onNavigate("wholesaleOrder"), keywords: "pedido b2b vender kiosco tier" },
+  { id: "go-pipeline", title: "Ir a Pipeline", icon: "🎯", group: "Mayorista", action: () => ctx.onNavigate("pipeline"), keywords: "prospectos captacion embudo leads" },
+  { id: "go-prospectMap", title: "Ir a Prospección", icon: "🗺️", group: "Mayorista", action: () => ctx.onNavigate("prospectMap"), keywords: "zonas cobertura mapa" },
+  { id: "go-routes", title: "Ir a Rutas", icon: "🚚", group: "Mayorista", action: () => ctx.onNavigate("routes"), keywords: "reparto entrega paradas hoja" },
+  { id: "go-cuentasCorrientes", title: "Ir a Cuentas corrientes", icon: "💳", group: "Mayorista", action: () => ctx.onNavigate("cuentasCorrientes"), keywords: "cobranza deuda fiado credito" },
+
   // === Acciones rápidas ===
   { id: "act-quick-sale", title: "Nueva venta rápida", icon: "⚡", group: "Acciones", action: () => ctx.onAction("quickSale"), keywords: "vender consumo" },
   { id: "act-quick-withdrawal", title: "Anotar consumo propio", icon: "📉", group: "Acciones", action: () => ctx.onAction("quickWithdrawal"), keywords: "merma fume" },

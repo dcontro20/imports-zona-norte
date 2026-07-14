@@ -5,7 +5,17 @@ import { Card, Btn, Modal, Input, Select, StatCard } from "./UI.jsx";
 import { T } from "../theme.js";
 import { BUSINESS_TYPES, WHOLESALE_TIERS, PIPELINE_STAGES } from "../constants.js";
 import { buildClientStats, classifyClient, predictNextPurchase } from "../clientIntelligence.js";
+import { kioscosToCSV } from "../lib/wholesaleExport.js";
 import { useAppContext } from "../AppContext.js";
+
+// Descarga un CSV en el browser (helper local — la generación del string es pura).
+function downloadCSV(filename, csv) {
+  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 500);
+}
 
 // Pantalla de clientes MAYORISTAS (type="mayorista"). El label "Kioscos" se
 // mantiene porque la mayoría lo son, pero el modelo/filtro es por type + businessType.
@@ -45,6 +55,10 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] })
   const [converting, setConverting] = useState(false); // true = viene de un candidato
   const [form, setForm] = useState(emptyForm);
   const [err, setErr] = useState("");
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState({}); // { id: true }
+  const [bulkTier, setBulkTier] = useState("");
+  const [bulkZone, setBulkZone] = useState("");
 
   // Clientes mayoristas y candidatos (mayoristas viejos por tier="mayorista").
   const mayoristas = useMemo(
@@ -140,14 +154,56 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] })
     setModal(false);
   };
 
+  const selectedIds = Object.keys(selected).filter(id => selected[id]);
+  const toggleSelect = (id) => setSelected(s => ({ ...s, [id]: !s[id] }));
+  const exitSelect = () => { setSelectMode(false); setSelected({}); setBulkTier(""); setBulkZone(""); };
+  const applyBulkTier = () => {
+    if (!bulkTier || selectedIds.length === 0) return;
+    setClients(prev => prev.map(c => selected[c.id] ? { ...c, wholesaleTier: bulkTier } : c));
+    logAudit?.("bulk", "client", "", `Tier ${bulkTier} a ${selectedIds.length} mayoristas`);
+    exitSelect();
+  };
+  const applyBulkZone = () => {
+    if (!bulkZone.trim() || selectedIds.length === 0) return;
+    setClients(prev => prev.map(c => selected[c.id] ? { ...c, zone: bulkZone.trim() } : c));
+    logAudit?.("bulk", "client", "", `Zona "${bulkZone.trim()}" a ${selectedIds.length} mayoristas`);
+    exitSelect();
+  };
+  const exportCSV = () => downloadCSV(`kioscos_${new Date().toISOString().slice(0, 10)}.csv`, kioscosToCSV(clients));
+
   const chipInput = { flex: isMobile ? "1 1 100%" : "1 1 auto", minWidth: 0 };
 
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, flexWrap: "wrap", gap: 12 }}>
         <h2 style={{ color: T.text, margin: 0, fontSize: 22 }}>🏪 Kioscos / Mayoristas</h2>
-        <Btn onClick={openNew}>+ Nuevo mayorista</Btn>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {mayoristas.length > 0 && <Btn variant="secondary" onClick={exportCSV}>📥 CSV</Btn>}
+          {mayoristas.length > 0 && <Btn variant="secondary" onClick={() => selectMode ? exitSelect() : setSelectMode(true)}>{selectMode ? "Cancelar" : "☑️ Seleccionar"}</Btn>}
+          <Btn onClick={openNew}>+ Nuevo mayorista</Btn>
+        </div>
       </div>
+
+      {/* Barra de acciones en lote */}
+      {selectMode && (
+        <Card style={{ marginBottom: 12, background: T.primarySoft, border: `1px solid ${T.border}` }}>
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <span style={{ fontWeight: 800, color: T.primary }}>{selectedIds.length} seleccionado{selectedIds.length === 1 ? "" : "s"}</span>
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <select value={bulkTier} onChange={e => setBulkTier(e.target.value)} style={selStyle(isMobile)}>
+                <option value="">Tier…</option>
+                {WHOLESALE_TIERS.map(t => <option key={t} value={t}>Tier {t}</option>)}
+              </select>
+              <Btn variant="secondary" onClick={applyBulkTier} style={{ minHeight: 38 }}>Aplicar tier</Btn>
+            </div>
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <input value={bulkZone} onChange={e => setBulkZone(e.target.value)} placeholder="Zona…"
+                style={{ padding: isMobile ? "10px 12px" : "9px 12px", minHeight: isMobile ? 44 : 38, fontSize: isMobile ? 16 : 13, background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, color: T.text, outline: "none", width: 120 }} />
+              <Btn variant="secondary" onClick={applyBulkZone} style={{ minHeight: 38 }}>Aplicar zona</Btn>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* KPIs */}
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)", gap: 12, marginBottom: 16 }}>
@@ -208,8 +264,13 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] })
             const tierS = TIER_STYLE[c.wholesaleTier] || { color: T.textMuted, bg: T.borderSoft };
             const pred = st ? predictNextPurchase(st) : null;
             return (
-              <Card key={c.id} style={{ cursor: "pointer" }}>
-                <div onClick={() => openEdit(c)}>
+              <Card key={c.id} style={{ cursor: "pointer", outline: selectMode && selected[c.id] ? `2px solid ${T.primary}` : "none" }}>
+                <div onClick={() => selectMode ? toggleSelect(c.id) : openEdit(c)}>
+                  {selectMode && (
+                    <label style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6, fontSize: 12, color: T.textSub }} onClick={e => e.stopPropagation()}>
+                      <input type="checkbox" checked={!!selected[c.id]} onChange={() => toggleSelect(c.id)} /> seleccionar
+                    </label>
+                  )}
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontWeight: 800, color: T.text, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
