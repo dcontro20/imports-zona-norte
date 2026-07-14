@@ -52,6 +52,9 @@ const DATA_KEYS = [
   { key: "supplierProfiles", default: [] }, // perfiles de proveedor con defaults y stats
   { key: "supplierAliases", default: [] },  // diccionario aprendido raw→productId
   { key: "supplierLists", default: [] },    // historial de listas procesadas
+  { key: "prospects", default: [] },        // mayorista: kioscos-lead sin convertir
+  { key: "visits", default: [] },           // mayorista: bitácora de visitas comerciales
+  { key: "routes", default: [] },           // mayorista: rutas de reparto
 ];
 
 export function useFirebaseSync() {
@@ -74,6 +77,9 @@ export function useFirebaseSync() {
   const [supplierProfiles, setSupplierProfiles] = useState(() => loadData("supplierProfiles", []));
   const [supplierAliases, setSupplierAliases] = useState(() => loadData("supplierAliases", []));
   const [supplierLists, setSupplierLists] = useState(() => loadData("supplierLists", []));
+  const [prospects, setProspects] = useState(() => loadData("prospects", []));
+  const [visits, setVisits] = useState(() => loadData("visits", []));
+  const [routes, setRoutes] = useState(() => loadData("routes", []));
 
   // ---- Sync flags ----
   // lastFirestoreData[key] = JSON serializado de la última data recibida de Firestore.
@@ -132,6 +138,7 @@ export function useFirebaseSync() {
     supplierProfiles: setSupplierProfiles,
     supplierAliases: setSupplierAliases,
     supplierLists: setSupplierLists,
+    prospects: setProspects, visits: setVisits, routes: setRoutes,
   }).current;
 
   // ---- Subscribe to Firestore ONLY when authenticated ----
@@ -349,6 +356,7 @@ export function useFirebaseSync() {
     supplierProfiles, setSupplierProfiles,
     supplierAliases, setSupplierAliases,
     supplierLists, setSupplierLists,
+    prospects, setProspects, visits, setVisits, routes, setRoutes,
     dataReady, syncStatus, fromFirestore,
     logStock, logPrice,
   };

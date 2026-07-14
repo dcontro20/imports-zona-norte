@@ -489,6 +489,7 @@ export default function App() {
     supplierProfiles, setSupplierProfiles,
     supplierAliases, setSupplierAliases,
     supplierLists, setSupplierLists,
+    prospects, setProspects, visits, setVisits, routes, setRoutes,
     syncStatus, logStock, logPrice,
   } = sync;
 
@@ -535,6 +536,10 @@ export default function App() {
   const activeWithdrawals = useMemo(() => withdrawals.filter(w => !w.isDeleted), [withdrawals]);
   const activeCashMovements = useMemo(() => cashMovements.filter(m => !m.isDeleted), [cashMovements]);
   const activePartnerWithdrawals = useMemo(() => partnerWithdrawals.filter(w => !w.isDeleted), [partnerWithdrawals]);
+  // Mayorista (pivote a kioscos)
+  const activeProspects = useMemo(() => (prospects || []).filter(p => !p.isDeleted), [prospects]);
+  const activeVisits = useMemo(() => (visits || []).filter(v => !v.isDeleted), [visits]);
+  const activeRoutes = useMemo(() => (routes || []).filter(r => !r.isDeleted), [routes]);
 
   // ---- Context value (for components that want to use context instead of props) ----
   const ctxValue = useMemo(() => ({
@@ -696,7 +701,7 @@ export default function App() {
       case "exchange": return <ExchangeMonitor exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} />;
       case "audit": return <AuditLog auditLog={auditLog} products={products} />;
       case "offers": return <Offers products={activeProducts} sales={activeSales} clients={clients} exchangeRate={exchangeRate} logAudit={logAudit} currentUser={currentUser} auditLog={auditLog} />;
-      case "trash": return <Trash products={products} setProducts={setProducts} sales={sales} setSales={setSales} purchases={purchases} setPurchases={setPurchases} expenses={expenses} setExpenses={setExpenses} cashMovements={cashMovements} setCashMovements={setCashMovements} partnerWithdrawals={partnerWithdrawals} setPartnerWithdrawals={setPartnerWithdrawals} clients={clients} setClients={setClients} coupons={coupons} setCoupons={setCoupons} logAudit={logAudit} currentUser={currentUser} />;
+      case "trash": return <Trash products={products} setProducts={setProducts} sales={sales} setSales={setSales} purchases={purchases} setPurchases={setPurchases} expenses={expenses} setExpenses={setExpenses} cashMovements={cashMovements} setCashMovements={setCashMovements} partnerWithdrawals={partnerWithdrawals} setPartnerWithdrawals={setPartnerWithdrawals} clients={clients} setClients={setClients} coupons={coupons} setCoupons={setCoupons} prospects={prospects} setProspects={setProspects} visits={visits} setVisits={setVisits} routes={routes} setRoutes={setRoutes} logAudit={logAudit} currentUser={currentUser} />;
       default: return null;
     }
   };
