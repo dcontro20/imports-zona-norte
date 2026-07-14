@@ -12,9 +12,9 @@ describe("migrateToWholesaleModel", () => {
 
   it("no pisa el type ya seteado (idempotente)", () => {
     const { clients, changed } = migrateToWholesaleModel(
-      [{ id: "c1", name: "Kiosco X", type: "kiosco" }, { id: "c2", name: "Ana", type: "minorista" }], []
+      [{ id: "c1", name: "Comercio X", type: "mayorista" }, { id: "c2", name: "Ana", type: "minorista" }], []
     );
-    expect(clients[0].type).toBe("kiosco");
+    expect(clients[0].type).toBe("mayorista");
     expect(clients[1].type).toBe("minorista");
     expect(changed.clients).toBe(0);
   });

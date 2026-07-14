@@ -67,7 +67,7 @@ export const SaleSchema = z.object({
   isDeleted: boolOpt,
   linkedOfferId: strOpt,
 
-  // --- Mayorista (pedidos a kioscos, todos opcionales) ---
+  // --- Mayorista (pedidos, todos opcionales) ---
   saleType: z.enum(["minorista", "mayorista"]).optional().default("minorista"),
   routeId: strOpt,          // si el pedido entra en una ruta de reparto
   fulfillmentStatus: z.enum(["pendiente", "armado", "en_ruta", "entregado", "cobrado"]).optional().nullable(),
@@ -90,9 +90,12 @@ export const ClientSchema = z.object({
   isDeleted: boolOpt,
   createdAt: strOpt,
 
-  // --- B2B / mayorista (pivote a kioscos, todos opcionales) ---
-  type: z.enum(["minorista", "kiosco"]).optional().default("minorista"),
-  businessName: strOpt,   // nombre del kiosco/comercio
+  // --- B2B / mayorista (todos opcionales) ---
+  // type: eje grande del negocio (paraguas). businessType: clasificación del
+  // comercio (kiosco/maxikiosco/drugueria/...), solo etiqueta/filtro.
+  type: z.enum(["minorista", "mayorista"]).optional().default("minorista"),
+  businessType: z.enum(["kiosco", "maxikiosco", "drugueria", "distribuidor", "almacen", "otro"]).optional().nullable(),
+  businessName: strOpt,   // nombre del comercio
   cuit: strOpt,
   address: strOpt,
   zone: strOpt,           // barrio/zona — clave para rutas

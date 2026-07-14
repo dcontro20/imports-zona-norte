@@ -18,17 +18,23 @@ export const WITHDRAW_TYPES = ["Consumo propio", "Cambio por garantía", "Regalo
 export const DISCOUNT_REASONS = ["Promo", "Volumen (3+)", "Cliente frecuente", "Negociación", "Otro"];
 
 // ============================================================================
-// MAYORISTA / B2B — pivote a kioscos (ver docs/PLAN_MAYORISTA.md)
+// MAYORISTA / B2B — pivote a venta mayorista (ver docs/PLAN_MAYORISTA.md)
 // ============================================================================
 
-// Tipo de cliente. Default "minorista" (migración de la base existente).
-export const CLIENT_TYPES = ["minorista", "kiosco"];
+// Eje grande del negocio. Default "minorista" (migración de la base existente).
+// "mayorista" es el paraguas: TODA la inteligencia (churn, pricing por tier,
+// rutas) opera sobre este campo, sea el comercio un kiosco o no.
+export const CLIENT_TYPES = ["minorista", "mayorista"];
+
+// Tipo de comercio (solo clasificación/filtro para clientes type="mayorista").
+// Opcional, default null. La mayoría serán kioscos pero no es obligatorio.
+export const BUSINESS_TYPES = ["kiosco", "maxikiosco", "drugueria", "distribuidor", "almacen", "otro"];
 
 // Tier mayorista por volumen de compra. Cada tier tiene su lista de precios
 // (vive en product.priceByChannel.mayorista_a/b/c). null = sin asignar.
 export const WHOLESALE_TIERS = ["A", "B", "C"];
 
-// Embudo comercial completo (client type=kiosco).
+// Embudo comercial completo (client type=mayorista).
 export const PIPELINE_STAGES = ["prospecto", "contactado", "visitado", "primera_compra", "activo", "en_pausa"];
 // Subconjunto para leads que todavía NO son clientes (colección `prospects`).
 export const PROSPECT_STAGES = ["prospecto", "contactado", "visitado"];

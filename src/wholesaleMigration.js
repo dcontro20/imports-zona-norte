@@ -1,6 +1,6 @@
 // src/wholesaleMigration.js
 //
-// Migración idempotente al modelo mayorista (pivote a kioscos).
+// Migración idempotente al modelo mayorista (pivote a venta mayorista).
 // Mismo espíritu que migrateLegacySales (S14.14): setea defaults en la data
 // existente para que los campos nuevos del pivote no queden undefined.
 //
