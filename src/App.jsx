@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo, useCallback, lazy, Suspense, Component } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense, Component } from "react";
 import { uid, formatMoney, formatDate } from "./helpers.js";
+import { migrateToWholesaleModel } from "./wholesaleMigration.js";
 import { useSettings } from "./useSettings.js";
 import { scheduleDailyNotifications, cancelScheduled, hasPermission } from "./lib/notifications.js";
 import { useFirebaseSync } from "./useFirebaseSync.js";
@@ -540,6 +541,22 @@ export default function App() {
   const activeProspects = useMemo(() => (prospects || []).filter(p => !p.isDeleted), [prospects]);
   const activeVisits = useMemo(() => (visits || []).filter(v => !v.isDeleted), [visits]);
   const activeRoutes = useMemo(() => (routes || []).filter(r => !r.isDeleted), [routes]);
+
+  // ---- Migración al modelo mayorista (una vez, idempotente) ----
+  // Corre cuando Firestore terminó el initial load (syncStatus "online").
+  // Setea type/saleType/fulfillmentStatus en data previa. Sólo escribe si
+  // realmente había algo que migrar (evita writes innecesarios).
+  const wholesaleMigrationDone = useRef(false);
+  useEffect(() => {
+    if (syncStatus !== "online" || wholesaleMigrationDone.current) return;
+    wholesaleMigrationDone.current = true;
+    const { clients: migClients, sales: migSales, didChange, changed } = migrateToWholesaleModel(clients, sales);
+    if (didChange) {
+      if (changed.clients > 0) setClients(migClients);
+      if (changed.sales > 0) setSales(migSales);
+      console.log(`[migrate] modelo mayorista: ${changed.clients} clientes, ${changed.sales} ventas`);
+    }
+  }, [syncStatus]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---- Context value (for components that want to use context instead of props) ----
   const ctxValue = useMemo(() => ({
