@@ -147,7 +147,10 @@ Ver `docs/PLAN_MAYORISTA.md` (roadmap fase por fase).
 - **FASE 4** ✅ cuenta corriente B2B: `lib/creditAccount.js` (adeudado derivado de ventas)
   + `lib/wholesaleMessage.js` (cobranza) + `components/CuentasCorrientes.jsx`. Puente con
   la caja: cobrar = payment real en el sale → ledger de CashBox. creditEnabled default OFF.
-- Pendiente: inteligencia B2B + dashboard mayorista (fase 5), pulido (fase 6).
+- **FASE 5** ✅ inteligencia B2B: `src/wholesaleIntelligence.js` (recompra esperada, churn B2B,
+  ranking por rentabilidad, P&L por canal, KPIs) + `components/DashboardMayorista.jsx`
+  (panel mayorista con alertas + P&L mayorista vs minorista).
+- Pendiente: pulido / mobile / power-user B2B (fase 6, última).
 
 ### Capa 6 — Backend (corre fuera del navegador)
 - `api/send-daily-push.js` — función que dispara las notificaciones push.

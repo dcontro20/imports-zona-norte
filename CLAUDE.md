@@ -338,6 +338,22 @@ A partir del 14/04/2026, GitHub está sincronizado y es la fuente de verdad del 
 
 ## Estado del proyecto al 14/07/2026
 
+### 🏪 PIVOTE MAYORISTA — FASE 5 completa (docs/PLAN_MAYORISTA.md + docs/SESSION_2026-07-14_mayorista_fase5.md)
+
+**FASE 5 — Inteligencia B2B + Dashboard mayorista:**
+- `src/wholesaleIntelligence.js` (11 tests): expectedRepurchase (recompra por cadencia),
+  clientsAtRisk (churn B2B), rankByProfitability (revenue−cogs por kiosco), productsByZone,
+  wholesaleKpis, committedUnits, plByChannel.
+- `components/DashboardMayorista.jsx`: KPIs B2B, facturación mayorista vs minorista, P&L
+  por canal, alertas (kioscos en riesgo, zonas sin cerrar, prospectos estancados), ranking
+  por ganancia. Selector 30/90d. Pantalla "Panel mayorista".
+- Reserva de stock (5.3): inherente (el pedido descuenta al cargarse); committedUnits da
+  visibilidad. Reposición por volumen se apoya en purchaseRecommendations existente.
+
+**Baseline:** 939 tests verdes. Build OK. 7 pantallas mayoristas en total.
+
+**Siguiente:** FASE 6 — Pulido, mobile y power-user B2B (última fase).
+
 ### 🏪 PIVOTE MAYORISTA — FASE 4 completa (docs/PLAN_MAYORISTA.md + docs/SESSION_2026-07-14_mayorista_fase4.md)
 
 **FASE 4 — Cuenta corriente B2B (completa, apagada por default):**

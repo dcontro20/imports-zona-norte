@@ -272,7 +272,8 @@ Este resumen se entrega vía archivo descargable al usuario Y se puede versionar
 | 2 — Captación | ✅ Completa | 2026-07-14 | prospecting.js (+13 tests, 900 total), Pipeline.jsx (kanban), ProspectMap.jsx (cobertura por zona), visitas. Google Places (2.5) diferido — alta manual. Ver `docs/SESSION_2026-07-14_mayorista_fase2.md`. |
 | 3 — Rutas | ✅ Completa | 2026-07-14 | routes.js + routeSheet.js (+12 tests, 912 total), Routes.jsx (armado por zona, orden manual, fulfillment). optimizeStops = stub. Ver `docs/SESSION_2026-07-14_mayorista_fase3.md`. |
 | 4 — Cuenta corriente B2B | ✅ Completa | 2026-07-14 | creditAccount.js + wholesaleMessage.js (+16 tests, 928 total), CuentasCorrientes.jsx, toggle creditEnabled, puente con la caja (cobrar = payment real en el sale). Adeudado derivado de ventas, no de client.balance. Ver `docs/SESSION_2026-07-14_mayorista_fase4.md`. |
-| 5 — Inteligencia + Dashboard | ⏳ Siguiente | — | wholesaleIntelligence.js + dashboard mayorista + P&L |
+| 5 — Inteligencia + Dashboard | ✅ Completa | 2026-07-14 | wholesaleIntelligence.js (+11 tests, 939 total), DashboardMayorista.jsx (KPIs + P&L mayorista/minorista + alertas + ranking). 5.3 reserva inherente. Ver `docs/SESSION_2026-07-14_mayorista_fase5.md`. |
+| 6 — Pulido | ⏳ Siguiente | — | mobile fino + bulk actions + empty states + export CSV + ⌘K |
 | 2 — Captación | ⬜ Pendiente | — | — |
 | 3 — Rutas | ⬜ Pendiente | — | — |
 | 4 — Cuenta corriente B2B | ⬜ Pendiente | — | — |
