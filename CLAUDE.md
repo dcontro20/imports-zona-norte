@@ -361,6 +361,12 @@ prueba de Diego. PR #2 draft. Fuente de verdad: `docs/PLAN_MAYORISTA.md`.
 Módulos puros nuevos: wholesale, wholesaleMigration, prospecting, routes, creditAccount,
 wholesaleMessage, wholesaleIntelligence, wholesaleExport, routeSheet.
 
+**Mejoras continuas (sin prueba manual, sin mergear):** ver `docs/PLAN_MEJORAS_MAYORISTA.md`
+(tandas A–F). **Tanda A (higiene) ✅** — verificado: pricing viejo borrado, cero hex
+hardcodeados, cero uso de client.balance para deuda B2B. 2 findings menores levantados
+(badge "Debe" en Kioscos desde balance retail; `productsByZone` sin consumir aún). Fix
+A.2: log de firebase solo en test env. **Siguiente tanda: B (blindaje de plata).**
+
 **Siguiente:** revisión + prueba de Diego → recién ahí mergear a main.
 
 ### 🏪 PIVOTE MAYORISTA — FASE 5 completa (docs/PLAN_MAYORISTA.md + docs/SESSION_2026-07-14_mayorista_fase5.md)
