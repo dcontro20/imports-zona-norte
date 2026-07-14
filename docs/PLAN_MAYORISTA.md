@@ -268,7 +268,8 @@ Este resumen se entrega vía archivo descargable al usuario Y se puede versionar
 | Fase | Estado | Fecha | Notas |
 |---|---|---|---|
 | 0 — Cimientos | ✅ Completa | 2026-07-14 | 6 bloques, +8 tests (875 total). Branch `claude/mayorista`. Ver `docs/SESSION_2026-07-14_mayorista_fase0.md`. |
-| 1 — Kioscos + Pricing tier | ⏳ Siguiente | — | — |
+| 1 — Kioscos + Pricing tier | ✅ Completa | 2026-07-14 | 6 bloques. wholesale.js (+22 tests, 887 total), Kioscos.jsx, editor de precios por tier, WholesaleOrder.jsx. Eje del modelo pasó a "mayorista" + businessType; pricing viejo consolidado. Ver `docs/SESSION_2026-07-14_mayorista_fase1.md`. |
+| 2 — Captación | ⏳ Siguiente | — | Pipeline + Mapa + Visitas |
 | 2 — Captación | ⬜ Pendiente | — | — |
 | 3 — Rutas | ⬜ Pendiente | — | — |
 | 4 — Cuenta corriente B2B | ⬜ Pendiente | — | — |

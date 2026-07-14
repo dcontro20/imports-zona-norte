@@ -130,11 +130,15 @@ Acá vive toda la matemática del negocio, separada para poder testearla (837 te
 - `theme.js` — colores y tipografías. `settings.js` — preferencias configurables (incl. `businessMode` mayorista/minorista).
 - `wholesaleMigration.js` — migración idempotente al modelo mayorista (setea type/saleType/fulfillmentStatus en data previa).
 
-### 🏪 Capa mayorista (pivote a kioscos — en construcción)
-Ver `docs/PLAN_MAYORISTA.md` (roadmap fase por fase). FASE 0 (cimientos) ✅ hecha:
-schema B2B, colecciones prospects/visits/routes, migración, y selector de modo
-Mayorista/Minorista en el topbar. Las pantallas de negocio (Kioscos, Pipeline, Mapa,
-Pedido mayorista, Rutas) llegan en fases 1–3.
+### 🏪 Capa mayorista (pivote a venta mayorista — en construcción)
+Ver `docs/PLAN_MAYORISTA.md` (roadmap fase por fase).
+- **FASE 0** ✅ cimientos: schema B2B (eje `type: minorista|mayorista` + `businessType`),
+  colecciones prospects/visits/routes, migración, selector de modo en topbar.
+- **FASE 1** ✅ núcleo comercial: `src/wholesale.js` (pricing por tier A/B/C + margen
+  + volumen opcional), `components/Kioscos.jsx` (clientes mayoristas), editor de precios
+  por tier en Products, `components/WholesaleOrder.jsx` (pedido mayorista). Las listas de
+  precio por tier viven en `product.priceByChannel.mayorista_a/b/c`.
+- Pendiente: Pipeline, Mapa, Rutas, cuenta corriente B2B (fases 2–4).
 
 ### Capa 6 — Backend (corre fuera del navegador)
 - `api/send-daily-push.js` — función que dispara las notificaciones push.

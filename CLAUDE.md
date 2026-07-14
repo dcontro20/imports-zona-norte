@@ -338,6 +338,40 @@ A partir del 14/04/2026, GitHub está sincronizado y es la fuente de verdad del 
 
 ## Estado del proyecto al 14/07/2026
 
+### 🏪 PIVOTE MAYORISTA — FASE 1 completa (docs/PLAN_MAYORISTA.md + docs/SESSION_2026-07-14_mayorista_fase1.md)
+
+**Ajuste de modelo (importante):** el eje grande es **`type: "minorista" | "mayorista"`**
+(NO "kiosco" — eso quedó como `businessType`, junto a maxikiosco/drugueria/etc.).
+Toda la inteligencia opera sobre `type="mayorista"`. Enums `CLIENT_TYPES` +
+`BUSINESS_TYPES` en `constants/enums.js`.
+
+**Consolidación de pricing:** se borró `lib/wholesalePricing.js` (viejo, muerto,
+colisionaba de nombre). El modelo primario son las listas por tier A/B/C en
+`product.priceByChannel.mayorista_a/b/c`. El descuento por volumen escalonado revive
+en `src/wholesale.js` como complemento opcional. "mayorista" salió del select de tier
+retail (queda regular/vip/diamante).
+
+**FASE 1 — núcleo comercial (6 bloques):**
+- `src/wholesale.js` (puro, 22 tests): `resolveTierPrice`, `minOrderForTier` +
+  `validateOrderMinimum`, `volumeDiscount` (opcional, parametrizable), `orderMargin`.
+- `components/Kioscos.jsx`: lista de clientes mayoristas, filtros, KPIs, ficha,
+  "convertir" candidatos (tier="mayorista" viejo). Reusa `clientIntelligence`.
+- `components/Products.jsx`: editor de precios por tier (priceByChannel.mayorista_a/b/c)
+  con margen en vivo.
+- `components/WholesaleOrder.jsx`: pedido mayorista (precio por tier + margen + mínimo)
+  → genera sale saleType=mayorista/channel=Mayorista/fulfillmentStatus=pendiente,
+  descuenta stock. "Repetir último pedido". Cobranza/entrega = fases 3/4.
+
+**Baseline:** 887 tests verdes. Build OK. Pantallas nuevas: Kioscos + Pedido mayorista.
+
+**REGLA PERMANENTE nueva:** al cerrar cada bloque grande, además de `/persist-session`,
+generar un resumen MD autocontenido (ver más abajo en "self-updating context").
+
+**Siguiente:** FASE 2 — Captación (Pipeline + Mapa + Visitas).
+
+**⚠️ Nota de branches:** pivote en `claude/mayorista`. Redactor IA en
+`claude/claude-md-docs-oNlms`. Ninguno mergeado a `main`.
+
 ### 🏪 PIVOTE MAYORISTA — FASE 0 completa (docs/PLAN_MAYORISTA.md + docs/SESSION_2026-07-14_mayorista_fase0.md)
 
 El negocio pivota de minorista → **mayorista (kioscos)** de forma HÍBRIDA: mayorista
