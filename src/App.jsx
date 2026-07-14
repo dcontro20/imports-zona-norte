@@ -90,6 +90,7 @@ const Kioscos = lazy(() => import("./components/Kioscos.jsx").then(m => ({ defau
 const WholesaleOrder = lazy(() => import("./components/WholesaleOrder.jsx").then(m => ({ default: m.WholesaleOrder })));
 const Pipeline = lazy(() => import("./components/Pipeline.jsx").then(m => ({ default: m.Pipeline })));
 const ProspectMap = lazy(() => import("./components/ProspectMap.jsx").then(m => ({ default: m.ProspectMap })));
+const Routes = lazy(() => import("./components/Routes.jsx").then(m => ({ default: m.Routes })));
 const Expenses = lazy(() => import("./components/Expenses.jsx").then(m => ({ default: m.Expenses })));
 const Withdrawals = lazy(() => import("./components/Withdrawals.jsx").then(m => ({ default: m.Withdrawals })));
 const CashBox = lazy(() => import("./components/CashBox.jsx").then(m => ({ default: m.CashBox })));
@@ -227,6 +228,7 @@ const NAV_ITEMS = [
   { key: "wholesaleOrder", label: "Pedido mayorista", icon: "🧾", group: "mayorista" },
   { key: "pipeline", label: "Pipeline", icon: "🎯", group: "mayorista" },
   { key: "prospectMap", label: "Prospección", icon: "🗺️", group: "mayorista" },
+  { key: "routes", label: "Rutas", icon: "🚚", group: "mayorista" },
   // Ver / decidir
   { key: "dashboard", label: "Dashboard", icon: "📊", group: "shared" },
   { key: "analisis", label: "Análisis", icon: "📈", group: "shared" },
@@ -723,6 +725,7 @@ export default function App() {
       case "wholesaleOrder": return <WholesaleOrder clients={clients} products={products} setProducts={setProducts} sales={activeSales} setSales={setSales} logStock={logStock} />;
       case "pipeline": return <Pipeline prospects={prospects} setProspects={setProspects} clients={clients} setClients={setClients} visits={visits} setVisits={setVisits} />;
       case "prospectMap": return <ProspectMap prospects={activeProspects} clients={clients} />;
+      case "routes": return <Routes routes={routes} setRoutes={setRoutes} clients={clients} sales={activeSales} setSales={setSales} />;
       case "expenses": return <Expenses expenses={expenses} setExpenses={setExpenses} currentUser={currentUser} exchangeRate={exchangeRate} logAudit={logAudit} monthlyClosures={monthlyClosures} />;
       case "withdrawals": return <Withdrawals withdrawals={withdrawals} setWithdrawals={setWithdrawals} products={products} setProducts={setProducts} sales={activeSales} clients={clients} monthlyClosures={monthlyClosures} logStock={logStock} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} />;
       case "cash": return <CashBox sales={sales} purchases={purchases} expenses={expenses} withdrawals={withdrawals} cashMovements={cashMovements} setCashMovements={setCashMovements} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} currentUser={currentUser} logAudit={logAudit} />;
