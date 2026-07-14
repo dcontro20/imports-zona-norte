@@ -81,19 +81,23 @@ algunos en Tigre.
 
 ## 🗂️ Modelo de datos nuevo (el corazón del pivote)
 
-### Decisión central: KIOSCO = CLIENTE con `type`
+### Decisión central: MAYORISTA = CLIENTE con `type` (paraguas)
 
-Un kiosco es un `client` con `type: "kiosco"` y campos B2B adicionales. Los
-minoristas existentes quedan `type: "minorista"` (default por migración). Así toda
-la inteligencia de cliente existente (churn, cadencia, LTV, predicción — en
-`src/clientIntelligence.js`; segmentos en `lib/clientSegments.js` +
-`lib/clientInsights.js`) funciona sobre kioscos sin reescribir nada.
+**(Ajuste 2026-07-14: el eje es "mayorista", no "kiosco".)** Un cliente mayorista
+es un `client` con `type: "mayorista"` y campos B2B adicionales. NO es
+necesariamente un kiosco — puede ser maxikiosco, druguería, distribuidor, almacén,
+etc. El tipo de comercio se guarda aparte en `businessType` (solo clasificación/
+filtro). Los minoristas existentes quedan `type: "minorista"` (default por
+migración). Así toda la inteligencia de cliente existente (churn, cadencia, LTV,
+predicción — en `src/clientIntelligence.js`; segmentos en `lib/clientSegments.js` +
+`lib/clientInsights.js`) funciona sobre clientes mayoristas sin reescribir nada.
 
 **Extensión del schema `client` (campos nuevos, todos opcionales)** — implementado
 en `lib/schemas.js` (ClientSchema):
 
 ```js
-type: "minorista" | "kiosco",   // default "minorista"
+type: "minorista" | "mayorista",   // default "minorista" — EJE GRANDE del negocio
+businessType: "kiosco" | "maxikiosco" | "drugueria" | "distribuidor" | "almacen" | "otro" | null,  // clasificación/filtro
 businessName, cuit, address, zone, lat, lng, contactName, contactPhone, openingHours,
 wholesaleTier: "A" | "B" | "C" | null,
 pipelineStage: "prospecto" | "contactado" | "visitado" | "primera_compra" | "activo" | "en_pausa",
@@ -102,10 +106,15 @@ creditEnabled: false, creditLimitARS: 0,   // cuenta corriente (apagada por defa
 lastVisitAt,
 ```
 
+Enums en `constants/enums.js`: `CLIENT_TYPES = ["minorista","mayorista"]`,
+`BUSINESS_TYPES = ["kiosco","maxikiosco","drugueria","distribuidor","almacen","otro"]`.
+Las pantallas pueden mantener el label "Kioscos" en la UI (la mayoría lo son), pero
+el modelo y el filtro son por `type: "mayorista"` + filtro opcional por `businessType`.
+
 ### Colecciones NUEVAS en Firestore (registradas en 0.4)
 
-- **`prospects`** — kioscos-lead sin convertir. Al llegar a "primera_compra" se
-  promociona a `client` con `type=kiosco`.
+- **`prospects`** — leads mayoristas sin convertir. Al llegar a "primera_compra" se
+  promociona a `client` con `type=mayorista`.
 - **`visits`** — bitácora de visitas comerciales (CRM).
 - **`routes`** — rutas de reparto. Estructura lista para escalar; uso básico.
 
@@ -227,11 +236,30 @@ se vuelve cuello de botella. No bloquear el pivote por esto.
 
 ---
 
-## 🗒️ Al terminar cada fase
+## 🗒️ REGLA PERMANENTE — resumen MD al cerrar cada bloque grande
 
-- Commit(s) `feat:`. Actualizar bloque "Estado del proyecto" de `CLAUDE.md`.
-- Si la fase fue grande: `docs/SESSION_YYYY-MM-DD_mayorista_faseN.md`.
-- Actualizar `docs/MAPA_DEL_SISTEMA.md`.
+> **Acordado con Diego el 2026-07-14. Es un hábito AUTOMÁTICO, no algo que haya que
+> pedir.** Aplica al: fin de fase, refactor importante, decisión de arquitectura, o
+> cualquier cambio significativo.
+
+Al cerrar un bloque grande, SIEMPRE:
+
+1. **Commit(s) `feat:`/`refactor:`** con build + tests verdes.
+2. **`/persist-session`** — journal (`docs/SESSION_YYYY-MM-DD_*.md`) + actualizar el
+   bloque "Estado del proyecto" de `CLAUDE.md` + memorias.
+3. **Actualizar `docs/MAPA_DEL_SISTEMA.md`** si hubo cambios estructurales.
+4. **Generar un RESUMEN en Markdown autocontenido** siguiendo el estándar de
+   `IZN_Pivote_Mayorista_Fase0_Resumen.md`. Debe capturar, sin omitir nada:
+   - qué se hizo · decisiones y su porqué · archivos tocados · commits (con hash) ·
+     estado de tests/build · próximos pasos.
+   - **Doble propósito:** queda en la documentación del proyecto Y se le entrega a
+     Diego para descargar/cargar en el chat de diseño para revisión.
+   - Formato: `.md` (texto plano, ideal para project knowledge). Front-matter YAML
+     arriba con metadata (fase, estado, fecha, branch, tests). Nombre:
+     `IZN_Pivote_Mayorista_FaseN_Resumen.md`.
+
+Este resumen se entrega vía archivo descargable al usuario Y se puede versionar en
+`docs/` como copia.
 
 ---
 

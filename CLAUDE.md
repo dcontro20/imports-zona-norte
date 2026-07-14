@@ -709,6 +709,15 @@ Diego opera mucho desde el celular. Mobile es prioridad — no afterthought.
 
 ## 🔄 Self-updating context (obligatorio al cerrar sesiones importantes)
 
+> **REGLA PERMANENTE (2026-07-14): resumen MD al cerrar cada bloque grande.**
+> Al terminar una fase, refactor importante, decisión de arquitectura o cambio
+> significativo, además de `/persist-session` hay que **generar SIEMPRE un resumen
+> autocontenido en Markdown** (estándar: `IZN_Pivote_Mayorista_Fase0_Resumen.md`)
+> con qué se hizo, decisiones y porqué, archivos, commits, tests/build y próximos
+> pasos. Se entrega descargable a Diego (para cargar al chat de diseño) y se puede
+> versionar en `docs/`. Es hábito automático, no se pide. Detalle en
+> `docs/PLAN_MAYORISTA.md` → "REGLA PERMANENTE".
+
 El sistema de persistencia de contexto tiene 3 capas:
 - **CLAUDE.md** (este archivo, se carga siempre)
 - **`~/.claude/projects/-Users-Diego-Desktop-imports-zona-norte/memory/`** (se carga siempre)
