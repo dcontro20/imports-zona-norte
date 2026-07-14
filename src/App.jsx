@@ -86,6 +86,7 @@ const Dashboard = lazy(() => import("./components/Dashboard.jsx").then(m => ({ d
 const Products = lazy(() => import("./components/Products.jsx").then(m => ({ default: m.Products })));
 const Sales = lazy(() => import("./components/Sales.jsx").then(m => ({ default: m.Sales })));
 const Clients = lazy(() => import("./components/Clients.jsx").then(m => ({ default: m.Clients })));
+const Kioscos = lazy(() => import("./components/Kioscos.jsx").then(m => ({ default: m.Kioscos })));
 const Expenses = lazy(() => import("./components/Expenses.jsx").then(m => ({ default: m.Expenses })));
 const Withdrawals = lazy(() => import("./components/Withdrawals.jsx").then(m => ({ default: m.Withdrawals })));
 const CashBox = lazy(() => import("./components/CashBox.jsx").then(m => ({ default: m.CashBox })));
@@ -218,6 +219,8 @@ class ErrorBoundary extends Component {
 // minorista). Las pantallas mayoristas (Kioscos, Pipeline, Mapa, Pedido, Rutas)
 // se agregan en fases siguientes con group:"mayorista" y suben solas arriba.
 const NAV_ITEMS = [
+  // Mayorista (pivote a kioscos)
+  { key: "kioscos", label: "Kioscos", icon: "🏪", group: "mayorista" },
   // Ver / decidir
   { key: "dashboard", label: "Dashboard", icon: "📊", group: "shared" },
   { key: "analisis", label: "Análisis", icon: "📈", group: "shared" },
@@ -710,6 +713,7 @@ export default function App() {
       case "sales": return <Sales sales={sales} setSales={setSales} products={products} setProducts={setProducts} logStock={logStock} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} clients={clients} setClients={setClients} cashMovements={cashMovements} setCashMovements={setCashMovements} monthlyClosures={monthlyClosures} coupons={coupons} setCoupons={setCoupons} auditLog={auditLog} />;
       case "procurement": return <Procurement products={products} setProducts={setProducts} purchases={purchases} setPurchases={setPurchases} sales={activeSales} exchangeRate={exchangeRate} logStock={logStock} currentUser={currentUser} logAudit={logAudit} monthlyClosures={monthlyClosures} supplierProfiles={supplierProfiles} setSupplierProfiles={setSupplierProfiles} supplierAliases={supplierAliases} setSupplierAliases={setSupplierAliases} supplierLists={supplierLists} setSupplierLists={setSupplierLists} />;
       case "clients": return <Clients clients={clients} setClients={setClients} sales={activeSales} products={activeProducts} withdrawals={activeWithdrawals} />;
+      case "kioscos": return <Kioscos clients={clients} setClients={setClients} sales={activeSales} products={activeProducts} />;
       case "expenses": return <Expenses expenses={expenses} setExpenses={setExpenses} currentUser={currentUser} exchangeRate={exchangeRate} logAudit={logAudit} monthlyClosures={monthlyClosures} />;
       case "withdrawals": return <Withdrawals withdrawals={withdrawals} setWithdrawals={setWithdrawals} products={products} setProducts={setProducts} sales={activeSales} clients={clients} monthlyClosures={monthlyClosures} logStock={logStock} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} />;
       case "cash": return <CashBox sales={sales} purchases={purchases} expenses={expenses} withdrawals={withdrawals} cashMovements={cashMovements} setCashMovements={setCashMovements} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} currentUser={currentUser} logAudit={logAudit} />;
