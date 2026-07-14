@@ -338,6 +338,26 @@ A partir del 14/04/2026, GitHub está sincronizado y es la fuente de verdad del 
 
 ## Estado del proyecto al 14/07/2026
 
+### 🏪 PIVOTE MAYORISTA — FASE 2 completa (docs/PLAN_MAYORISTA.md + docs/SESSION_2026-07-14_mayorista_fase2.md)
+
+**FASE 2 — Captación (4 bloques; Google Places 2.5 diferido):**
+- `src/prospecting.js` (puro, 13 tests): `pipelineCounts`, `prioritizeProspects`,
+  `zonesCoverage`/`zonesWithoutCoverage`, `lastVisitFor`, `funnelSummary`.
+- `components/Pipeline.jsx`: kanban SIN drag (botones, mobile-friendly). Prospectos
+  (prospecto/contactado/visitado) → convertir a mayorista al llegar a "visitado".
+  Alta manual de prospectos.
+- `components/ProspectMap.jsx`: cobertura por zona + "zonas a cerrar". Mapa geográfico
+  con pins diferido con Places.
+- Visitas (`visits`): registrar visita (outcome+notas) desde el kanban.
+
+**Baseline:** 900 tests verdes. Build OK. Pantallas nuevas: Pipeline + Prospección.
+
+**Entorno de test descartado** esta etapa (mucha vuelta). Quedó preparado sin usar:
+`firebaseConfig` por env vars `VITE_FIREBASE_*` (fallback a prod) + `docs/TEST_ENV_SETUP.md`.
+Prod y `main` intactos.
+
+**Siguiente:** FASE 3 — Logística (Rutas de reparto).
+
 ### 🏪 PIVOTE MAYORISTA — FASE 1 completa (docs/PLAN_MAYORISTA.md + docs/SESSION_2026-07-14_mayorista_fase1.md)
 
 **Ajuste de modelo (importante):** el eje grande es **`type: "minorista" | "mayorista"`**

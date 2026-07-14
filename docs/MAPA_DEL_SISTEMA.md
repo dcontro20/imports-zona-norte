@@ -138,7 +138,10 @@ Ver `docs/PLAN_MAYORISTA.md` (roadmap fase por fase).
   + volumen opcional), `components/Kioscos.jsx` (clientes mayoristas), editor de precios
   por tier en Products, `components/WholesaleOrder.jsx` (pedido mayorista). Las listas de
   precio por tier viven en `product.priceByChannel.mayorista_a/b/c`.
-- Pendiente: Pipeline, Mapa, Rutas, cuenta corriente B2B (fases 2–4).
+- **FASE 2** ✅ captación: `src/prospecting.js` (embudo + priorización + cobertura),
+  `components/Pipeline.jsx` (kanban prospecto→mayorista + visitas), `components/ProspectMap.jsx`
+  (cobertura por zona). Colecciones `prospects` + `visits`. Alta manual (Places diferido).
+- Pendiente: Rutas de reparto, cuenta corriente B2B (fases 3–4).
 
 ### Capa 6 — Backend (corre fuera del navegador)
 - `api/send-daily-push.js` — función que dispara las notificaciones push.
