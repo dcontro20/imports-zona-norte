@@ -17,7 +17,7 @@ Sistema web de gestión completa para "Imports Zona Norte", un negocio de import
 - **Hosting:** Vercel (deploy automático desde GitHub)
 - **Testing:** Vitest (183 tests puros: calcs.js, pricing.js, productIntelligence.js)
 - **Estilo:** CSS-in-JS inline (no hay framework CSS externo). Tokens centralizados en `src/theme.js`.
-- **Diseño:** tema oscuro profesional (#0F172A fondo, #1E293B cards, #334155 bordes), acentos violeta (#6366f1), verde (#22C55E), rojo (#EF4444), ámbar (#F59E0B). Tipografía Rubik + Nunito Sans.
+- **Diseño:** tema CLARO cálido estilo Notion/Linear (fondo cream #F8F2E7, cards blancas #FFFFFF, bordes beige #E5DAC2), texto navy #1E2B4A, acentos verde #0F6B5C, ámbar/cobre #B07A1F, azul #1F5DB8, rojo #B83232, púrpura #5B3592. Tipografía Inter/Rubik. **Fuente de verdad = `src/theme.js` (objeto `T`)**, NO este resumen.
 - **API externa:** dolarapi.com para cotización blue venta automática
 
 ---
@@ -300,12 +300,12 @@ La API de dolarapi.com solo actualiza el exchangeRate si Firestore no mandó uno
 
 - Todo en español (labels, comentarios, variables de negocio)
 - CSS inline con objetos de estilo (no clases)
-- Tema dark — tokens en `src/theme.js`:
-  - Surfaces: fondo `#0F172A`, cards `#1E293B`, inputs `#0F172A`, bordes `#334155`, borderSoft `#273246`
-  - Texto: primario `#F8FAFC`, secundario `#CBD5E1`, muted `#94A3B8`, faint `#64748B`
-  - Acentos: violeta `#6366f1`, verde `#22C55E`, rojo `#EF4444`, azul `#3B82F6`, ámbar `#F59E0B`, púrpura `#8B5CF6`
-  - Convención: status colors usan su `Bg` variant (18% opacity) como fondo tintado y `Border` (40%) como borde
-- Scripts helper en `scripts/dark-theme-swap*.mjs` para migrar colores light→dark en batch (ya ejecutados, referencia histórica)
+- Tema CLARO cálido (Notion/Linear) — tokens en `src/theme.js` (objeto `T`, fuente de verdad):
+  - Surfaces: fondo `#F8F2E7` (cream), cards `#FFFFFF`, bordes `#E5DAC2`, borderSoft `#EFE5CE`, primarySoft `#E8EBF2`
+  - Texto: primario `#1E2B4A` (navy), secundario `#3A4868`, muted `#6B7794`, faint `#9AA2B3`
+  - Acentos: primary `#1E2B4A`, verde `#0F6B5C`, ámbar/cobre `#B07A1F`, azul `#1F5DB8`, rojo `#B83232`, púrpura `#5B3592`
+  - Cada acento trae su `Bg` (fondo tintado suave) y `Border` variant. Radius: sm 6 / base 10 / lg 14. Fuente Inter/Rubik.
+  - **Nota histórica:** hubo un experimento de dark mode (revertido). Los scripts `scripts/dark-theme-swap*.mjs` son referencia histórica; el sistema vivo es CLARO.
 - Componentes reusables en UI.jsx: `Card`, `Badge`, `Btn`, `StatCard`, `Modal`, `Input`, `Select`, `Table`, `SearchBar`
 - IDs generados con helper `uid()` (timestamp base36 + random)
 - Moneda formateada con `formatMoney()` (sin decimales, con separador de miles)

@@ -222,6 +222,10 @@ export function resolveChannelPrice(product, channel, currency = "USD") {
     presencial: ["presencial"],
     delivery: ["delivery"],
     mercadolibre: ["mercadolibre", "ml"],
+    // Mayorista por tier (pivote a kioscos): priceByChannel.mayorista_a/b/c
+    mayorista_a: ["mayorista_a", "mayoristaa"],
+    mayorista_b: ["mayorista_b", "mayoristab"],
+    mayorista_c: ["mayorista_c", "mayoristac"],
   };
   // Si el channel matchea algún alias, busca en map por la clave canónica
   for (const [canonical, list] of Object.entries(aliases)) {
@@ -249,6 +253,10 @@ export function hasChannelPriceOverride(product, channel) {
     presencial: ["presencial"],
     delivery: ["delivery"],
     mercadolibre: ["mercadolibre", "ml"],
+    // Mayorista por tier (pivote a kioscos): priceByChannel.mayorista_a/b/c
+    mayorista_a: ["mayorista_a", "mayoristaa"],
+    mayorista_b: ["mayorista_b", "mayoristab"],
+    mayorista_c: ["mayorista_c", "mayoristac"],
   };
   for (const [canonical, list] of Object.entries(aliases)) {
     if (list.includes(channelKey)) {
