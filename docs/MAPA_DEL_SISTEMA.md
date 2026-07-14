@@ -125,9 +125,16 @@ Acá vive toda la matemática del negocio, separada para poder testearla (837 te
 
 ### Capa 5 — Datos + sincronización
 - `firebase.js` — conexión a la nube (Firestore), auth, presencia, push.
-- `useFirebaseSync.js` — el corazón del sync: mantiene todo en vivo entre dispositivos sin que se pisen Diego y Gustavo (merge atómico).
-- `constants.js` + `constants/` — marcas, productos pre-cargados, cuentas, enums.
-- `theme.js` — colores y tipografías. `settings.js` — preferencias configurables.
+- `useFirebaseSync.js` — el corazón del sync: mantiene todo en vivo entre dispositivos sin que se pisen Diego y Gustavo (merge atómico). Colecciones mayoristas nuevas: `prospects`, `visits`, `routes`.
+- `constants.js` + `constants/` — marcas, productos pre-cargados, cuentas, enums (incl. enums B2B: CLIENT_TYPES, WHOLESALE_TIERS, PIPELINE_STAGES, etc.).
+- `theme.js` — colores y tipografías. `settings.js` — preferencias configurables (incl. `businessMode` mayorista/minorista).
+- `wholesaleMigration.js` — migración idempotente al modelo mayorista (setea type/saleType/fulfillmentStatus en data previa).
+
+### 🏪 Capa mayorista (pivote a kioscos — en construcción)
+Ver `docs/PLAN_MAYORISTA.md` (roadmap fase por fase). FASE 0 (cimientos) ✅ hecha:
+schema B2B, colecciones prospects/visits/routes, migración, y selector de modo
+Mayorista/Minorista en el topbar. Las pantallas de negocio (Kioscos, Pipeline, Mapa,
+Pedido mayorista, Rutas) llegan en fases 1–3.
 
 ### Capa 6 — Backend (corre fuera del navegador)
 - `api/send-daily-push.js` — función que dispara las notificaciones push.

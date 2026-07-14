@@ -336,6 +336,44 @@ A partir del 14/04/2026, GitHub está sincronizado y es la fuente de verdad del 
 
 ---
 
+## Estado del proyecto al 14/07/2026
+
+### 🏪 PIVOTE MAYORISTA — FASE 0 completa (docs/PLAN_MAYORISTA.md + docs/SESSION_2026-07-14_mayorista_fase0.md)
+
+El negocio pivota de minorista → **mayorista (kioscos)** de forma HÍBRIDA: mayorista
+es el foco, minorista queda 100% funcional como canal residual. Fuente de verdad del
+pivote: **`docs/PLAN_MAYORISTA.md`** (roadmap de 7 fases 0–6). Se ejecuta fase por
+fase en la branch **`claude/mayorista`**.
+
+**FASE 0 — cimientos (6 bloques, todo verde, sin UI de negocio nueva):**
+- Kiosco = `client` con `type:"kiosco"` (reusa toda la inteligencia de cliente).
+  Schema `client` extendido con campos B2B + `sale` con `saleType`/`fulfillmentStatus`
+  (`lib/schemas.js`, todos opcionales, `.passthrough()`).
+- Enums B2B nuevos en `constants/enums.js` (CLIENT_TYPES, WHOLESALE_TIERS,
+  PIPELINE_STAGES, VISIT_OUTCOMES, ROUTE_STATUS, FULFILLMENT_STATUS...). "Mayorista"
+  agregado a CHANNELS. Aliases `mayorista_a/b/c` en `pricing.js` (precios por tier
+  van en `product.priceByChannel`, NO en colección nueva).
+- Colecciones nuevas en el sync: **`prospects`** (leads sin convertir), **`visits`**
+  (CRM), **`routes`** (reparto). Registradas en `useFirebaseSync.js` + memos `active*`
+  + Papelera.
+- `src/wholesaleMigration.js` (puro, 8 tests): `migrateToWholesaleModel()` idempotente,
+  corre en arranque, setea `type`/`saleType`/`fulfillmentStatus` en data previa.
+- **Modo de negocio**: toggle en topbar (🏪 Mayorista / 🛒 Minorista), `businessMode`
+  en settings (default "mayorista"), `orderNavByMode()` reordena el nav sin ocultar
+  nada.
+
+**Baseline:** 875 tests verdes (era 867; +8 migración). Antes se estabilizó un bug
+pre-existente de `skuProfitability` (no pasaba `now` a `buildProductSalesStats`).
+
+**Siguiente:** FASE 1 — Kioscos + pricing por tier (`wholesale.js`, `Kioscos.jsx`,
+`WholesaleOrder.jsx`).
+
+**⚠️ Nota de branches:** el pivote vive en `claude/mayorista`. El Agente Redactor IA
+del mensaje diario (banco de copys, sin costo de API — ver `docs/AGENTE_REDACTOR.md`)
+vive en `claude/claude-md-docs-oNlms`. Ninguno mergeado a `main` todavía.
+
+---
+
 ## Estado del proyecto al 23/06/2026
 
 ### 🏗️ Hardening + S14.3 + 4 frentes (docs/SESSION_2026-06-23_hardening-y-4-frentes.md)
