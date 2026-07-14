@@ -338,6 +338,23 @@ A partir del 14/04/2026, GitHub está sincronizado y es la fuente de verdad del 
 
 ## Estado del proyecto al 14/07/2026
 
+### 🏪 PIVOTE MAYORISTA — FASE 3 completa (docs/PLAN_MAYORISTA.md + docs/SESSION_2026-07-14_mayorista_fase3.md)
+
+**FASE 3 — Logística / Rutas (4 bloques, nivel básico):**
+- `src/routes.js` (puro, 12 tests): `pendingWholesaleOrders`, `groupOrdersByZone`,
+  `buildRouteStops`, `resolveStop`, `routeTotals`, `moveStop`, `optimizeStops` (STUB
+  documentado, sin implementar).
+- `lib/routeSheet.js`: hoja de ruta en texto (copiable/imprimible).
+- `components/Routes.jsx`: crear ruta por fecha eligiendo pedidos pendientes por zona,
+  orden manual de paradas (↑/↓), estados de fulfillment (ruta planificada→en_curso→
+  cerrada; parada entregado/no_estaba/reprogramar/cobrado). Mueve `sale.fulfillmentStatus`
+  (armado→en_ruta→entregado→cobrado) + `sale.routeId`. "Cobrado" es flag (la caja es Fase 4).
+
+**Baseline:** 912 tests verdes. Build OK. Pantalla nueva: Rutas (5 pantallas mayoristas
+en total).
+
+**Siguiente:** FASE 4 — Cuenta corriente B2B (completa, apagada por default).
+
 ### 🏪 PIVOTE MAYORISTA — FASE 2 completa (docs/PLAN_MAYORISTA.md + docs/SESSION_2026-07-14_mayorista_fase2.md)
 
 **FASE 2 — Captación (4 bloques; Google Places 2.5 diferido):**

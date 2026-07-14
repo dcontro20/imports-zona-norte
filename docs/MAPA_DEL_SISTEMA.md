@@ -141,7 +141,10 @@ Ver `docs/PLAN_MAYORISTA.md` (roadmap fase por fase).
 - **FASE 2** ✅ captación: `src/prospecting.js` (embudo + priorización + cobertura),
   `components/Pipeline.jsx` (kanban prospecto→mayorista + visitas), `components/ProspectMap.jsx`
   (cobertura por zona). Colecciones `prospects` + `visits`. Alta manual (Places diferido).
-- Pendiente: Rutas de reparto, cuenta corriente B2B (fases 3–4).
+- **FASE 3** ✅ logística: `src/routes.js` + `lib/routeSheet.js` (agrupar pedidos por zona,
+  orden manual, hoja de ruta), `components/Routes.jsx` (armado de ruta + fulfillment
+  armado→en_ruta→entregado→cobrado). Colección `routes`. optimización = stub.
+- Pendiente: cuenta corriente B2B (fase 4).
 
 ### Capa 6 — Backend (corre fuera del navegador)
 - `api/send-daily-push.js` — función que dispara las notificaciones push.
