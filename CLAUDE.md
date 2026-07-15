@@ -371,7 +371,10 @@ wholesaleMessage, wholesaleIntelligence, wholesaleExport, routeSheet.
 - **Tanda C (robustez / UI defensiva) ✅** — hardening (guards en Routes/Kioscos) + test de
   idempotencia 2x/3x de la migración. Verificado: formatMoney defensivo, .qty/.items guardados,
   empty states presentes. Ningún bug. 1010 tests.
-- **Siguiente tanda: D (tests de integración de flujos completos).**
+- **Tanda D (integración) ✅** — +5 tests de flujos punta a punta a nivel de datos
+  (pedido→ruta→cobro con caja, prospecto→conversión, cuenta corriente, P&L por canal,
+  no-regresión minorista). Ningún bug — las piezas encajan. 1015 tests.
+- **Siguiente tanda: E (documentación de usuario) — no toca código.**
 
 **Siguiente:** revisión + prueba de Diego → recién ahí mergear a main.
 
