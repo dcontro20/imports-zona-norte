@@ -6,6 +6,7 @@ import { T } from "../theme.js";
 import { BUSINESS_TYPES, WHOLESALE_TIERS, PIPELINE_STAGES } from "../constants.js";
 import { buildClientStats, classifyClient, predictNextPurchase } from "../clientIntelligence.js";
 import { kioscosToCSV } from "../lib/wholesaleExport.js";
+import { clientOutstanding } from "../lib/creditAccount.js";
 import { useAppContext } from "../AppContext.js";
 
 // Descarga un CSV en el browser (helper local — la generación del string es pura).
@@ -263,6 +264,7 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] })
             const segS = SEG_STYLE[seg] || SEG_STYLE.sin_compras;
             const tierS = TIER_STYLE[c.wholesaleTier] || { color: T.textMuted, bg: T.borderSoft };
             const pred = st ? predictNextPurchase(st) : null;
+            const owed = clientOutstanding(c, sales); // adeudado B2B real (deriva de ventas, no de balance)
             return (
               <Card key={c.id} style={{ cursor: "pointer", outline: selectMode && selected[c.id] ? `2px solid ${T.primary}` : "none" }}>
                 <div onClick={() => selectMode ? toggleSelect(c.id) : openEdit(c)}>
@@ -287,7 +289,7 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] })
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
                     <span style={{ background: segS.bg, color: segS.color, borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>{segS.label}</span>
                     {st?.salesCount > 0 && <span style={{ background: T.borderSoft, color: T.textSub, borderRadius: 6, padding: "2px 8px", fontSize: 11 }}>{st.salesCount} pedidos</span>}
-                    {typeof c.balance === "number" && c.balance < 0 && <span style={{ background: T.redBg, color: T.red, borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>Debe {formatMoney(Math.abs(c.balance))}</span>}
+                    {owed > 0 && <span style={{ background: T.redBg, color: T.red, borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>Debe {formatMoney(owed)}</span>}
                   </div>
                   {pred && pred.status === "atrasado" && (
                     <div style={{ marginTop: 8, fontSize: 12, color: T.red }}>⏰ Debería haber recomprado hace {pred.overdueDays}d</div>
