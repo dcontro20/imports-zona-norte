@@ -362,10 +362,13 @@ Módulos puros nuevos: wholesale, wholesaleMigration, prospecting, routes, credi
 wholesaleMessage, wholesaleIntelligence, wholesaleExport, routeSheet.
 
 **Mejoras continuas (sin prueba manual, sin mergear):** ver `docs/PLAN_MEJORAS_MAYORISTA.md`
-(tandas A–F). **Tanda A (higiene) ✅** — verificado: pricing viejo borrado, cero hex
-hardcodeados, cero uso de client.balance para deuda B2B. 2 findings menores levantados
-(badge "Debe" en Kioscos desde balance retail; `productsByZone` sin consumir aún). Fix
-A.2: log de firebase solo en test env. **Siguiente tanda: B (blindaje de plata).**
+(tandas A–F).
+- **Tanda A (higiene) ✅** — verificado limpio. Fix A.2 (log firebase solo en test env).
+  Finding A.4 resuelto: badge "Debe" en Kioscos ahora usa `clientOutstanding` (adeudado
+  B2B real), no `client.balance`. Finding A.3: `productsByZone` queda como building-block.
+- **Tanda B (blindaje de plata) ✅** — +63 edge tests en wholesale/creditAccount/cashBridge/
+  wholesaleIntelligence/routes. **Ningún bug encontrado** (cálculos ya blindados). 1007 tests.
+- **Siguiente tanda: C (robustez de datos / defensivo en UI).**
 
 **Siguiente:** revisión + prueba de Diego → recién ahí mergear a main.
 
