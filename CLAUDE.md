@@ -375,6 +375,8 @@ wholesaleMessage, wholesaleIntelligence, wholesaleExport, routeSheet.
   (pedido→ruta→cobro con caja, prospecto→conversión, cuenta corriente, P&L por canal,
   no-regresión minorista). Ningún bug — las piezas encajan. 1015 tests.
 - **Siguiente tanda: E (documentación de usuario) — no toca código.**
+- Journal de las 4 tandas: `docs/SESSION_2026-07-14_mejoras_tandas_ABCD.md`.
+  **Resumen A–D: 944 → 1015 tests (+71), cero bugs reales.**
 
 **Siguiente:** revisión + prueba de Diego → recién ahí mergear a main.
 
