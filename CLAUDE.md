@@ -368,7 +368,10 @@ wholesaleMessage, wholesaleIntelligence, wholesaleExport, routeSheet.
   B2B real), no `client.balance`. Finding A.3: `productsByZone` queda como building-block.
 - **Tanda B (blindaje de plata) ✅** — +63 edge tests en wholesale/creditAccount/cashBridge/
   wholesaleIntelligence/routes. **Ningún bug encontrado** (cálculos ya blindados). 1007 tests.
-- **Siguiente tanda: C (robustez de datos / defensivo en UI).**
+- **Tanda C (robustez / UI defensiva) ✅** — hardening (guards en Routes/Kioscos) + test de
+  idempotencia 2x/3x de la migración. Verificado: formatMoney defensivo, .qty/.items guardados,
+  empty states presentes. Ningún bug. 1010 tests.
+- **Siguiente tanda: D (tests de integración de flujos completos).**
 
 **Siguiente:** revisión + prueba de Diego → recién ahí mergear a main.
 
