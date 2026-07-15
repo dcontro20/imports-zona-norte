@@ -98,7 +98,7 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] })
       if (fTier && c.wholesaleTier !== fTier) return false;
       if (fStage && c.pipelineStage !== fStage) return false;
       if (q) {
-        const hay = `${c.name} ${c.businessName || ""} ${c.zone || ""} ${c.phone || ""}`.toLowerCase();
+        const hay = `${c.name || ""} ${c.businessName || ""} ${c.zone || ""} ${c.phone || ""}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;

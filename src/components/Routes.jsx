@@ -82,8 +82,9 @@ export function Routes({ routes = [], setRoutes, clients = [], sales = [], setSa
 
   // --- Estado por parada ---
   const setStopStatus = (r, idx, status) => {
-    updateRoute(r.id, x => ({ ...x, stops: x.stops.map((s, i) => i === idx ? { ...s, status, deliveredAt: status === "entregado" ? now() : s.deliveredAt } : s) }));
-    const orderId = r.stops[idx].orderId;
+    updateRoute(r.id, x => ({ ...x, stops: (x.stops || []).map((s, i) => i === idx ? { ...s, status, deliveredAt: status === "entregado" ? now() : s.deliveredAt } : s) }));
+    const orderId = r.stops?.[idx]?.orderId;
+    if (!orderId) return;
     if (status === "entregado") {
       setSales(prev => prev.map(s => s.id === orderId ? { ...s, fulfillmentStatus: "entregado" } : s));
     }
@@ -108,7 +109,7 @@ export function Routes({ routes = [], setRoutes, clients = [], sales = [], setSa
       ? { ...s, payments: [...(s.payments || []), payment], fulfillmentStatus: saleOutstanding(s) - amount <= 0 ? "cobrado" : "entregado" }
       : s));
     // La parada queda entregada.
-    updateRoute(cobro.routeId, x => ({ ...x, stops: x.stops.map((s, i) => i === cobro.idx ? { ...s, status: "entregado", deliveredAt: s.deliveredAt || now() } : s) }));
+    updateRoute(cobro.routeId, x => ({ ...x, stops: (x.stops || []).map((s, i) => i === cobro.idx ? { ...s, status: "entregado", deliveredAt: s.deliveredAt || now() } : s) }));
     logAudit?.("cobro", "sale", cobro.orderId, `Cobro mayorista ${cobro.name}: ${formatMoney(amount)} (${payForm.method})`);
     setCobro(null);
     flash(`💵 Cobrado ${formatMoney(amount)} → ${payForm.method}`);
