@@ -336,7 +336,36 @@ A partir del 14/04/2026, GitHub está sincronizado y es la fuente de verdad del 
 
 ---
 
-## Estado del proyecto al 14/07/2026
+## Estado del proyecto al 17/07/2026
+
+### 🚀 PIVOTE MAYORISTA EN PRODUCCIÓN (docs/SESSION_2026-07-17_merge_mayorista.md)
+
+**Mergeado a `main` (`5d8193c`) y deployado el 2026-07-17.** Diego probó en
+local (tier pricing + cobro a caja OK) y dio luz verde. Deploy Vercel
+verificado (bundle por hash + strings mayoristas). PR #2 quedó merged.
+**1017 tests verdes.** Resumen: `docs/IZN_Merge_Mayorista_Resumen.md`.
+
+- **Fix pantalla en blanco** (`4c02968`): el `useMemo` de `visibleNavItems`
+  (Fase 0.6) violaba Rules of Hooks — estaba después de los early returns de
+  loading/login en `App.jsx`. REGLA: todo hook de App va ANTES de esos returns.
+  Lo cubre el smoke test nuevo `src/App.test.jsx` (monta App con firebase
+  mockeado, recorre loading → login → sesión).
+- **Patrón de test**: quien monte `App` en tests debe drenar los lazy imports
+  antes de cerrar (`drainLazyChunks` en App.test.jsx) o la suite se vuelve
+  flaky con `EnvironmentTeardownError` (`f4af5c9`).
+- **`claude/claude-md-docs-oNlms` (Agente Redactor) NO se mergea**: era
+  ancestro de `claude/mayorista` (el pivote se creó encima) → ya está en main.
+  Ambas branches quedaron mergeadas, candidatas a borrar.
+- **Migración `migrateToWholesaleModel`**: ya corrió sobre la data real de
+  prod durante la prueba local de Diego del 16/07 (el dev local usa Firestore
+  de PROD por el fallback de config). Idempotente — re-corre como no-op.
+- **⚠️ BACKUPS ROTOS desde 2026-07-09**: `backup-diario.yml` marca success
+  pero el upload a Drive falla silencioso (`GOOGLE_DRIVE_TOKEN` expirado).
+  Pendiente Diego: backup manual (`node scripts/backup.mjs --upload`) +
+  renovar token (`node scripts/auth-oauth.mjs` + GitHub Secret). Pendiente de
+  codear: `exit 1` si falla el upload.
+
+## Estado del proyecto al 14/07/2026 (histórico — ya mergeado)
 
 ### 🏪 PIVOTE MAYORISTA — COMPLETO (fases 0–6) · en `claude/mayorista`, SIN mergear
 
