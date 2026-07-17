@@ -365,6 +365,16 @@ verificado (bundle por hash + strings mayoristas). PR #2 quedó merged.
   extraídos del código real. Cero cambios en src/. **Siguiente: Tanda F**
   (propuestas de producto — requieren OK de Diego ítem por ítem ANTES de
   construir). Journal: `docs/SESSION_2026-07-17_tanda_E_docs.md`.
+- **Tanda F.1 ✅ 2026-07-17 (`1967729`) — modos como MUNDOS SEPARADOS**:
+  el toggle 🏪/🛒 ahora FILTRA el nav (ya no reordena). Cada modo ve solo sus
+  pantallas + compartidas bajo un divisor; home por modo (Panel mayorista /
+  Dashboard); redirect al cambiar si la pantalla era del otro mundo. SIN
+  lockout (⌘K/alertas/deep-links abren todo — aprobado). Clasificación en
+  `NAV_ITEMS[].group` (dashboard pasó a minorista; Compras/Mermas/Precios
+  compartidas — validado por Diego). Gotcha de test: con `globals:false`
+  vitest no auto-registra cleanup de testing-library → `afterEach(cleanup)`
+  obligatorio en tests con 2+ renders. 1023 tests.
+  Journal: `docs/SESSION_2026-07-17_tanda_F1_modos.md`.
 - **Backups endurecidos (2026-07-17, docs/SESSION_2026-07-17_backup_hardening.md)**:
   tras 8 días sin backup con el Action verde (09–17/07), `backup.mjs --upload`
   ahora hace **exit 1** si el upload a Drive falla (`9922749`), sella
