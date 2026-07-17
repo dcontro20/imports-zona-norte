@@ -180,6 +180,24 @@ export const Btn = ({ children, variant = "primary", ...props }) => {
   );
 };
 
+// Botón chico para acciones inline en cards (kanban del Pipeline, paradas de
+// Rutas). Compacto en desktop; en mobile sube a 44px de alto (tap target).
+// Reemplaza los MiniBtn locales duplicados que quedaban en 28-30px fijos.
+export const MiniBtn = ({ children, onClick, color, disabled, style }) => {
+  const { isMobile } = useResponsive();
+  return (
+    <button onClick={onClick} disabled={disabled} style={{
+      border: `1px solid ${color}`, background: "transparent", color,
+      borderRadius: 6, cursor: disabled ? "default" : "pointer", fontWeight: 700,
+      padding: isMobile ? "8px 12px" : "3px 7px",
+      fontSize: isMobile ? 13 : 11,
+      minHeight: isMobile ? 44 : 28,
+      fontFamily: "inherit",
+      ...style,
+    }}>{children}</button>
+  );
+};
+
 export const Input = ({ label, ...props }) => {
   const { isMobile } = useResponsive();
   return (

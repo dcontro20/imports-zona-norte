@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { uid, formatDate } from "../helpers.js";
 import { useResponsive } from "../App.jsx";
-import { Card, Btn, Modal, Input, Select, StatCard } from "./UI.jsx";
+import { Card, Btn, Modal, Input, Select, StatCard, MiniBtn } from "./UI.jsx";
 import { T } from "../theme.js";
 import { PROSPECT_SOURCES, VISIT_OUTCOMES } from "../constants.js";
 import {
@@ -145,8 +145,8 @@ export function Pipeline({ prospects = [], setProspects, clients = [], setClient
         {columns.map(({ stage, isClient }) => {
           const items = byStage(stage, isClient);
           return (
-            <div key={stage} style={{ background: T.bg, border: `1px solid ${T.borderSoft}`, borderRadius: 12, padding: 8, minHeight: 80 }}>
-              <div style={{ fontSize: 12, fontWeight: 800, color: STAGE_COLOR[stage], marginBottom: 8, display: "flex", justifyContent: "space-between" }}>
+            <div key={stage} style={{ background: T.bg, border: `1px solid ${T.borderSoft}`, borderRadius: 12, padding: 8, minHeight: isMobile ? 0 : 80 }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: STAGE_COLOR[stage], marginBottom: isMobile && items.length === 0 ? 0 : 8, display: "flex", justifyContent: "space-between", alignItems: "center", minHeight: isMobile ? 28 : undefined }}>
                 <span>{STAGE_LABEL[stage]}</span><span style={{ color: T.textFaint }}>{items.length}</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -173,7 +173,9 @@ export function Pipeline({ prospects = [], setProspects, clients = [], setClient
                     </div>
                   );
                 })}
-                {items.length === 0 && <div style={{ fontSize: 11, color: T.textFaint, textAlign: "center", padding: 8 }}>—</div>}
+                {/* Mobile: etapa vacía = solo el header compacto (sin placeholder) —
+                    con 6 etapas apiladas los "—" alargaban el scroll al pedo. */}
+                {items.length === 0 && !isMobile && <div style={{ fontSize: 11, color: T.textFaint, textAlign: "center", padding: 8 }}>—</div>}
               </div>
             </div>
           );
@@ -217,11 +219,3 @@ export function Pipeline({ prospects = [], setProspects, clients = [], setClient
   );
 }
 
-function MiniBtn({ children, onClick, color }) {
-  return (
-    <button onClick={onClick} style={{
-      border: `1px solid ${color}`, background: "transparent", color,
-      borderRadius: 6, padding: "3px 7px", cursor: "pointer", fontSize: 11, fontWeight: 700, minHeight: 28,
-    }}>{children}</button>
-  );
-}

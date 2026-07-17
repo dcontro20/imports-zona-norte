@@ -204,7 +204,8 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
                       <button key={p.id} onClick={() => addProduct(p)} style={{
                         textAlign: "left", border: `1px solid ${T.borderSoft}`, background: T.card, color: T.text,
                         borderRadius: 8, padding: "8px 12px", cursor: "pointer", fontSize: 13,
-                        display: "flex", justifyContent: "space-between", gap: 8,
+                        minHeight: isMobile ? 44 : undefined,
+                        display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8,
                       }}>
                         <span>{prodLabel(p)}</span>
                         <span style={{ color: T.textMuted, flexShrink: 0 }}>
@@ -229,6 +230,32 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
                     {resolvedLines.map(l => {
                       const line = margin.perLine.find(x => x.product?.id === l.productId);
                       const mc = !line ? T.textMuted : line.marginPct >= 30 ? T.green : line.marginPct >= 20 ? T.amber : T.red;
+                      // Mobile: card de 2 filas (nombre+✕ / qty+precio+subtotal)
+                      // en vez de la fila-tabla de 5 elementos que wrapeaba feo.
+                      if (isMobile) return (
+                        <div key={l.productId} style={{ borderBottom: `1px solid ${T.borderSoft}`, paddingBottom: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <div style={{ flex: 1, minWidth: 0, fontSize: 14, color: T.text, fontWeight: 600 }}>
+                              {l.product ? prodLabel(l.product) : "?"}
+                              <div style={{ fontSize: 11, fontWeight: 700, color: mc }}>margen {line ? line.marginPct : 0}%</div>
+                            </div>
+                            <button onClick={() => removeLine(l.productId)} aria-label="Quitar producto" style={{
+                              border: `1px solid ${T.borderSoft}`, background: T.bg, color: T.red, cursor: "pointer",
+                              fontSize: 16, width: 44, height: 44, borderRadius: 10, flexShrink: 0,
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                            }}>✕</button>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <input type="number" min="0" value={l.qty} onChange={e => setQty(l.productId, e.target.value)}
+                              aria-label="Cantidad"
+                              style={{ flex: 1, minWidth: 0, padding: "8px", minHeight: 44, borderRadius: 8, border: `1px solid ${T.border}`, textAlign: "center", fontSize: 16, background: T.card, color: T.text, boxSizing: "border-box" }} />
+                            <input type="number" step="0.01" value={l.baseUSD} onChange={e => setPrice(l.productId, e.target.value)}
+                              title="Precio unitario USD (editable)" aria-label="Precio unitario USD"
+                              style={{ flex: 1, minWidth: 0, padding: "8px", minHeight: 44, borderRadius: 8, border: `1px solid ${T.border}`, textAlign: "right", fontSize: 16, background: T.card, color: T.text, boxSizing: "border-box" }} />
+                            <div style={{ flex: 1, minWidth: 0, textAlign: "right", fontSize: 14, fontWeight: 700, color: T.textSub, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{formatMoney(Math.round(l.unitPriceUSD * l.qty * rate))}</div>
+                          </div>
+                        </div>
+                      );
                       return (
                         <div key={l.productId} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", borderBottom: `1px solid ${T.borderSoft}`, paddingBottom: 8 }}>
                           <div style={{ flex: "1 1 160px", minWidth: 0, fontSize: 13, color: T.text, fontWeight: 600 }}>
@@ -236,12 +263,12 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
                             <div style={{ fontSize: 11, fontWeight: 700, color: mc }}>margen {line ? line.marginPct : 0}%</div>
                           </div>
                           <input type="number" min="0" value={l.qty} onChange={e => setQty(l.productId, e.target.value)}
-                            style={{ width: 64, padding: "8px", borderRadius: 8, border: `1px solid ${T.border}`, textAlign: "center", fontSize: isMobile ? 16 : 14, background: T.card, color: T.text }} />
+                            style={{ width: 64, padding: "8px", borderRadius: 8, border: `1px solid ${T.border}`, textAlign: "center", fontSize: 14, background: T.card, color: T.text }} />
                           <input type="number" step="0.01" value={l.baseUSD} onChange={e => setPrice(l.productId, e.target.value)}
                             title="Precio unitario USD (editable)"
-                            style={{ width: 84, padding: "8px", borderRadius: 8, border: `1px solid ${T.border}`, textAlign: "right", fontSize: isMobile ? 16 : 14, background: T.card, color: T.text }} />
+                            style={{ width: 84, padding: "8px", borderRadius: 8, border: `1px solid ${T.border}`, textAlign: "right", fontSize: 14, background: T.card, color: T.text }} />
                           <div style={{ width: 90, textAlign: "right", fontSize: 13, color: T.textSub }}>{formatMoney(Math.round(l.unitPriceUSD * l.qty * rate))}</div>
-                          <button onClick={() => removeLine(l.productId)} style={{ border: "none", background: "transparent", color: T.red, cursor: "pointer", fontSize: 16 }}>✕</button>
+                          <button onClick={() => removeLine(l.productId)} aria-label="Quitar producto" style={{ border: "none", background: "transparent", color: T.red, cursor: "pointer", fontSize: 16, width: 32, height: 32, borderRadius: 6 }}>✕</button>
                         </div>
                       );
                     })}
@@ -270,7 +297,7 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
       )}
 
       {toast && (
-        <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", background: T.primary, color: "#fff", padding: "12px 20px", borderRadius: 10, fontSize: 14, fontWeight: 600, zIndex: 300, boxShadow: "0 8px 24px rgba(0,0,0,0.2)" }}>{toast}</div>
+        <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", background: T.primary, color: "#fff", padding: "12px 20px", borderRadius: 10, fontSize: 14, fontWeight: 600, zIndex: 300, boxShadow: "0 8px 24px rgba(0,0,0,0.2)", maxWidth: "calc(100vw - 32px)", boxSizing: "border-box", textAlign: "center" }}>{toast}</div>
       )}
     </div>
   );
@@ -278,8 +305,8 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
 
 function Totals({ label, value, color = T.text }) {
   return (
-    <div style={{ textAlign: "center" }}>
-      <div style={{ fontSize: 20, fontWeight: 800, color }}>{value}</div>
+    <div style={{ textAlign: "center", minWidth: 0 }}>
+      <div style={{ fontSize: 18, fontWeight: 800, color, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{value}</div>
       <div style={{ fontSize: 11, color: T.textMuted }}>{label}</div>
     </div>
   );

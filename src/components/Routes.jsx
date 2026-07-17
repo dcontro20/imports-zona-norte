@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { uid, formatDate, formatMoney } from "../helpers.js";
 import { useResponsive } from "../App.jsx";
-import { Card, Btn, Modal, Input, Select, StatCard } from "./UI.jsx";
+import { Card, Btn, Modal, Input, Select, StatCard, MiniBtn } from "./UI.jsx";
 import { T } from "../theme.js";
 import { PAYMENT_METHODS, MP_ACCOUNTS } from "../constants.js";
 import { useAppContext } from "../AppContext.js";
@@ -172,9 +172,9 @@ export function Routes({ routes = [], setRoutes, clients = [], sales = [], setSa
                     <span style={{ background: cobrado ? T.greenBg : ss.bg, color: cobrado ? T.green : ss.color, borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 800 }}>
                       {cobrado ? "💵 Cobrado" : ss.label}
                     </span>
-                    <div style={{ display: "flex", gap: 4 }}>
-                      <button onClick={() => reorder(openRoute, i, -1)} disabled={i === 0} style={arrowStyle(i === 0)}>↑</button>
-                      <button onClick={() => reorder(openRoute, i, 1)} disabled={i === stops.length - 1} style={arrowStyle(i === stops.length - 1)}>↓</button>
+                    <div style={{ display: "flex", gap: isMobile ? 10 : 4 }}>
+                      <button onClick={() => reorder(openRoute, i, -1)} disabled={i === 0} style={arrowStyle(i === 0, isMobile)}>↑</button>
+                      <button onClick={() => reorder(openRoute, i, 1)} disabled={i === stops.length - 1} style={arrowStyle(i === stops.length - 1, isMobile)}>↓</button>
                     </div>
                   </div>
                 </div>
@@ -289,12 +289,12 @@ export function Routes({ routes = [], setRoutes, clients = [], sales = [], setSa
   );
 }
 
-function MiniBtn({ children, onClick, color }) {
-  return <button onClick={onClick} style={{ border: `1px solid ${color}`, background: "transparent", color, borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 11, fontWeight: 700, minHeight: 30 }}>{children}</button>;
-}
-function arrowStyle(disabled) {
-  return { border: `1px solid ${T.border}`, background: T.card, color: disabled ? T.textFaint : T.textSub, borderRadius: 6, width: 30, height: 30, cursor: disabled ? "default" : "pointer", fontSize: 14 };
+// 44px en mobile: 30×30 con gap 4 era el peor tap target de la app —
+// reordenando paradas se tocaba la flecha equivocada seguido.
+function arrowStyle(disabled, isMobile) {
+  const side = isMobile ? 44 : 30;
+  return { border: `1px solid ${T.border}`, background: T.card, color: disabled ? T.textFaint : T.textSub, borderRadius: 6, width: side, height: side, cursor: disabled ? "default" : "pointer", fontSize: isMobile ? 17 : 14 };
 }
 function Toast({ msg }) {
-  return <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", background: T.primary, color: "#fff", padding: "12px 20px", borderRadius: 10, fontSize: 14, fontWeight: 600, zIndex: 300, boxShadow: "0 8px 24px rgba(0,0,0,0.2)" }}>{msg}</div>;
+  return <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", background: T.primary, color: "#fff", padding: "12px 20px", borderRadius: 10, fontSize: 14, fontWeight: 600, zIndex: 300, boxShadow: "0 8px 24px rgba(0,0,0,0.2)", maxWidth: "calc(100vw - 32px)", boxSizing: "border-box", textAlign: "center" }}>{msg}</div>;
 }
