@@ -35,7 +35,7 @@ export function DashboardMayorista({ clients = [], sales = [], products = [], pr
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
-        <h2 style={{ color: T.text, margin: 0, fontSize: 22 }}>📊 Dashboard mayorista</h2>
+        <h2 style={{ color: T.text, margin: 0, fontSize: 22 }}>📊 Panel mayorista</h2>
         <div style={{ display: "flex", background: T.borderSoft, borderRadius: 8, padding: 2 }}>
           {[30, 90].map(d => (
             <button key={d} onClick={() => setPeriod(d)} style={{

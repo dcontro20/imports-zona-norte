@@ -104,20 +104,21 @@ describe("App — smoke de montaje (Rules of Hooks)", () => {
       authState.callback({ uid: "diego", email: "dcontro20@gmail.com" });
     });
 
-    // El nav renderiza visibleNavItems (el useMemo del bug original):
-    // los items mayoristas del pivote tienen que estar en el menú.
+    // El nav renderiza visibleNavItems (el useMemo del bug original).
+    // Default: modo MINORISTA (decisión Diego 2026-07-17) → se ven las
+    // pantallas minoristas + compartidas.
     const nav = getNav();
-    expect(within(nav).getByText("Kioscos")).toBeTruthy();
-    expect(within(nav).getByText("Panel mayorista")).toBeTruthy();
-    expect(within(nav).getByText("Rutas")).toBeTruthy();
+    expect(within(nav).getByText("Dashboard")).toBeTruthy();
+    expect(within(nav).getByText("Ventas")).toBeTruthy();
+    expect(within(nav).getByText("Clientes")).toBeTruthy();
     // Compartidas visibles en ambos modos
     expect(within(nav).getByText("Stock")).toBeTruthy();
     expect(within(nav).getByText("Caja")).toBeTruthy();
-    // Aserción inversa (Tanda F.1): en modo mayorista las pantallas
-    // minoristas NO aparecen en el nav — el modo FILTRA, no reordena.
-    expect(within(nav).queryByText("Ventas")).toBeNull();
-    expect(within(nav).queryByText("Dashboard")).toBeNull();
-    expect(within(nav).queryByText("Mensajes")).toBeNull();
+    // Aserción inversa (Tanda F.1): las pantallas del otro modo NO aparecen
+    // en el nav — el modo FILTRA, no reordena.
+    expect(within(nav).queryByText("Kioscos")).toBeNull();
+    expect(within(nav).queryByText("Panel mayorista")).toBeNull();
+    expect(within(nav).queryByText("Rutas")).toBeNull();
 
     await drainLazyChunks();
   });
@@ -131,7 +132,7 @@ describe("App — smoke de montaje (Rules of Hooks)", () => {
       authState.callback({ uid: "diego", email: "dcontro20@gmail.com" });
     });
 
-    expect(screen.getAllByText("Kioscos").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Ventas").length).toBeGreaterThan(0);
 
     await drainLazyChunks();
   });
@@ -142,29 +143,65 @@ describe("App — smoke de montaje (Rules of Hooks)", () => {
       authState.callback({ uid: "diego", email: "dcontro20@gmail.com" });
     });
 
-    // Default: modo mayorista, parado en Panel mayorista (pantalla exclusiva)
-    expect(within(getNav()).queryByText("Ventas")).toBeNull();
+    // Default: modo minorista, parado en Dashboard (pantalla exclusiva)
+    expect(within(getNav()).queryByText("Kioscos")).toBeNull();
 
-    // Cambiar a minorista con el toggle del topbar
+    // Cambiar a mayorista con el toggle del topbar
     await act(async () => {
-      fireEvent.click(screen.getByTitle("Modo minorista"));
+      fireEvent.click(screen.getByTitle("Modo mayorista"));
     });
 
-    // El nav ahora muestra las minoristas y oculta las mayoristas...
+    // El nav ahora muestra las mayoristas y oculta las minoristas...
     const nav = getNav();
-    expect(within(nav).getByText("Ventas")).toBeTruthy();
-    expect(within(nav).getByText("Dashboard")).toBeTruthy();
-    expect(within(nav).queryByText("Kioscos")).toBeNull();
-    expect(within(nav).queryByText("Panel mayorista")).toBeNull();
+    expect(within(nav).getByText("Kioscos")).toBeTruthy();
+    expect(within(nav).getByText("Panel mayorista")).toBeTruthy();
+    expect(within(nav).queryByText("Ventas")).toBeNull();
+    expect(within(nav).queryByText("Dashboard")).toBeNull();
     // ...las compartidas siguen
     expect(within(nav).getByText("Stock")).toBeTruthy();
 
-    // Redirect: estaba en Panel mayorista (no existe en minorista) → va al
-    // Dashboard minorista (aparece su h1, además del label del nav).
+    // Redirect: estaba en Dashboard (no existe en mayorista) → va al Panel
+    // mayorista (aparece su h2 "📊 Panel mayorista", además del label del
+    // nav — por eso regex y no string exacto).
     await waitFor(() => {
-      expect(screen.getAllByText("Dashboard").length).toBeGreaterThan(1);
+      expect(screen.getAllByText(/Panel mayorista/).length).toBeGreaterThan(1);
     });
 
     await drainLazyChunks();
+  });
+
+  it("topbar mobile (375px): ☰ y toggle visibles, sin logo-texto ni chips de usuario", async () => {
+    const prevWidth = window.innerWidth;
+    window.innerWidth = 375;
+    window.dispatchEvent(new Event("resize"));
+    try {
+      render(<App />);
+      await act(async () => {
+        authState.callback({ uid: "diego", email: "dcontro20@gmail.com" });
+      });
+
+      // Siempre visibles en el topbar mobile: ☰ (44px, display flex) y toggle
+      const burger = screen.getByLabelText("Abrir menú");
+      expect(burger.style.display).toBe("flex");
+      expect(screen.getByTitle("Modo mayorista")).toBeTruthy();
+      expect(screen.getByTitle("Modo minorista")).toBeTruthy();
+
+      // El logo-texto NO se renderiza en mobile (solo el isotipo LogoMark):
+      // era lo que desbordaba y quedaba abajo del toggle (bug 2026-07-17).
+      expect(screen.queryByText("IMPORTS")).toBeNull();
+      expect(screen.queryByText("ZONA NORTE")).toBeNull();
+
+      // ⚙️ y usuario se mudaron del topbar al menú ☰
+      expect(screen.queryByLabelText("Configuración")).toBeNull();
+      const nav = getNav();
+      expect(within(nav).getByText("Ajustes")).toBeTruthy();
+      expect(within(nav).getByText("Cerrar sesión")).toBeTruthy();
+      expect(within(nav).getByText("Diego")).toBeTruthy();
+
+      await drainLazyChunks();
+    } finally {
+      window.innerWidth = prevWidth;
+      window.dispatchEvent(new Event("resize"));
+    }
   });
 });

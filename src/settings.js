@@ -5,10 +5,12 @@
 const STORAGE_KEY = "izn_settings";
 
 export const DEFAULT_SETTINGS = {
-  // Modo de negocio (pivote a kioscos). "mayorista" prioriza las pantallas B2B
+  // Modo de negocio (pivote a kioscos). Default "minorista" (decisión Diego
+  // 2026-07-17: el minorista sigue siendo el canal más usado mientras los
+  // kioscos arrancan — se da vuelta con un click del toggle cuando crezca).
   // en la navegación; "minorista" mantiene el orden histórico. NO oculta nada:
   // ambos modos ven todas las pantallas, solo cambia el orden.
-  businessMode: "mayorista",
+  businessMode: "minorista",
 
   // Stock & inventario
   lowStockThreshold: 3,        // alerta "stock bajo" si stock <= esto

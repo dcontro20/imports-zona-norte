@@ -52,10 +52,17 @@
       }
       button { font-family: inherit; }
       button, a { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
-      ::-webkit-scrollbar { width: 10px; height: 10px; }
-      ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: #D4C8A8; border-radius: 5px; }
-      ::-webkit-scrollbar-thumb:hover { background: #B5A480; }
+      /* Scrollbar estilizado SOLO en dispositivos con mouse. En iOS/PWA los
+         estilos ::-webkit-scrollbar fuerzan una barra beige PERSISTENTE
+         pegada al borde derecho que roba ancho al contenido (bug visto en
+         iPhone 2026-07-17). pointer:fine = mouse/trackpad; touch queda con
+         el scroll overlay nativo invisible. */
+      @media (pointer: fine) {
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #D4C8A8; border-radius: 5px; }
+        ::-webkit-scrollbar-thumb:hover { background: #B5A480; }
+      }
       @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
     </style>
   </head>

@@ -265,7 +265,7 @@ const MODE_HOME = { mayorista: "dashMayorista", minorista: "dashboard" };
 // nada más: renderPage sigue renderizando cualquier pantalla, así ⌘K,
 // alertas y deep-links del otro modo abren igual (los datos son uno solo).
 function navItemsForMode(items, mode) {
-  const m = mode === "minorista" ? "minorista" : "mayorista";
+  const m = mode === "mayorista" ? "mayorista" : "minorista";
   return [
     ...items.filter(it => it.group === m),
     ...items.filter(it => it.group === "shared"),
@@ -276,7 +276,7 @@ function navItemsForMode(items, mode) {
 // otro modo → home del modo nuevo. Compartidas y pantallas fuera del nav
 // (legacy / deep-link) se quedan donde están.
 function pageAfterModeSwitch(page, mode) {
-  const m = mode === "minorista" ? "minorista" : "mayorista";
+  const m = mode === "mayorista" ? "mayorista" : "minorista";
   const item = NAV_ITEMS.find(it => it.key === page);
   if (item && item.group !== "shared" && item.group !== m) return MODE_HOME[m];
   return page;
@@ -303,7 +303,7 @@ export default function App() {
 
   // ---- UI state ----
   // Arranca en el home del modo activo (Panel mayorista o Dashboard).
-  const [page, setPage] = useState(() => MODE_HOME[loadSettings().businessMode] || MODE_HOME.mayorista);
+  const [page, setPage] = useState(() => MODE_HOME[loadSettings().businessMode] || MODE_HOME.minorista);
   const [presenceList, setPresenceList] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
@@ -815,14 +815,21 @@ export default function App() {
           boxShadow: "0 2px 8px rgba(30, 43, 74, 0.04)",
           gap: 8,
         }}>
+          {/* Cluster izquierdo. En mobile va SOLO el isotipo (LogoMark, sin
+              texto): el LogoFull con whiteSpace:nowrap desbordaba su caja
+              cuando el cluster derecho lo aplastaba y el toggle se pintaba
+              encima (bug topbar 2026-07-17). Presupuesto mobile total del
+              topbar: ☰(40) + logo(30) + toggle(~110) + sync(~22) ≈ 220px. */}
           <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 14, minWidth: 0, flex: "0 1 auto" }}>
             <button onClick={() => setMenuOpen(!menuOpen)} aria-label="Abrir menú" style={{
               background: "none", border: "none", color: "#1E2B4A", fontSize: 22, cursor: "pointer",
               display: isMobile ? "flex" : "none", flexShrink: 0,
-              width: 40, height: 40, padding: 0, borderRadius: 8,
+              width: 44, height: 44, padding: 0, borderRadius: 8,
               alignItems: "center", justifyContent: "center",
             }}>☰</button>
-            <LogoFull size={isMobile ? 28 : 34} compact={isMobile} />
+            {isMobile
+              ? <LogoMark size={30} bgColor="#FFFFFF" style={{ flexShrink: 0 }} />
+              : <LogoFull size={34} />}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 6 : 12 }}>
             {/* Global Search — hidden on mobile to save space */}
@@ -917,16 +924,20 @@ export default function App() {
                 Blue: <span style={{ color: "#1E2B4A", fontWeight: 700 }}>${exchangeRate}</span>
               </div>
             )}
+            {/* ⚙️ / presencia / usuario: en mobile viven en el menú ☰ (el
+                topbar no tiene presupuesto de ancho para ellos en 375px). */}
+            {!isMobile && (
             <button onClick={() => setSettingsOpen(true)} aria-label="Configuración"
               style={{
                 background: "transparent", border: "1px solid #E5DAC2",
-                borderRadius: 8, padding: isMobile ? "5px 8px" : "5px 10px",
+                borderRadius: 8, padding: "5px 10px",
                 cursor: "pointer", color: "#6B7794", fontSize: 14,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 flexShrink: 0, fontFamily: "inherit",
               }}>⚙️</button>
+            )}
             {/* Presencia del otro socio (colaboración) */}
-            {partnerOnline && (
+            {!isMobile && partnerOnline && (
               <div title={`${partnerOnline.name} activo · ${partnerOnline.page || ""} · ${formatRelative(partnerOnline.lastSeen, presenceClock)}`}
                 style={{
                   display: "flex", alignItems: "center", gap: 5,
@@ -940,11 +951,12 @@ export default function App() {
               </div>
             )}
             {/* User badge */}
+            {!isMobile && (
             <div style={{
-              display: "flex", alignItems: "center", gap: isMobile ? 4 : 6,
+              display: "flex", alignItems: "center", gap: 6,
               background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 8,
-              padding: isMobile ? "5px 8px" : "5px 12px",
-              flexShrink: 0, maxWidth: isMobile ? 110 : "none",
+              padding: "5px 12px",
+              flexShrink: 0,
             }}>
               <span style={{ width: 8, height: 8, borderRadius: "50%", background: currentUser.color, display: "inline-block", flexShrink: 0 }} />
               <span style={{
@@ -959,6 +971,7 @@ export default function App() {
                 display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
               }}>✕</button>
             </div>
+            )}
           </div>
         </div>
 
@@ -982,6 +995,20 @@ export default function App() {
               paddingBottom: "env(safe-area-inset-bottom)",
             } : {})
           }}>
+            {/* Mobile: la presencia del socio vive acá (en el topbar no entra).
+                Muestra MÁS info que el chip: nombre + pantalla + hace cuánto. */}
+            {isMobile && partnerOnline && (
+              <div style={{
+                display: "flex", alignItems: "center", gap: 8, margin: "0 12px 10px",
+                padding: "10px 12px", background: "#E8F5E9", border: "1px solid #B6E0BC",
+                borderRadius: 10, minHeight: 44,
+              }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#22C55E", flexShrink: 0, boxShadow: "0 0 0 2px #C7EBCC" }} />
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#15803D", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {partnerOnline.icon || "👤"} {partnerOnline.name}{partnerOnline.page ? ` · ${partnerOnline.page}` : ""} · {formatRelative(partnerOnline.lastSeen, presenceClock)}
+                </span>
+              </div>
+            )}
             {visibleNavItems.map((item, idx) => (
               <Fragment key={item.key}>
               {/* Divisor entre el grupo del modo y las compartidas */}
@@ -1004,13 +1031,43 @@ export default function App() {
               </button>
               </Fragment>
             ))}
+            {/* Mobile: usuario + Ajustes + salir viven acá (mudados del
+                topbar, que no tiene presupuesto de ancho en 375px). */}
+            {isMobile && (
+              <div style={{ borderTop: "1px solid #EFE5CE", marginTop: 10, paddingTop: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 20px", minHeight: 44 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: currentUser.color, flexShrink: 0 }} />
+                  <span style={{ color: "#1E2B4A", fontSize: 14, fontWeight: 700, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{currentUser.name}</span>
+                </div>
+                <button onClick={() => { setSettingsOpen(true); setMenuOpen(false); }} style={{
+                  display: "flex", alignItems: "center", gap: 12, width: "100%",
+                  padding: "13px 20px", minHeight: 48,
+                  background: "transparent", border: "none", borderLeft: "3px solid transparent",
+                  color: "#6B7794", cursor: "pointer", fontSize: 14, fontWeight: 500,
+                  textAlign: "left", fontFamily: "inherit",
+                }}>
+                  <span style={{ fontSize: 18, flexShrink: 0 }}>⚙️</span>
+                  <span>Ajustes</span>
+                </button>
+                <button onClick={handleLogout} style={{
+                  display: "flex", alignItems: "center", gap: 12, width: "100%",
+                  padding: "13px 20px", minHeight: 48,
+                  background: "transparent", border: "none", borderLeft: "3px solid transparent",
+                  color: "#B83232", cursor: "pointer", fontSize: 14, fontWeight: 500,
+                  textAlign: "left", fontFamily: "inherit",
+                }}>
+                  <span style={{ fontSize: 18, flexShrink: 0 }}>✕</span>
+                  <span>Cerrar sesión</span>
+                </button>
+              </div>
+            )}
           </nav>
 
           {/* Content */}
           <main style={{
             flex: 1,
             padding: isMobile ? "14px" : isTablet ? "18px" : "24px",
-            paddingBottom: isMobile ? "max(90px, env(safe-area-inset-bottom))" : (isTablet ? "18px" : "24px"),
+            paddingBottom: isMobile ? "max(120px, env(safe-area-inset-bottom))" : (isTablet ? "18px" : "24px"),
             maxWidth: isTablet ? "100%" : 1100, minWidth: 0,
           }} onClick={() => setShowGlobalResults(false)}>
             {syncStatus === "offline" && (
@@ -1103,13 +1160,15 @@ export default function App() {
               aria-label={fabMenuOpen ? "Cerrar acciones rápidas" : "Acciones rápidas"}
               style={{
                 position: "fixed",
-                bottom: "max(20px, env(safe-area-inset-bottom))",
-                right: 20,
-                width: 60, height: 60,
+                bottom: "max(16px, env(safe-area-inset-bottom))",
+                right: 16,
+                // Mobile: 52px alcanza como target y tapa menos los montos
+                // alineados a la derecha (P&L) — bug FAB 2026-07-17.
+                width: isMobile ? 52 : 60, height: isMobile ? 52 : 60,
                 borderRadius: "50%",
                 background: "linear-gradient(135deg, #1E2B4A 0%, #3A4868 100%)",
                 border: "none", color: "#fff",
-                fontSize: 26, cursor: "pointer",
+                fontSize: isMobile ? 22 : 26, cursor: "pointer",
                 zIndex: 92,
                 boxShadow: "0 8px 24px rgba(30,43,74,0.45), 0 2px 8px rgba(15,15,15,0.12)",
                 display: "flex", alignItems: "center", justifyContent: "center",
