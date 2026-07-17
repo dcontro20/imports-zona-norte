@@ -103,8 +103,8 @@ export function CuentasCorrientes({ clients = [], sales = [], setSales }) {
                 {st.overLimit && <span style={{ background: T.redBg, color: T.red, borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 800 }}>Sobre el límite</span>}
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                <Btn onClick={() => openPay({ client, owed })} style={{ flex: 1, minHeight: 40 }}>💵 Registrar pago</Btn>
-                <Btn variant="secondary" onClick={() => copyCobranza(client)} style={{ minHeight: 40 }}>💬</Btn>
+                <Btn onClick={() => openPay({ client, owed })} style={{ flex: 1 }}>💵 Registrar pago</Btn>
+                <Btn variant="secondary" onClick={() => copyCobranza(client)}>💬</Btn>
               </div>
             </Card>
           ))}
@@ -126,7 +126,7 @@ export function CuentasCorrientes({ clients = [], sales = [], setSales }) {
         </div>
       </Modal>
 
-      {toast && <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", background: T.primary, color: "#fff", padding: "12px 20px", borderRadius: 10, fontSize: 14, fontWeight: 600, zIndex: 300, boxShadow: "0 8px 24px rgba(0,0,0,0.2)" }}>{toast}</div>}
+      {toast && <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", background: T.primary, color: "#fff", padding: "12px 20px", borderRadius: 10, fontSize: 14, fontWeight: 600, zIndex: 300, boxShadow: "0 8px 24px rgba(0,0,0,0.2)", maxWidth: "calc(100vw - 32px)", boxSizing: "border-box", textAlign: "center" }}>{toast}</div>}
     </div>
   );
 }

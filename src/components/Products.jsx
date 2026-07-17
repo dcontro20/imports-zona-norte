@@ -618,7 +618,7 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
                   }}
                   style={{
                     width: isMobile ? 110 : 100, padding: isMobile ? "8px 10px" : "6px 8px",
-                    borderRadius: 6, minHeight: isMobile ? 40 : "auto",
+                    borderRadius: 6, minHeight: isMobile ? 44 : "auto",
                     border: "1px solid #E5DAC2",
                     fontSize: isMobile ? 16 : 13, fontFamily: "inherit",
                     textAlign: "right",
@@ -653,7 +653,7 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
                       const val = e.target.value;
                       setForm(f => ({ ...f, priceByChannel: { ...(f.priceByChannel || {}), [key]: val === "" ? undefined : Number(val) } }));
                     }}
-                    style={{ width: "100%", padding: isMobile ? "8px 10px" : "6px 8px", borderRadius: 6, minHeight: isMobile ? 40 : "auto", border: "1px solid #E5DAC2", fontSize: isMobile ? 16 : 13, fontFamily: "inherit", textAlign: "right", boxSizing: "border-box" }}
+                    style={{ width: "100%", padding: isMobile ? "8px 10px" : "6px 8px", borderRadius: 6, minHeight: isMobile ? 44 : "auto", border: "1px solid #E5DAC2", fontSize: isMobile ? 16 : 13, fontFamily: "inherit", textAlign: "right", boxSizing: "border-box" }}
                   />
                   <span style={{ fontSize: 11, fontWeight: 700, color: marginColor, textAlign: "right" }}>
                     {marginPct == null ? "margen —" : `margen ${marginPct}%`}

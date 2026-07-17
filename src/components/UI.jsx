@@ -116,7 +116,7 @@ export const Modal = ({ open, onClose, title, children }) => {
             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
           }}>{title}</h3>
           <button onClick={onClose} style={{
-            width: 36, height: 36, borderRadius: 8, flexShrink: 0,
+            width: 44, height: 44, borderRadius: 8, flexShrink: 0,
             background: "transparent", border: "none", color: "#6B7794",
             fontSize: 22, cursor: "pointer",
             display: "flex", alignItems: "center", justifyContent: "center",

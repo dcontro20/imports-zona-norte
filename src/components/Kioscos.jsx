@@ -195,12 +195,12 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] })
                 <option value="">Tier…</option>
                 {WHOLESALE_TIERS.map(t => <option key={t} value={t}>Tier {t}</option>)}
               </select>
-              <Btn variant="secondary" onClick={applyBulkTier} style={{ minHeight: 38 }}>Aplicar tier</Btn>
+              <Btn variant="secondary" onClick={applyBulkTier}>Aplicar tier</Btn>
             </div>
             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
               <input value={bulkZone} onChange={e => setBulkZone(e.target.value)} placeholder="Zona…"
-                style={{ padding: isMobile ? "10px 12px" : "9px 12px", minHeight: isMobile ? 44 : 38, fontSize: isMobile ? 16 : 13, background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, color: T.text, outline: "none", width: 120 }} />
-              <Btn variant="secondary" onClick={applyBulkZone} style={{ minHeight: 38 }}>Aplicar zona</Btn>
+                style={{ padding: isMobile ? "10px 12px" : "9px 12px", minHeight: isMobile ? 44 : 38, fontSize: isMobile ? 16 : 13, background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, color: T.text, outline: "none", width: 120, boxSizing: "border-box" }} />
+              <Btn variant="secondary" onClick={applyBulkZone}>Aplicar zona</Btn>
             </div>
           </div>
         </Card>
@@ -223,7 +223,8 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] })
             {candidatos.map(c => (
               <button key={c.id} onClick={() => openConvert(c)} style={{
                 border: `1px solid ${T.amberBorder}`, background: T.card, color: T.text,
-                borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontSize: 13, fontWeight: 600,
+                borderRadius: 8, padding: isMobile ? "10px 14px" : "6px 12px", cursor: "pointer", fontSize: 13, fontWeight: 600,
+                minHeight: isMobile ? 44 : undefined,
               }}>{c.name} → convertir</button>
             ))}
           </div>

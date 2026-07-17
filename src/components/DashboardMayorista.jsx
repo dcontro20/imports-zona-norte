@@ -39,7 +39,8 @@ export function DashboardMayorista({ clients = [], sales = [], products = [], pr
         <div style={{ display: "flex", background: T.borderSoft, borderRadius: 8, padding: 2 }}>
           {[30, 90].map(d => (
             <button key={d} onClick={() => setPeriod(d)} style={{
-              border: "none", cursor: "pointer", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 700,
+              border: "none", cursor: "pointer", borderRadius: 6, padding: isMobile ? "10px 16px" : "5px 12px", fontSize: isMobile ? 13 : 12, fontWeight: 700,
+              minHeight: isMobile ? 44 : undefined, fontFamily: "inherit",
               background: period === d ? T.card : "transparent", color: period === d ? T.text : T.textMuted,
               boxShadow: period === d ? "0 1px 3px rgba(0,0,0,0.12)" : "none",
             }}>{d}d</button>
