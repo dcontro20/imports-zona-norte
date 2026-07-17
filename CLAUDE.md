@@ -365,6 +365,17 @@ verificado (bundle por hash + strings mayoristas). PR #2 quedó merged.
   extraídos del código real. Cero cambios en src/. **Siguiente: Tanda F**
   (propuestas de producto — requieren OK de Diego ítem por ítem ANTES de
   construir). Journal: `docs/SESSION_2026-07-17_tanda_E_docs.md`.
+- **Mobile hardening ✅ 2026-07-17 (`ead72dc`+`5c24a84`+`fc117a5`) + DEFAULT
+  MINORISTA** (docs/SESSION_2026-07-17_mobile_hardening.md): topbar mobile
+  con PRESUPUESTO de ancho (☰+isotipo+toggle+sync ≈220px; presencia/usuario/
+  ⚙️/logout viven en el menú ☰ — NO agregar nada al topbar mobile sin restar).
+  `::-webkit-scrollbar` scopeado a pointer:fine (en iOS renderiza barra
+  persistente). Tap targets 44px vía primitivos (nuevo `MiniBtn` compartido
+  en UI.jsx — no duplicar; no pisar minHeight del Btn). Pedido mayorista con
+  cards mobile; kanban con etapas vacías colapsadas. FAB 52px mobile.
+  **Default `businessMode`="minorista"** (el guardado en localStorage le
+  gana al default — se cambia con el toggle). `Products.jsx` normalizado
+  CRLF→LF. 1024 tests.
 - **Tanda F.1 ✅ 2026-07-17 (`1967729`) — modos como MUNDOS SEPARADOS**:
   el toggle 🏪/🛒 ahora FILTRA el nav (ya no reordena). Cada modo ve solo sus
   pantallas + compartidas bajo un divisor; home por modo (Panel mayorista /

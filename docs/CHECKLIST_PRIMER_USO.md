@@ -8,7 +8,9 @@
 
 - [ ] **1. Modo mayorista activo** — topbar → **🏪 Mayorista** (el menú
       muestra solo las pantallas B2B + las compartidas abajo del divisor, y
-      la app arranca en el Panel mayorista). Ya viene así por default.
+      la app arranca en el Panel mayorista). OJO: el default de la app es
+      **🛒 Minorista**, así que este toque es necesario — y queda guardado
+      en el dispositivo hasta que lo cambies.
 
 - [ ] **2. Costos reales cargados** — 📦 Stock → revisá que los productos que
       vas a ofrecer tengan `costUSDT` cargado.

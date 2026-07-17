@@ -41,7 +41,11 @@ mundos separados en el menú, conectados en los datos**:
   recibe de ambos, el stock es uno. Si una alerta o una búsqueda te lleva a
   una pantalla del otro modo, abre igual (solo que no figura en el menú).
 
-Default: mayorista. El toggle siempre está visible para saber dónde estás.
+**Default: minorista** (decisión del 17/07/2026 — el minorista sigue siendo
+el canal más usado mientras los kioscos arrancan; cuando el mayorista crezca
+se da vuelta con un click). El toggle siempre está visible para saber dónde
+estás; en el celu el resto del topbar (usuario, Ajustes, presencia del socio)
+vive dentro del menú ☰.
 
 ---
 
