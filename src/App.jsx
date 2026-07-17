@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense, Component } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense, Component, Fragment } from "react";
 import { uid, formatMoney, formatDate } from "./helpers.js";
 import { migrateToWholesaleModel } from "./wholesaleMigration.js";
 import { useSettings } from "./useSettings.js";
-import { saveSettings } from "./settings.js";
+import { saveSettings, loadSettings } from "./settings.js";
 import { scheduleDailyNotifications, cancelScheduled, hasPermission } from "./lib/notifications.js";
 import { useFirebaseSync } from "./useFirebaseSync.js";
 import { AppContext } from "./AppContext.js";
@@ -234,7 +234,7 @@ const NAV_ITEMS = [
   { key: "routes", label: "Rutas", icon: "🚚", group: "mayorista" },
   { key: "cuentasCorrientes", label: "Cuentas corrientes", icon: "💳", group: "mayorista" },
   // Ver / decidir
-  { key: "dashboard", label: "Dashboard", icon: "📊", group: "shared" },
+  { key: "dashboard", label: "Dashboard", icon: "📊", group: "minorista" },
   { key: "analisis", label: "Análisis", icon: "📈", group: "shared" },
   // Operación diaria
   { key: "sales", label: "Ventas", icon: "🛒", group: "minorista" },
@@ -255,14 +255,31 @@ const NAV_ITEMS = [
   { key: "trash", label: "Papelera", icon: "🗑️", group: "shared" },
 ];
 
-// Reordena la navegación según el modo. Minorista = orden histórico intacto.
-// Mayorista = grupo mayorista arriba, luego compartido, luego minorista abajo.
-// NO oculta nada: ambos modos ven todas las pantallas. Orden estable dentro
-// de cada grupo (respeta el orden de NAV_ITEMS).
-function orderNavByMode(items, mode) {
-  if (mode !== "mayorista") return items; // minorista: sin cambios
-  const rank = { mayorista: 0, shared: 1, minorista: 2 };
-  return [...items].sort((a, b) => (rank[a.group] ?? 1) - (rank[b.group] ?? 1));
+// Pantalla de inicio de cada modo. Son dos paneles DISTINTOS a propósito
+// (Dashboard = minorista, Panel mayorista = B2B) — no se unifican.
+const MODE_HOME = { mayorista: "dashMayorista", minorista: "dashboard" };
+
+// Filtra la navegación según el modo (Tanda F.1: separar, no reordenar).
+// Se ven SOLO las pantallas del modo activo + las compartidas (abajo, tras
+// un divisor, idénticas en ambos modos). La separación es de NAVEGACIÓN
+// nada más: renderPage sigue renderizando cualquier pantalla, así ⌘K,
+// alertas y deep-links del otro modo abren igual (los datos son uno solo).
+function navItemsForMode(items, mode) {
+  const m = mode === "minorista" ? "minorista" : "mayorista";
+  return [
+    ...items.filter(it => it.group === m),
+    ...items.filter(it => it.group === "shared"),
+  ];
+}
+
+// Dónde queda parado el usuario tras cambiar de modo: pantalla exclusiva del
+// otro modo → home del modo nuevo. Compartidas y pantallas fuera del nav
+// (legacy / deep-link) se quedan donde están.
+function pageAfterModeSwitch(page, mode) {
+  const m = mode === "minorista" ? "minorista" : "mayorista";
+  const item = NAV_ITEMS.find(it => it.key === page);
+  if (item && item.group !== "shared" && item.group !== m) return MODE_HOME[m];
+  return page;
 }
 
 export default function App() {
@@ -285,7 +302,8 @@ export default function App() {
   }, []);
 
   // ---- UI state ----
-  const [page, setPage] = useState("dashboard");
+  // Arranca en el home del modo activo (Panel mayorista o Dashboard).
+  const [page, setPage] = useState(() => MODE_HOME[loadSettings().businessMode] || MODE_HOME.mayorista);
   const [presenceList, setPresenceList] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
@@ -596,7 +614,13 @@ export default function App() {
   // Tiene que vivir ANTES de los returns condicionales de loading/login:
   // un hook después de un early return rompe las Rules of Hooks (el orden
   // de hooks cambia entre renders y React tira "Rendered more hooks").
-  const visibleNavItems = useMemo(() => orderNavByMode(NAV_ITEMS, settings.businessMode), [settings.businessMode]);
+  const visibleNavItems = useMemo(() => navItemsForMode(NAV_ITEMS, settings.businessMode), [settings.businessMode]);
+
+  // Al cambiar de modo: si la pantalla actual es del otro mundo, redirigir
+  // al home del modo nuevo. setPage funcional para no depender de `page`.
+  useEffect(() => {
+    setPage(prev => pageAfterModeSwitch(prev, settings.businessMode));
+  }, [settings.businessMode]);
 
   // ---- Login with Firebase Auth ----
   const handleLogin = async () => {
@@ -958,8 +982,13 @@ export default function App() {
               paddingBottom: "env(safe-area-inset-bottom)",
             } : {})
           }}>
-            {visibleNavItems.map(item => (
-              <button key={item.key} onClick={() => { setPage(item.key); setMenuOpen(false); }} style={{
+            {visibleNavItems.map((item, idx) => (
+              <Fragment key={item.key}>
+              {/* Divisor entre el grupo del modo y las compartidas */}
+              {idx > 0 && item.group === "shared" && visibleNavItems[idx - 1].group !== "shared" && (
+                <div style={{ height: 1, background: "#EFE5CE", margin: "10px 16px 10px 20px" }} />
+              )}
+              <button onClick={() => { setPage(item.key); setMenuOpen(false); }} style={{
                 display: "flex", alignItems: "center", gap: 12, width: "100%",
                 padding: isMobile ? "13px 20px" : "10px 20px",
                 minHeight: isMobile ? 48 : 40,
@@ -973,6 +1002,7 @@ export default function App() {
                 <span style={{ fontSize: 18, flexShrink: 0 }}>{item.icon}</span>
                 <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.label}</span>
               </button>
+              </Fragment>
             ))}
           </nav>
 

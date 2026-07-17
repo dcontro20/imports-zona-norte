@@ -22,9 +22,26 @@ demás de esta guía es el detalle de ese flujo.
 
 ### El toggle 🏪 / 🛒 (arriba de todo)
 
-En el topbar hay dos botones: **🏪 Mayorista** y **🛒 Minorista**. Solo
-**reordenan el menú** (mayorista arriba o abajo) — no ocultan nada. Podés
-vender minorista en modo mayorista y al revés. Default: mayorista.
+En el topbar hay dos botones: **🏪 Mayorista** y **🛒 Minorista**. Son **dos
+mundos separados en el menú, conectados en los datos**:
+
+- En modo **Mayorista** el menú muestra SOLO las pantallas mayoristas (Panel
+  mayorista, Kioscos, Pedido mayorista, Pipeline, Prospección, Rutas,
+  Cuentas corrientes). En modo **Minorista**, solo las minoristas (Dashboard,
+  Ventas, Clientes, Mensajes).
+- Las **compartidas** (Stock, Caja, Compras, Análisis, Gastos, Mermas,
+  Precios, Historial, Cotizaciones, Exportar, Auditoría, Papelera) están
+  siempre, en un grupo aparte abajo del divisor — porque el stock, la plata
+  y la importación son UNO solo para los dos canales.
+- **Cada modo arranca en su panel**: Mayorista → Panel mayorista, Minorista
+  → Dashboard. Al cambiar de modo, si estabas en una pantalla del otro mundo
+  te lleva al panel del modo nuevo; si estabas en una compartida (Stock,
+  Caja), te quedás donde estás.
+- **Los datos no se separan nunca**: el P&L muestra ambos canales, la Caja
+  recibe de ambos, el stock es uno. Si una alerta o una búsqueda te lleva a
+  una pantalla del otro modo, abre igual (solo que no figura en el menú).
+
+Default: mayorista. El toggle siempre está visible para saber dónde estás.
 
 ---
 
@@ -268,8 +285,10 @@ vuelve solo, con el mismo mecanismo simétrico de cualquier venta.
 
 ### "¿Puedo seguir vendiendo minorista?"
 Sí, todo el circuito minorista quedó intacto (Ventas, venta rápida, deudas,
-todo). El modo 🏪/🛒 solo cambia el orden del menú. El P&L del Panel te
-muestra los dos canales por separado.
+todo). El modo 🏪/🛒 solo cambia qué pantallas ves en el menú y dónde
+arrancás — pasá a 🛒 y está todo como siempre. Los botones de venta rápida
+(➕ flotante) están en ambos modos. El P&L del Panel te muestra los dos
+canales por separado.
 
 ---
 

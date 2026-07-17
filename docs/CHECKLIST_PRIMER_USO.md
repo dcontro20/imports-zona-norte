@@ -6,8 +6,9 @@
 
 ## Antes de salir a vender (una sola vez)
 
-- [ ] **1. Modo mayorista activo** — topbar → **🏪 Mayorista** (deja el menú
-      con las pantallas B2B arriba). Ya viene así por default.
+- [ ] **1. Modo mayorista activo** — topbar → **🏪 Mayorista** (el menú
+      muestra solo las pantallas B2B + las compartidas abajo del divisor, y
+      la app arranca en el Panel mayorista). Ya viene así por default.
 
 - [ ] **2. Costos reales cargados** — 📦 Stock → revisá que los productos que
       vas a ofrecer tengan `costUSDT` cargado.

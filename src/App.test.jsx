@@ -10,8 +10,8 @@
 // (useMemo de visibleNavItems declarado después del return de login).
 // Las 1015 pruebas puras no lo detectaban porque ninguna renderiza App.
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, act } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, act, within, fireEvent, waitFor, cleanup } from "@testing-library/react";
 
 // Holder hoisted para capturar el callback de onAuthChange y poder disparar
 // las transiciones de auth desde el test.
@@ -65,10 +65,19 @@ import App from "./App.jsx";
 const drainLazyChunks = () => act(async () => {
   await Promise.all([
     import("./components/Dashboard.jsx"),
+    import("./components/DashboardMayorista.jsx"), // home en modo mayorista (default)
     import("./components/QuickSale.jsx"),
     import("./components/QuickWithdrawal.jsx"),
   ]);
 });
+
+// El <nav> del sidebar — para asertar sobre el menú sin falsos positivos
+// con textos del contenido de la página.
+const getNav = () => document.querySelector("nav");
+
+// Con globals:false vitest no registra el auto-cleanup de testing-library:
+// sin esto los renders se acumulan entre tests (queries duplicadas).
+afterEach(() => cleanup());
 
 beforeEach(() => {
   localStorage.clear();
@@ -96,10 +105,19 @@ describe("App — smoke de montaje (Rules of Hooks)", () => {
     });
 
     // El nav renderiza visibleNavItems (el useMemo del bug original):
-    // los items mayoristas del pivote tienen que estar en el DOM.
-    expect(screen.getAllByText("Kioscos").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Panel mayorista").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Rutas").length).toBeGreaterThan(0);
+    // los items mayoristas del pivote tienen que estar en el menú.
+    const nav = getNav();
+    expect(within(nav).getByText("Kioscos")).toBeTruthy();
+    expect(within(nav).getByText("Panel mayorista")).toBeTruthy();
+    expect(within(nav).getByText("Rutas")).toBeTruthy();
+    // Compartidas visibles en ambos modos
+    expect(within(nav).getByText("Stock")).toBeTruthy();
+    expect(within(nav).getByText("Caja")).toBeTruthy();
+    // Aserción inversa (Tanda F.1): en modo mayorista las pantallas
+    // minoristas NO aparecen en el nav — el modo FILTRA, no reordena.
+    expect(within(nav).queryByText("Ventas")).toBeNull();
+    expect(within(nav).queryByText("Dashboard")).toBeNull();
+    expect(within(nav).queryByText("Mensajes")).toBeNull();
 
     await drainLazyChunks();
   });
@@ -114,6 +132,38 @@ describe("App — smoke de montaje (Rules of Hooks)", () => {
     });
 
     expect(screen.getAllByText("Kioscos").length).toBeGreaterThan(0);
+
+    await drainLazyChunks();
+  });
+
+  it("cambiar de modo filtra el nav y redirige al home del modo nuevo", async () => {
+    render(<App />);
+    await act(async () => {
+      authState.callback({ uid: "diego", email: "dcontro20@gmail.com" });
+    });
+
+    // Default: modo mayorista, parado en Panel mayorista (pantalla exclusiva)
+    expect(within(getNav()).queryByText("Ventas")).toBeNull();
+
+    // Cambiar a minorista con el toggle del topbar
+    await act(async () => {
+      fireEvent.click(screen.getByTitle("Modo minorista"));
+    });
+
+    // El nav ahora muestra las minoristas y oculta las mayoristas...
+    const nav = getNav();
+    expect(within(nav).getByText("Ventas")).toBeTruthy();
+    expect(within(nav).getByText("Dashboard")).toBeTruthy();
+    expect(within(nav).queryByText("Kioscos")).toBeNull();
+    expect(within(nav).queryByText("Panel mayorista")).toBeNull();
+    // ...las compartidas siguen
+    expect(within(nav).getByText("Stock")).toBeTruthy();
+
+    // Redirect: estaba en Panel mayorista (no existe en minorista) → va al
+    // Dashboard minorista (aparece su h1, además del label del nav).
+    await waitFor(() => {
+      expect(screen.getAllByText("Dashboard").length).toBeGreaterThan(1);
+    });
 
     await drainLazyChunks();
   });
