@@ -92,6 +92,24 @@ local, el script persiste el token refrescado al archivo. En CI no hace
 falta persistir: el `refresh_token` no cambia, y cada run del workflow
 empieza con el secret fresco.
 
+### Fail-loud + alerta de backup viejo (2026-07-17)
+
+Lección del incidente del 09–17/07 (8 días sin backup con el Action verde):
+
+1. **`--upload` falla con `exit 1` si el archivo no llegó a Drive** (token
+   ausente, googleapis faltante o error de API). El Action se pone ROJO y
+   GitHub avisa por mail. Antes el error se tragaba y el run quedaba verde.
+2. **Sello `appData/backupStatus` en Firestore** tras cada upload exitoso:
+   `{lastDriveBackupAt, records, source}`. Si el sello falla pero el upload
+   anduvo, solo warn (un backup bueno no es una run fallida).
+3. **Alerta en el Dashboard** (`src/lib/dashboardAlerts.js`): lee
+   `backupStatus` y avisa si el último backup a Drive tiene ≥2 días
+   (configurable en Ajustes → Backups, `driveBackupStaleDays`); a ≥2× el
+   umbral escala a URGENTE. Sin registro de backup también avisa.
+
+Doble red: el mail del Action rojo (inmediato) + la alerta en la app (la ve
+sí o sí porque la abre todos los días).
+
 ## Troubleshooting
 
 | Síntoma | Causa probable | Fix |

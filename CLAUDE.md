@@ -359,11 +359,16 @@ verificado (bundle por hash + strings mayoristas). PR #2 quedó merged.
 - **Migración `migrateToWholesaleModel`**: ya corrió sobre la data real de
   prod durante la prueba local de Diego del 16/07 (el dev local usa Firestore
   de PROD por el fallback de config). Idempotente — re-corre como no-op.
-- **⚠️ BACKUPS ROTOS desde 2026-07-09**: `backup-diario.yml` marca success
-  pero el upload a Drive falla silencioso (`GOOGLE_DRIVE_TOKEN` expirado).
-  Pendiente Diego: backup manual (`node scripts/backup.mjs --upload`) +
-  renovar token (`node scripts/auth-oauth.mjs` + GitHub Secret). Pendiente de
-  codear: `exit 1` si falla el upload.
+- **Backups endurecidos (2026-07-17, docs/SESSION_2026-07-17_backup_hardening.md)**:
+  tras 8 días sin backup con el Action verde (09–17/07), `backup.mjs --upload`
+  ahora hace **exit 1** si el upload a Drive falla (`9922749`), sella
+  `appData/backupStatus` tras cada upload OK, y el Dashboard alerta 🛟 si el
+  último backup tiene ≥2 días — urgente a ≥4 (`eb3fa35`, configurable
+  `driveBackupStaleDays`). Diego ya hizo backup manual + renovó token local.
+  **Pendiente Diego**: actualizar secret `GOOGLE_DRIVE_TOKEN` (JSON completo
+  de `.credentials/drive-oauth-token.json`) + probar el Action + borrar
+  branches mergeadas (`git push origin --delete claude/mayorista
+  claude/claude-md-docs-oNlms` — la sesión remota no puede, 403).
 
 ## Estado del proyecto al 14/07/2026 (histórico — ya mergeado)
 
