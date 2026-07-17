@@ -631,6 +631,41 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
             Vacío = usa precio default. Sirve para cargar fee de MercadoLibre o descuento presencial.
           </p>
         </details>
+        <details style={{ marginBottom: 12 }}>
+          <summary style={{ cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#1E2B4A", padding: "6px 0" }}>
+            🏪 Precios mayorista por tier (A/B/C, en USD)
+          </summary>
+          <div style={{ paddingTop: 8, paddingLeft: 12, borderLeft: "2px solid #E5DAC2", display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 10 }}>
+            {["a", "b", "c"].map(tier => {
+              const key = `mayorista_${tier}`;
+              const price = Number(form.priceByChannel?.[key]) || 0;
+              const cost = Number(form.costUSDT) || 0;
+              const marginPct = price > 0 && cost > 0 ? Math.round(((price - cost) / price) * 100) : null;
+              const marginColor = marginPct == null ? "#6B7794" : marginPct >= 30 ? T.green : marginPct >= 20 ? T.amber : T.red;
+              return (
+                <div key={key} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <label style={{ fontSize: 11, color: "#6B7794", fontWeight: 700 }}>Tier {tier.toUpperCase()}</label>
+                  <input
+                    type="number" step="0.01"
+                    placeholder={`USD (default: ${form.priceUSD || "—"})`}
+                    value={form.priceByChannel?.[key] || ""}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setForm(f => ({ ...f, priceByChannel: { ...(f.priceByChannel || {}), [key]: val === "" ? undefined : Number(val) } }));
+                    }}
+                    style={{ width: "100%", padding: isMobile ? "8px 10px" : "6px 8px", borderRadius: 6, minHeight: isMobile ? 40 : "auto", border: "1px solid #E5DAC2", fontSize: isMobile ? 16 : 13, fontFamily: "inherit", textAlign: "right", boxSizing: "border-box" }}
+                  />
+                  <span style={{ fontSize: 11, fontWeight: 700, color: marginColor, textAlign: "right" }}>
+                    {marginPct == null ? "margen —" : `margen ${marginPct}%`}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          <p style={{ fontSize: 11, color: "#6B7794", marginTop: 6, paddingLeft: 12 }}>
+            Lista propia por tier (no es "% sobre minorista"). El margen se calcula con el costo real. Verde ≥30%, ámbar ≥20%, rojo &lt;20%.
+          </p>
+        </details>
         <Input
           label="Tags (separados por coma — ej: premium, puff alto, discontinuado)"
           placeholder="premium, puff alto"

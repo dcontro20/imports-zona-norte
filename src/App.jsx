@@ -1,6 +1,8 @@
-import { useState, useEffect, useMemo, useCallback, lazy, Suspense, Component } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense, Component } from "react";
 import { uid, formatMoney, formatDate } from "./helpers.js";
+import { migrateToWholesaleModel } from "./wholesaleMigration.js";
 import { useSettings } from "./useSettings.js";
+import { saveSettings } from "./settings.js";
 import { scheduleDailyNotifications, cancelScheduled, hasPermission } from "./lib/notifications.js";
 import { useFirebaseSync } from "./useFirebaseSync.js";
 import { AppContext } from "./AppContext.js";
@@ -84,6 +86,13 @@ const Dashboard = lazy(() => import("./components/Dashboard.jsx").then(m => ({ d
 const Products = lazy(() => import("./components/Products.jsx").then(m => ({ default: m.Products })));
 const Sales = lazy(() => import("./components/Sales.jsx").then(m => ({ default: m.Sales })));
 const Clients = lazy(() => import("./components/Clients.jsx").then(m => ({ default: m.Clients })));
+const Kioscos = lazy(() => import("./components/Kioscos.jsx").then(m => ({ default: m.Kioscos })));
+const WholesaleOrder = lazy(() => import("./components/WholesaleOrder.jsx").then(m => ({ default: m.WholesaleOrder })));
+const Pipeline = lazy(() => import("./components/Pipeline.jsx").then(m => ({ default: m.Pipeline })));
+const ProspectMap = lazy(() => import("./components/ProspectMap.jsx").then(m => ({ default: m.ProspectMap })));
+const Routes = lazy(() => import("./components/Routes.jsx").then(m => ({ default: m.Routes })));
+const CuentasCorrientes = lazy(() => import("./components/CuentasCorrientes.jsx").then(m => ({ default: m.CuentasCorrientes })));
+const DashboardMayorista = lazy(() => import("./components/DashboardMayorista.jsx").then(m => ({ default: m.DashboardMayorista })));
 const Expenses = lazy(() => import("./components/Expenses.jsx").then(m => ({ default: m.Expenses })));
 const Withdrawals = lazy(() => import("./components/Withdrawals.jsx").then(m => ({ default: m.Withdrawals })));
 const CashBox = lazy(() => import("./components/CashBox.jsx").then(m => ({ default: m.CashBox })));
@@ -212,28 +221,49 @@ class ErrorBoundary extends Component {
 // MAIN APP
 // ============================================
 // Diego es único usuario — ya no hay flags por rol.
+// `group` clasifica cada item para reordenar por modo de negocio (mayorista/
+// minorista). Las pantallas mayoristas (Kioscos, Pipeline, Mapa, Pedido, Rutas)
+// se agregan en fases siguientes con group:"mayorista" y suben solas arriba.
 const NAV_ITEMS = [
+  // Mayorista (pivote a kioscos)
+  { key: "dashMayorista", label: "Panel mayorista", icon: "📊", group: "mayorista" },
+  { key: "kioscos", label: "Kioscos", icon: "🏪", group: "mayorista" },
+  { key: "wholesaleOrder", label: "Pedido mayorista", icon: "🧾", group: "mayorista" },
+  { key: "pipeline", label: "Pipeline", icon: "🎯", group: "mayorista" },
+  { key: "prospectMap", label: "Prospección", icon: "🗺️", group: "mayorista" },
+  { key: "routes", label: "Rutas", icon: "🚚", group: "mayorista" },
+  { key: "cuentasCorrientes", label: "Cuentas corrientes", icon: "💳", group: "mayorista" },
   // Ver / decidir
-  { key: "dashboard", label: "Dashboard", icon: "📊" },
-  { key: "analisis", label: "Análisis", icon: "📈" },
+  { key: "dashboard", label: "Dashboard", icon: "📊", group: "shared" },
+  { key: "analisis", label: "Análisis", icon: "📈", group: "shared" },
   // Operación diaria
-  { key: "sales", label: "Ventas", icon: "🛒" },
-  { key: "procurement", label: "Compras", icon: "🚚" },
-  { key: "products", label: "Stock", icon: "📦" },
-  { key: "cash", label: "Caja", icon: "💰" },
-  { key: "offers", label: "Mensajes", icon: "📲" },
-  { key: "clients", label: "Clientes", icon: "👥" },
+  { key: "sales", label: "Ventas", icon: "🛒", group: "minorista" },
+  { key: "procurement", label: "Compras", icon: "🚚", group: "shared" },
+  { key: "products", label: "Stock", icon: "📦", group: "shared" },
+  { key: "cash", label: "Caja", icon: "💰", group: "shared" },
+  { key: "offers", label: "Mensajes", icon: "📲", group: "minorista" },
+  { key: "clients", label: "Clientes", icon: "👥", group: "minorista" },
   // Gestión
-  { key: "expenses", label: "Gastos", icon: "💸" },
-  { key: "withdrawals", label: "Mermas", icon: "📉" },
+  { key: "expenses", label: "Gastos", icon: "💸", group: "shared" },
+  { key: "withdrawals", label: "Mermas", icon: "📉", group: "shared" },
   // Registros / utilidades
-  { key: "pricelog", label: "Precios", icon: "💲" },
-  { key: "stocklog", label: "Historial", icon: "📋" },
-  { key: "exchange", label: "Cotizaciones", icon: "💱" },
-  { key: "export", label: "Exportar", icon: "📥" },
-  { key: "audit", label: "Auditoría", icon: "🔍" },
-  { key: "trash", label: "Papelera", icon: "🗑️" },
+  { key: "pricelog", label: "Precios", icon: "💲", group: "shared" },
+  { key: "stocklog", label: "Historial", icon: "📋", group: "shared" },
+  { key: "exchange", label: "Cotizaciones", icon: "💱", group: "shared" },
+  { key: "export", label: "Exportar", icon: "📥", group: "shared" },
+  { key: "audit", label: "Auditoría", icon: "🔍", group: "shared" },
+  { key: "trash", label: "Papelera", icon: "🗑️", group: "shared" },
 ];
+
+// Reordena la navegación según el modo. Minorista = orden histórico intacto.
+// Mayorista = grupo mayorista arriba, luego compartido, luego minorista abajo.
+// NO oculta nada: ambos modos ven todas las pantallas. Orden estable dentro
+// de cada grupo (respeta el orden de NAV_ITEMS).
+function orderNavByMode(items, mode) {
+  if (mode !== "mayorista") return items; // minorista: sin cambios
+  const rank = { mayorista: 0, shared: 1, minorista: 2 };
+  return [...items].sort((a, b) => (rank[a.group] ?? 1) - (rank[b.group] ?? 1));
+}
 
 export default function App() {
   const { isMobile, isTablet } = useResponsive();
@@ -489,6 +519,7 @@ export default function App() {
     supplierProfiles, setSupplierProfiles,
     supplierAliases, setSupplierAliases,
     supplierLists, setSupplierLists,
+    prospects, setProspects, visits, setVisits, routes, setRoutes,
     syncStatus, logStock, logPrice,
   } = sync;
 
@@ -535,11 +566,37 @@ export default function App() {
   const activeWithdrawals = useMemo(() => withdrawals.filter(w => !w.isDeleted), [withdrawals]);
   const activeCashMovements = useMemo(() => cashMovements.filter(m => !m.isDeleted), [cashMovements]);
   const activePartnerWithdrawals = useMemo(() => partnerWithdrawals.filter(w => !w.isDeleted), [partnerWithdrawals]);
+  // Mayorista (pivote a kioscos)
+  const activeProspects = useMemo(() => (prospects || []).filter(p => !p.isDeleted), [prospects]);
+  const activeVisits = useMemo(() => (visits || []).filter(v => !v.isDeleted), [visits]);
+  const activeRoutes = useMemo(() => (routes || []).filter(r => !r.isDeleted), [routes]);
+
+  // ---- Migración al modelo mayorista (una vez, idempotente) ----
+  // Corre cuando Firestore terminó el initial load (syncStatus "online").
+  // Setea type/saleType/fulfillmentStatus en data previa. Sólo escribe si
+  // realmente había algo que migrar (evita writes innecesarios).
+  const wholesaleMigrationDone = useRef(false);
+  useEffect(() => {
+    if (syncStatus !== "online" || wholesaleMigrationDone.current) return;
+    wholesaleMigrationDone.current = true;
+    const { clients: migClients, sales: migSales, didChange, changed } = migrateToWholesaleModel(clients, sales);
+    if (didChange) {
+      if (changed.clients > 0) setClients(migClients);
+      if (changed.sales > 0) setSales(migSales);
+      console.log(`[migrate] modelo mayorista: ${changed.clients} clientes, ${changed.sales} ventas`);
+    }
+  }, [syncStatus]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---- Context value (for components that want to use context instead of props) ----
   const ctxValue = useMemo(() => ({
     currentUser, exchangeRate, logAudit, logStock, logPrice,
   }), [currentUser, exchangeRate, logAudit, logStock, logPrice]);
+
+  // ---- Nav según modo de negocio ----
+  // Tiene que vivir ANTES de los returns condicionales de loading/login:
+  // un hook después de un early return rompe las Rules of Hooks (el orden
+  // de hooks cambia entre renders y React tira "Rendered more hooks").
+  const visibleNavItems = useMemo(() => orderNavByMode(NAV_ITEMS, settings.businessMode), [settings.businessMode]);
 
   // ---- Login with Firebase Auth ----
   const handleLogin = async () => {
@@ -665,7 +722,6 @@ export default function App() {
   // Diego es único usuario — todas las páginas son accesibles.
   const isOwnerUser = true;
   const effectivePage = page;
-  const visibleNavItems = NAV_ITEMS;
 
   const renderPage = () => {
     switch (effectivePage) {
@@ -674,6 +730,13 @@ export default function App() {
       case "sales": return <Sales sales={sales} setSales={setSales} products={products} setProducts={setProducts} logStock={logStock} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} clients={clients} setClients={setClients} cashMovements={cashMovements} setCashMovements={setCashMovements} monthlyClosures={monthlyClosures} coupons={coupons} setCoupons={setCoupons} auditLog={auditLog} />;
       case "procurement": return <Procurement products={products} setProducts={setProducts} purchases={purchases} setPurchases={setPurchases} sales={activeSales} exchangeRate={exchangeRate} logStock={logStock} currentUser={currentUser} logAudit={logAudit} monthlyClosures={monthlyClosures} supplierProfiles={supplierProfiles} setSupplierProfiles={setSupplierProfiles} supplierAliases={supplierAliases} setSupplierAliases={setSupplierAliases} supplierLists={supplierLists} setSupplierLists={setSupplierLists} />;
       case "clients": return <Clients clients={clients} setClients={setClients} sales={activeSales} products={activeProducts} withdrawals={activeWithdrawals} />;
+      case "kioscos": return <Kioscos clients={clients} setClients={setClients} sales={activeSales} products={activeProducts} />;
+      case "wholesaleOrder": return <WholesaleOrder clients={clients} products={products} setProducts={setProducts} sales={activeSales} setSales={setSales} logStock={logStock} />;
+      case "pipeline": return <Pipeline prospects={prospects} setProspects={setProspects} clients={clients} setClients={setClients} visits={visits} setVisits={setVisits} />;
+      case "prospectMap": return <ProspectMap prospects={activeProspects} clients={clients} />;
+      case "routes": return <Routes routes={routes} setRoutes={setRoutes} clients={clients} sales={activeSales} setSales={setSales} />;
+      case "cuentasCorrientes": return <CuentasCorrientes clients={clients} sales={activeSales} setSales={setSales} />;
+      case "dashMayorista": return <DashboardMayorista clients={clients} sales={activeSales} products={activeProducts} prospects={activeProspects} />;
       case "expenses": return <Expenses expenses={expenses} setExpenses={setExpenses} currentUser={currentUser} exchangeRate={exchangeRate} logAudit={logAudit} monthlyClosures={monthlyClosures} />;
       case "withdrawals": return <Withdrawals withdrawals={withdrawals} setWithdrawals={setWithdrawals} products={products} setProducts={setProducts} sales={activeSales} clients={clients} monthlyClosures={monthlyClosures} logStock={logStock} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} />;
       case "cash": return <CashBox sales={sales} purchases={purchases} expenses={expenses} withdrawals={withdrawals} cashMovements={cashMovements} setCashMovements={setCashMovements} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} currentUser={currentUser} logAudit={logAudit} />;
@@ -696,7 +759,7 @@ export default function App() {
       case "exchange": return <ExchangeMonitor exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} />;
       case "audit": return <AuditLog auditLog={auditLog} products={products} />;
       case "offers": return <Offers products={activeProducts} sales={activeSales} clients={clients} exchangeRate={exchangeRate} logAudit={logAudit} currentUser={currentUser} auditLog={auditLog} />;
-      case "trash": return <Trash products={products} setProducts={setProducts} sales={sales} setSales={setSales} purchases={purchases} setPurchases={setPurchases} expenses={expenses} setExpenses={setExpenses} cashMovements={cashMovements} setCashMovements={setCashMovements} partnerWithdrawals={partnerWithdrawals} setPartnerWithdrawals={setPartnerWithdrawals} clients={clients} setClients={setClients} coupons={coupons} setCoupons={setCoupons} logAudit={logAudit} currentUser={currentUser} />;
+      case "trash": return <Trash products={products} setProducts={setProducts} sales={sales} setSales={setSales} purchases={purchases} setPurchases={setPurchases} expenses={expenses} setExpenses={setExpenses} cashMovements={cashMovements} setCashMovements={setCashMovements} partnerWithdrawals={partnerWithdrawals} setPartnerWithdrawals={setPartnerWithdrawals} clients={clients} setClients={setClients} coupons={coupons} setCoupons={setCoupons} prospects={prospects} setProspects={setProspects} visits={visits} setVisits={setVisits} routes={routes} setRoutes={setRoutes} logAudit={logAudit} currentUser={currentUser} />;
       default: return null;
     }
   };
@@ -777,6 +840,30 @@ export default function App() {
                 )}
               </div>
             )}
+            {/* Selector de modo de negocio (mayorista / minorista) */}
+            <div style={{ display: "flex", background: "#EFE5CE", borderRadius: 8, padding: 2, flexShrink: 0 }}>
+              {[
+                { m: "mayorista", label: isMobile ? "May" : "Mayorista", icon: "🏪" },
+                { m: "minorista", label: isMobile ? "Min" : "Minorista", icon: "🛒" },
+              ].map(({ m, label, icon }) => {
+                const active = (settings.businessMode || "mayorista") === m;
+                return (
+                  <button key={m}
+                    onClick={() => { if (!active) saveSettings({ ...settings, businessMode: m }); }}
+                    title={`Modo ${m}`}
+                    style={{
+                      border: "none", cursor: "pointer", borderRadius: 6,
+                      padding: isMobile ? "4px 7px" : "4px 10px", fontSize: 12, fontWeight: 700,
+                      background: active ? "#FFFFFF" : "transparent",
+                      color: active ? "#1E2B4A" : "#6B7794",
+                      boxShadow: active ? "0 1px 3px rgba(0,0,0,0.12)" : "none",
+                      display: "flex", alignItems: "center", gap: 4,
+                    }}>
+                    <span>{icon}</span>{label}
+                  </button>
+                );
+              })}
+            </div>
             {/* Sync status badge — solo dot en mobile */}
             <div style={{
               display: "flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600,

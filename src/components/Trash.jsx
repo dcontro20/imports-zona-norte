@@ -8,6 +8,9 @@ const ENTITY_LABELS = {
   expenses: { label: "Gastos", icon: "💸" },
   cashMovements: { label: "Mov. Caja", icon: "💰" },
   partnerWithdrawals: { label: "Retiros Socios", icon: "🤝" },
+  prospects: { label: "Prospectos", icon: "🎯" },
+  visits: { label: "Visitas", icon: "📋" },
+  routes: { label: "Rutas", icon: "🚚" },
 };
 
 export function Trash({
@@ -19,6 +22,9 @@ export function Trash({
   partnerWithdrawals = [], setPartnerWithdrawals,
   clients = [], setClients,
   coupons = [], setCoupons,
+  prospects = [], setProspects,
+  visits = [], setVisits,
+  routes = [], setRoutes,
   logAudit, currentUser
 }) {
   const [activeTab, setActiveTab] = useState("all");
@@ -53,10 +59,22 @@ export function Trash({
       ...w, _type: "partnerWithdrawals", _label: `Retiro - ${w.person}`,
       _sub: `${formatDate(w.date)} · $${w.amount}`, _setter: setPartnerWithdrawals
     }));
+    prospects.filter(p => p.isDeleted).forEach(p => items.push({
+      ...p, _type: "prospects", _label: `Prospecto - ${p.businessName || p.name || ""}`,
+      _sub: `${p.zone || ""} · ${p.pipelineStage || ""}`, _setter: setProspects
+    }));
+    visits.filter(v => v.isDeleted).forEach(v => items.push({
+      ...v, _type: "visits", _label: `Visita - ${v.outcome || ""}`,
+      _sub: `${formatDate(v.date)} · ${v.byUser || ""}`, _setter: setVisits
+    }));
+    routes.filter(r => r.isDeleted).forEach(r => items.push({
+      ...r, _type: "routes", _label: `Ruta - ${r.name || ""}`,
+      _sub: `${formatDate(r.date)} · ${(r.stops || []).length} paradas`, _setter: setRoutes
+    }));
     // Sort by deletedAt descending
     items.sort((a, b) => (b.deletedAt || "").localeCompare(a.deletedAt || ""));
     return items;
-  }, [products, sales, purchases, expenses, cashMovements, partnerWithdrawals]);
+  }, [products, sales, purchases, expenses, cashMovements, partnerWithdrawals, prospects, visits, routes]);
 
   const filtered = activeTab === "all" ? trashItems : trashItems.filter(i => i._type === activeTab);
 

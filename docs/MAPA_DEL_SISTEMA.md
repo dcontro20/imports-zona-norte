@@ -125,9 +125,36 @@ Acá vive toda la matemática del negocio, separada para poder testearla (837 te
 
 ### Capa 5 — Datos + sincronización
 - `firebase.js` — conexión a la nube (Firestore), auth, presencia, push.
-- `useFirebaseSync.js` — el corazón del sync: mantiene todo en vivo entre dispositivos sin que se pisen Diego y Gustavo (merge atómico).
-- `constants.js` + `constants/` — marcas, productos pre-cargados, cuentas, enums.
-- `theme.js` — colores y tipografías. `settings.js` — preferencias configurables.
+- `useFirebaseSync.js` — el corazón del sync: mantiene todo en vivo entre dispositivos sin que se pisen Diego y Gustavo (merge atómico). Colecciones mayoristas nuevas: `prospects`, `visits`, `routes`.
+- `constants.js` + `constants/` — marcas, productos pre-cargados, cuentas, enums (incl. enums B2B: CLIENT_TYPES, WHOLESALE_TIERS, PIPELINE_STAGES, etc.).
+- `theme.js` — colores y tipografías. `settings.js` — preferencias configurables (incl. `businessMode` mayorista/minorista).
+- `wholesaleMigration.js` — migración idempotente al modelo mayorista (setea type/saleType/fulfillmentStatus en data previa).
+
+### 🏪 Capa mayorista (pivote a venta mayorista — en construcción)
+Ver `docs/PLAN_MAYORISTA.md` (roadmap fase por fase).
+- **FASE 0** ✅ cimientos: schema B2B (eje `type: minorista|mayorista` + `businessType`),
+  colecciones prospects/visits/routes, migración, selector de modo en topbar.
+- **FASE 1** ✅ núcleo comercial: `src/wholesale.js` (pricing por tier A/B/C + margen
+  + volumen opcional), `components/Kioscos.jsx` (clientes mayoristas), editor de precios
+  por tier en Products, `components/WholesaleOrder.jsx` (pedido mayorista). Las listas de
+  precio por tier viven en `product.priceByChannel.mayorista_a/b/c`.
+- **FASE 2** ✅ captación: `src/prospecting.js` (embudo + priorización + cobertura),
+  `components/Pipeline.jsx` (kanban prospecto→mayorista + visitas), `components/ProspectMap.jsx`
+  (cobertura por zona). Colecciones `prospects` + `visits`. Alta manual (Places diferido).
+- **FASE 3** ✅ logística: `src/routes.js` + `lib/routeSheet.js` (agrupar pedidos por zona,
+  orden manual, hoja de ruta), `components/Routes.jsx` (armado de ruta + fulfillment
+  armado→en_ruta→entregado→cobrado). Colección `routes`. optimización = stub.
+- **FASE 4** ✅ cuenta corriente B2B: `lib/creditAccount.js` (adeudado derivado de ventas)
+  + `lib/wholesaleMessage.js` (cobranza) + `components/CuentasCorrientes.jsx`. Puente con
+  la caja: cobrar = payment real en el sale → ledger de CashBox. creditEnabled default OFF.
+- **FASE 5** ✅ inteligencia B2B: `src/wholesaleIntelligence.js` (recompra esperada, churn B2B,
+  ranking por rentabilidad, P&L por canal, KPIs) + `components/DashboardMayorista.jsx`
+  (panel mayorista con alertas + P&L mayorista vs minorista).
+- **FASE 6** ✅ pulido: ⌘K mayorista, `lib/wholesaleExport.js` (CSV de kioscos/prospectos),
+  bulk actions en Kioscos (tier/zona en lote).
+- **🏁 Pivote COMPLETO (0–6)** en `claude/mayorista`, sin mergear a main (pendiente revisión).
+  8 pantallas mayoristas + toggle de modo. Módulos puros: wholesale, wholesaleMigration,
+  prospecting, routes, creditAccount, wholesaleMessage, wholesaleIntelligence, wholesaleExport, routeSheet.
 
 ### Capa 6 — Backend (corre fuera del navegador)
 - `api/send-daily-push.js` — función que dispara las notificaciones push.

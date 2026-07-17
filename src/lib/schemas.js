@@ -66,6 +66,11 @@ export const SaleSchema = z.object({
   createdBy: strOpt,
   isDeleted: boolOpt,
   linkedOfferId: strOpt,
+
+  // --- Mayorista (pedidos, todos opcionales) ---
+  saleType: z.enum(["minorista", "mayorista"]).optional().default("minorista"),
+  routeId: strOpt,          // si el pedido entra en una ruta de reparto
+  fulfillmentStatus: z.enum(["pendiente", "armado", "en_ruta", "entregado", "cobrado"]).optional().nullable(),
 }).passthrough();
 
 // === CLIENT ===
@@ -84,6 +89,27 @@ export const ClientSchema = z.object({
   isBlocked: boolOpt,
   isDeleted: boolOpt,
   createdAt: strOpt,
+
+  // --- B2B / mayorista (todos opcionales) ---
+  // type: eje grande del negocio (paraguas). businessType: clasificación del
+  // comercio (kiosco/maxikiosco/drugueria/...), solo etiqueta/filtro.
+  type: z.enum(["minorista", "mayorista"]).optional().default("minorista"),
+  businessType: z.enum(["kiosco", "maxikiosco", "drugueria", "distribuidor", "almacen", "otro"]).optional().nullable(),
+  businessName: strOpt,   // nombre del comercio
+  cuit: strOpt,
+  address: strOpt,
+  zone: strOpt,           // barrio/zona — clave para rutas
+  lat: numLoose,
+  lng: numLoose,
+  contactName: strOpt,
+  contactPhone: strOpt,
+  openingHours: strOpt,
+  wholesaleTier: z.enum(["A", "B", "C"]).optional().nullable(),
+  pipelineStage: z.enum(["prospecto", "contactado", "visitado", "primera_compra", "activo", "en_pausa"]).optional().nullable(),
+  source: strOpt,
+  creditEnabled: boolOpt,   // cuenta corriente: default off (paga contra entrega)
+  creditLimitARS: numLoose,
+  lastVisitAt: strOpt,      // última visita comercial (≠ última compra)
 }).passthrough();
 
 // === EXPENSE ===

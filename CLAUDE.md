@@ -17,7 +17,7 @@ Sistema web de gestión completa para "Imports Zona Norte", un negocio de import
 - **Hosting:** Vercel (deploy automático desde GitHub)
 - **Testing:** Vitest (183 tests puros: calcs.js, pricing.js, productIntelligence.js)
 - **Estilo:** CSS-in-JS inline (no hay framework CSS externo). Tokens centralizados en `src/theme.js`.
-- **Diseño:** tema oscuro profesional (#0F172A fondo, #1E293B cards, #334155 bordes), acentos violeta (#6366f1), verde (#22C55E), rojo (#EF4444), ámbar (#F59E0B). Tipografía Rubik + Nunito Sans.
+- **Diseño:** tema CLARO cálido estilo Notion/Linear (fondo cream #F8F2E7, cards blancas #FFFFFF, bordes beige #E5DAC2), texto navy #1E2B4A, acentos verde #0F6B5C, ámbar/cobre #B07A1F, azul #1F5DB8, rojo #B83232, púrpura #5B3592. Tipografía Inter/Rubik. **Fuente de verdad = `src/theme.js` (objeto `T`)**, NO este resumen.
 - **API externa:** dolarapi.com para cotización blue venta automática
 
 ---
@@ -300,12 +300,12 @@ La API de dolarapi.com solo actualiza el exchangeRate si Firestore no mandó uno
 
 - Todo en español (labels, comentarios, variables de negocio)
 - CSS inline con objetos de estilo (no clases)
-- Tema dark — tokens en `src/theme.js`:
-  - Surfaces: fondo `#0F172A`, cards `#1E293B`, inputs `#0F172A`, bordes `#334155`, borderSoft `#273246`
-  - Texto: primario `#F8FAFC`, secundario `#CBD5E1`, muted `#94A3B8`, faint `#64748B`
-  - Acentos: violeta `#6366f1`, verde `#22C55E`, rojo `#EF4444`, azul `#3B82F6`, ámbar `#F59E0B`, púrpura `#8B5CF6`
-  - Convención: status colors usan su `Bg` variant (18% opacity) como fondo tintado y `Border` (40%) como borde
-- Scripts helper en `scripts/dark-theme-swap*.mjs` para migrar colores light→dark en batch (ya ejecutados, referencia histórica)
+- Tema CLARO cálido (Notion/Linear) — tokens en `src/theme.js` (objeto `T`, fuente de verdad):
+  - Surfaces: fondo `#F8F2E7` (cream), cards `#FFFFFF`, bordes `#E5DAC2`, borderSoft `#EFE5CE`, primarySoft `#E8EBF2`
+  - Texto: primario `#1E2B4A` (navy), secundario `#3A4868`, muted `#6B7794`, faint `#9AA2B3`
+  - Acentos: primary `#1E2B4A`, verde `#0F6B5C`, ámbar/cobre `#B07A1F`, azul `#1F5DB8`, rojo `#B83232`, púrpura `#5B3592`
+  - Cada acento trae su `Bg` (fondo tintado suave) y `Border` variant. Radius: sm 6 / base 10 / lg 14. Fuente Inter/Rubik.
+  - **Nota histórica:** hubo un experimento de dark mode (revertido). Los scripts `scripts/dark-theme-swap*.mjs` son referencia histórica; el sistema vivo es CLARO.
 - Componentes reusables en UI.jsx: `Card`, `Badge`, `Btn`, `StatCard`, `Modal`, `Input`, `Select`, `Table`, `SearchBar`
 - IDs generados con helper `uid()` (timestamp base36 + random)
 - Moneda formateada con `formatMoney()` (sin decimales, con separador de miles)
@@ -333,6 +333,190 @@ La API de dolarapi.com solo actualiza el exchangeRate si Firestore no mandó uno
 ## Nota sobre el estado actual
 
 A partir del 14/04/2026, GitHub está sincronizado y es la fuente de verdad del código. Todos los cambios se pushean directamente al repo. La versión en Vercel se deploya automáticamente desde main.
+
+---
+
+## Estado del proyecto al 14/07/2026
+
+### 🏪 PIVOTE MAYORISTA — COMPLETO (fases 0–6) · en `claude/mayorista`, SIN mergear
+
+El pivote a venta mayorista está **terminado (fases 0–6)** en la branch
+`claude/mayorista`. **NO mergeado a `main`** — a la espera de la revisión final y
+prueba de Diego. PR #2 draft. Fuente de verdad: `docs/PLAN_MAYORISTA.md`.
+
+- **F0** cimientos (eje `type: minorista|mayorista` + `businessType`, colecciones
+  prospects/visits/routes, migración, toggle de modo).
+- **F1** Kioscos + pricing por tier A/B/C (`wholesale.js`, `Kioscos.jsx`, editor de
+  precios por tier, `WholesaleOrder.jsx`).
+- **F2** captación (`prospecting.js`, `Pipeline.jsx` kanban, `ProspectMap.jsx`, visitas).
+- **F3** rutas de reparto (`routes.js`, `routeSheet.js`, `Routes.jsx`, fulfillment).
+- **F4** cuenta corriente B2B (`creditAccount.js`, `CuentasCorrientes.jsx`) — adeudado
+  derivado de ventas (NO de client.balance por el signo), puente con la caja: cobrar =
+  payment real en el sale. creditEnabled default OFF.
+- **F5** inteligencia B2B (`wholesaleIntelligence.js`) + `DashboardMayorista.jsx` (KPIs,
+  P&L mayorista vs minorista, alertas, ranking).
+- **F6** pulido: ⌘K mayorista, export CSV (`wholesaleExport.js`), bulk actions en Kioscos.
+
+**Baseline: 867 → 944 tests verdes (+77, todos verdes). Build OK.** 8 pantallas mayoristas.
+Módulos puros nuevos: wholesale, wholesaleMigration, prospecting, routes, creditAccount,
+wholesaleMessage, wholesaleIntelligence, wholesaleExport, routeSheet.
+
+**Mejoras continuas (sin prueba manual, sin mergear):** ver `docs/PLAN_MEJORAS_MAYORISTA.md`
+(tandas A–F).
+- **Tanda A (higiene) ✅** — verificado limpio. Fix A.2 (log firebase solo en test env).
+  Finding A.4 resuelto: badge "Debe" en Kioscos ahora usa `clientOutstanding` (adeudado
+  B2B real), no `client.balance`. Finding A.3: `productsByZone` queda como building-block.
+- **Tanda B (blindaje de plata) ✅** — +63 edge tests en wholesale/creditAccount/cashBridge/
+  wholesaleIntelligence/routes. **Ningún bug encontrado** (cálculos ya blindados). 1007 tests.
+- **Tanda C (robustez / UI defensiva) ✅** — hardening (guards en Routes/Kioscos) + test de
+  idempotencia 2x/3x de la migración. Verificado: formatMoney defensivo, .qty/.items guardados,
+  empty states presentes. Ningún bug. 1010 tests.
+- **Tanda D (integración) ✅** — +5 tests de flujos punta a punta a nivel de datos
+  (pedido→ruta→cobro con caja, prospecto→conversión, cuenta corriente, P&L por canal,
+  no-regresión minorista). Ningún bug — las piezas encajan. 1015 tests.
+- **Siguiente tanda: E (documentación de usuario) — no toca código.**
+- Journal de las 4 tandas: `docs/SESSION_2026-07-14_mejoras_tandas_ABCD.md`.
+  **Resumen A–D: 944 → 1015 tests (+71), cero bugs reales.**
+
+**Siguiente:** revisión + prueba de Diego → recién ahí mergear a main.
+
+### 🏪 PIVOTE MAYORISTA — FASE 5 completa (docs/PLAN_MAYORISTA.md + docs/SESSION_2026-07-14_mayorista_fase5.md)
+
+**FASE 5 — Inteligencia B2B + Dashboard mayorista:**
+- `src/wholesaleIntelligence.js` (11 tests): expectedRepurchase (recompra por cadencia),
+  clientsAtRisk (churn B2B), rankByProfitability (revenue−cogs por kiosco), productsByZone,
+  wholesaleKpis, committedUnits, plByChannel.
+- `components/DashboardMayorista.jsx`: KPIs B2B, facturación mayorista vs minorista, P&L
+  por canal, alertas (kioscos en riesgo, zonas sin cerrar, prospectos estancados), ranking
+  por ganancia. Selector 30/90d. Pantalla "Panel mayorista".
+- Reserva de stock (5.3): inherente (el pedido descuenta al cargarse); committedUnits da
+  visibilidad. Reposición por volumen se apoya en purchaseRecommendations existente.
+
+**Baseline:** 939 tests verdes. Build OK. 7 pantallas mayoristas en total.
+
+**Siguiente:** FASE 6 — Pulido, mobile y power-user B2B (última fase).
+
+### 🏪 PIVOTE MAYORISTA — FASE 4 completa (docs/PLAN_MAYORISTA.md + docs/SESSION_2026-07-14_mayorista_fase4.md)
+
+**FASE 4 — Cuenta corriente B2B (completa, apagada por default):**
+- `lib/creditAccount.js` (14 tests): adeudado DERIVADO de las ventas (total − pagos),
+  NO de `client.balance` (evita el conflicto de signo: en retail negativo = debe).
+  creditStatus, canChargeOnAccount, oldestUnpaidDays, isOverdue, allocatePayment.
+- **Puente con la caja:** cobrar = agregar un `payment` al sale → el ledger de
+  CashBox acredita la cuenta (payMethodToAccountId). Sin doble conteo. Cobro contra
+  entrega desde Routes ("💵 Cobrar" con método/cuenta); cobro a cuenta desde
+  `components/CuentasCorrientes.jsx` (allocatePayment reparte más viejas primero).
+- Kioscos ficha: `creditEnabled` (default OFF) + `creditLimitARS`. WholesaleOrder
+  muestra debe/límite/disponible. `lib/wholesaleMessage.js`: mensaje de cobranza.
+
+**Baseline:** 928 tests verdes. Build OK. Pantalla nueva: Cuentas corrientes.
+
+**Siguiente:** FASE 5 — Inteligencia B2B + Dashboard mayorista.
+
+### 🏪 PIVOTE MAYORISTA — FASE 3 completa (docs/PLAN_MAYORISTA.md + docs/SESSION_2026-07-14_mayorista_fase3.md)
+
+**FASE 3 — Logística / Rutas (4 bloques, nivel básico):**
+- `src/routes.js` (puro, 12 tests): `pendingWholesaleOrders`, `groupOrdersByZone`,
+  `buildRouteStops`, `resolveStop`, `routeTotals`, `moveStop`, `optimizeStops` (STUB
+  documentado, sin implementar).
+- `lib/routeSheet.js`: hoja de ruta en texto (copiable/imprimible).
+- `components/Routes.jsx`: crear ruta por fecha eligiendo pedidos pendientes por zona,
+  orden manual de paradas (↑/↓), estados de fulfillment (ruta planificada→en_curso→
+  cerrada; parada entregado/no_estaba/reprogramar/cobrado). Mueve `sale.fulfillmentStatus`
+  (armado→en_ruta→entregado→cobrado) + `sale.routeId`. "Cobrado" es flag (la caja es Fase 4).
+
+**Baseline:** 912 tests verdes. Build OK. Pantalla nueva: Rutas (5 pantallas mayoristas
+en total).
+
+**Siguiente:** FASE 4 — Cuenta corriente B2B (completa, apagada por default).
+
+### 🏪 PIVOTE MAYORISTA — FASE 2 completa (docs/PLAN_MAYORISTA.md + docs/SESSION_2026-07-14_mayorista_fase2.md)
+
+**FASE 2 — Captación (4 bloques; Google Places 2.5 diferido):**
+- `src/prospecting.js` (puro, 13 tests): `pipelineCounts`, `prioritizeProspects`,
+  `zonesCoverage`/`zonesWithoutCoverage`, `lastVisitFor`, `funnelSummary`.
+- `components/Pipeline.jsx`: kanban SIN drag (botones, mobile-friendly). Prospectos
+  (prospecto/contactado/visitado) → convertir a mayorista al llegar a "visitado".
+  Alta manual de prospectos.
+- `components/ProspectMap.jsx`: cobertura por zona + "zonas a cerrar". Mapa geográfico
+  con pins diferido con Places.
+- Visitas (`visits`): registrar visita (outcome+notas) desde el kanban.
+
+**Baseline:** 900 tests verdes. Build OK. Pantallas nuevas: Pipeline + Prospección.
+
+**Entorno de test descartado** esta etapa (mucha vuelta). Quedó preparado sin usar:
+`firebaseConfig` por env vars `VITE_FIREBASE_*` (fallback a prod) + `docs/TEST_ENV_SETUP.md`.
+Prod y `main` intactos.
+
+**Siguiente:** FASE 3 — Logística (Rutas de reparto).
+
+### 🏪 PIVOTE MAYORISTA — FASE 1 completa (docs/PLAN_MAYORISTA.md + docs/SESSION_2026-07-14_mayorista_fase1.md)
+
+**Ajuste de modelo (importante):** el eje grande es **`type: "minorista" | "mayorista"`**
+(NO "kiosco" — eso quedó como `businessType`, junto a maxikiosco/drugueria/etc.).
+Toda la inteligencia opera sobre `type="mayorista"`. Enums `CLIENT_TYPES` +
+`BUSINESS_TYPES` en `constants/enums.js`.
+
+**Consolidación de pricing:** se borró `lib/wholesalePricing.js` (viejo, muerto,
+colisionaba de nombre). El modelo primario son las listas por tier A/B/C en
+`product.priceByChannel.mayorista_a/b/c`. El descuento por volumen escalonado revive
+en `src/wholesale.js` como complemento opcional. "mayorista" salió del select de tier
+retail (queda regular/vip/diamante).
+
+**FASE 1 — núcleo comercial (6 bloques):**
+- `src/wholesale.js` (puro, 22 tests): `resolveTierPrice`, `minOrderForTier` +
+  `validateOrderMinimum`, `volumeDiscount` (opcional, parametrizable), `orderMargin`.
+- `components/Kioscos.jsx`: lista de clientes mayoristas, filtros, KPIs, ficha,
+  "convertir" candidatos (tier="mayorista" viejo). Reusa `clientIntelligence`.
+- `components/Products.jsx`: editor de precios por tier (priceByChannel.mayorista_a/b/c)
+  con margen en vivo.
+- `components/WholesaleOrder.jsx`: pedido mayorista (precio por tier + margen + mínimo)
+  → genera sale saleType=mayorista/channel=Mayorista/fulfillmentStatus=pendiente,
+  descuenta stock. "Repetir último pedido". Cobranza/entrega = fases 3/4.
+
+**Baseline:** 887 tests verdes. Build OK. Pantallas nuevas: Kioscos + Pedido mayorista.
+
+**REGLA PERMANENTE nueva:** al cerrar cada bloque grande, además de `/persist-session`,
+generar un resumen MD autocontenido (ver más abajo en "self-updating context").
+
+**Siguiente:** FASE 2 — Captación (Pipeline + Mapa + Visitas).
+
+**⚠️ Nota de branches:** pivote en `claude/mayorista`. Redactor IA en
+`claude/claude-md-docs-oNlms`. Ninguno mergeado a `main`.
+
+### 🏪 PIVOTE MAYORISTA — FASE 0 completa (docs/PLAN_MAYORISTA.md + docs/SESSION_2026-07-14_mayorista_fase0.md)
+
+El negocio pivota de minorista → **mayorista (kioscos)** de forma HÍBRIDA: mayorista
+es el foco, minorista queda 100% funcional como canal residual. Fuente de verdad del
+pivote: **`docs/PLAN_MAYORISTA.md`** (roadmap de 7 fases 0–6). Se ejecuta fase por
+fase en la branch **`claude/mayorista`**.
+
+**FASE 0 — cimientos (6 bloques, todo verde, sin UI de negocio nueva):**
+- Kiosco = `client` con `type:"kiosco"` (reusa toda la inteligencia de cliente).
+  Schema `client` extendido con campos B2B + `sale` con `saleType`/`fulfillmentStatus`
+  (`lib/schemas.js`, todos opcionales, `.passthrough()`).
+- Enums B2B nuevos en `constants/enums.js` (CLIENT_TYPES, WHOLESALE_TIERS,
+  PIPELINE_STAGES, VISIT_OUTCOMES, ROUTE_STATUS, FULFILLMENT_STATUS...). "Mayorista"
+  agregado a CHANNELS. Aliases `mayorista_a/b/c` en `pricing.js` (precios por tier
+  van en `product.priceByChannel`, NO en colección nueva).
+- Colecciones nuevas en el sync: **`prospects`** (leads sin convertir), **`visits`**
+  (CRM), **`routes`** (reparto). Registradas en `useFirebaseSync.js` + memos `active*`
+  + Papelera.
+- `src/wholesaleMigration.js` (puro, 8 tests): `migrateToWholesaleModel()` idempotente,
+  corre en arranque, setea `type`/`saleType`/`fulfillmentStatus` en data previa.
+- **Modo de negocio**: toggle en topbar (🏪 Mayorista / 🛒 Minorista), `businessMode`
+  en settings (default "mayorista"), `orderNavByMode()` reordena el nav sin ocultar
+  nada.
+
+**Baseline:** 875 tests verdes (era 867; +8 migración). Antes se estabilizó un bug
+pre-existente de `skuProfitability` (no pasaba `now` a `buildProductSalesStats`).
+
+**Siguiente:** FASE 1 — Kioscos + pricing por tier (`wholesale.js`, `Kioscos.jsx`,
+`WholesaleOrder.jsx`).
+
+**⚠️ Nota de branches:** el pivote vive en `claude/mayorista`. El Agente Redactor IA
+del mensaje diario (banco de copys, sin costo de API — ver `docs/AGENTE_REDACTOR.md`)
+vive en `claude/claude-md-docs-oNlms`. Ninguno mergeado a `main` todavía.
 
 ---
 
@@ -670,6 +854,15 @@ Diego opera mucho desde el celular. Mobile es prioridad — no afterthought.
 ---
 
 ## 🔄 Self-updating context (obligatorio al cerrar sesiones importantes)
+
+> **REGLA PERMANENTE (2026-07-14): resumen MD al cerrar cada bloque grande.**
+> Al terminar una fase, refactor importante, decisión de arquitectura o cambio
+> significativo, además de `/persist-session` hay que **generar SIEMPRE un resumen
+> autocontenido en Markdown** (estándar: `IZN_Pivote_Mayorista_Fase0_Resumen.md`)
+> con qué se hizo, decisiones y porqué, archivos, commits, tests/build y próximos
+> pasos. Se entrega descargable a Diego (para cargar al chat de diseño) y se puede
+> versionar en `docs/`. Es hábito automático, no se pide. Detalle en
+> `docs/PLAN_MAYORISTA.md` → "REGLA PERMANENTE".
 
 El sistema de persistencia de contexto tiene 3 capas:
 - **CLAUDE.md** (este archivo, se carga siempre)
