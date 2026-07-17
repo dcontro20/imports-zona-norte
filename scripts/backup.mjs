@@ -23,7 +23,7 @@
 
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
-import { getFirestore, doc, getDoc } from "firebase/firestore";
+import { getFirestore, doc, getDoc, setDoc } from "firebase/firestore";
 import { writeFileSync, mkdirSync, existsSync, readdirSync, readFileSync, unlinkSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -197,19 +197,49 @@ async function main() {
 
   // Upload a Drive (opcional, requiere OAuth)
   if (UPLOAD) {
-    await uploadToDrive(content, driveFileName(now, totalRecords));
+    const uploaded = await uploadToDrive(content, driveFileName(now, totalRecords));
+    if (!uploaded) {
+      // Un verde mentiroso es peor que un rojo honesto: si el respaldo no
+      // llegó a Drive, el proceso FALLA (el Action se pone rojo y GitHub
+      // manda mail). El backup local igual quedó escrito más arriba.
+      console.error(`\n❌ BACKUP INCOMPLETO: el archivo local existe pero NO se subió a Drive.`);
+      process.exit(1);
+    }
+    await stampBackupStatus(db, now, totalRecords);
   }
 
   process.exit(0);
 }
 
+// Deja registro en Firestore del último backup que SÍ llegó a Drive.
+// El Dashboard lee appData/backupStatus y alerta si quedó viejo — así un
+// backup roto se ve en la app aunque nadie mire los logs del Action.
+async function stampBackupStatus(db, date, records) {
+  const iso = date.toISOString();
+  const payload = { lastDriveBackupAt: iso, records, source: IS_CI ? "github-actions" : "local" };
+  try {
+    await setDoc(doc(db, "appData", "backupStatus"), {
+      data: JSON.stringify(payload),
+      updatedAt: iso,
+    });
+    log(`📌 backupStatus sellado en Firestore (${iso})`);
+  } catch (err) {
+    // El backup en Drive ya está a salvo: no convertimos un backup bueno en
+    // run fallida solo porque el sello no se pudo escribir. Pero avisamos.
+    console.error(`⚠️  No se pudo sellar backupStatus en Firestore: ${err.message}`);
+    console.error(`   (el backup en Drive está OK; la alerta del Dashboard puede quedar desactualizada)`);
+  }
+}
+
+// Devuelve true solo si el archivo quedó efectivamente en Drive.
+// Cualquier otro camino (sin token, sin googleapis, error de API) → false.
 async function uploadToDrive(content, driveName) {
   const tokenData = resolveDriveToken();
   if (!tokenData) {
     console.error(`\n❌ Upload a Drive falló — no hay token disponible.`);
     console.error(`   Local: corré una vez  node scripts/auth-oauth.mjs`);
     console.error(`   CI: seteá GOOGLE_DRIVE_TOKEN como secret en GitHub.`);
-    return;
+    return false;
   }
 
   let googleapis;
@@ -218,7 +248,7 @@ async function uploadToDrive(content, driveName) {
   } catch {
     console.error(`\n❌ Falta dependencia 'googleapis'. Instalala con:`);
     console.error(`   npm install googleapis`);
-    return;
+    return false;
   }
 
   const { google } = googleapis;
@@ -258,11 +288,13 @@ async function uploadToDrive(content, driveName) {
     });
     log(`✅ Drive: ${res.data.name}`);
     log(`   ${res.data.webViewLink}`);
+    return true;
   } catch (err) {
     console.error(`❌ Drive upload falló: ${err.message}`);
     if (err.message.includes("invalid_grant")) {
       console.error(`   El refresh token expiró. Corré:  node scripts/auth-oauth.mjs`);
     }
+    return false;
   }
 }
 
