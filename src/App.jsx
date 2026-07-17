@@ -592,6 +592,12 @@ export default function App() {
     currentUser, exchangeRate, logAudit, logStock, logPrice,
   }), [currentUser, exchangeRate, logAudit, logStock, logPrice]);
 
+  // ---- Nav según modo de negocio ----
+  // Tiene que vivir ANTES de los returns condicionales de loading/login:
+  // un hook después de un early return rompe las Rules of Hooks (el orden
+  // de hooks cambia entre renders y React tira "Rendered more hooks").
+  const visibleNavItems = useMemo(() => orderNavByMode(NAV_ITEMS, settings.businessMode), [settings.businessMode]);
+
   // ---- Login with Firebase Auth ----
   const handleLogin = async () => {
     setLoginError("");
@@ -716,7 +722,6 @@ export default function App() {
   // Diego es único usuario — todas las páginas son accesibles.
   const isOwnerUser = true;
   const effectivePage = page;
-  const visibleNavItems = useMemo(() => orderNavByMode(NAV_ITEMS, settings.businessMode), [settings.businessMode]);
 
   const renderPage = () => {
     switch (effectivePage) {
