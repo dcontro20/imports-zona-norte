@@ -359,6 +359,12 @@ verificado (bundle por hash + strings mayoristas). PR #2 quedó merged.
 - **Migración `migrateToWholesaleModel`**: ya corrió sobre la data real de
   prod durante la prueba local de Diego del 16/07 (el dev local usa Firestore
   de PROD por el fallback de config). Idempotente — re-corre como no-op.
+- **Tanda E (docs de usuario) ✅ 2026-07-17** — `docs/GUIA_MAYORISTA.md`
+  (guía operativa del modo mayorista, formato celu, con "activar lo apagado"
+  + FAQ) y `docs/CHECKLIST_PRIMER_USO.md` (10 pasos del primer día). Labels
+  extraídos del código real. Cero cambios en src/. **Siguiente: Tanda F**
+  (propuestas de producto — requieren OK de Diego ítem por ítem ANTES de
+  construir). Journal: `docs/SESSION_2026-07-17_tanda_E_docs.md`.
 - **Backups endurecidos (2026-07-17, docs/SESSION_2026-07-17_backup_hardening.md)**:
   tras 8 días sin backup con el Action verde (09–17/07), `backup.mjs --upload`
   ahora hace **exit 1** si el upload a Drive falla (`9922749`), sella
@@ -408,7 +414,8 @@ wholesaleMessage, wholesaleIntelligence, wholesaleExport, routeSheet.
 - **Tanda D (integración) ✅** — +5 tests de flujos punta a punta a nivel de datos
   (pedido→ruta→cobro con caja, prospecto→conversión, cuenta corriente, P&L por canal,
   no-regresión minorista). Ningún bug — las piezas encajan. 1015 tests.
-- **Siguiente tanda: E (documentación de usuario) — no toca código.**
+- **Tanda E (documentación de usuario) ✅** — cerrada el 2026-07-17, ver
+  bloque "Estado del proyecto al 17/07/2026".
 - Journal de las 4 tandas: `docs/SESSION_2026-07-14_mejoras_tandas_ABCD.md`.
   **Resumen A–D: 944 → 1015 tests (+71), cero bugs reales.**
 
