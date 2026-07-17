@@ -57,6 +57,19 @@ vi.mock("./lib/notifications.js", () => ({
 
 import App from "./App.jsx";
 
+// App monta 3 chunks lazy apenas hay sesión: la página default (Dashboard) y
+// los FABs QuickSale/QuickWithdrawal (siempre montados, con open=false). Si el
+// test termina con esos import() en vuelo, rechazan con EnvironmentTeardownError
+// cuando vitest desmonta el entorno (flaky, ~1 de cada 3 corridas). Importarlos
+// acá los deja resueltos en la caché del module runner antes de cerrar el test.
+const drainLazyChunks = () => act(async () => {
+  await Promise.all([
+    import("./components/Dashboard.jsx"),
+    import("./components/QuickSale.jsx"),
+    import("./components/QuickWithdrawal.jsx"),
+  ]);
+});
+
 beforeEach(() => {
   localStorage.clear();
   authState.callback = null;
@@ -87,6 +100,8 @@ describe("App — smoke de montaje (Rules of Hooks)", () => {
     expect(screen.getAllByText("Kioscos").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Panel mayorista").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Rutas").length).toBeGreaterThan(0);
+
+    await drainLazyChunks();
   });
 
   it("monta directo a sesión iniciada (usuario ya logueado al abrir)", async () => {
@@ -99,5 +114,7 @@ describe("App — smoke de montaje (Rules of Hooks)", () => {
     });
 
     expect(screen.getAllByText("Kioscos").length).toBeGreaterThan(0);
+
+    await drainLazyChunks();
   });
 });
