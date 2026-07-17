@@ -71,6 +71,9 @@ export function useFirebaseSync() {
   const [monthlyClosures, setMonthlyClosures] = useState(() => loadData("monthlyClosures", []));
   const [partnerWithdrawals, setPartnerWithdrawals] = useState(() => loadData("partnerWithdrawals", []));
   const [exchangeRate, setExchangeRate] = useState(() => loadData("exchangeRate", 1415));
+  // Read-only: lo escribe scripts/backup.mjs tras cada upload exitoso a Drive.
+  // La app solo lo lee (alerta de backup viejo en Dashboard) — nunca lo escribe.
+  const [backupStatus, setBackupStatus] = useState(() => loadData("backupStatus", null));
   const [auditLog, setAuditLog] = useState(() => loadData("auditLog", []));
   const [coupons, setCoupons] = useState(() => loadData("coupons", []));
   const [bundles, setBundles] = useState(() => loadData("bundles", []));
@@ -217,6 +220,19 @@ export function useFirebaseSync() {
       (err) => { console.error("[SYNC] exchangeRate error:", err.code || err.message); }
     );
 
+    // backupStatus: solo lectura (sin smartSave — la app jamás lo escribe,
+    // por eso tampoco necesita lastFirestoreData ni el flag anti-loop).
+    const unsubBackup = subscribeToFirestore("backupStatus",
+      (data) => {
+        if (data && typeof data === "object") {
+          safeSetItem("vapestock_backupStatus", JSON.stringify(data));
+          setBackupStatus(data);
+        }
+      },
+      () => {}, // not found — todavía no corrió ningún backup con sello
+      (err) => { console.error("[SYNC] backupStatus error:", err.code || err.message); }
+    );
+
     // Timeout fallback: if nothing loaded after 15s, show cached data
     const timeout = setTimeout(() => {
       if (!firestoreReady.current) {
@@ -229,6 +245,7 @@ export function useFirebaseSync() {
     return () => {
       unsubscribers.forEach(u => u());
       unsubRate();
+      unsubBackup();
       clearTimeout(timeout);
     };
   }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -358,6 +375,7 @@ export function useFirebaseSync() {
     supplierLists, setSupplierLists,
     prospects, setProspects, visits, setVisits, routes, setRoutes,
     dataReady, syncStatus, fromFirestore,
+    backupStatus,
     logStock, logPrice,
   };
 }

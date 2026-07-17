@@ -30,6 +30,9 @@ export function generateDashboardAlerts({
   settings = {},
   exchangeRate = 1,
   now = new Date(),
+  // {lastDriveBackupAt, records, source} — sellado por scripts/backup.mjs
+  // tras cada upload exitoso a Drive. null = nunca hubo backup sellado.
+  backupStatus = null,
 } = {}) {
   const urgent = [];
   const week = [];
@@ -105,6 +108,38 @@ export function generateDashboardAlerts({
       detail: `Total: $${Math.round(totalDebt).toLocaleString("es-AR")}`,
       action: { label: "Ver clientes", page: "clients" },
     });
+  }
+
+  // Backup de Drive viejo — corren 2 mecanismos diarios (LaunchAgent + Action),
+  // así que 1 día sin backup puede ser un hiccup; 2+ es un problema real.
+  // A partir del doble del umbral pasa a URGENTE (con 8 días sin respaldo nos
+  // enteramos de casualidad — nunca más).
+  const backupStaleDays = settings.driveBackupStaleDays || 2;
+  const lastBackupAt = backupStatus && backupStatus.lastDriveBackupAt;
+  if (!lastBackupAt) {
+    week.push({
+      level: "week",
+      icon: "🛟",
+      title: "Sin registro de backup en Drive",
+      detail: "Corré `node scripts/backup.mjs --upload` o esperá el automático de las 3:03",
+      action: { label: "Ver backups", page: "export" },
+    });
+  } else {
+    const daysSinceBackup = Math.floor((now.getTime() - new Date(lastBackupAt).getTime()) / MS_PER_DAY);
+    if (daysSinceBackup >= backupStaleDays) {
+      const lastLabel = new Date(lastBackupAt).toLocaleDateString("es-AR", { day: "numeric", month: "short" });
+      const alert = {
+        icon: "🛟",
+        title: `Último backup en Drive hace ${daysSinceBackup} días`,
+        detail: `Último OK: ${lastLabel} · ${backupStatus.records || "?"} registros. Revisá el Action backup-diario o corré el backup manual.`,
+        action: { label: "Ver backups", page: "export" },
+      };
+      if (daysSinceBackup >= backupStaleDays * 2) {
+        urgent.push({ ...alert, level: "urgent" });
+      } else {
+        week.push({ ...alert, level: "week" });
+      }
+    }
   }
 
   // ============================================================

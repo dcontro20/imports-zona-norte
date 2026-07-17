@@ -520,7 +520,7 @@ export default function App() {
     supplierAliases, setSupplierAliases,
     supplierLists, setSupplierLists,
     prospects, setProspects, visits, setVisits, routes, setRoutes,
-    syncStatus, logStock, logPrice,
+    syncStatus, backupStatus, logStock, logPrice,
   } = sync;
 
   // ---- Audit log helper (needs currentUser) ----
@@ -725,7 +725,7 @@ export default function App() {
 
   const renderPage = () => {
     switch (effectivePage) {
-      case "dashboard": return <Dashboard products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} clients={clients} cashMovements={activeCashMovements} partnerWithdrawals={activePartnerWithdrawals} auditLog={auditLog} onNavigate={setPage} />;
+      case "dashboard": return <Dashboard products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} clients={clients} cashMovements={activeCashMovements} partnerWithdrawals={activePartnerWithdrawals} auditLog={auditLog} backupStatus={backupStatus} onNavigate={setPage} />;
       case "products": return <Products products={products} setProducts={setProducts} priceLog={priceLog} sales={activeSales} />;
       case "sales": return <Sales sales={sales} setSales={setSales} products={products} setProducts={setProducts} logStock={logStock} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} clients={clients} setClients={setClients} cashMovements={cashMovements} setCashMovements={setCashMovements} monthlyClosures={monthlyClosures} coupons={coupons} setCoupons={setCoupons} auditLog={auditLog} />;
       case "procurement": return <Procurement products={products} setProducts={setProducts} purchases={purchases} setPurchases={setPurchases} sales={activeSales} exchangeRate={exchangeRate} logStock={logStock} currentUser={currentUser} logAudit={logAudit} monthlyClosures={monthlyClosures} supplierProfiles={supplierProfiles} setSupplierProfiles={setSupplierProfiles} supplierAliases={supplierAliases} setSupplierAliases={setSupplierAliases} supplierLists={supplierLists} setSupplierLists={setSupplierLists} />;

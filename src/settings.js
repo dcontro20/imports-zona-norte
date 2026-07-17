@@ -34,6 +34,7 @@ export const DEFAULT_SETTINGS = {
 
   // Backups
   backupReminderDays: 7,       // recordatorio si no se hizo backup en N días
+  driveBackupStaleDays: 2,     // alerta Dashboard si el último backup a Drive tiene ≥ N días (≥ 2N = urgente)
 
   // Meta de ventas del mes (ARS). 0 = sin meta. El dashboard muestra una
   // barra de progreso con "esperado a esta altura del mes" para saber si

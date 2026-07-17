@@ -122,7 +122,7 @@ const SectionLabel = ({ children, icon, color = T.textMuted, right }) => (
 // ============================================
 // DASHBOARD — Light Notion/Linear aesthetic
 // ============================================
-export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, clients = [], cashMovements, partnerWithdrawals = [], auditLog = [], onNavigate }) => {
+export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, clients = [], cashMovements, partnerWithdrawals = [], auditLog = [], backupStatus = null, onNavigate }) => {
   const { exchangeRate } = useAppContext();
   const settings = useSettings();
   const { isMobile, isTablet } = useResponsive();
@@ -362,9 +362,9 @@ export const Dashboard = ({ products, sales, purchases, expenses, withdrawals, c
   // por urgencia (urgent / week / opportunity), cada una con acción concreta.
   const alertsGrouped = useMemo(
     () => generateDashboardAlerts({
-      products, sales, purchases, clients, settings, exchangeRate, now,
+      products, sales, purchases, clients, settings, exchangeRate, now, backupStatus,
     }),
-    [products, sales, purchases, clients, settings, exchangeRate, now]
+    [products, sales, purchases, clients, settings, exchangeRate, now, backupStatus]
   );
 
   // Acción del día — la próxima jugada concreta para vender más

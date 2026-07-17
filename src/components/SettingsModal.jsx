@@ -30,6 +30,7 @@ const FIELDS = [
   { section: "🛡️ Mermas & calidad",   key: "shippingDamageMonthly", label: "Alerta daño envío ≥", suffix: "casos/mes" },
   // Sección Backup
   { section: "🔄 Backups",            key: "backupReminderDays",  label: "Recordatorio backup si pasaron ≥", suffix: "días" },
+  { section: "🔄 Backups",            key: "driveBackupStaleDays", label: "Alerta backup Drive viejo si pasaron ≥", suffix: "días" },
   // Sección Meta de ventas
   { section: "🎯 Meta de ventas",     key: "monthlyRevenueGoalARS", label: "Objetivo mensual (0 = sin meta)", suffix: "$" },
 ];
