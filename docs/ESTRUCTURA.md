@@ -1,6 +1,6 @@
 # 📐 Estructura del sistema — snapshot automático
 
-> Actualizado: **2026-07-17** · Generado por `scripts/generate-structure-doc.mjs`
+> Actualizado: **2026-07-18** · Generado por `scripts/generate-structure-doc.mjs`
 > (cron nocturno). **No editar a mano** — los cambios se sobrescriben.
 > Para la guía humana de cómo está organizado todo, ver `MAPA_DEL_SISTEMA.md`.
 > Para decisiones y contexto, ver `CLAUDE.md` + `docs/SESSION_*.md`.
@@ -9,14 +9,14 @@
 
 | Capa | Archivos | Líneas (aprox.) |
 |---|---:|---:|
-| Componentes (pantallas + sub-piezas) | 69 | 27.449 |
+| Componentes (pantallas + sub-piezas) | 69 | 27.482 |
 | Módulos puros (cerebro de cálculos) | 20 | 2.550 |
 | Utilidades (`src/lib/`) | 54 | 5.727 |
 | Tests | 67 | — |
 | Scripts | 14 | — |
 | Endpoints serverless | 2 | — |
 | Workflows GitHub Actions | 5 | — |
-| Docs (.md) | 33 | — |
+| Docs (.md) | 37 | — |
 
 ---
 
@@ -36,17 +36,17 @@ Cada archivo `.jsx` es una pantalla o módulo visible en la nav. La columna
 | Coupons.jsx | 577 | — |
 | CuentasCorrientes.jsx | 114 | — |
 | Dashboard.jsx | 1353 | ---------- helpers ---------- |
-| DashboardMayorista.jsx | 113 | — |
+| DashboardMayorista.jsx | 114 | — |
 | ExchangeMonitor.jsx | 592 | — |
 | Expenses.jsx | 467 | Category colors |
 | Export.jsx | 413 | URL de la carpeta de Drive donde van los backups automáticos |
 | Finance.jsx | 219 | — |
-| Kioscos.jsx | 338 | Descarga un CSV en el browser (helper local — la generación del string es pura). |
+| Kioscos.jsx | 339 | Descarga un CSV en el browser (helper local — la generación del string es pura). |
 | Logo.jsx | 94 | Logo de Imports Zona Norte — SVG inline. Replica el diseño del logo oficial: escudo con vape estilizado sobre un |
 | Offers.jsx | 1398 | — |
 | OnboardingTour.jsx | 123 | Onboarding tour mínimo. Se muestra UNA SOLA VEZ por device (localStorage flag). Sirve para explicarle a Diego (o a un usuario nuevo |
 | Partners.jsx | 629 | — |
-| Pipeline.jsx | 198 | — |
+| Pipeline.jsx | 192 | — |
 | PriceLog.jsx | 620 | -- PRICE MANAGEMENT -- |
 | Procurement.jsx | 142 | Hub unificado de Abastecimiento — un solo punto de entrada para todo el ciclo de compra: Resumen (centro de comando) + Pedidos + Proveedores |
 | Products.jsx | 837 | — |
@@ -56,15 +56,15 @@ Cada archivo `.jsx` es una pantalla o módulo visible en la nav. La columna
 | QuickSale.jsx | 334 | ============================================ QUICK SALE — Mobile-optimized one-tap sale |
 | QuickWithdrawal.jsx | 332 | ============================================ QuickWithdrawal — registrar consumo propio en 2 toques desde mobile |
 | Reports.jsx | 1744 | — |
-| Routes.jsx | 261 | — |
+| Routes.jsx | 259 | — |
 | Sales.jsx | 1915 | — |
 | SettingsModal.jsx | 269 | SettingsModal — configuración de thresholds del sistema. Owner ajusta cómo el sistema dispara alertas (stock bajo, caja baja, etc). |
 | StockLog.jsx | 85 | -- STOCK LOG -- |
 | SupplierMonitor.jsx | 206 | SupplierMonitor — módulo principal de gestión de proveedores. 3 tabs: |
 | Trash.jsx | 378 | — |
-| UI.jsx | 358 | Mobile-first: altura mínima 44px en todo lo tocable (Apple HIG). padding: 12px vertical + 14px horizontal + fontSize: 14 ≈ 44px. |
+| UI.jsx | 372 | Mobile-first: altura mínima 44px en todo lo tocable (Apple HIG). padding: 12px vertical + 14px horizontal + fontSize: 14 ≈ 44px. |
 | WhatsApp.jsx | 172 | — |
-| WholesaleOrder.jsx | 255 | Pedido MAYORISTA: elegís un cliente mayorista → precios de su tier + margen en vivo por línea + total, valida mínimo, y genera un `sale` con |
+| WholesaleOrder.jsx | 280 | Pedido MAYORISTA: elegís un cliente mayorista → precios de su tier + margen en vivo por línea + total, valida mínimo, y genera un `sale` con |
 | Withdrawals.jsx | 1610 | -- MERMAS: Consumo propio, Garantías, Canjes -- Ventana de detección de duplicados (5 min) |
 
 ## 📂 Componentes — sub-carpetas
@@ -344,7 +344,9 @@ Tests detectados: **67**. Para correrlos: `npm test`.
 - `docs/GUIA_MAYORISTA.md`
 - `docs/IZN_Backup_Hardening_Resumen.md`
 - `docs/IZN_Merge_Mayorista_Resumen.md`
+- `docs/IZN_Mobile_Hardening_Resumen.md`
 - `docs/IZN_Tanda_E_Docs_Resumen.md`
+- `docs/IZN_Tanda_F1_Modos_Resumen.md`
 - `docs/MAPA_DEL_SISTEMA.md`
 - `docs/PLAN_MAYORISTA.md`
 - `docs/PLAN_MEJORAS_MAYORISTA.md`
@@ -367,5 +369,7 @@ Tests detectados: **67**. Para correrlos: `npm test`.
 - `docs/SESSION_2026-07-14_mejoras_tandas_ABCD.md`
 - `docs/SESSION_2026-07-17_backup_hardening.md`
 - `docs/SESSION_2026-07-17_merge_mayorista.md`
+- `docs/SESSION_2026-07-17_mobile_hardening.md`
 - `docs/SESSION_2026-07-17_tanda_E_docs.md`
+- `docs/SESSION_2026-07-17_tanda_F1_modos.md`
 - `docs/TEST_ENV_SETUP.md`
