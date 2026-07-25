@@ -75,6 +75,41 @@ export function routeTotals(route, sales = []) {
   return { totalUnits, totalARS, stops: (route?.stops || []).length };
 }
 
+// Tanda F: método de cobro ESPERADO por cliente — el más frecuente entre los
+// pagos de sus ventas mayoristas. null si nunca le cobramos (sin historial).
+export function expectedPayMethod(clientId, sales = []) {
+  const counts = {};
+  (sales || [])
+    .filter(s => s && !s.isDeleted && s.saleType === "mayorista" && s.clientId === clientId)
+    .forEach(s => (s.payments || []).forEach(p => {
+      if (!p?.method) return;
+      counts[p.method] = (counts[p.method] || 0) + 1;
+    }));
+  const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+  return top ? top[0] : null;
+}
+
+// Tanda F: cuánto se espera cobrar en la ruta por método (según el método
+// histórico de cada kiosco). Suma lo PENDIENTE de cada parada (total − pagos),
+// no el total del pedido. Bucket "Sin historial" para clientes sin cobros
+// previos. Devuelve [{ method, totalARS, stops }] ordenado por monto desc.
+export function routeTotalsByExpectedMethod(route, sales = [], saleOutstandingFn) {
+  const byMethod = {};
+  (route?.stops || []).forEach(st => {
+    const sale = (sales || []).find(s => s.id === st.orderId);
+    if (!sale) return;
+    const outstanding = saleOutstandingFn
+      ? saleOutstandingFn(sale)
+      : Math.max(0, (Number(sale.total) || 0) - (sale.payments || []).reduce((a, p) => a + (Number(p.amount) || 0), 0));
+    if (outstanding <= 0) return;
+    const method = expectedPayMethod(st.clientId, sales) || "Sin historial";
+    byMethod[method] = byMethod[method] || { method, totalARS: 0, stops: 0 };
+    byMethod[method].totalARS += outstanding;
+    byMethod[method].stops += 1;
+  });
+  return Object.values(byMethod).sort((a, b) => b.totalARS - a.totalARS);
+}
+
 // Reordena una parada hacia arriba/abajo (orden manual). Devuelve nuevo array
 // con los `order` re-indexados. dir: -1 (subir) | +1 (bajar).
 export function moveStop(stops = [], index, dir) {

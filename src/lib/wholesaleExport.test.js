@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { toCSV, kioscosToCSV, prospectsToCSV } from "./wholesaleExport.js";
+import { toCSV, kioscosToCSV, prospectsToCSV, routeToCSV } from "./wholesaleExport.js";
 
 describe("toCSV", () => {
   it("arma header + filas", () => {
@@ -46,5 +46,31 @@ describe("prospectsToCSV", () => {
     expect(csv).toContain("2026-07-01");
     expect(csv).not.toContain("Conv Y");
     expect(csv).not.toContain("Del Z");
+  });
+});
+
+describe("routeToCSV (Tanda F)", () => {
+  const clients = [
+    { id: "c1", businessName: "Kiosco A", zone: "Palermo", address: "Calle 1" },
+    { id: "c2", businessName: "Maxi B", zone: "Tigre", address: "Calle 2" },
+  ];
+  const sales = [
+    { id: "o1", saleType: "mayorista", clientId: "c1", total: 10000, orderNote: "después de las 18h", fulfillmentStatus: "en_ruta", payments: [], items: [{ qty: 5 }] },
+    { id: "o2", saleType: "mayorista", clientId: "c2", total: 8000, fulfillmentStatus: "cobrado", payments: [{ method: "Pesos Cash", amount: 8000 }], items: [{ qty: 3 }] },
+  ];
+  const route = { stops: [
+    { orderId: "o2", clientId: "c2", order: 2, status: "entregado" },
+    { orderId: "o1", clientId: "c1", order: 1, status: "pendiente" },
+  ] };
+  it("una fila por parada en orden de reparto, con estado, pendiente y nota", () => {
+    const csv = routeToCSV(route, { clients, sales });
+    const rows = csv.split("\n");
+    expect(rows[0]).toContain("Orden,Cliente");
+    expect(rows[1]).toContain("1,Kiosco A,Calle 1,Palermo,5,10000,10000,Pendiente,");
+    expect(rows[1]).toContain("18h"); // la nota del pedido viaja al CSV
+    expect(rows[2]).toContain("2,Maxi B,Calle 2,Tigre,3,8000,0,Cobrado");
+  });
+  it("ruta vacía → solo header", () => {
+    expect(routeToCSV({ stops: [] }, { clients, sales }).split("\n").length).toBe(1);
   });
 });

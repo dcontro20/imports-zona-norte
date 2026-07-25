@@ -1,16 +1,17 @@
 import { useState, useMemo } from "react";
 import { uid, formatDate, formatMoney } from "../helpers.js";
 import { useResponsive } from "../App.jsx";
-import { Card, Btn, Modal, Input, Select, StatCard, MiniBtn } from "./UI.jsx";
+import { Card, Btn, Modal, Input, Select, StatCard, MiniBtn, downloadCSV } from "./UI.jsx";
 import { T } from "../theme.js";
 import { PAYMENT_METHODS, MP_ACCOUNTS } from "../constants.js";
 import { useAppContext } from "../AppContext.js";
 import {
   pendingWholesaleOrders, groupOrdersByZone, buildRouteStops,
-  resolveStop, routeTotals, moveStop,
+  resolveStop, routeTotals, moveStop, routeTotalsByExpectedMethod,
 } from "../routes.js";
 import { saleOutstanding } from "../lib/creditAccount.js";
 import { generateRouteSheet } from "../lib/routeSheet.js";
+import { routeToCSV } from "../lib/wholesaleExport.js";
 
 // Rutas de reparto (nivel básico). Crear ruta para una fecha eligiendo pedidos
 // mayoristas pendientes (agrupados por zona), ordenar paradas a mano, y marcar
@@ -135,6 +136,7 @@ export function Routes({ routes = [], setRoutes, clients = [], sales = [], setSa
   if (openRoute) {
     const totals = routeTotals(openRoute, sales);
     const stops = [...(openRoute.stops || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
+    const cobroEsperado = routeTotalsByExpectedMethod(openRoute, sales, saleOutstanding);
     return (
       <div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
@@ -145,6 +147,7 @@ export function Routes({ routes = [], setRoutes, clients = [], sales = [], setSa
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <Btn variant="secondary" onClick={() => copySheet(openRoute)}>📋 Copiar hoja</Btn>
+            <Btn variant="secondary" onClick={() => downloadCSV(`ruta_${(openRoute.name || "reparto").replace(/\s+/g, "_")}.csv`, routeToCSV(openRoute, { clients, sales }))}>📥 CSV</Btn>
             {openRoute.status !== "cerrada" && <Btn onClick={() => advanceRouteStatus(openRoute)}>{openRoute.status === "planificada" ? "▶ Iniciar" : "✓ Cerrar"}</Btn>}
           </div>
         </div>
@@ -154,6 +157,23 @@ export function Routes({ routes = [], setRoutes, clients = [], sales = [], setSa
           <StatCard label="Unidades" value={totals.totalUnits} icon="📦" color={T.amber} />
           <StatCard label="A cobrar" value={formatMoney(totals.totalARS)} icon="💵" color={T.green} />
         </div>
+
+        {/* Tanda F: cuánto se espera cobrar por método (según cómo pagó cada
+            kiosco históricamente). Para saber cuánto efectivo vas a traer. */}
+        {cobroEsperado.length > 0 && (
+          <Card style={{ marginBottom: 16 }}>
+            <div style={{ fontWeight: 800, color: T.text, marginBottom: 8, fontSize: 14 }}>💰 Cobro esperado por método</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {cobroEsperado.map(m => (
+                <div key={m.method} style={{ border: `1px solid ${T.borderSoft}`, borderRadius: 10, padding: "8px 12px", fontSize: 13 }}>
+                  <span style={{ color: T.textMuted }}>{m.method === "Sin historial" ? "❔ Sin historial" : m.method}: </span>
+                  <b style={{ color: T.text }}>{formatMoney(m.totalARS)}</b>
+                  <span style={{ color: T.textFaint, fontSize: 11 }}> · {m.stops} parada{m.stops > 1 ? "s" : ""}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {stops.map((st, i) => {
@@ -167,6 +187,7 @@ export function Routes({ routes = [], setRoutes, clients = [], sales = [], setSa
                     <div style={{ fontWeight: 800, color: T.text }}>{i + 1}. {r.name}</div>
                     {r.address && <div style={{ fontSize: 12, color: T.textMuted }}>📍 {r.address}{r.zone ? ` (${r.zone})` : ""}</div>}
                     <div style={{ fontSize: 12, color: T.textSub, marginTop: 4 }}>{r.units}u · {formatMoney(r.totalARS)}</div>
+                    {r.sale?.orderNote && <div style={{ fontSize: 12, color: T.amber, marginTop: 4, fontWeight: 600 }}>📝 {r.sale.orderNote}</div>}
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
                     <span style={{ background: cobrado ? T.greenBg : ss.bg, color: cobrado ? T.green : ss.color, borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 800 }}>

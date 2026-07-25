@@ -1,22 +1,14 @@
 import { useState, useMemo } from "react";
-import { uid, formatMoney } from "../helpers.js";
+import { uid, formatMoney, formatDate } from "../helpers.js";
 import { useResponsive } from "../App.jsx";
-import { Card, Btn, Modal, Input, Select, StatCard } from "./UI.jsx";
+import { Card, Btn, Modal, Input, Select, StatCard, downloadCSV } from "./UI.jsx";
 import { T } from "../theme.js";
 import { BUSINESS_TYPES, WHOLESALE_TIERS, PIPELINE_STAGES } from "../constants.js";
 import { buildClientStats, classifyClient, predictNextPurchase } from "../clientIntelligence.js";
+import { expectedRepurchase } from "../wholesaleIntelligence.js";
 import { kioscosToCSV } from "../lib/wholesaleExport.js";
 import { clientOutstanding } from "../lib/creditAccount.js";
 import { useAppContext } from "../AppContext.js";
-
-// Descarga un CSV en el browser (helper local — la generación del string es pura).
-function downloadCSV(filename, csv) {
-  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = filename; a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 500);
-}
 
 // Pantalla de clientes MAYORISTAS (type="mayorista"). El label "Kioscos" se
 // mantiene porque la mayoría lo son, pero el modelo/filtro es por type + businessType.
@@ -89,6 +81,20 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] })
     const recompraMes = Object.values(statsById).filter(s => (s.daysSinceLast ?? 999) <= 30).length;
     return { activos, ticket, recompraMes };
   }, [mayoristas, statsById]);
+
+  // Tanda F: próximas recompras por cadencia real (expectedRepurchase).
+  // Orden: atrasados primero (más atrasado arriba), después por comprar,
+  // después al día por fecha esperada.
+  const recompras = useMemo(() => {
+    const rank = { atrasado: 0, por_comprar: 1, al_dia: 2 };
+    return mayoristas
+      .map(c => ({ client: c, rep: expectedRepurchase(c, sales) }))
+      .filter(x => x.rep && x.rep.orders > 0)
+      .sort((a, b) =>
+        (rank[a.rep.status] - rank[b.rep.status]) ||
+        ((b.rep.overdueDays ?? -Infinity) - (a.rep.overdueDays ?? -Infinity))
+      );
+  }, [mayoristas, sales]);
 
   // Lista filtrada.
   const filtered = useMemo(() => {
@@ -213,6 +219,36 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] })
         <StatCard label="Compraron (30d)" value={kpis.recompraMes} icon="🔁" color={T.amber} />
       </div>
 
+      {/* Tanda F: próximas recompras — mayoristas ordenados por cuándo se
+          espera que vuelvan a comprar (cadencia real de sus pedidos).
+          Va acá y no en pantalla propia: la acción ("llamalo") vive en esta
+          lista, y con pocos kioscos una pantalla aparte sería un desierto. */}
+      {recompras.length > 0 && (
+        <Card style={{ marginBottom: 16 }}>
+          <div style={{ fontWeight: 800, color: T.text, marginBottom: 10 }}>🔔 Próximas recompras</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {recompras.map(({ client: c, rep }) => {
+              const stl = rep.status === "atrasado" ? { label: "Atrasado", color: T.red, bg: T.redBg }
+                : rep.status === "por_comprar" ? { label: "Por comprar", color: T.amber, bg: T.amberBg }
+                : { label: "Al día", color: T.green, bg: T.greenBg };
+              return (
+                <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", borderBottom: `1px solid ${T.borderSoft}`, paddingBottom: 8 }}>
+                  <div style={{ flex: "1 1 160px", minWidth: 0 }}>
+                    <span style={{ fontWeight: 700, color: T.text, fontSize: 13 }}>{c.businessName || c.name}</span>
+                    <div style={{ fontSize: 11, color: T.textMuted }}>
+                      {rep.avgDaysBetween ? `compra cada ~${rep.avgDaysBetween}d` : `${rep.orders} pedido`}
+                      {rep.expectedDate ? ` · esperado ${formatDate(new Date(rep.expectedDate).toISOString())}` : ""}
+                      {rep.status === "atrasado" && rep.overdueDays > 0 ? ` · hace ${rep.overdueDays}d que debería` : ""}
+                    </div>
+                  </div>
+                  <span style={{ background: stl.bg, color: stl.color, borderRadius: 6, padding: "3px 10px", fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{stl.label}</span>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
       {/* Candidatos a convertir */}
       {candidatos.length > 0 && (
         <Card style={{ marginBottom: 16, background: T.amberBg, border: `1px solid ${T.amberBorder}` }}>
@@ -289,7 +325,9 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] })
                   </div>
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
                     <span style={{ background: segS.bg, color: segS.color, borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>{segS.label}</span>
-                    {st?.salesCount > 0 && <span style={{ background: T.borderSoft, color: T.textSub, borderRadius: 6, padding: "2px 8px", fontSize: 11 }}>{st.salesCount} pedidos</span>}
+                    {/* Tanda F: nuevo (1er pedido) vs recurrente, de un vistazo */}
+                    {st?.salesCount === 1 && <span style={{ background: T.blueBg, color: T.blue, borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>🆕 1er pedido</span>}
+                    {st?.salesCount > 1 && <span style={{ background: T.borderSoft, color: T.textSub, borderRadius: 6, padding: "2px 8px", fontSize: 11 }}>🔁 {st.salesCount} pedidos</span>}
                     {owed > 0 && <span style={{ background: T.redBg, color: T.red, borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>Debe {formatMoney(owed)}</span>}
                   </div>
                   {pred && pred.status === "atrasado" && (

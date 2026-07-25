@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { uid, formatDate } from "../helpers.js";
 import { useResponsive } from "../App.jsx";
-import { Card, Btn, Modal, Input, Select, StatCard, MiniBtn } from "./UI.jsx";
+import { Card, Btn, Modal, Input, Select, StatCard, MiniBtn, downloadCSV } from "./UI.jsx";
 import { T } from "../theme.js";
 import { PROSPECT_SOURCES, VISIT_OUTCOMES } from "../constants.js";
 import {
@@ -10,14 +10,6 @@ import {
 } from "../prospecting.js";
 import { prospectsToCSV } from "../lib/wholesaleExport.js";
 import { useAppContext } from "../AppContext.js";
-
-function downloadCSV(filename, csv) {
-  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = filename; a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 500);
-}
 
 // Pipeline de captación mayorista (kanban sin drag — botones de avance, anda en
 // mobile). Prospectos en las 3 primeras columnas; clientes mayoristas en las 3

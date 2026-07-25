@@ -34,6 +34,7 @@ export function generateRouteSheet(route, { clients = [], sales = [] } = {}) {
       lines.push(`   • ${it.qty}x ${it.name || "producto"}`);
     });
     lines.push(`   💵 A cobrar: ${money(r.totalARS)} (${r.units}u)`);
+    if (r.sale?.orderNote) lines.push(`   📝 ${r.sale.orderNote}`);
     if (st.notes) lines.push(`   📝 ${st.notes}`);
   });
 

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   pendingWholesaleOrders, groupOrdersByZone, buildRouteStops,
   resolveStop, routeTotals, moveStop, optimizeStops,
+  expectedPayMethod, routeTotalsByExpectedMethod,
 } from "./routes.js";
 import { generateRouteSheet } from "./lib/routeSheet.js";
 
@@ -111,5 +112,51 @@ describe("generateRouteSheet", () => {
   });
   it("no crashea sin route", () => {
     expect(generateRouteSheet(null, { clients, sales })).toBe("");
+  });
+});
+
+describe("expectedPayMethod (Tanda F)", () => {
+  const salesPagos = [
+    { id: "w1", saleType: "mayorista", clientId: "c1", total: 100, payments: [{ method: "Pesos Cash", amount: 100 }] },
+    { id: "w2", saleType: "mayorista", clientId: "c1", total: 200, payments: [{ method: "Pesos Cash", amount: 100 }, { method: "Mercado Pago", amount: 100 }] },
+    { id: "w3", saleType: "mayorista", clientId: "c2", total: 300, payments: [{ method: "Mercado Pago", amount: 300 }] },
+    { id: "w4", saleType: "minorista", clientId: "c3", total: 50, payments: [{ method: "Lemon", amount: 50 }] },
+  ];
+  it("devuelve el método más frecuente de los pagos mayoristas del cliente", () => {
+    expect(expectedPayMethod("c1", salesPagos)).toBe("Pesos Cash");
+    expect(expectedPayMethod("c2", salesPagos)).toBe("Mercado Pago");
+  });
+  it("sin historial (o solo minorista) → null", () => {
+    expect(expectedPayMethod("c3", salesPagos)).toBe(null);
+    expect(expectedPayMethod("nadie", salesPagos)).toBe(null);
+    expect(expectedPayMethod("c1", [])).toBe(null);
+  });
+});
+
+describe("routeTotalsByExpectedMethod (Tanda F)", () => {
+  const salesRuta = [
+    // c1 cobra siempre en efectivo; pedido nuevo con 4000 pendientes (10000 - 6000 pagados)
+    { id: "o1", saleType: "mayorista", clientId: "c1", total: 10000, payments: [{ method: "Pesos Cash", amount: 6000 }] },
+    { id: "hist1", saleType: "mayorista", clientId: "c1", total: 500, payments: [{ method: "Pesos Cash", amount: 500 }] },
+    // c2 sin historial de cobros: 20000 pendientes
+    { id: "o2", saleType: "mayorista", clientId: "c2", total: 20000, payments: [] },
+    // o3 ya cobrado entero → no aparece
+    { id: "o3", saleType: "mayorista", clientId: "c3", total: 3000, payments: [{ method: "Lemon", amount: 3000 }] },
+  ];
+  const route = { stops: [
+    { orderId: "o1", clientId: "c1", order: 1 },
+    { orderId: "o2", clientId: "c2", order: 2 },
+    { orderId: "o3", clientId: "c3", order: 3 },
+  ] };
+  it("agrupa lo PENDIENTE por método esperado, orden desc, sin cobrados", () => {
+    const out = routeTotalsByExpectedMethod(route, salesRuta);
+    expect(out).toEqual([
+      { method: "Sin historial", totalARS: 20000, stops: 1 },
+      { method: "Pesos Cash", totalARS: 4000, stops: 1 },
+    ]);
+  });
+  it("ruta vacía / sin route → []", () => {
+    expect(routeTotalsByExpectedMethod(null, salesRuta)).toEqual([]);
+    expect(routeTotalsByExpectedMethod({ stops: [] }, salesRuta)).toEqual([]);
   });
 });

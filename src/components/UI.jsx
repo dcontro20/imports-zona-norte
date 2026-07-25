@@ -180,6 +180,18 @@ export const Btn = ({ children, variant = "primary", ...props }) => {
   );
 };
 
+// Descarga un CSV en el browser. DOM-dependiente (Blob + <a>), por eso vive
+// acá y no en las libs puras — la GENERACIÓN del string sí es pura
+// (lib/wholesaleExport.js). Compartido: antes estaba duplicado en
+// Kioscos y Pipeline (Tanda F lo unificó al sumar el tercer uso en Rutas).
+export function downloadCSV(filename, csv) {
+  const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 500);
+}
+
 // Botón chico para acciones inline en cards (kanban del Pipeline, paradas de
 // Rutas). Compacto en desktop; en mobile sube a 44px de alto (tap target).
 // Reemplaza los MiniBtn locales duplicados que quedaban en 28-30px fijos.

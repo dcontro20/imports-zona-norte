@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { uid, formatMoney } from "../helpers.js";
 import { useResponsive } from "../App.jsx";
-import { Card, Btn, Select } from "./UI.jsx";
+import { Card, Btn, Select, Modal, Input } from "./UI.jsx";
 import { T } from "../theme.js";
 import { useAppContext } from "../AppContext.js";
 import { resolveTierPrice, hasTierPrice, volumeDiscount, applyPct, orderMargin, validateOrderMinimum } from "../wholesale.js";
@@ -25,6 +25,8 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
   const [search, setSearch] = useState("");
   const [lines, setLines] = useState([]); // [{ productId, qty, unitPriceUSD }]
   const [toast, setToast] = useState("");
+  const [orderNote, setOrderNote] = useState(""); // Tanda F: nota libre del pedido (viaja a la hoja de ruta)
+  const [historyOpen, setHistoryOpen] = useState(false); // Tanda F: duplicar pedido histórico
 
   const mayoristas = useMemo(
     () => clients.filter(c => c && !c.isDeleted && c.type === "mayorista"),
@@ -81,9 +83,20 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
       .sort((a, b) => new Date(b.date) - new Date(a.date))[0] || null;
   }, [sales, client]);
 
-  const repeatLast = () => {
-    if (!lastOrder) return;
-    const newLines = (lastOrder.items || [])
+  // Todos los pedidos mayoristas del cliente (para duplicar cualquiera).
+  const clientOrders = useMemo(() => {
+    if (!client) return [];
+    return sales
+      .filter(s => !s.isDeleted && s.clientId === client.id && s.saleType === "mayorista")
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [sales, client]);
+
+  // Clona las líneas de un pedido con los precios de tier DE HOY (no copia
+  // precios viejos). Productos borrados se omiten. Base de "repetir último"
+  // y de "duplicar histórico" (Tanda F).
+  const loadFromSale = (sale, label) => {
+    if (!sale) return;
+    const newLines = (sale.items || [])
       .map(it => {
         const p = products.find(pr => pr.id === it.productId && !pr.isDeleted);
         if (!p) return null;
@@ -91,9 +104,12 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
       })
       .filter(Boolean);
     setLines(newLines);
-    setToast(`Precargado el último pedido (${newLines.length} productos)`);
+    setHistoryOpen(false);
+    setToast(`${label} (${newLines.length} productos)`);
     setTimeout(() => setToast(""), 3000);
   };
+
+  const repeatLast = () => loadFromSale(lastOrder, "Precargado el último pedido");
 
   const confirm = () => {
     if (!client) { setToast("Elegí un cliente mayorista"); return; }
@@ -128,6 +144,7 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
       volumeDiscountPct: vol.pct || 0,
       exchangeRate: rate,
       createdBy: currentUser?.name || "",
+      ...(orderNote.trim() ? { orderNote: orderNote.trim() } : {}),
     };
 
     // Descontar stock + log (igual que una venta normal).
@@ -139,6 +156,7 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
     logAudit?.("create", "sale", saleId, `Pedido mayorista: ${client.businessName || client.name} · ${totalUnits}u · ${formatMoney(totalARS)}`);
 
     setLines([]);
+    setOrderNote("");
     setToast(`✅ Pedido registrado: ${totalUnits}u · ${formatMoney(totalARS)}`);
     setTimeout(() => setToast(""), 4000);
   };
@@ -171,6 +189,7 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
                     Tier {tier || "—"}
                   </span>
                   {lastOrder && <Btn variant="secondary" onClick={repeatLast}>🔁 Repetir último pedido</Btn>}
+                  {clientOrders.length > 1 && <Btn variant="secondary" onClick={() => setHistoryOpen(true)}>🗂 Duplicar un pedido…</Btn>}
                 </div>
               )}
             </div>
@@ -286,6 +305,11 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
                     <Totals label="Ganancia" value={`${Math.round(margin.totalMarginUSD * rate).toLocaleString("es-AR")} ARS`} color={marginColor} />
                   </div>
                   {!minCheck.ok && <div style={{ color: T.red, fontSize: 13, marginBottom: 10 }}>⚠️ {minCheck.reasons[0]}</div>}
+                  {/* Tanda F: nota libre — aparece en la hoja de ruta, que es
+                      donde sirve (ej: "entregar después de las 18h"). */}
+                  <Input label="Nota para la entrega (opcional)" value={orderNote}
+                    onChange={e => setOrderNote(e.target.value)}
+                    placeholder='Ej: "entregar después de las 18h", "preguntar por Marcelo"' />
                   <div style={{ display: "flex", justifyContent: "flex-end" }}>
                     <Btn onClick={confirm} disabled={!minCheck.ok}>Registrar pedido</Btn>
                   </div>
@@ -295,6 +319,29 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
           )}
         </>
       )}
+
+      {/* Tanda F: duplicar cualquier pedido histórico del cliente */}
+      <Modal open={historyOpen} onClose={() => setHistoryOpen(false)} title={`Duplicar pedido — ${client?.businessName || client?.name || ""}`}>
+        <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 10 }}>
+          Se cargan las mismas cantidades con los precios de tier de HOY (no los de aquel día).
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {clientOrders.map(o => {
+            const units = (o.items || []).reduce((s2, it) => s2 + (Number(it.qty) || 0), 0);
+            return (
+              <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 8, borderBottom: `1px solid ${T.borderSoft}`, paddingBottom: 8 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, color: T.text, fontSize: 13 }}>{new Date(o.date).toLocaleDateString("es-AR")} · {units}u · {formatMoney(o.total)}</div>
+                  <div style={{ fontSize: 11, color: T.textMuted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {(o.items || []).slice(0, 3).map(it => `${it.qty}x ${it.name || ""}`).join(" · ")}{(o.items || []).length > 3 ? " …" : ""}
+                  </div>
+                </div>
+                <Btn variant="secondary" onClick={() => loadFromSale(o, "Pedido duplicado")} style={{ flexShrink: 0 }}>Usar</Btn>
+              </div>
+            );
+          })}
+        </div>
+      </Modal>
 
       {toast && (
         <div style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", background: T.primary, color: "#fff", padding: "12px 20px", borderRadius: 10, fontSize: 14, fontWeight: 600, zIndex: 300, boxShadow: "0 8px 24px rgba(0,0,0,0.2)", maxWidth: "calc(100vw - 32px)", boxSizing: "border-box", textAlign: "center" }}>{toast}</div>
