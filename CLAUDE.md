@@ -336,6 +336,30 @@ A partir del 14/04/2026, GitHub está sincronizado y es la fuente de verdad del 
 
 ---
 
+## Estado del proyecto al 24/07/2026
+
+### ✅ TANDA F COMPLETA — plan de mejoras A–F cerrado (docs/SESSION_2026-07-24_tanda_F_completa.md)
+
+Las 7 mejoras de producto aprobadas por Diego, en un commit (`2e4ac01`),
+deployadas. **1030 tests verdes (+6).** Resumen:
+`docs/IZN_Tanda_F_Completa_Resumen.md`.
+
+- **F.1** productos por zona → card en Prospección (pantalla zona-céntrica).
+- **F.2** próximas recompras → bloque 🔔 en Kioscos (expectedRepurchase).
+- **F.3** `sale.orderNote` → visible en Rutas + hoja de ruta + CSV.
+- **F.4** duplicar pedido histórico (modal 🗂; `loadFromSale` compartido con
+  repetir último — SIEMPRE re-precia al tier actual).
+- **F.5** badge 🆕 1er pedido / 🔁 N pedidos en Kioscos.
+- **F.6** cobro esperado por método en ruta (`expectedPayMethod` DERIVADO
+  del historial de pagos — sin campo nuevo; suma lo PENDIENTE).
+- **F.7** ruta a CSV (`routeToCSV`) + `downloadCSV` unificado en UI.jsx
+  (estaba duplicado en Kioscos/Pipeline).
+
+**Siguiente: "front de ventas B2B"** (mensaje de presentación + lista de
+precios compartible por tier) — esperando OK de Diego; la lista de precios
+requiere proponerle el formato ANTES de construir. Afuera por decisión:
+Places (API key), optimización rutas (stub), S17–S22 (dormido), S14.3.
+
 ## Estado del proyecto al 17/07/2026
 
 ### 🚀 PIVOTE MAYORISTA EN PRODUCCIÓN (docs/SESSION_2026-07-17_merge_mayorista.md)
