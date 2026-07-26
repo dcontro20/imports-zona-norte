@@ -36,17 +36,23 @@ Resúmenes: `IZN_Fix_Borrar_Mayorista_Resumen.md` + `IZN_Textos_Mobile_Resumen.m
 - **Ubicación de los botones 💬 Presentar** (delegada): cards de prospecto
   en Pipeline + cards de kiosco en Kioscos — el primer contacto pasa ahí
   (la intuición de Diego coincidió con el análisis).
-- **Parte 3.2 (lista de precios) NO construida**: Diego pidió propuesta de
-  formato ANTES. Propuesta enviada (texto WhatsApp / pantalla presentable /
-  ambas). NO arrancar hasta su elección.
+- **Parte 3.2 (lista de precios) ✅ construida tras elección de Diego**:
+  opción C (pantalla + texto) con 3 ajustes SUYOS que son reglas de negocio:
+  (1) fecha + disclaimer del dólar en el texto; (2) el texto NO menciona el
+  tier (las listas se reenvían entre comercios — el tier es info interna de
+  la pantalla); (3) versión completa, agrupada por marca. Pantalla
+  "🏷️ Lista de precios" como ítem del nav mayorista (herramienta de venta,
+  un tap), tier recordado en localStorage, tipografía grande de mostrador.
+  `priceListItems`/`priceListText` en wholesaleMessage.js. Solo productos
+  con stock Y lista del tier (nunca fallback minorista en la lista).
 
 ## Estado final
 
 - Commits: `f0e2039` (parte 1) · `9d8e9c0` (3.1 base) · `67f69c3`
   (parte 2 + 3.1 cableado). Todo deployado.
 - 1033 tests verdes (+3 de presentationMessage) · build OK.
-- Pendiente: elección de formato de la lista de precios (3.2) → construirla
-  → MD de la Parte 3 al cerrar.
+- Bloque 2 COMPLETO (`3c6ca3a`): 1036 tests. Resumen de la Parte 3:
+  `docs/IZN_Front_Ventas_Resumen.md`.
 
 ---
 

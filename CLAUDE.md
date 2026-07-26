@@ -368,10 +368,12 @@ Places (API key), optimización rutas (stub), S17–S22 (dormido), S14.3.
   Modal (nowrap+ellipsis en UI.jsx) + nombre en Kioscos. REGLA: texto
   variable flex:1+minWidth:0 y envuelve; dato flexShrink:0; nada de nowrap
   en datos de negocio; space-between con gap; máx 2 datos por línea.
-- **Front de ventas 3.1 ✅**: `presentationMessage` en wholesaleMessage.js
-  + `PresentationMessageModal` compartido; botones 💬 Presentar en Pipeline
-  y Kioscos. **3.2 (lista de precios) esperando elección de formato de
-  Diego** — no construir hasta que elija. 1033 tests.
+- **Front de ventas COMPLETO ✅** (`3c6ca3a`): 💬 Presentar (Pipeline +
+  Kioscos, modal con tier + preview editable) y 🏷️ Lista de precios
+  (pantalla del nav mayorista con tier interno + "📋 Copiar para WhatsApp":
+  texto completo por marca, SIN tier, con fecha + disclaimer del dólar —
+  reglas de Diego). `wholesaleMessage.js` concentra los generadores B2B.
+  1036 tests. Resumen: `docs/IZN_Front_Ventas_Resumen.md`.
 
 ## Estado del proyecto al 17/07/2026
 
