@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { uid, formatMoney, formatDate } from "../helpers.js";
 import { useResponsive } from "../App.jsx";
-import { Card, Btn, Modal, Input, Select, StatCard, downloadCSV } from "./UI.jsx";
+import { Card, Btn, Modal, Input, Select, StatCard, MiniBtn, downloadCSV } from "./UI.jsx";
 import { T } from "../theme.js";
 import { BUSINESS_TYPES, WHOLESALE_TIERS, PIPELINE_STAGES } from "../constants.js";
 import { buildClientStats, classifyClient, predictNextPurchase } from "../clientIntelligence.js";
@@ -158,6 +158,19 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] })
       setClients(prev => [{ id, tier: "regular", balance: 0, createdAt: now, createdBy: currentUser?.name || "Sistema", ...base }, ...prev]);
       logAudit?.("create", "client", id, `Mayorista nuevo: ${base.name} (tier ${base.wholesaleTier})`);
     }
+    setModal(false);
+  };
+
+  // Soft-delete estándar del sistema: isDeleted + deletedAt + deletedBy.
+  // Recuperable desde la Papelera (los mayoristas son clients — la Papelera
+  // ya los lista en su sección de clientes).
+  const deleteMayorista = () => {
+    const c = mayoristas.find(x => x.id === editing);
+    if (!c) return;
+    if (!window.confirm(`¿Borrar a "${c.businessName || c.name}"? Va a la Papelera (recuperable 30 días).`)) return;
+    const now = new Date().toISOString();
+    setClients(prev => prev.map(x => x.id === editing ? { ...x, isDeleted: true, deletedAt: now, deletedBy: currentUser?.name || "?" } : x));
+    logAudit?.("delete", "client", editing, `Mayorista borrado: ${c.businessName || c.name}`);
     setModal(false);
   };
 
@@ -336,6 +349,11 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] })
                   {pred && pred.status === "por_comprar" && (
                     <div style={{ marginTop: 8, fontSize: 12, color: T.amber }}>🔔 Toca recompra (~cada {st.avgDaysBetween}d)</div>
                   )}
+                  {!selectMode && (
+                    <div style={{ marginTop: 10 }}>
+                      <MiniBtn color={T.textMuted} onClick={(e) => { e.stopPropagation(); openEdit(c); }}>✏️ Editar / borrar</MiniBtn>
+                    </div>
+                  )}
                 </div>
               </Card>
             );
@@ -393,9 +411,14 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] })
 
         <Input label="Notas" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
         {err && <div style={{ color: T.red, fontSize: 13, marginBottom: 10 }}>{err}</div>}
-        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 6 }}>
-          <Btn variant="secondary" onClick={() => setModal(false)}>Cancelar</Btn>
-          <Btn onClick={save}>{editing ? (converting ? "Convertir" : "Guardar") : "Crear"}</Btn>
+        <div style={{ display: "flex", gap: 10, marginTop: 6, flexWrap: "wrap" }}>
+          {editing && !converting && (
+            <Btn variant="danger" onClick={deleteMayorista}>🗑 Borrar</Btn>
+          )}
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flex: 1 }}>
+            <Btn variant="secondary" onClick={() => setModal(false)}>Cancelar</Btn>
+            <Btn onClick={save}>{editing ? (converting ? "Convertir" : "Guardar") : "Crear"}</Btn>
+          </div>
         </div>
       </Modal>
     </div>

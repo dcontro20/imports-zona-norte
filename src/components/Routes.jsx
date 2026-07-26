@@ -31,6 +31,7 @@ export function Routes({ routes = [], setRoutes, clients = [], sales = [], setSa
 
   const [openId, setOpenId] = useState(null);     // ruta abierta (detalle)
   const [createOpen, setCreateOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false); // editar nombre/fecha de la ruta abierta
   const [form, setForm] = useState({ name: "", date: new Date().toISOString().slice(0, 10) });
   const [selected, setSelected] = useState({});   // { orderId: true }
   const [toast, setToast] = useState("");
@@ -69,6 +70,15 @@ export function Routes({ routes = [], setRoutes, clients = [], sales = [], setSa
   };
 
   const updateRoute = (id, fn) => setRoutes(prev => prev.map(r => r.id === id ? fn(r) : r));
+
+  // Editar ruta (nombre/fecha) — misma paridad editar/borrar que el resto.
+  const openEditRoute = (r) => { setForm({ name: r.name || "", date: r.date || new Date().toISOString().slice(0, 10) }); setEditOpen(true); };
+  const saveRouteEdit = () => {
+    if (!openRoute) return;
+    updateRoute(openRoute.id, x => ({ ...x, name: form.name.trim() || x.name, date: form.date }));
+    setEditOpen(false);
+    flash("Ruta actualizada");
+  };
 
   // --- Estado de la ruta ---
   const advanceRouteStatus = (r) => {
@@ -146,6 +156,7 @@ export function Routes({ routes = [], setRoutes, clients = [], sales = [], setSa
             <div style={{ fontSize: 13, color: T.textMuted }}>{formatDate(openRoute.date)} · {openRoute.status}</div>
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <Btn variant="secondary" onClick={() => openEditRoute(openRoute)}>✏️ Editar</Btn>
             <Btn variant="secondary" onClick={() => copySheet(openRoute)}>📋 Copiar hoja</Btn>
             <Btn variant="secondary" onClick={() => downloadCSV(`ruta_${(openRoute.name || "reparto").replace(/\s+/g, "_")}.csv`, routeToCSV(openRoute, { clients, sales }))}>📥 CSV</Btn>
             {openRoute.status !== "cerrada" && <Btn onClick={() => advanceRouteStatus(openRoute)}>{openRoute.status === "planificada" ? "▶ Iniciar" : "✓ Cerrar"}</Btn>}
@@ -229,7 +240,18 @@ export function Routes({ routes = [], setRoutes, clients = [], sales = [], setSa
           </div>
         </Modal>
 
-        {toast && <Toast msg={toast} />}
+        <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Editar ruta">
+        <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: 10 }}>
+          <div style={{ flex: 1 }}><Input label="Nombre" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></div>
+          <div style={{ flex: 1 }}><Input label="Fecha" type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} /></div>
+        </div>
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+          <Btn variant="secondary" onClick={() => setEditOpen(false)}>Cancelar</Btn>
+          <Btn onClick={saveRouteEdit}>Guardar</Btn>
+        </div>
+      </Modal>
+
+      {toast && <Toast msg={toast} />}
       </div>
     );
   }
