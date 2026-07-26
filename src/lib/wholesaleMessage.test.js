@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { cobranzaMessage, presentationMessage } from "./wholesaleMessage.js";
+import { cobranzaMessage, presentationMessage, priceListItems, priceListText } from "./wholesaleMessage.js";
 
 const NOW = new Date("2026-07-14T12:00:00Z").getTime();
 const ago = (d) => new Date(NOW - d * 86400000).toISOString();
@@ -54,5 +54,35 @@ describe("presentationMessage (Bloque 2 — front de ventas)", () => {
   it("target mínimo (sin contacto/zona) no rompe", () => {
     const msg = presentationMessage({}, { tier: "B" });
     expect(msg.startsWith("Hola!")).toBe(true);
+  });
+});
+
+describe("priceListItems / priceListText (Bloque 2.2 — lista de precios)", () => {
+  const products = [
+    { id: "p1", brand: "Elfbar", model: "TE", flavor: "Sandía", stock: 10, priceUSD: 25, priceByChannel: { mayorista_b: 20 } },
+    { id: "p2", brand: "Elfbar", model: "TE", flavor: "Ananá", stock: 4, priceUSD: 25, priceByChannel: { mayorista_b: 20 } },
+    { id: "p3", brand: "Lost Mary", model: "BM", flavor: "Cherry", stock: 5, priceUSD: 22, priceByChannel: { mayorista_b: 17 } },
+    { id: "p4", brand: "Elfbar", model: "TE", flavor: "Uva", stock: 0, priceUSD: 25, priceByChannel: { mayorista_b: 20 } },  // sin stock
+    { id: "p5", brand: "Geek", model: "P", flavor: "Mango", stock: 9, priceUSD: 21 },                                        // sin lista tier B
+    { id: "p6", brand: "Nikbar", model: "X", flavor: "Menta", stock: 3, priceUSD: 19, isDeleted: true, priceByChannel: { mayorista_b: 15 } },
+  ];
+  it("agrupa por marca (alfabético) y filtra sin stock / sin lista / borrados", () => {
+    const groups = priceListItems(products, "B", 1000);
+    expect(groups.map(g => g.brand)).toEqual(["Elfbar", "Lost Mary"]);
+    expect(groups[0].items.map(i => i.label)).toEqual(["TE Ananá", "TE Sandía"]);
+    expect(groups[0].items[0].priceARS).toBe(20000);
+  });
+  it("el texto NO menciona el tier y lleva fecha + disclaimer del dólar", () => {
+    const txt = priceListText(products, { tier: "B", exchangeRate: 1000, now: new Date("2026-07-24T12:00:00") });
+    expect(txt).not.toMatch(/tier/i);
+    expect(txt).toContain("Precios al 24/07/2026");
+    expect(txt).toContain("sujetos a variación del dólar");
+    expect(txt).toContain("*ELFBAR*");
+    expect(txt).toContain("• TE Sandía — $20.000");
+    expect(txt).not.toContain("Uva");   // sin stock
+    expect(txt).not.toContain("Mango"); // sin lista de tier
+  });
+  it("sin productos con lista → texto vacío", () => {
+    expect(priceListText(products, { tier: "A", exchangeRate: 1000 })).toBe("");
   });
 });

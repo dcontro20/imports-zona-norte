@@ -70,3 +70,54 @@ export function presentationMessage(target, { tier = "C", products = [], exchang
   lines.push("Si te interesa te paso la lista completa de precios y coordinamos una entrega sin compromiso. 🙌");
   return lines.join("\n");
 }
+
+// ---------------------------------------------------------------------------
+// LISTA DE PRECIOS COMPARTIBLE (Bloque 2.2 — front de ventas)
+// ---------------------------------------------------------------------------
+
+// Items de la lista para un tier: solo productos con stock Y lista de tier
+// cargada, agrupados por marca (orden alfabético, y por modelo+sabor adentro).
+// Devuelve [{ brand, items: [{ id, label, priceARS }] }]. Base compartida de
+// la pantalla y del texto de WhatsApp.
+export function priceListItems(products = [], tier = "C", exchangeRate = 0) {
+  const t = String(tier || "C").toUpperCase();
+  const rate = Number(exchangeRate) || 0;
+  const byBrand = {};
+  (products || [])
+    .filter(p => p && !p.isDeleted && (Number(p.stock) || 0) > 0 && hasTierPrice(p, t))
+    .forEach(p => {
+      const brand = (p.brand || "Otros").trim() || "Otros";
+      byBrand[brand] = byBrand[brand] || [];
+      byBrand[brand].push({
+        id: p.id,
+        label: `${p.model || ""} ${p.flavor || ""}`.trim() || p.brand,
+        priceARS: Math.round(resolveTierPrice(p, t) * rate),
+      });
+    });
+  return Object.keys(byBrand).sort((a, b) => a.localeCompare(b)).map(brand => ({
+    brand,
+    items: byBrand[brand].sort((a, b) => a.label.localeCompare(b.label)),
+  }));
+}
+
+// Texto compartible de la lista COMPLETA. Decisiones de Diego (2026-07-24):
+// - NO menciona el tier (las listas se reenvían entre comercios; "Tier B"
+//   abre la pregunta de por qué no A). El tier es info interna de la pantalla.
+// - Fecha + disclaimer del dólar (estándar del rubro — cubre listas viejas).
+// - Completa: todos los productos con stock y precio de tier, por marca.
+export function priceListText(products = [], { tier = "C", exchangeRate = 0, now = new Date() } = {}) {
+  const groups = priceListItems(products, tier, exchangeRate);
+  if (groups.length === 0) return "";
+  const fecha = now.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
+  const lines = [];
+  lines.push("🛒 *LISTA DE PRECIOS — Imports Zona Norte*");
+  lines.push(`📅 Precios al ${fecha} · sujetos a variación del dólar`);
+  groups.forEach(g => {
+    lines.push("");
+    lines.push(`*${g.brand.toUpperCase()}*`);
+    g.items.forEach(it => lines.push(`• ${it.label} — ${money(it.priceARS)}`));
+  });
+  lines.push("");
+  lines.push("📦 Todo con stock a hoy. Hacé tu pedido y coordinamos la entrega. 🙌");
+  return lines.join("\n");
+}

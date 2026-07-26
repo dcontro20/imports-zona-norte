@@ -206,6 +206,21 @@ que no recompra = llamalo antes de que compre a otro) y el margen del P&L.
 
 ---
 
+## 6bis. El front de ventas: conseguir kioscos nuevos
+
+Dos herramientas para el momento ANTERIOR a que el kiosco compre — pensadas
+para usar desde el celu, parado en el mostrador:
+
+- **💬 Presentar** (en las cards de 🎯 Pipeline y de 🏪 Kioscos): arma el
+  mensaje de primer contacto con 2-3 precios de gancho del tier que elijas.
+  Editás el texto ahí mismo y lo copiás para WhatsApp.
+- **🏷️ Lista de precios** (ítem propio del menú mayorista): la lista completa
+  del tier elegido, agrupada por marca, con letra grande para MOSTRAR en
+  mano. El botón "📋 Copiar para WhatsApp" genera la versión texto para
+  mandar. **Ojo**: el tier se ve solo en TU pantalla — el texto copiado dice
+  "Lista de precios" a secas (las listas se reenvían entre comercios) y
+  lleva fecha + "sujetos a variación del dólar".
+
 ## 7. Cómo activar lo que está apagado
 
 El pivote se construyó con el principio "estructura completa, activar lo

@@ -88,6 +88,7 @@ const Sales = lazy(() => import("./components/Sales.jsx").then(m => ({ default: 
 const Clients = lazy(() => import("./components/Clients.jsx").then(m => ({ default: m.Clients })));
 const Kioscos = lazy(() => import("./components/Kioscos.jsx").then(m => ({ default: m.Kioscos })));
 const WholesaleOrder = lazy(() => import("./components/WholesaleOrder.jsx").then(m => ({ default: m.WholesaleOrder })));
+const PriceListScreen = lazy(() => import("./components/wholesale/PriceListScreen.jsx").then(m => ({ default: m.PriceListScreen })));
 const Pipeline = lazy(() => import("./components/Pipeline.jsx").then(m => ({ default: m.Pipeline })));
 const ProspectMap = lazy(() => import("./components/ProspectMap.jsx").then(m => ({ default: m.ProspectMap })));
 const Routes = lazy(() => import("./components/Routes.jsx").then(m => ({ default: m.Routes })));
@@ -229,6 +230,7 @@ const NAV_ITEMS = [
   { key: "dashMayorista", label: "Panel mayorista", icon: "📊", group: "mayorista" },
   { key: "kioscos", label: "Kioscos", icon: "🏪", group: "mayorista" },
   { key: "wholesaleOrder", label: "Pedido mayorista", icon: "🧾", group: "mayorista" },
+  { key: "priceList", label: "Lista de precios", icon: "🏷️", group: "mayorista" },
   { key: "pipeline", label: "Pipeline", icon: "🎯", group: "mayorista" },
   { key: "prospectMap", label: "Prospección", icon: "🗺️", group: "mayorista" },
   { key: "routes", label: "Rutas", icon: "🚚", group: "mayorista" },
@@ -756,6 +758,7 @@ export default function App() {
       case "clients": return <Clients clients={clients} setClients={setClients} sales={activeSales} products={activeProducts} withdrawals={activeWithdrawals} />;
       case "kioscos": return <Kioscos clients={clients} setClients={setClients} sales={activeSales} products={activeProducts} />;
       case "wholesaleOrder": return <WholesaleOrder clients={clients} products={products} setProducts={setProducts} sales={activeSales} setSales={setSales} logStock={logStock} />;
+      case "priceList": return <PriceListScreen products={activeProducts} />;
       case "pipeline": return <Pipeline prospects={prospects} setProspects={setProspects} clients={clients} setClients={setClients} visits={visits} setVisits={setVisits} products={activeProducts} />;
       case "prospectMap": return <ProspectMap prospects={activeProspects} clients={clients} sales={activeSales} products={activeProducts} />;
       case "routes": return <Routes routes={routes} setRoutes={setRoutes} clients={clients} sales={activeSales} setSales={setSales} />;
