@@ -10,6 +10,7 @@ import {
 } from "../prospecting.js";
 import { prospectsToCSV } from "../lib/wholesaleExport.js";
 import { useAppContext } from "../AppContext.js";
+import { PresentationMessageModal } from "./wholesale/PresentationMessageModal.jsx";
 
 // Pipeline de captación mayorista (kanban sin drag — botones de avance, anda en
 // mobile). Prospectos en las 3 primeras columnas; clientes mayoristas en las 3
@@ -27,15 +28,16 @@ const STAGE_COLOR = {
 
 const emptyProspect = { businessName: "", zone: "", address: "", phone: "", contactName: "", source: "manual", notes: "", lat: "", lng: "" };
 
-export function Pipeline({ prospects = [], setProspects, clients = [], setClients, visits = [], setVisits }) {
+export function Pipeline({ prospects = [], setProspects, clients = [], setClients, visits = [], setVisits, products = [] }) {
   const { isMobile } = useResponsive();
-  const { logAudit, currentUser } = useAppContext();
+  const { logAudit, currentUser, exchangeRate } = useAppContext();
 
   const [pModal, setPModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyProspect);
   const [err, setErr] = useState("");
-  const [visitFor, setVisitFor] = useState(null); // { id, type:"prospect"|"client", name }
+  const [visitFor, setVisitFor] = useState(null);
+  const [presTarget, setPresTarget] = useState(null); // Bloque 2: mensaje de presentación
   const [visit, setVisit] = useState({ outcome: "interesado", notes: "" });
 
   const activeProspects = useMemo(() => prospects.filter(p => p && !p.isDeleted && !p.convertedClientId), [prospects]);
@@ -157,6 +159,7 @@ export function Pipeline({ prospects = [], setProspects, clients = [], setClient
                           <MiniBtn onClick={() => convert(x)} color={T.green}>✓ Convertir</MiniBtn>
                         )}
                         <MiniBtn onClick={() => openVisit(x.id, isClient ? "client" : "prospect", x.businessName || x.name)} color={T.amber}>📋 Visita</MiniBtn>
+                        {!isClient && <MiniBtn onClick={() => setPresTarget(x)} color={T.green}>💬 Presentar</MiniBtn>}
                         {!isClient && <MiniBtn onClick={() => openEdit(x)} color={T.textMuted}>✏️</MiniBtn>}
                         {isClient && stage !== "activo" && <MiniBtn onClick={() => setClientStage(x, "activo")} color={T.green}>Activar</MiniBtn>}
                         {isClient && stage !== "en_pausa" && <MiniBtn onClick={() => setClientStage(x, "en_pausa")} color={T.red}>Pausar</MiniBtn>}
@@ -207,6 +210,11 @@ export function Pipeline({ prospects = [], setProspects, clients = [], setClient
           <Btn onClick={saveVisit}>Registrar</Btn>
         </div>
       </Modal>
+
+      {/* Bloque 2 — mensaje de presentación B2B (primer contacto con el prospecto) */}
+      <PresentationMessageModal open={!!presTarget} onClose={() => setPresTarget(null)}
+        target={presTarget} defaultTier="C"
+        products={products} exchangeRate={exchangeRate} />
     </div>
   );
 }

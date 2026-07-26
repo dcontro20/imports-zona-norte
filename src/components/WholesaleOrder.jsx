@@ -199,9 +199,14 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
             {client && credit && (
               <div style={{ marginTop: 10, fontSize: 12 }}>
                 {credit.enabled ? (
-                  <span style={{ color: excedeCredito ? T.red : T.textSub }}>
-                    💳 Cuenta corriente: debe {formatMoney(credit.owedARS)} · límite {formatMoney(credit.limitARS)} · disponible <b>{formatMoney(credit.availableARS)}</b>
-                    {excedeCredito && <> — ⚠️ este pedido ({formatMoney(totalARS)}) supera el disponible</>}
+                  <span>
+                    <span style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+                      <span style={{ color: T.textSub }}>💳 Cuenta corriente:</span>
+                      <span style={{ background: T.borderSoft, borderRadius: 6, padding: "2px 8px", color: T.textSub }}>debe {formatMoney(credit.owedARS)}</span>
+                      <span style={{ background: T.borderSoft, borderRadius: 6, padding: "2px 8px", color: T.textSub }}>límite {formatMoney(credit.limitARS)}</span>
+                      <span style={{ background: excedeCredito ? T.redBg : T.greenBg, borderRadius: 6, padding: "2px 8px", fontWeight: 700, color: excedeCredito ? T.red : T.green }}>disp. {formatMoney(credit.availableARS)}</span>
+                    </span>
+                    {excedeCredito && <span style={{ display: "block", marginTop: 6, color: T.red }}>⚠️ Este pedido ({formatMoney(totalARS)}) supera el disponible</span>}
                   </span>
                 ) : (
                   <span style={{ color: T.textMuted }}>💵 Paga contra entrega (sin cuenta corriente). Se cobra en la entrega/ruta.</span>
@@ -224,10 +229,13 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
                         textAlign: "left", border: `1px solid ${T.borderSoft}`, background: T.card, color: T.text,
                         borderRadius: 8, padding: "8px 12px", cursor: "pointer", fontSize: 13,
                         minHeight: isMobile ? 44 : undefined,
-                        display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8,
+                        // Mobile: apilado — el nombre del producto es lo que se lee
+                        // para elegir, no puede ceder ante el metadato de precio.
+                        display: "flex", flexDirection: isMobile ? "column" : "row",
+                        justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", gap: isMobile ? 2 : 8,
                       }}>
-                        <span>{prodLabel(p)}</span>
-                        <span style={{ color: T.textMuted, flexShrink: 0 }}>
+                        <span style={{ minWidth: 0, fontWeight: 600 }}>{prodLabel(p)}</span>
+                        <span style={{ color: T.textMuted, flexShrink: 0, fontSize: isMobile ? 11 : 13 }}>
                           {hasTierPrice(p, tier) ? `Tier ${tier}: ${resolveTierPrice(p, tier)} USD` : `base ${p.priceUSD} USD`} · stock {p.stock}
                         </span>
                       </button>
@@ -267,11 +275,11 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
                           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                             <input type="number" min="0" value={l.qty} onChange={e => setQty(l.productId, e.target.value)}
                               aria-label="Cantidad"
-                              style={{ flex: 1, minWidth: 0, padding: "8px", minHeight: 44, borderRadius: 8, border: `1px solid ${T.border}`, textAlign: "center", fontSize: 16, background: T.card, color: T.text, boxSizing: "border-box" }} />
+                              style={{ flex: "0 0 72px", minWidth: 0, padding: "8px", minHeight: 44, borderRadius: 8, border: `1px solid ${T.border}`, textAlign: "center", fontSize: 16, background: T.card, color: T.text, boxSizing: "border-box" }} />
                             <input type="number" step="0.01" value={l.baseUSD} onChange={e => setPrice(l.productId, e.target.value)}
                               title="Precio unitario USD (editable)" aria-label="Precio unitario USD"
-                              style={{ flex: 1, minWidth: 0, padding: "8px", minHeight: 44, borderRadius: 8, border: `1px solid ${T.border}`, textAlign: "right", fontSize: 16, background: T.card, color: T.text, boxSizing: "border-box" }} />
-                            <div style={{ flex: 1, minWidth: 0, textAlign: "right", fontSize: 14, fontWeight: 700, color: T.textSub, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{formatMoney(Math.round(l.unitPriceUSD * l.qty * rate))}</div>
+                              style={{ flex: "0 0 90px", minWidth: 0, padding: "8px", minHeight: 44, borderRadius: 8, border: `1px solid ${T.border}`, textAlign: "right", fontSize: 16, background: T.card, color: T.text, boxSizing: "border-box" }} />
+                            <div style={{ flex: 1, minWidth: 0, textAlign: "right", fontSize: 14, fontWeight: 700, color: T.textSub, overflowWrap: "anywhere" }}>{formatMoney(Math.round(l.unitPriceUSD * l.qty * rate))}</div>
                           </div>
                         </div>
                       );
@@ -353,7 +361,8 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
 function Totals({ label, value, color = T.text }) {
   return (
     <div style={{ textAlign: "center", minWidth: 0 }}>
-      <div style={{ fontSize: 18, fontWeight: 800, color, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{value}</div>
+      {/* El total que estás por confirmar se ve ENTERO (envuelve, no corta) */}
+      <div style={{ fontSize: 16, fontWeight: 800, color, overflowWrap: "anywhere", lineHeight: 1.2 }}>{value}</div>
       <div style={{ fontSize: 11, color: T.textMuted }}>{label}</div>
     </div>
   );

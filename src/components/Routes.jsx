@@ -152,7 +152,7 @@ export function Routes({ routes = [], setRoutes, clients = [], sales = [], setSa
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
           <div>
             <button onClick={() => setOpenId(null)} style={{ border: "none", background: "transparent", color: T.blue, cursor: "pointer", fontSize: 13, padding: 0, marginBottom: 4 }}>← Volver a rutas</button>
-            <h2 style={{ color: T.text, margin: 0, fontSize: 22 }}>🚚 {openRoute.name}</h2>
+            <h2 style={{ color: T.text, margin: 0, fontSize: isMobile ? 18 : 22, overflowWrap: "anywhere" }}>🚚 {openRoute.name}</h2>
             <div style={{ fontSize: 13, color: T.textMuted }}>{formatDate(openRoute.date)} · {openRoute.status}</div>
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -200,7 +200,7 @@ export function Routes({ routes = [], setRoutes, clients = [], sales = [], setSa
                     <div style={{ fontSize: 12, color: T.textSub, marginTop: 4 }}>{r.units}u · {formatMoney(r.totalARS)}</div>
                     {r.sale?.orderNote && <div style={{ fontSize: 12, color: T.amber, marginTop: 4, fontWeight: 600 }}>📝 {r.sale.orderNote}</div>}
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
                     <span style={{ background: cobrado ? T.greenBg : ss.bg, color: cobrado ? T.green : ss.color, borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 800 }}>
                       {cobrado ? "💵 Cobrado" : ss.label}
                     </span>

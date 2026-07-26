@@ -6,6 +6,7 @@ import { T } from "../theme.js";
 import { BUSINESS_TYPES, WHOLESALE_TIERS, PIPELINE_STAGES } from "../constants.js";
 import { buildClientStats, classifyClient, predictNextPurchase } from "../clientIntelligence.js";
 import { expectedRepurchase } from "../wholesaleIntelligence.js";
+import { PresentationMessageModal } from "./wholesale/PresentationMessageModal.jsx";
 import { kioscosToCSV } from "../lib/wholesaleExport.js";
 import { clientOutstanding } from "../lib/creditAccount.js";
 import { useAppContext } from "../AppContext.js";
@@ -52,6 +53,7 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] })
   const [selected, setSelected] = useState({}); // { id: true }
   const [bulkTier, setBulkTier] = useState("");
   const [bulkZone, setBulkZone] = useState("");
+  const [presTarget, setPresTarget] = useState(null); // Bloque 2: mensaje de presentación
 
   // Clientes mayoristas y candidatos (mayoristas viejos por tier="mayorista").
   const mayoristas = useMemo(
@@ -251,7 +253,6 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] })
                     <div style={{ fontSize: 11, color: T.textMuted }}>
                       {rep.avgDaysBetween ? `compra cada ~${rep.avgDaysBetween}d` : `${rep.orders} pedido`}
                       {rep.expectedDate ? ` · esperado ${formatDate(new Date(rep.expectedDate).toISOString())}` : ""}
-                      {rep.status === "atrasado" && rep.overdueDays > 0 ? ` · hace ${rep.overdueDays}d que debería` : ""}
                     </div>
                   </div>
                   <span style={{ background: stl.bg, color: stl.color, borderRadius: 6, padding: "3px 10px", fontSize: 11, fontWeight: 800, flexShrink: 0 }}>{stl.label}</span>
@@ -325,7 +326,7 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] })
                   )}
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 800, color: T.text, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <div style={{ fontWeight: 800, color: T.text, fontSize: 15, overflowWrap: "anywhere" }}>
                         {c.businessName || c.name}
                       </div>
                       <div style={{ fontSize: 12, color: T.textMuted }}>
@@ -350,8 +351,9 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] })
                     <div style={{ marginTop: 8, fontSize: 12, color: T.amber }}>🔔 Toca recompra (~cada {st.avgDaysBetween}d)</div>
                   )}
                   {!selectMode && (
-                    <div style={{ marginTop: 10 }}>
+                    <div style={{ marginTop: 10, display: "flex", gap: 6, flexWrap: "wrap" }}>
                       <MiniBtn color={T.textMuted} onClick={(e) => { e.stopPropagation(); openEdit(c); }}>✏️ Editar / borrar</MiniBtn>
+                      <MiniBtn color={T.green} onClick={(e) => { e.stopPropagation(); setPresTarget(c); }}>💬 Presentar</MiniBtn>
                     </div>
                   )}
                 </div>
@@ -421,6 +423,11 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] })
           </div>
         </div>
       </Modal>
+
+      {/* Bloque 2 — mensaje de presentación B2B (primer contacto) */}
+      <PresentationMessageModal open={!!presTarget} onClose={() => setPresTarget(null)}
+        target={presTarget} defaultTier={presTarget?.wholesaleTier || "C"}
+        products={products} exchangeRate={exchangeRate} />
     </div>
   );
 }

@@ -63,7 +63,7 @@ export function DashboardMayorista({ clients = [], sales = [], products = [], pr
           <div style={{ width: `${pctMayorista}%`, background: T.green, minWidth: pctMayorista > 0 ? 2 : 0 }} title="Mayorista" />
           <div style={{ width: `${100 - pctMayorista}%`, background: T.blue, minWidth: pctMayorista < 100 ? 2 : 0 }} title="Minorista" />
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+        <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", gap: 6, fontSize: 13 }}>
           <span style={{ color: T.green, fontWeight: 700 }}>🏪 Mayorista: {formatMoney(kpis.facturacionMayorista)} ({pctMayorista}%)</span>
           <span style={{ color: T.blue, fontWeight: 700 }}>🛒 Minorista: {formatMoney(kpis.facturacionMinorista)}</span>
         </div>
@@ -92,8 +92,8 @@ export function DashboardMayorista({ clients = [], sales = [], products = [], pr
           <div style={{ fontWeight: 800, color: T.text, marginBottom: 10 }}>🔔 Alertas</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {alerts.map((a, i) => (
-              <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13, color: T.textSub, borderLeft: `3px solid ${a.color}`, paddingLeft: 10 }}>
-                <span>{a.icon}</span><span>{a.msg}</span>
+              <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 13, color: T.textSub, borderLeft: `3px solid ${a.color}`, paddingLeft: 10 }}>
+                <span style={{ flexShrink: 0 }}>{a.icon}</span><span style={{ minWidth: 0 }}>{a.msg}</span>
               </div>
             ))}
           </div>
@@ -106,12 +106,12 @@ export function DashboardMayorista({ clients = [], sales = [], products = [], pr
         {ranking.length === 0 ? (
           <div style={{ color: T.textMuted, fontSize: 13 }}>Todavía no hay pedidos mayoristas en el período.</div>
         ) : ranking.map((r, i) => (
-          <div key={r.client.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: i < ranking.length - 1 ? `1px solid ${T.borderSoft}` : "none" }}>
-            <div style={{ minWidth: 0 }}>
-              <span style={{ fontWeight: 700, color: T.text }}>{i + 1}. {r.client.businessName || r.client.name}</span>
-              <span style={{ fontSize: 12, color: T.textMuted }}> · {r.orders} pedidos · margen {r.marginPct}%</span>
+          <div key={r.client.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, padding: "8px 0", borderBottom: i < ranking.length - 1 ? `1px solid ${T.borderSoft}` : "none" }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 700, color: T.text, overflowWrap: "anywhere" }}>{i + 1}. {r.client.businessName || r.client.name}</div>
+              <div style={{ fontSize: 11, color: T.textMuted }}>{r.orders} pedidos · margen {r.marginPct}%</div>
             </div>
-            <span style={{ fontWeight: 800, color: r.marginARS >= 0 ? T.green : T.red }}>{formatMoney(r.marginARS)}</span>
+            <span style={{ fontWeight: 800, flexShrink: 0, color: r.marginARS >= 0 ? T.green : T.red }}>{formatMoney(r.marginARS)}</span>
           </div>
         ))}
       </Card>

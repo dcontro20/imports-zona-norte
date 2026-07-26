@@ -111,9 +111,8 @@ export const Modal = ({ open, onClose, title, children }) => {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, gap: 10 }}>
           <h3 style={{
             margin: 0, color: "#1E2B4A",
-            fontSize: isMobile ? 17 : 18, fontWeight: 700,
+            fontSize: isMobile ? 17 : 18, fontWeight: 700, lineHeight: 1.25,
             flex: 1, minWidth: 0,
-            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
           }}>{title}</h3>
           <button onClick={onClose} style={{
             width: 44, height: 44, borderRadius: 8, flexShrink: 0,
@@ -297,7 +296,7 @@ export const Table = ({ columns, data, onRowClick, emptyMsg = "Sin datos", mobil
                   <div style={{
                     fontSize: 11, color: "#6B7794",
                     textTransform: "uppercase", letterSpacing: 0.4,
-                    fontWeight: 700, flexShrink: 0,
+                    fontWeight: 700, minWidth: 0,
                   }}>{c.label}</div>
                   <div style={{
                     fontSize: 13, color: "#1E2B4A", textAlign: "right",
@@ -364,9 +363,11 @@ export const StatCard = ({ label, value, sub, color = "#1E2B4A", icon }) => {
             wordBreak: "break-word",
           }}>{label}</div>
           <div style={{
-            fontSize: isMobile ? 20 : 26, fontWeight: 800, color, lineHeight: 1.1,
-            letterSpacing: "-0.02em",
-            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            // Los montos se ven ENTEROS: envuelven a 2 líneas si hace falta.
+            // Antes nowrap+ellipsis cortaba "Por cobrar" arriba del millón
+            // (auditoría textos mobile 2026-07-24).
+            fontSize: isMobile ? 17 : 26, fontWeight: 800, color, lineHeight: 1.15,
+            letterSpacing: "-0.02em", overflowWrap: "anywhere",
           }}>{value}</div>
           {sub && (
             <div style={{

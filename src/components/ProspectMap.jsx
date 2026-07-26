@@ -91,7 +91,7 @@ export function ProspectMap({ prospects = [], clients = [], sales = [], products
                 <div style={{ fontWeight: 700, color: T.text, fontSize: 13, marginBottom: 6 }}>📍 {zone}</div>
                 {tops.map((t, i) => (
                   <div key={t.productId} style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12, color: T.textSub, padding: "3px 0" }}>
-                    <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{i + 1}. {t.name}</span>
+                    <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>{i + 1}. {t.name}</span>
                     <span style={{ flexShrink: 0, fontWeight: 700, color: T.text }}>{t.qty}u</span>
                   </div>
                 ))}
