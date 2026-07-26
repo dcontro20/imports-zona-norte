@@ -360,6 +360,19 @@ precios compartible por tier) — esperando OK de Diego; la lista de precios
 requiere proponerle el formato ANTES de construir. Afuera por decisión:
 Places (API key), optimización rutas (stub), S17–S22 (dormido), S14.3.
 
+**Sesión 2 del 24/07 (docs/SESSION_2026-07-24_fixes_y_front_ventas.md):**
+- **Borrar/editar mayoristas ✅** (`f0e2039`): Kioscos no tenía delete (gap
+  de Fase 1) — 🗑 en el modal de ficha, soft-delete estándar, Papelera lo
+  cubre. MiniBtn "✏️ Editar / borrar" en cards. Rutas ganó ✏️ Editar.
+- **Textos mobile ✅** (`67f69c3`): la raíz era StatCard value + título de
+  Modal (nowrap+ellipsis en UI.jsx) + nombre en Kioscos. REGLA: texto
+  variable flex:1+minWidth:0 y envuelve; dato flexShrink:0; nada de nowrap
+  en datos de negocio; space-between con gap; máx 2 datos por línea.
+- **Front de ventas 3.1 ✅**: `presentationMessage` en wholesaleMessage.js
+  + `PresentationMessageModal` compartido; botones 💬 Presentar en Pipeline
+  y Kioscos. **3.2 (lista de precios) esperando elección de formato de
+  Diego** — no construir hasta que elija. 1033 tests.
+
 ## Estado del proyecto al 17/07/2026
 
 ### 🚀 PIVOTE MAYORISTA EN PRODUCCIÓN (docs/SESSION_2026-07-17_merge_mayorista.md)
