@@ -1,6 +1,6 @@
 # 📐 Estructura del sistema — snapshot automático
 
-> Actualizado: **2026-07-25** · Generado por `scripts/generate-structure-doc.mjs`
+> Actualizado: **2026-07-26** · Generado por `scripts/generate-structure-doc.mjs`
 > (cron nocturno). **No editar a mano** — los cambios se sobrescriben.
 > Para la guía humana de cómo está organizado todo, ver `MAPA_DEL_SISTEMA.md`.
 > Para decisiones y contexto, ver `CLAUDE.md` + `docs/SESSION_*.md`.
@@ -9,14 +9,14 @@
 
 | Capa | Archivos | Líneas (aprox.) |
 |---|---:|---:|
-| Componentes (pantallas + sub-piezas) | 69 | 27.482 |
-| Módulos puros (cerebro de cálculos) | 20 | 2.550 |
-| Utilidades (`src/lib/`) | 54 | 5.727 |
+| Componentes (pantallas + sub-piezas) | 71 | 27.783 |
+| Módulos puros (cerebro de cálculos) | 20 | 2.577 |
+| Utilidades (`src/lib/`) | 54 | 5.812 |
 | Tests | 67 | — |
 | Scripts | 14 | — |
 | Endpoints serverless | 2 | — |
 | Workflows GitHub Actions | 5 | — |
-| Docs (.md) | 37 | — |
+| Docs (.md) | 43 | — |
 
 ---
 
@@ -41,7 +41,7 @@ Cada archivo `.jsx` es una pantalla o módulo visible en la nav. La columna
 | Expenses.jsx | 467 | Category colors |
 | Export.jsx | 413 | URL de la carpeta de Drive donde van los backups automáticos |
 | Finance.jsx | 219 | — |
-| Kioscos.jsx | 339 | Descarga un CSV en el browser (helper local — la generación del string es pura). |
+| Kioscos.jsx | 399 | Pantalla de clientes MAYORISTAS (type="mayorista"). El label "Kioscos" se mantiene porque la mayoría lo son, pero el modelo/filtro es por ty |
 | Logo.jsx | 94 | Logo de Imports Zona Norte — SVG inline. Replica el diseño del logo oficial: escudo con vape estilizado sobre un |
 | Offers.jsx | 1398 | — |
 | OnboardingTour.jsx | 123 | Onboarding tour mínimo. Se muestra UNA SOLA VEZ por device (localStorage flag). Sirve para explicarle a Diego (o a un usuario nuevo |
@@ -50,21 +50,21 @@ Cada archivo `.jsx` es una pantalla o módulo visible en la nav. La columna
 | PriceLog.jsx | 620 | -- PRICE MANAGEMENT -- |
 | Procurement.jsx | 142 | Hub unificado de Abastecimiento — un solo punto de entrada para todo el ciclo de compra: Resumen (centro de comando) + Pedidos + Proveedores |
 | Products.jsx | 837 | — |
-| ProspectMap.jsx | 71 | Mapa de prospección — VISTA POR ZONA (cobertura). El mapa geográfico con pins llega junto con Google Places (2.5, diferido). Por ahora, para |
+| ProspectMap.jsx | 94 | Mapa de prospección — VISTA POR ZONA (cobertura). El mapa geográfico con pins llega junto con Google Places (2.5, diferido). Por ahora, para |
 | PublicCatalog.jsx | 218 | Vista pública del catálogo. Renderiza un snapshot decodificado del hash de la URL. NO requiere autenticación ni Firebase. NO tiene navegació |
 | Purchases.jsx | 1067 | — |
 | QuickSale.jsx | 334 | ============================================ QUICK SALE — Mobile-optimized one-tap sale |
 | QuickWithdrawal.jsx | 332 | ============================================ QuickWithdrawal — registrar consumo propio en 2 toques desde mobile |
 | Reports.jsx | 1744 | — |
-| Routes.jsx | 259 | — |
+| Routes.jsx | 298 | — |
 | Sales.jsx | 1915 | — |
 | SettingsModal.jsx | 269 | SettingsModal — configuración de thresholds del sistema. Owner ajusta cómo el sistema dispara alertas (stock bajo, caja baja, etc). |
 | StockLog.jsx | 85 | -- STOCK LOG -- |
 | SupplierMonitor.jsx | 206 | SupplierMonitor — módulo principal de gestión de proveedores. 3 tabs: |
 | Trash.jsx | 378 | — |
-| UI.jsx | 372 | Mobile-first: altura mínima 44px en todo lo tocable (Apple HIG). padding: 12px vertical + 14px horizontal + fontSize: 14 ≈ 44px. |
+| UI.jsx | 377 | Mobile-first: altura mínima 44px en todo lo tocable (Apple HIG). padding: 12px vertical + 14px horizontal + fontSize: 14 ≈ 44px. |
 | WhatsApp.jsx | 172 | — |
-| WholesaleOrder.jsx | 280 | Pedido MAYORISTA: elegís un cliente mayorista → precios de su tier + margen en vivo por línea + total, valida mínimo, y genera un `sale` con |
+| WholesaleOrder.jsx | 327 | Pedido MAYORISTA: elegís un cliente mayorista → precios de su tier + margen en vivo por línea + total, valida mínimo, y genera un `sale` con |
 | Withdrawals.jsx | 1610 | -- MERMAS: Consumo propio, Garantías, Canjes -- Ventana de detección de duplicados (5 min) |
 
 ## 📂 Componentes — sub-carpetas
@@ -129,6 +129,13 @@ Cada archivo `.jsx` es una pantalla o módulo visible en la nav. La columna
 | SupplierProfileModal.jsx | 145 | — |
 | processHelpers.js | 91 | src/components/supplier/processHelpers.js Helpers compartidos entre las tabs del módulo de Proveedores. |
 
+### `src/components/wholesale/` (2 archivos)
+
+| Archivo | Líneas | Qué hace |
+|---|---|---|
+| PresentationMessageModal.jsx | 45 | Modal compartido (Pipeline + Kioscos) para el mensaje de PRESENTACIÓN B2B (Bloque 2 — front de ventas): primer contacto con un kiosco. Elegí |
+| PriceListScreen.jsx | 82 | 🏷️ Lista de precios (Bloque 2.2 — front de ventas). Herramienta de venta para usar PARADO EN EL MOSTRADOR con el kiosquero enfrente: |
+
 ## 🧠 Módulos puros — el "cerebro" de cálculos (`src/`)
 
 Funciones puras del negocio: matemática financiera, inteligencia de
@@ -148,7 +155,7 @@ producto/cliente, métricas, sync. Sin pantalla → testeable.
 | pricing.js | 313 | src/pricing.js Funciones PURAS de pricing y promos. Sin state. Reciben datos por |
 | productIntelligence.js | 467 | src/productIntelligence.js Funciones PURAS de inteligencia de producto. |
 | prospecting.js | 68 | src/prospecting.js Lógica PURA de captación mayorista: embudo (pipeline), priorización de |
-| routes.js | 64 | src/routes.js Lógica PURA de rutas de reparto mayorista. Nivel BÁSICO (acordado): agrupar |
+| routes.js | 91 | src/routes.js Lógica PURA de rutas de reparto mayorista. Nivel BÁSICO (acordado): agrupar |
 | settings.js | 48 | Settings configurables por el usuario. Persisten en localStorage. Si en el futuro queremos sync entre devices, se migra a Firestore key. |
 | theme.js | 49 | Paleta inspirada en el logo de Imports Zona Norte: navy profundo + cream cálido. El navy se usa como primary y para texto. El cream da una a |
 | useFirebaseSync.js | 286 | safeSetItem — escribe a localStorage manejando QuotaExceededError. Si el storage llena (típicamente 5-10MB en mobile/Safari), el setItem |
@@ -199,7 +206,7 @@ producto/cliente, métricas, sync. Sin pantalla → testeable.
 | realProducts.js | 28 | src/lib/realProducts.js "Producto real" = un producto que efectivamente forma parte del negocio |
 | reconciliation.js | 91 | src/lib/reconciliation.js Conciliación bancaria: cruza ventas con un CSV de movimientos de la cuenta |
 | rmaWorkflow.js | 92 | src/lib/rmaWorkflow.js Workflow simple de RMA (Return Merchandise Authorization) / garantías. |
-| routeSheet.js | 32 | src/lib/routeSheet.js Genera la HOJA DE RUTA en texto plano — imprimible y compartible (WhatsApp / |
+| routeSheet.js | 33 | src/lib/routeSheet.js Genera la HOJA DE RUTA en texto plano — imprimible y compartible (WhatsApp / |
 | saleReceipt.js | 139 | src/lib/saleReceipt.js Genera un recibo PDF profesional de una venta, con el branding de |
 | schemas.js | 135 | src/lib/schemas.js Schemas Zod para validar datos antes de escribir a Firestore o de procesar |
 | shippingCalc.js | 59 | src/lib/shippingCalc.js Calculadora simple de costo de envío por zona. Diego puede customizar |
@@ -213,8 +220,8 @@ producto/cliente, métricas, sync. Sin pantalla → testeable.
 | weeklyPromo.js | 44 | src/lib/weeklyPromo.js "Promo de la semana" — UNA promo elegida por impacto económico, estable |
 | whatIfSimulator.js | 95 | src/lib/whatIfSimulator.js Simulador what-if para tomar decisiones financieras informadas: |
 | whatsappMessage.js | 115 | src/lib/whatsappMessage.js Generadores del mensaje de stock para WhatsApp. Funciones PURAS extraídas |
-| wholesaleExport.js | 31 | src/lib/wholesaleExport.js Export a CSV de clientes mayoristas y prospectos. Funciones PURAS (devuelven el |
-| wholesaleMessage.js | 25 | src/lib/wholesaleMessage.js Generadores de mensajes B2B (mayorista). Por ahora: mensaje de COBRANZA. |
+| wholesaleExport.js | 53 | src/lib/wholesaleExport.js Export a CSV de clientes mayoristas, prospectos y rutas. Funciones PURAS |
+| wholesaleMessage.js | 87 | src/lib/wholesaleMessage.js Generadores de mensajes B2B (mayorista): COBRANZA y PRESENTACIÓN. |
 
 ## ☁️ Backend — corre fuera del navegador
 
@@ -343,10 +350,14 @@ Tests detectados: **67**. Para correrlos: `npm test`.
 - `docs/FIREBASE_AUTH_SETUP.md`
 - `docs/GUIA_MAYORISTA.md`
 - `docs/IZN_Backup_Hardening_Resumen.md`
+- `docs/IZN_Fix_Borrar_Mayorista_Resumen.md`
+- `docs/IZN_Front_Ventas_Resumen.md`
 - `docs/IZN_Merge_Mayorista_Resumen.md`
 - `docs/IZN_Mobile_Hardening_Resumen.md`
 - `docs/IZN_Tanda_E_Docs_Resumen.md`
 - `docs/IZN_Tanda_F1_Modos_Resumen.md`
+- `docs/IZN_Tanda_F_Completa_Resumen.md`
+- `docs/IZN_Textos_Mobile_Resumen.md`
 - `docs/MAPA_DEL_SISTEMA.md`
 - `docs/PLAN_MAYORISTA.md`
 - `docs/PLAN_MEJORAS_MAYORISTA.md`
@@ -372,4 +383,6 @@ Tests detectados: **67**. Para correrlos: `npm test`.
 - `docs/SESSION_2026-07-17_mobile_hardening.md`
 - `docs/SESSION_2026-07-17_tanda_E_docs.md`
 - `docs/SESSION_2026-07-17_tanda_F1_modos.md`
+- `docs/SESSION_2026-07-24_fixes_y_front_ventas.md`
+- `docs/SESSION_2026-07-24_tanda_F_completa.md`
 - `docs/TEST_ENV_SETUP.md`
