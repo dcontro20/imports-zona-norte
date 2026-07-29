@@ -336,6 +336,54 @@ A partir del 14/04/2026, GitHub está sincronizado y es la fuente de verdad del 
 
 ---
 
+## Estado del proyecto al 28/07/2026
+
+### 🧭 PROSPECT ENGINE — capa de dominio COMPLETA (branch `feature/prospect-engine`, SIN pushear)
+
+Port del motor de evaluación de prospectos de **Atlas** (proyecto Python de
+Gustavo en `/Users/Gustavo/Desktop/atlas/` — ahí viven los docs de diseño
+`PROSPECT_ENGINE_DESIGN.md` + `ARCHITECTURE_HANDOFF.md`, NO en este repo) a JS
+puro. Sesión dirigida por Gustavo con gates por fase. **Arquitectura CERRADA;
+falta SOLO la etapa de UI.** Journal:
+`docs/SESSION_2026-07-28_prospect_engine.md` · Resumen:
+`docs/IZN_Prospect_Engine_Resumen.md` · Specs:
+`docs/PROSPECT_ENGINE_ARQUITECTURA.md` + `docs/PROSPECT_ENGINE_CONTRATO.md`.
+
+- **F0** casos de oro: 37/37 prospectos reales de Atlas re-puntuados sin drift;
+  fixture de 10 casos compartida (`src/lib/prospectScoring.golden.json`,
+  byte-idéntica a la de Atlas — se regenera SOLO allá). F0 quedó sin commitear
+  en el repo de Atlas.
+- **F1** motor `src/lib/prospectScoring.js`: TRI, normalización sobre lo
+  conocido, gate de confianza 0.35, prioridad derivada, `redondearPy` (round()
+  de Python half-to-even — clave para identidad al decimal). 10/10 idénticos.
+- **F2** `prospectRubric.js` (rúbrica izn-v1 como datos, 8+5, **CONGELADA**
+  hasta calibrar con data real) + `prospectSignals.js` (honestidad: contexto no
+  provisto ⇒ sin_datos; provisto y vacío ⇒ dato real). Decisiones D1–D7
+  aprobadas (ver journal).
+- **F3** `prioritizeProspects(prospects, now, contexto=null)`: sin contexto =
+  histórico intacto; con contexto = orden rank.py (banda→opp→fit→conf).
+  Contrato cerrado: `rankKey` clave TÉCNICA (jamás mostrar), `scoreResult`
+  única fuente del diagnóstico; negocio mostrable = opportunity/fit.total +
+  prioridad.
+- **F4 dominio** `prospectDiagnosis.js` (veredicto/razones/próximo paso) +
+  **`prospectRanking.js` — LA FACHADA**: `buildProspectRanking({prospects,
+  visits, clients, sales, products, now})` → `{items, porId}`. **REGLA DURA: la
+  UI importa SOLO prospectRanking.js** (nunca signals/scoring/diagnosis/
+  prioritizeProspects directo).
+- **Tests 1036 → 1134** (+98 engine). Build verde. Ningún componente React
+  tocado; el motor aún no corre en la app (ningún llamador pasa contexto).
+- **UI pendiente (aprobada, sin construir)**: U1 `sales` al Pipeline, U2
+  columnas por `posicion`, U3 chip banda + aviso, U4 DashboardMayorista
+  intacto; modal Diagnóstico + "¿Por qué?"; calificación rápida
+  (`CALIFICACION_CAMPOS` + `aplicarCalificacion`). Después: F5 (argumento de
+  venta, quickwin B2B — no iniciado).
+- **Bugs hallados SOLO documentados** (orden de Gustavo):
+  `docs/BACKLOG_TECNICO_2026-07-28_prospeccion_y_sync.md` (B1–B9). ⚠️ **B1:
+  prospects/visits/routes NUNCA se persisten** (faltan 3 autosaves en
+  useFirebaseSync) — data efímera, sin backup; bloquea calibración real y hace
+  efímera la calificación de visita. NO corregir sin OK.
+- ⚠️ `gcontro99` sin write en GitHub (403): los 12 commits están SOLO locales.
+
 ## Estado del proyecto al 24/07/2026
 
 ### ✅ TANDA F COMPLETA — plan de mejoras A–F cerrado (docs/SESSION_2026-07-24_tanda_F_completa.md)
