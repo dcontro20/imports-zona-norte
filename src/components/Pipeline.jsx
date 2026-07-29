@@ -12,6 +12,7 @@ import { prospectsToCSV } from "../lib/wholesaleExport.js";
 import { buildProspectRanking } from "../lib/prospectRanking.js";
 import { useAppContext } from "../AppContext.js";
 import { PresentationMessageModal } from "./wholesale/PresentationMessageModal.jsx";
+import { ProspectDiagnosisModal } from "./wholesale/ProspectDiagnosisModal.jsx";
 
 // Pipeline de captación mayorista (kanban sin drag — botones de avance, anda en
 // mobile). Prospectos en las 3 primeras columnas; clientes mayoristas en las 3
@@ -45,6 +46,7 @@ export function Pipeline({ prospects = [], setProspects, clients = [], setClient
   const [err, setErr] = useState("");
   const [visitFor, setVisitFor] = useState(null);
   const [presTarget, setPresTarget] = useState(null); // Bloque 2: mensaje de presentación
+  const [diagId, setDiagId] = useState(null);         // ficha de diagnóstico (Prospect Engine)
   const [visit, setVisit] = useState({ outcome: "interesado", notes: "" });
 
   const activeProspects = useMemo(() => prospects.filter(p => p && !p.isDeleted && !p.convertedClientId), [prospects]);
@@ -169,8 +171,20 @@ export function Pipeline({ prospects = [], setProspects, clients = [], setClient
                   const chip = isClient ? null : ranking.porId[x.id]?.chip;
                   return (
                     <div key={x.id} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: 10 }}>
-                      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 6 }}>
-                        <div style={{ fontWeight: 700, color: T.text, fontSize: 13, flex: 1, minWidth: 0 }}>{x.businessName || x.name}</div>
+                      {/* Encabezado: en prospectos abre la ficha de diagnóstico
+                          (el chip es el resumen; tocarlo lleva al detalle). */}
+                      <div
+                        onClick={chip ? () => setDiagId(x.id) : undefined}
+                        title={chip ? "Ver diagnóstico" : undefined}
+                        style={{
+                          display: "flex", alignItems: "flex-start", justifyContent: "space-between",
+                          gap: 6, cursor: chip ? "pointer" : "default", minHeight: chip ? 30 : undefined,
+                        }}
+                      >
+                        <div style={{ fontWeight: 700, color: T.text, fontSize: 13, flex: 1, minWidth: 0 }}>
+                          {x.businessName || x.name}
+                          {chip && <span style={{ color: T.textFaint, fontWeight: 400 }}> ›</span>}
+                        </div>
                         {chip && <span style={{ flexShrink: 0 }}><Badge color={PRIORIDAD_COLOR[chip.prioridad] ?? T.textFaint}>{chip.etiqueta}</Badge></span>}
                       </div>
                       <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 6, marginTop: 2 }}>{x.zone || "sin zona"}{x.contactName ? ` · ${x.contactName}` : ""}</div>
@@ -235,6 +249,13 @@ export function Pipeline({ prospects = [], setProspects, clients = [], setClient
           <Btn onClick={saveVisit}>Registrar</Btn>
         </div>
       </Modal>
+
+      {/* Ficha de diagnóstico del Prospect Engine (render puro de la fachada) */}
+      <ProspectDiagnosisModal
+        open={!!diagId} onClose={() => setDiagId(null)}
+        item={diagId ? ranking.porId[diagId] : null}
+        prioridadColor={PRIORIDAD_COLOR[ranking.porId[diagId]?.chip?.prioridad] ?? T.textFaint}
+      />
 
       {/* Bloque 2 — mensaje de presentación B2B (primer contacto con el prospecto) */}
       <PresentationMessageModal open={!!presTarget} onClose={() => setPresTarget(null)}

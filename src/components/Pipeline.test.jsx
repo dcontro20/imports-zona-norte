@@ -4,7 +4,7 @@
 // `posicion` (U2) y chip de prioridad + aviso de poca información (U3).
 
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, within, cleanup } from "@testing-library/react";
+import { render, screen, within, cleanup, fireEvent } from "@testing-library/react";
 
 // Pipeline importa useResponsive de App.jsx, que arrastra firebase.
 vi.mock("../firebase.js", () => ({
@@ -65,8 +65,9 @@ const columnaContactado = () => screen.getByText("Contactado").closest("div").pa
 describe("Pipeline — consumo del Prospect Engine (U2 + U3)", () => {
   it("U2: las tarjetas se ordenan por el ranking, no por orden de carga", () => {
     renderPipeline();
+    // el " ›" es el affordance de "abrir ficha" (Fase 5.2), no parte del nombre
     const nombres = within(columnaContactado())
-      .getAllByText(/^Kiosco /).map(n => n.textContent);
+      .getAllByText(/^Kiosco /).map(n => n.textContent.replace(" ›", ""));
     expect(nombres).toStrictEqual(["Kiosco Estrella", "Kiosco Pelado", "Kiosco Flojo"]);
   });
 
@@ -98,5 +99,57 @@ describe("Pipeline — consumo del Prospect Engine (U2 + U3)", () => {
   it("no explota sin datasets de contexto (degradación honesta)", () => {
     renderPipeline({ sales: [], visits: [], clients: [] });
     expect(within(columnaContactado()).getAllByText(/^Kiosco /).length).toBe(3);
+  });
+});
+
+// --- Fase 5.2: ficha de diagnóstico ---
+
+const abrirDiagnostico = (nombre) => {
+  renderPipeline();
+  const header = screen.getAllByTitle("Ver diagnóstico").find(el => el.textContent.includes(nombre));
+  fireEvent.click(header);
+  return screen.getByText(/^Diagnóstico — /).closest("div").parentElement;
+};
+
+describe("Pipeline — ficha de diagnóstico (Fase 5.2)", () => {
+  it("tocar el encabezado de la tarjeta abre la ficha del prospecto correcto", () => {
+    const modal = abrirDiagnostico("Kiosco Estrella");
+    expect(within(modal).getByText("Diagnóstico — Kiosco Estrella")).toBeTruthy();
+    // veredicto (texto del dominio, no armado en la UI)
+    expect(within(modal).getByText("Alta oportunidad")).toBeTruthy();
+  });
+
+  it("muestra las 3 razones con su respaldo numérico", () => {
+    const modal = abrirDiagnostico("Kiosco Estrella");
+    expect(within(modal).getByText(/^Oportunidad \d+$/)).toBeTruthy();
+    expect(within(modal).getByText(/^Encaje \d+$/)).toBeTruthy();
+    expect(within(modal).getByText(/^medido con \d+ de 13 señales$/)).toBeTruthy();
+  });
+
+  it("el '¿Por qué?' lista los 13 criterios con su valor y sus fuentes", () => {
+    const modal = abrirDiagnostico("Kiosco Estrella");
+    expect(within(modal).getByText("¿Por qué?")).toBeTruthy();
+    // una pregunta de cada dimensión + la evidencia que la respalda
+    expect(within(modal).getByText("¿No tiene proveedor estable de la categoría?")).toBeTruthy();
+    expect(within(modal).getByText("¿Local medio o grande?")).toBeTruthy();
+    expect(within(modal).getAllByText(/^calificacion_/).length).toBeGreaterThan(0);
+    // los resúmenes por dimensión los redacta el dominio
+    expect(within(modal).getByText("8/8 criterios con datos")).toBeTruthy();
+    expect(within(modal).getByText("5/5 criterios con datos")).toBeTruthy();
+  });
+
+  it("cierra el diagnóstico con el próximo paso y sus pendientes", () => {
+    const conCalificacion = abrirDiagnostico("Kiosco Estrella");
+    expect(within(conCalificacion).getByText(/siguiente acción recomendada/)).toBeTruthy();
+    expect(within(conCalificacion).queryByText(/completar la calificación/)).toBeNull();
+    cleanup();
+    const sinCalificar = abrirDiagnostico("Kiosco Pelado");
+    expect(within(sinCalificar).getByText(/completar la calificación de visita/)).toBeTruthy();
+  });
+
+  it("los mayoristas no abren ficha (no están en el ranking)", () => {
+    renderPipeline();
+    const colActivo = screen.getByText("Activo").closest("div").parentElement;
+    expect(within(colActivo).queryByTitle("Ver diagnóstico")).toBeNull();
   });
 });
