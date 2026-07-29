@@ -8,4 +8,4 @@ backups/
 *.local
 *-service-account*.json
 *-adminsdk-*.json
-.claude/settings.local.json
+.claude/settings*.json
