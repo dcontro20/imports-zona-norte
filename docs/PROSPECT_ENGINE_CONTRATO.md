@@ -115,6 +115,14 @@ del tiempo, la evalúa el adaptador).
 - **No porta la capa interpretada de Atlas** (`lecturas`, `provenance`): solo
   la capa medida determinista.
 
+## 5.bis Qué mostrar al usuario
+
+Los valores de negocio del ScoreResult son `opportunity.total`, `fit.total` y
+`prioridad` (con `confidence` como aviso de cobertura y los criterios/frases
+como explicación). El `rankKey` que `prioritizeProspects` deriva de este
+resultado (ver `PROSPECT_ENGINE_ARQUITECTURA.md`) es una clave técnica de
+ordenamiento: **jamás se muestra ni se interpreta comercialmente**.
+
 ## 6. Fuera de contrato
 
 `derivarPrioridad` exige totales numéricos; llamarla con `null` no está

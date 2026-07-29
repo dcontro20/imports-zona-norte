@@ -57,9 +57,15 @@ export function daysSince(dateISO, now = Date.now()) {
 //     rank.py de Atlas: banda de prioridad → oportunidad ↓ → fit ↓ → confianza ↓
 //     (la confianza es guardrail vía el gate de banda, no criterio de orden).
 //     Prospectos sin ninguna señal conocida (prioridad "") van últimos.
-// El shape de retorno no cambia: [{ prospect, stage, daysSinceContact, score,
-// reason }]. Con contexto se agrega `scoreResult` (el ScoreResult completo,
-// aditivo — lo consumirá el "¿Por qué?" de la UI en Fase 4).
+// Shape de retorno:
+//   sin contexto → [{ prospect, stage, daysSinceContact, score, reason }]
+//     (histórico intacto; `score` = heurística de recencia, legacy)
+//   con contexto → [{ prospect, stage, daysSinceContact, rankKey, reason, scoreResult }]
+//     `rankKey` es una CLAVE TÉCNICA de ordenamiento (embedding del orden
+//     banda→opp→fit→conf en un entero). JAMÁS mostrarla ni usarla como
+//     indicador comercial: los valores de negocio para la UI son
+//     scoreResult.opportunity.total, scoreResult.fit.total y
+//     scoreResult.prioridad. Ver docs/PROSPECT_ENGINE_ARQUITECTURA.md.
 export function prioritizeProspects(prospects = [], now = Date.now(), contexto = null) {
   const activos = (prospects || []).filter(activeProspect).map(p => ({
     p,
@@ -86,11 +92,11 @@ export function prioritizeProspects(prospects = [], now = Date.now(), contexto =
       const s = construirScore(prospectToSignals(p, contexto), RUBRICA_IZN, {
         prospectId: p.id || "",
       });
-      // Escalar monótono con el orden de rank.py (banda → opp → fit → conf),
-      // así `score` sigue siendo un número ordenable para cualquier consumidor.
-      // Banda "" (sin puntuar) queda debajo de "baja"; totales null cuentan 0.
+      // rankKey: escalar monótono con el orden de rank.py (banda → opp → fit →
+      // conf). Banda "" (sin puntuar) queda debajo de "baja"; totales null
+      // cuentan 0. Clave técnica opaca — no es un score comercial.
       const banda = s.prioridad ? PRIORIDADES.indexOf(s.prioridad) : PRIORIDADES.length;
-      const score = (PRIORIDADES.length - banda) * 1e12
+      const rankKey = (PRIORIDADES.length - banda) * 1e12
         + Math.round((s.opportunity.total ?? 0) * 10) * 1e8
         + Math.round((s.fit.total ?? 0) * 10) * 1e4
         + Math.round((s.confidence ?? 0) * 1000);
@@ -99,9 +105,9 @@ export function prioritizeProspects(prospects = [], now = Date.now(), contexto =
       let reason;
       if (!s.prioridad) reason = "Sin señales todavía — visitar y calificar";
       else reason = s.oportunidades[0] || `Sin gaps confirmados — encaje ${s.fit.total}`;
-      return { prospect: p, stage, daysSinceContact: d, score, reason, scoreResult: s };
+      return { prospect: p, stage, daysSinceContact: d, rankKey, reason, scoreResult: s };
     })
-    .sort((a, b) => b.score - a.score);
+    .sort((a, b) => b.rankKey - a.rankKey);
 }
 
 // Cobertura por zona: cuántos mayoristas activos y cuántos prospectos hay por zona.

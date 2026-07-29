@@ -31,8 +31,35 @@ responsabilidad tiene cada módulo. Complementa a `PROSPECT_ENGINE_CONTRATO.md`
                     │
                     ▼
    UI: Pipeline.jsx · DashboardMayorista.jsx · …      Capa 2 · PANTALLAS
-   consume [{ prospect, stage, daysSinceContact, score, reason, scoreResult? }]
+   sin contexto: [{ prospect, stage, daysSinceContact, score, reason }]
+   con contexto: [{ prospect, stage, daysSinceContact, rankKey, reason, scoreResult }]
 ```
+
+## Contrato de `prioritizeProspects` (cerrado 2026-07-28)
+
+Dos shapes según el camino, ambos estables:
+
+- **Legacy (sin contexto)**: `{ prospect, stage, daysSinceContact, score, reason }`
+  — intacto. `score` conserva su significado histórico (heurística de recencia)
+  hasta que este camino eventualmente desaparezca.
+- **Motor (con contexto)**: `{ prospect, stage, daysSinceContact, rankKey,
+  reason, scoreResult }`.
+
+Reglas de consumo (obligatorias para toda UI):
+
+1. **`rankKey` es una clave TÉCNICA de ordenamiento** — el embedding del orden
+   banda → oportunidad → fit → confianza en un entero (`rankKey(a) > rankKey(b)
+   ⟺ a precede a b`). **Jamás se muestra en la interfaz ni se usa como
+   indicador comercial**: no es una magnitud (diferencias y cocientes no
+   significan nada) y no es comparable entre versiones de rúbrica.
+2. **Los únicos valores de negocio mostrables al usuario son
+   `scoreResult.opportunity.total`, `scoreResult.fit.total` y
+   `scoreResult.prioridad`** (con `confidence`/coverage como aviso de cuánto se
+   sabe, y `fortalezas`/`oportunidades`/criterios para la explicación).
+3. **`scoreResult` es la única fuente de verdad del diagnóstico**: la UI lo
+   consume tal cual — nunca re-ejecuta el motor ni reconstruye el contexto por
+   su cuenta. Orden, veredicto, "¿Por qué?", fortalezas y oportunidades salen
+   del mismo cálculo que ordenó la lista.
 
 ## Responsabilidades y límites
 

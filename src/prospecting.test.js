@@ -113,9 +113,9 @@ describe("prioritizeProspects con contexto (Prospect Engine, Fase 3)", () => {
     expect(r[r.length - 1].prospect.id).toBe("pVacio");
   });
 
-  it("score es un escalar monótono con el orden (consumidores pueden re-ordenar por él)", () => {
+  it("rankKey es un escalar monótono con el orden (clave técnica, no comercial)", () => {
     const r = prioritizeProspects(engineProspects, NOW, contexto);
-    for (let i = 1; i < r.length; i++) expect(r[i - 1].score).toBeGreaterThanOrEqual(r[i].score);
+    for (let i = 1; i < r.length; i++) expect(r[i - 1].rankKey).toBeGreaterThanOrEqual(r[i].rankKey);
   });
 
   it("la razón es el gap más fuerte confirmado; con fit alto y sin gaps lo dice", () => {
@@ -136,12 +136,13 @@ describe("prioritizeProspects con contexto (Prospect Engine, Fase 3)", () => {
     expect(sinGaps[0].reason).toMatch(/^Sin gaps confirmados/);
   });
 
-  it("shape compatible: mismas claves de siempre + scoreResult aditivo; legacy no lo tiene", () => {
+  it("shapes por camino: motor usa rankKey+scoreResult; legacy conserva score histórico", () => {
     const conMotor = prioritizeProspects(engineProspects, NOW, contexto)[0];
     expect(Object.keys(conMotor).sort())
-      .toStrictEqual(["daysSinceContact", "prospect", "reason", "score", "scoreResult", "stage"]);
+      .toStrictEqual(["daysSinceContact", "prospect", "rankKey", "reason", "scoreResult", "stage"]);
     const legacy = prioritizeProspects(prospects, NOW)[0];
-    expect("scoreResult" in legacy).toBe(false);
+    expect(Object.keys(legacy).sort())
+      .toStrictEqual(["daysSinceContact", "prospect", "reason", "score", "stage"]);
   });
 
   it("excluye convertidos/borrados también en el camino motor", () => {
@@ -152,7 +153,7 @@ describe("prioritizeProspects con contexto (Prospect Engine, Fase 3)", () => {
   it("determinista: mismo input ⇒ mismo ranking, independiente del reloj", () => {
     const r1 = prioritizeProspects(engineProspects, NOW, contexto);
     const r2 = prioritizeProspects(engineProspects, NOW + 999, contexto);
-    expect(r1.map(x => [x.prospect.id, x.score])).toStrictEqual(r2.map(x => [x.prospect.id, x.score]));
+    expect(r1.map(x => [x.prospect.id, x.rankKey])).toStrictEqual(r2.map(x => [x.prospect.id, x.rankKey]));
   });
 
   it("contexto {} es motor (no legacy) con señales auto en sin_datos honesto", () => {
