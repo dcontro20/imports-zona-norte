@@ -153,3 +153,78 @@ describe("Pipeline — ficha de diagnóstico (Fase 5.2)", () => {
     expect(within(colActivo).queryByTitle("Ver diagnóstico")).toBeNull();
   });
 });
+
+// --- Fase 5.3: calificación rápida en la visita ---
+
+// El botón vive en la fila de acciones; dos niveles arriba está la tarjeta.
+const botonDeTarjeta = (label, nombre) =>
+  screen.getAllByText(label).find(b => b.parentElement.parentElement.textContent.includes(nombre));
+
+const abrirVisita = (nombre, props = {}) => {
+  const setProspects = vi.fn();
+  renderPipeline({ setProspects, ...props });
+  fireEvent.click(botonDeTarjeta("📋 Visita", nombre));
+  return { setProspects, modal: screen.getByText(/^Visita — /).closest("div").parentElement };
+};
+
+describe("Pipeline — calificación rápida en la visita (Fase 5.3)", () => {
+  it("renderiza los 5 controles del dominio con sus opciones", () => {
+    const { modal } = abrirVisita("Kiosco Pelado");
+    const m = within(modal);
+    expect(m.getByText("Calificación rápida")).toBeTruthy();
+    expect(m.getByText("¿Ya vende la categoría?")).toBeTruthy();
+    expect(m.getByText("¿Tiene proveedor fijo de la categoría?")).toBeTruthy();
+    expect(m.getByText("¿Se ve surtido de otro proveedor?")).toBeTruthy();
+    expect(m.getByText("¿Tamaño del local?")).toBeTruthy();
+    expect(m.getByText("¿Se ve movimiento/tránsito real?")).toBeTruthy();
+    // el tamaño usa la escala del dominio, no Sí/No
+    expect(m.getByText("Chico")).toBeTruthy();
+    expect(m.getByText("Grande")).toBeTruthy();
+  });
+
+  it("preselecciona lo ya calificado y deja el resto en Sin datos", () => {
+    const { modal } = abrirVisita("Kiosco Estrella");
+    // seleccionado = borde azul (MiniBtn con style de selección)
+    const seleccionados = within(modal).getAllByRole("button")
+      .filter(b => b.style.background === "rgb(220, 230, 244)")
+      .map(b => b.textContent);
+    expect(seleccionados).toStrictEqual(["No", "No", "No", "Grande", "Sí"]);
+  });
+
+  it("guardar con cambios aplica la calificación del dominio (fechada y firmada)", () => {
+    const { setProspects, modal } = abrirVisita("Kiosco Pelado");
+    fireEvent.click(within(within(modal).getByText("¿Tamaño del local?").parentElement).getByText("Grande"));
+    fireEvent.click(within(modal).getByText("Registrar"));
+
+    const updater = setProspects.mock.calls[0][0];
+    const out = updater([{ id: "p-pelado", businessName: "Kiosco Pelado" }]);
+    expect(out[0].calificacion.tamano).toBe("grande");
+    expect(out[0].calificacion.actualizadoPor).toBe("Gustavo");
+    expect(out[0].calificacion.actualizadoAt).toBeTruthy();
+    expect(out[0].lastContactAt).toBeTruthy();
+    // lo no marcado NO se inventa
+    expect(out[0].calificacion.vendeCategoria).toBe("sin_datos");
+    expect(CTX.logAudit).toHaveBeenCalledWith("qualify", "prospect", "p-pelado", expect.any(String));
+  });
+
+  it("guardar sin tocar nada no re-sella la calificación (solo recencia)", () => {
+    const { setProspects, modal } = abrirVisita("Kiosco Estrella");
+    fireEvent.click(within(modal).getByText("Registrar"));
+
+    const updater = setProspects.mock.calls[0][0];
+    const previo = { id: "p-estrella", calificacion: { tamano: "grande", actualizadoAt: "2026-07-26", actualizadoPor: "Diego" } };
+    const out = updater([previo]);
+    expect(out[0].calificacion.actualizadoAt).toBe("2026-07-26");   // intacta
+    expect(out[0].calificacion.actualizadoPor).toBe("Diego");
+    expect(out[0].lastContactAt).toBeTruthy();                       // pero la visita sí cuenta
+    expect(CTX.logAudit).not.toHaveBeenCalledWith("qualify", "prospect", "p-estrella", expect.any(String));
+  });
+
+  it("la visita a un mayorista no muestra calificación (no aplica)", () => {
+    renderPipeline();
+    fireEvent.click(botonDeTarjeta("📋 Visita", "Maxi Munro"));
+    const modal = screen.getByText(/^Visita — /).closest("div").parentElement;
+    expect(within(modal).queryByText("Calificación rápida")).toBeNull();
+    expect(within(modal).getByText("Resultado")).toBeTruthy();
+  });
+});
