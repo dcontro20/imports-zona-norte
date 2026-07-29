@@ -95,9 +95,10 @@ backlog técnico B1–B9, y este par de documentos de cierre.
 
 ## Estado final del branch
 
-- **17 commits** sobre `main @ 1d67ee8`, cada uno con su fase cerrada y verde.
-- **24 archivos** modificados o creados: 12 de dominio y UI (con sus tests), 1
-  fixture, 8 de documentación, 3 de configuración/contexto.
+- **20 commits** sobre `main @ 1d67ee8`, cada uno con su fase cerrada y verde.
+- **27 archivos** modificados o creados: 10 de dominio (5 módulos + sus tests),
+  1 fixture de casos de oro, 4 de UI (componentes y tests), 2 del cerebro
+  (`prospecting.js` y su test), 9 de documentación y 1 de configuración.
 - **Suite: 1147 tests, 1146 verdes.** El único rojo es `dailyPlan > weekKey`
   (B8), pre-existente y ajeno a este trabajo.
 - **Build de producción: verde.**
