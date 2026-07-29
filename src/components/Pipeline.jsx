@@ -205,7 +205,8 @@ export function Pipeline({ prospects = [], setProspects, clients = [], setClient
                       >
                         <div style={{ fontWeight: 700, color: T.text, fontSize: 13, flex: 1, minWidth: 0 }}>
                           {x.businessName || x.name}
-                          {chip && <span style={{ color: T.textFaint, fontWeight: 400 }}> ›</span>}
+                          {/* espacio duro: el chevron nunca se separa del nombre al envolver */}
+                          {chip && <span style={{ color: T.textFaint, fontWeight: 400 }}>{" ›"}</span>}
                         </div>
                         {chip && <span style={{ flexShrink: 0 }}><Badge color={PRIORIDAD_COLOR[chip.prioridad] ?? T.textFaint}>{chip.etiqueta}</Badge></span>}
                       </div>

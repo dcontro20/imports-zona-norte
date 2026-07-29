@@ -65,9 +65,9 @@ const columnaContactado = () => screen.getByText("Contactado").closest("div").pa
 describe("Pipeline — consumo del Prospect Engine (U2 + U3)", () => {
   it("U2: las tarjetas se ordenan por el ranking, no por orden de carga", () => {
     renderPipeline();
-    // el " ›" es el affordance de "abrir ficha" (Fase 5.2), no parte del nombre
+    // el " ›" es el affordance de "abrir ficha" (Fase 5.2), no parte del nombre
     const nombres = within(columnaContactado())
-      .getAllByText(/^Kiosco /).map(n => n.textContent.replace(" ›", ""));
+      .getAllByText(/^Kiosco /).map(n => n.textContent.replace(" ›", ""));
     expect(nombres).toStrictEqual(["Kiosco Estrella", "Kiosco Pelado", "Kiosco Flojo"]);
   });
 
