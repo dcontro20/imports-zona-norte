@@ -28,8 +28,12 @@ import { prioritizeProspects } from "../prospecting.js";
 import { RUBRICA_IZN } from "./prospectRubric.js";
 import { diagnostico, proximoPaso, avisoLista } from "./prospectDiagnosis.js";
 
-// La UI del modal de visita importa estos dos desde acá (single import point):
-export { CALIFICACION_CAMPOS, aplicarCalificacion } from "./prospectSignals.js";
+// La UI del modal de visita importa esto desde acá (single import point):
+export { CALIFICACION_CAMPOS, aplicarCalificacion, calificacionActual } from "./prospectSignals.js";
+
+// Etiquetas de display para valores TRI (los `valor` de los criterios del
+// "¿Por qué?" y cualquier señal): la UI nunca traduce si/no/sin_datos a mano.
+export const ETIQUETA_TRI = { si: "Sí", no: "No", sin_datos: "Sin datos" };
 
 export const ETIQUETA_PRIORIDAD = {
   muy_alta: "Muy alta",

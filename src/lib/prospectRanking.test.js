@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
-  buildProspectRanking, ETIQUETA_PRIORIDAD, CALIFICACION_CAMPOS, aplicarCalificacion,
+  buildProspectRanking, ETIQUETA_PRIORIDAD, ETIQUETA_TRI,
+  CALIFICACION_CAMPOS, aplicarCalificacion, calificacionActual,
 } from "./prospectRanking.js";
 import { prioritizeProspects } from "../prospecting.js";
 
@@ -92,8 +93,41 @@ describe("CALIFICACION_CAMPOS — el modal de visita se renderiza data-driven", 
     expect(CALIFICACION_CAMPOS.filter(c => c.tipo === "tri")).toHaveLength(4);
     const tamano = CALIFICACION_CAMPOS.find(c => c.campo === "tamano");
     expect(tamano.tipo).toBe("escala");
-    expect(tamano.opciones).toStrictEqual(["chico", "medio", "grande"]);
+    expect(tamano.opciones.map(o => o.valor)).toStrictEqual(["chico", "medio", "grande", "sin_datos"]);
     expect(CALIFICACION_CAMPOS.map(c => c.campo)).not.toContain("decisorVisto");
+  });
+
+  it("toda opción trae valor + etiqueta: la UI no traduce nada a mano", () => {
+    for (const c of CALIFICACION_CAMPOS) {
+      expect(c.opciones.length).toBeGreaterThanOrEqual(3);
+      for (const o of c.opciones) {
+        expect(typeof o.valor).toBe("string");
+        expect(o.etiqueta.length).toBeGreaterThan(0);
+      }
+      expect(c.opciones.some(o => o.valor === "sin_datos")).toBe(true);
+    }
+    expect(ETIQUETA_TRI).toStrictEqual({ si: "Sí", no: "No", sin_datos: "Sin datos" });
+  });
+});
+
+describe("calificacionActual — estado del formulario sin conocer el shape", () => {
+  it("normaliza: ausente, parcial o valor basura ⇒ sin_datos", () => {
+    expect(calificacionActual({ id: "p1" })).toStrictEqual({
+      vendeCategoria: "sin_datos", proveedorEstable: "sin_datos",
+      competenciaVisible: "sin_datos", tamano: "sin_datos", movimiento: "sin_datos",
+    });
+    const parcial = calificacionActual({
+      calificacion: { vendeCategoria: "si", tamano: "grande", movimiento: "quizás" },
+    });
+    expect(parcial.vendeCategoria).toBe("si");
+    expect(parcial.tamano).toBe("grande");
+    expect(parcial.movimiento).toBe("sin_datos");   // basura no llega a la UI
+    expect(parcial.proveedorEstable).toBe("sin_datos");
+  });
+
+  it("ida y vuelta con aplicarCalificacion", () => {
+    const p = aplicarCalificacion({ id: "p1" }, { movimiento: "no" }, { autor: "G", at: "2026-07-28" });
+    expect(calificacionActual(p).movimiento).toBe("no");
   });
 });
 

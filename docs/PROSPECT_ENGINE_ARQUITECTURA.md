@@ -61,10 +61,30 @@ por valor comercial, `posicion` 1..n):
 | `rankKey` | NADA — clave técnica, jamás se muestra |
 
 Para el **modal de visita**, la fachada re-exporta `CALIFICACION_CAMPOS`
-(los 5 controles data-driven: 4 TRI + tamaño en escala; `decisorVisto` afuera
-por D2) y `aplicarCalificacion(prospect, cambios, {autor, at})` (merge honesto
-+ sellado — la UI hace `setProspects(prev => prev.map(...))` + `logAudit` y
-nada más).
+(los 5 controles data-driven; cada campo trae `opciones: [{valor, etiqueta}]` —
+la UI no traduce nada), `calificacionActual(prospect)` (estado del formulario,
+normalizado, para preseleccionar) y `aplicarCalificacion(prospect, cambios,
+{autor, at})` (merge honesto + sellado — la UI hace
+`setProspects(prev => prev.map(...))` + `logAudit` y nada más). Para mostrar
+valores TRI en cualquier lado (p. ej. `criterios[].valor` del "¿Por qué?"):
+`ETIQUETA_TRI`.
+
+### Notas de integración (leer antes de escribir el primer componente)
+
+- **Memoizar**: `buildProspectRanking` corre el motor completo — llamarla
+  dentro de `useMemo` con las colecciones como deps (patrón estándar de la
+  casa). El orden es independiente del reloj; `now` solo afecta
+  `daysSinceContact`.
+- **Ordenar una columna del kanban (U2)**:
+  `[...lista].sort((a, b) => (porId[a.id]?.posicion ?? Infinity) - (porId[b.id]?.posicion ?? Infinity))`.
+- **`at` de `aplicarCalificacion`**: ISO — `new Date().toISOString()`.
+- **`fuentes` de los criterios** son strings legibles por diseño
+  (`"visita_2026-07-25"`, `"zonesCoverage"`): se muestran tal cual en el
+  "¿Por qué?".
+- **"Faltan N señales de visita"** ya viene redactado en
+  `proximoPaso.pendientes` — no armar el texto a mano.
+- **Recordatorio B1**: los prospectos (y por lo tanto la calificación) hoy NO
+  persisten a Firestore — data efímera de sesión hasta resolver B1 (aceptado).
 
 ## Contrato de `prioritizeProspects` (cerrado 2026-07-28)
 

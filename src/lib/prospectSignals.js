@@ -24,14 +24,40 @@ import { productsByZone } from "../wholesaleIntelligence.js";
 // Los controles de la calificación rápida en la visita (diseño §8, con
 // competenciaVisible por decisión D1; decisorVisto queda FUERA por D2 — la
 // ficha es la única dueña de esa señal y la visita no la duplica).
-// La UI renderiza esto data-driven: no conoce campos ni semántica.
-export const CALIFICACION_CAMPOS = [
-  { campo: "vendeCategoria", pregunta: "¿Ya vende la categoría?", tipo: "tri" },
-  { campo: "proveedorEstable", pregunta: "¿Tiene proveedor fijo de la categoría?", tipo: "tri" },
-  { campo: "competenciaVisible", pregunta: "¿Se ve surtido de otro proveedor?", tipo: "tri" },
-  { campo: "tamano", pregunta: "¿Tamaño del local?", tipo: "escala", opciones: ["chico", "medio", "grande"] },
-  { campo: "movimiento", pregunta: "¿Se ve movimiento/tránsito real?", tipo: "tri" },
+// La UI renderiza esto 100% data-driven: cada campo trae sus opciones con
+// valor + etiqueta — no hace falta conocer TRI ni ninguna semántica.
+const OPCIONES_TRI = [
+  { valor: "si", etiqueta: "Sí" },
+  { valor: "no", etiqueta: "No" },
+  { valor: "sin_datos", etiqueta: "Sin datos" },
 ];
+
+export const CALIFICACION_CAMPOS = [
+  { campo: "vendeCategoria", pregunta: "¿Ya vende la categoría?", tipo: "tri", opciones: OPCIONES_TRI },
+  { campo: "proveedorEstable", pregunta: "¿Tiene proveedor fijo de la categoría?", tipo: "tri", opciones: OPCIONES_TRI },
+  { campo: "competenciaVisible", pregunta: "¿Se ve surtido de otro proveedor?", tipo: "tri", opciones: OPCIONES_TRI },
+  { campo: "tamano", pregunta: "¿Tamaño del local?", tipo: "escala",
+    opciones: [
+      { valor: "chico", etiqueta: "Chico" },
+      { valor: "medio", etiqueta: "Medio" },
+      { valor: "grande", etiqueta: "Grande" },
+      { valor: "sin_datos", etiqueta: "Sin datos" },
+    ] },
+  { campo: "movimiento", pregunta: "¿Se ve movimiento/tránsito real?", tipo: "tri", opciones: OPCIONES_TRI },
+];
+
+// Estado actual de la calificación para preseleccionar el modal: un valor por
+// campo, normalizado (ausente o desconocido ⇒ "sin_datos"). La UI no necesita
+// conocer el shape de prospect.calificacion.
+export function calificacionActual(prospect) {
+  const calif = prospect?.calificacion || {};
+  const out = {};
+  for (const c of CALIFICACION_CAMPOS) {
+    const v = calif[c.campo];
+    out[c.campo] = c.opciones.some(o => o.valor === v) ? v : "sin_datos";
+  }
+  return out;
+}
 
 // Regla de honestidad §8: lo no marcado queda ausente (⇒ sin_datos) — jamás se
 // precompleta. Devuelve un prospecto NUEVO con la calificación mergeada y
