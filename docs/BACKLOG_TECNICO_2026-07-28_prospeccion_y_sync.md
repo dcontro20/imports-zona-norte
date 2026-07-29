@@ -74,6 +74,17 @@ números distintos para "mayoristas activos": DashboardMayorista (KPI),
 ProspectMap (suma de `zonesCoverage`) y Pipeline (StatCard de `funnelSummary`).
 Además `zonesCoverage` compara zonas case-sensitive ("Palermo" ≠ "palermo").
 
+## 🟡 B8 — Test pre-existente roto: `dailyPlan.test.js` (weekKey, timezone)
+
+`src/lib/dailyPlan.test.js > weekKey > "misma semana → misma key (lunes a
+domingo)"` falla en esta máquina (ART): `expected '2026-06-08' to be
+'2026-06-09'`. Falla aislado y sobre archivos no tocados por el port (feature
+"Plan de hoy", commits `1fdd087`/`93e2e10`, posterior al baseline de 1036
+tests). Huele a parseo de fecha date-only (UTC) + `getDay()` local — el clásico
+corrimiento de un día según timezone. Detectado el 2026-07-28 al correr la
+suite completa durante la Fase 1 del Prospect Engine; **no** fue introducido
+por el port (sus 33 tests pasan y ningún archivo previo cambió).
+
 ## 🟢 B7 — Menores
 
 - `docs/PLAN_MAYORISTA.md:158-159` desactualizado: dice `businessMode` default
