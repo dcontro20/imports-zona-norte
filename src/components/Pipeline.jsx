@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { uid, formatDate } from "../helpers.js";
 import { useResponsive } from "../App.jsx";
-import { Card, Btn, Modal, Input, Select, StatCard, MiniBtn, downloadCSV } from "./UI.jsx";
+import { Card, Btn, Modal, Input, Select, StatCard, MiniBtn, Badge, downloadCSV } from "./UI.jsx";
 import { T } from "../theme.js";
 import { PROSPECT_SOURCES, VISIT_OUTCOMES } from "../constants.js";
 import {
@@ -9,6 +9,7 @@ import {
   funnelSummary, lastVisitFor,
 } from "../prospecting.js";
 import { prospectsToCSV } from "../lib/wholesaleExport.js";
+import { buildProspectRanking } from "../lib/prospectRanking.js";
 import { useAppContext } from "../AppContext.js";
 import { PresentationMessageModal } from "./wholesale/PresentationMessageModal.jsx";
 
@@ -26,9 +27,15 @@ const STAGE_COLOR = {
   primera_compra: T.green, activo: T.green, en_pausa: T.red,
 };
 
+// Color del chip de prioridad (mapeo de DISPLAY; la etiqueta la da el dominio).
+// Escala de calor para que el ojo encuentre primero lo que más conviene trabajar.
+const PRIORIDAD_COLOR = {
+  muy_alta: T.green, alta: T.blue, media: T.amber, baja: T.textMuted, "": T.textFaint,
+};
+
 const emptyProspect = { businessName: "", zone: "", address: "", phone: "", contactName: "", source: "manual", notes: "", lat: "", lng: "" };
 
-export function Pipeline({ prospects = [], setProspects, clients = [], setClients, visits = [], setVisits, products = [] }) {
+export function Pipeline({ prospects = [], setProspects, clients = [], setClients, visits = [], setVisits, products = [], sales = [] }) {
   const { isMobile } = useResponsive();
   const { logAudit, currentUser, exchangeRate } = useAppContext();
 
@@ -44,7 +51,20 @@ export function Pipeline({ prospects = [], setProspects, clients = [], setClient
   const mayoristas = useMemo(() => clients.filter(c => c && !c.isDeleted && c.type === "mayorista"), [clients]);
   const summary = useMemo(() => funnelSummary({ prospects, clients }), [prospects, clients]);
 
-  const byStage = (stage, isClient) => (isClient ? mayoristas : activeProspects).filter(x => (x.pipelineStage || (isClient ? "activo" : "prospecto")) === stage);
+  // Prospect Engine: ranking + chips + diagnóstico, todo ya digerido por la
+  // fachada. La UI no conoce señales, scoring ni cómo se ordena.
+  const ranking = useMemo(
+    () => buildProspectRanking({ prospects, visits, clients, sales, products }),
+    [prospects, visits, clients, sales, products],
+  );
+
+  const byStage = (stage, isClient) => {
+    const items = (isClient ? mayoristas : activeProspects)
+      .filter(x => (x.pipelineStage || (isClient ? "activo" : "prospecto")) === stage);
+    if (isClient) return items;   // los mayoristas no entran al ranking de captación
+    return [...items].sort((a, b) =>
+      (ranking.porId[a.id]?.posicion ?? Infinity) - (ranking.porId[b.id]?.posicion ?? Infinity));
+  };
 
   const now = () => new Date().toISOString();
 
@@ -146,10 +166,15 @@ export function Pipeline({ prospects = [], setProspects, clients = [], setClient
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {items.map(x => {
                   const lastV = lastVisitFor(visits, x.id);
+                  const chip = isClient ? null : ranking.porId[x.id]?.chip;
                   return (
                     <div key={x.id} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: 10 }}>
-                      <div style={{ fontWeight: 700, color: T.text, fontSize: 13 }}>{x.businessName || x.name}</div>
-                      <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 6 }}>{x.zone || "sin zona"}{x.contactName ? ` · ${x.contactName}` : ""}</div>
+                      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 6 }}>
+                        <div style={{ fontWeight: 700, color: T.text, fontSize: 13, flex: 1, minWidth: 0 }}>{x.businessName || x.name}</div>
+                        {chip && <span style={{ flexShrink: 0 }}><Badge color={PRIORIDAD_COLOR[chip.prioridad] ?? T.textFaint}>{chip.etiqueta}</Badge></span>}
+                      </div>
+                      <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 6, marginTop: 2 }}>{x.zone || "sin zona"}{x.contactName ? ` · ${x.contactName}` : ""}</div>
+                      {chip?.aviso && <div style={{ fontSize: 10, color: T.textFaint, marginBottom: 6, display: "flex", gap: 4 }}><span style={{ flexShrink: 0 }}>◍</span><span>{chip.aviso}</span></div>}
                       {lastV && <div style={{ fontSize: 10, color: T.textFaint, marginBottom: 6 }}>Últ. visita: {formatDate(lastV.date)} ({lastV.outcome})</div>}
                       <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                         {!isClient && stage !== "visitado" && (
