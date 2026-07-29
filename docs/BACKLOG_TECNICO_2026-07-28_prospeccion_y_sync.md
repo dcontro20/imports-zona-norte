@@ -85,6 +85,19 @@ corrimiento de un día según timezone. Detectado el 2026-07-28 al correr la
 suite completa durante la Fase 1 del Prospect Engine; **no** fue introducido
 por el port (sus 33 tests pasan y ningún archivo previo cambió).
 
+## 🟡 B9 — `App.test.jsx` flaky por timeout en suite completa
+
+En corridas de la suite COMPLETA, tests del smoke de App fallan intermitente
+con `Error: Test timed out in 5000ms` (una corrida 4 fallos, la siguiente 1,
+aislado pasa 4/4 siempre). Es la familia de flakiness ya documentada en
+CLAUDE.md (lazy chunks / EnvironmentTeardownError), variante timeout bajo
+carga. Observado por primera vez el 2026-07-28 tras la Fase 3 del Prospect
+Engine: `prospecting.js` ahora importa 3 módulos de lib/, lo que engorda
+levemente los lazy chunks que App monta en el smoke — posible afeitada del
+margen de 5000ms, no un problema funcional (los tests pasan aislados y el
+camino legacy está intacto). Mitigación candidata cuando se decida:
+`testTimeout` mayor para App.test.jsx o drenar lazy chunks con más margen.
+
 ## 🟢 B7 — Menores
 
 - `docs/PLAN_MAYORISTA.md:158-159` desactualizado: dice `businessMode` default
