@@ -30,10 +30,43 @@ responsabilidad tiene cada módulo. Complementa a `PROSPECT_ENGINE_CONTRATO.md`
    con contexto → señales + motor: banda → oportunidad ↓ → fit ↓ → confianza ↓
                     │
                     ▼
+   src/lib/prospectRanking.js                         Capa 3.5 · FACHADA
+   buildProspectRanking({prospects, visits, clients, sales, products, now})
+   → { items, porId } — TODO ya digerido para renderizar
+                    │
+                    ▼
    UI: Pipeline.jsx · DashboardMayorista.jsx · …      Capa 2 · PANTALLAS
-   sin contexto: [{ prospect, stage, daysSinceContact, score, reason }]
-   con contexto: [{ prospect, stage, daysSinceContact, rankKey, reason, scoreResult }]
+   solo renderiza items; cero lógica de negocio
 ```
+
+## La fachada: el único import de la UI
+
+**Regla dura: la capa de React importa ÚNICAMENTE `src/lib/prospectRanking.js`.**
+Jamás `prospectScoring`, `prospectSignals`, `prospectRubric` ni
+`prospectDiagnosis` directamente — quien implemente la interfaz no necesita
+entender el engine.
+
+`buildProspectRanking(...)` devuelve `{ items, porId }`; cada item (ya ordenado
+por valor comercial, `posicion` 1..n):
+
+| Campo | Para qué lo usa la UI |
+|---|---|
+| `prospect`, `stage`, `daysSinceContact` | datos de la tarjeta, como siempre |
+| `posicion` | ordenar columnas del kanban (U2): sort por este número |
+| `chip: { prioridad, etiqueta, aviso }` | chip de banda en la tarjeta (U3); `aviso` ("todavía con poca información" o `null`) es el indicador de confianza baja |
+| `diagnostico` | bloque Diagnóstico del modal: `veredicto`, `sentencia`, `razones[3]`, `senalesVisitaFaltantes`, `enDetalle`, `confianzaBaja` |
+| `scoreResult` | el "¿Por qué?": `opportunity/fit.criterios[]` con pregunta, valor TRI, puntos y fuentes |
+| `proximoPaso` | `{ tono, icono, texto, pendientes }` — cierre del modal |
+| `reason` | resumen corto (provisorio de F3) |
+| `rankKey` | NADA — clave técnica, jamás se muestra |
+
+Para el **modal de visita**, la fachada re-exporta `CALIFICACION_CAMPOS`
+(los 5 controles data-driven: 4 TRI + tamaño en escala; `decisorVisto` afuera
+por D2) y `aplicarCalificacion(prospect, cambios, {autor, at})` (merge honesto
++ sellado — la UI hace `setProspects(prev => prev.map(...))` + `logAudit` y
+nada más).
+
+## Contrato de `prioritizeProspects` (cerrado 2026-07-28)
 
 ## Contrato de `prioritizeProspects` (cerrado 2026-07-28)
 

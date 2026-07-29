@@ -21,6 +21,33 @@
 import { zonesCoverage, lastVisitFor } from "../prospecting.js";
 import { productsByZone } from "../wholesaleIntelligence.js";
 
+// Los controles de la calificación rápida en la visita (diseño §8, con
+// competenciaVisible por decisión D1; decisorVisto queda FUERA por D2 — la
+// ficha es la única dueña de esa señal y la visita no la duplica).
+// La UI renderiza esto data-driven: no conoce campos ni semántica.
+export const CALIFICACION_CAMPOS = [
+  { campo: "vendeCategoria", pregunta: "¿Ya vende la categoría?", tipo: "tri" },
+  { campo: "proveedorEstable", pregunta: "¿Tiene proveedor fijo de la categoría?", tipo: "tri" },
+  { campo: "competenciaVisible", pregunta: "¿Se ve surtido de otro proveedor?", tipo: "tri" },
+  { campo: "tamano", pregunta: "¿Tamaño del local?", tipo: "escala", opciones: ["chico", "medio", "grande"] },
+  { campo: "movimiento", pregunta: "¿Se ve movimiento/tránsito real?", tipo: "tri" },
+];
+
+// Regla de honestidad §8: lo no marcado queda ausente (⇒ sin_datos) — jamás se
+// precompleta. Devuelve un prospecto NUEVO con la calificación mergeada y
+// fechada; el llamador decide persistir (setProspects) y auditar (logAudit).
+export function aplicarCalificacion(prospect, cambios, { autor = "", at = "" } = {}) {
+  return {
+    ...prospect,
+    calificacion: {
+      ...(prospect?.calificacion || {}),
+      ...(cambios || {}),
+      actualizadoAt: at,
+      actualizadoPor: autor,
+    },
+  };
+}
+
 const OUTCOMES_INTERES = ["interesado", "volver"];
 const OUTCOMES_POSITIVOS = ["interesado", "volver", "vendido"];
 
