@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import {
-  initializeFirestore, doc, setDoc, getDoc, onSnapshot, collection,
+  initializeFirestore, doc, setDoc, getDoc, deleteDoc, onSnapshot, collection,
   persistentLocalCache, persistentMultipleTabManager,
   terminate, clearIndexedDbPersistence, runTransaction,
 } from "firebase/firestore";
@@ -80,6 +80,22 @@ export const subscribePresence = (callback) =>
     snap.forEach(d => list.push({ uid: d.id, ...d.data() }));
     callback(list);
   }, () => {});
+
+// ---- Discovery: staging de descubiertos (DISCOVERY_ENGINE_CONTRATO.md §4) ----
+// El worker escribe `discoveryResults` vía Admin SDK (bypasea rules); la app
+// solo LEE, y borra el doc una vez consumido en la revisión (importar /
+// descartar). La app jamás escribe contenido en esta colección.
+export const subscribeDiscoveryResults = (callback) =>
+  onSnapshot(collection(db, "discoveryResults"), (snap) => {
+    const list = [];
+    snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+    // Más viejo primero: la revisión consume en orden de llegada.
+    list.sort((a, b) => String(a.at || "").localeCompare(String(b.at || "")));
+    callback(list);
+  }, () => {});
+
+export const deleteDiscoveryResult = (id) =>
+  deleteDoc(doc(db, "discoveryResults", id)).catch(() => {});
 
 // Borra el cache offline de Firestore (IndexedDB) — usado al cerrar sesión
 // para no dejar data del negocio (PII + finanzas) en el dispositivo.

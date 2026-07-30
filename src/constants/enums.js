@@ -38,7 +38,7 @@ export const WHOLESALE_TIERS = ["A", "B", "C"];
 export const PIPELINE_STAGES = ["prospecto", "contactado", "visitado", "primera_compra", "activo", "en_pausa"];
 // Subconjunto para leads que todavía NO son clientes (colección `prospects`).
 export const PROSPECT_STAGES = ["prospecto", "contactado", "visitado"];
-export const PROSPECT_SOURCES = ["mapa", "referido", "manual"];
+export const PROSPECT_SOURCES = ["mapa", "referido", "manual", "descubrimiento"];
 
 // Bitácora de visitas comerciales (colección `visits`).
 export const VISIT_OUTCOMES = ["interesado", "no_interesado", "volver", "vendido", "sin_respuesta"];

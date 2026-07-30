@@ -34,6 +34,8 @@ vi.mock("./firebase.js", () => ({
   saveToFirestore: vi.fn(async () => {}),
   mergeIntoFirestore: vi.fn(async () => {}),
   subscribeToFirestore: () => () => {},
+  subscribeDiscoveryResults: () => () => {},
+  deleteDiscoveryResult: vi.fn(async () => {}),
   clearFirestoreCache: vi.fn(async () => {}),
   lastKnownTimestamps: {},
   lastWriteError: null,

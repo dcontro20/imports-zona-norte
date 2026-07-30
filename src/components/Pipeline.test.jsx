@@ -15,6 +15,7 @@ vi.mock("../firebase.js", () => ({
   updatePresence: vi.fn(), subscribePresence: () => () => {},
   saveToFirestore: vi.fn(), mergeIntoFirestore: vi.fn(),
   subscribeToFirestore: () => () => {}, clearFirestoreCache: vi.fn(),
+  subscribeDiscoveryResults: () => () => {}, deleteDiscoveryResult: vi.fn(),
   lastKnownTimestamps: {}, lastWriteError: null, clearWriteError: vi.fn(),
   isOwner: () => true, canDelete: () => true, canViewFinances: () => true,
 }));
