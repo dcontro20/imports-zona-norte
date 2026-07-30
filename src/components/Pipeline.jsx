@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { uid, formatDate } from "../helpers.js";
 import { useResponsive } from "../App.jsx";
-import { Card, Btn, Modal, Input, Select, StatCard, MiniBtn, downloadCSV } from "./UI.jsx";
+import { Card, Btn, Modal, Input, Select, StatCard, MiniBtn, Badge, downloadCSV } from "./UI.jsx";
 import { T } from "../theme.js";
 import { PROSPECT_SOURCES, VISIT_OUTCOMES } from "../constants.js";
 import {
@@ -9,8 +9,12 @@ import {
   funnelSummary, lastVisitFor,
 } from "../prospecting.js";
 import { prospectsToCSV } from "../lib/wholesaleExport.js";
+import {
+  buildProspectRanking, CALIFICACION_CAMPOS, calificacionActual, aplicarCalificacion,
+} from "../lib/prospectRanking.js";
 import { useAppContext } from "../AppContext.js";
 import { PresentationMessageModal } from "./wholesale/PresentationMessageModal.jsx";
+import { ProspectDiagnosisModal } from "./wholesale/ProspectDiagnosisModal.jsx";
 
 // Pipeline de captación mayorista (kanban sin drag — botones de avance, anda en
 // mobile). Prospectos en las 3 primeras columnas; clientes mayoristas en las 3
@@ -26,9 +30,15 @@ const STAGE_COLOR = {
   primera_compra: T.green, activo: T.green, en_pausa: T.red,
 };
 
+// Color del chip de prioridad (mapeo de DISPLAY; la etiqueta la da el dominio).
+// Escala de calor para que el ojo encuentre primero lo que más conviene trabajar.
+const PRIORIDAD_COLOR = {
+  muy_alta: T.green, alta: T.blue, media: T.amber, baja: T.textMuted, "": T.textFaint,
+};
+
 const emptyProspect = { businessName: "", zone: "", address: "", phone: "", contactName: "", source: "manual", notes: "", lat: "", lng: "" };
 
-export function Pipeline({ prospects = [], setProspects, clients = [], setClients, visits = [], setVisits, products = [] }) {
+export function Pipeline({ prospects = [], setProspects, clients = [], setClients, visits = [], setVisits, products = [], sales = [] }) {
   const { isMobile } = useResponsive();
   const { logAudit, currentUser, exchangeRate } = useAppContext();
 
@@ -38,13 +48,28 @@ export function Pipeline({ prospects = [], setProspects, clients = [], setClient
   const [err, setErr] = useState("");
   const [visitFor, setVisitFor] = useState(null);
   const [presTarget, setPresTarget] = useState(null); // Bloque 2: mensaje de presentación
+  const [diagId, setDiagId] = useState(null);         // ficha de diagnóstico (Prospect Engine)
   const [visit, setVisit] = useState({ outcome: "interesado", notes: "" });
+  const [calif, setCalif] = useState({});             // calificación rápida (solo prospectos)
 
   const activeProspects = useMemo(() => prospects.filter(p => p && !p.isDeleted && !p.convertedClientId), [prospects]);
   const mayoristas = useMemo(() => clients.filter(c => c && !c.isDeleted && c.type === "mayorista"), [clients]);
   const summary = useMemo(() => funnelSummary({ prospects, clients }), [prospects, clients]);
 
-  const byStage = (stage, isClient) => (isClient ? mayoristas : activeProspects).filter(x => (x.pipelineStage || (isClient ? "activo" : "prospecto")) === stage);
+  // Prospect Engine: ranking + chips + diagnóstico, todo ya digerido por la
+  // fachada. La UI no conoce señales, scoring ni cómo se ordena.
+  const ranking = useMemo(
+    () => buildProspectRanking({ prospects, visits, clients, sales, products }),
+    [prospects, visits, clients, sales, products],
+  );
+
+  const byStage = (stage, isClient) => {
+    const items = (isClient ? mayoristas : activeProspects)
+      .filter(x => (x.pipelineStage || (isClient ? "activo" : "prospecto")) === stage);
+    if (isClient) return items;   // los mayoristas no entran al ranking de captación
+    return [...items].sort((a, b) =>
+      (ranking.porId[a.id]?.posicion ?? Infinity) - (ranking.porId[b.id]?.posicion ?? Infinity));
+  };
 
   const now = () => new Date().toISOString();
 
@@ -102,13 +127,32 @@ export function Pipeline({ prospects = [], setProspects, clients = [], setClient
   };
 
   // --- Visitas ---
-  const openVisit = (id, type, name) => { setVisitFor({ id, type, name }); setVisit({ outcome: "interesado", notes: "" }); };
+  const openVisit = (target, type) => {
+    setVisitFor({ id: target.id, type, name: target.businessName || target.name });
+    setVisit({ outcome: "interesado", notes: "" });
+    // La calificación arranca en el estado actual del prospecto (lo ya sabido
+    // se conserva; lo que nunca se evaluó aparece como "Sin datos").
+    setCalif(type === "prospect" ? calificacionActual(target) : {});
+  };
   const saveVisit = () => {
     const v = { id: uid(), targetId: visitFor.id, targetType: visitFor.type, date: now(), outcome: visit.outcome, notes: visit.notes.trim(), byUser: currentUser?.name || "?" };
     setVisits(prev => [v, ...prev]);
-    // actualizar recencia en el target
-    if (visitFor.type === "prospect") setProspects(prev => prev.map(p => p.id === visitFor.id ? { ...p, lastContactAt: v.date } : p));
-    else setClients(prev => prev.map(c => c.id === visitFor.id ? { ...c, lastVisitAt: v.date } : c));
+    if (visitFor.type === "prospect") {
+      // Solo se re-califica si algo cambió: sellar autor y fecha sin haber
+      // evaluado nada diría "lo revisamos hoy" cuando no se revisó.
+      const previa = calificacionActual(prospects.find(p => p.id === visitFor.id));
+      const cambio = CALIFICACION_CAMPOS.some(c => calif[c.campo] !== previa[c.campo]);
+      setProspects(prev => prev.map(p => {
+        if (p.id !== visitFor.id) return p;
+        const conRecencia = { ...p, lastContactAt: v.date };
+        return cambio
+          ? aplicarCalificacion(conRecencia, calif, { autor: currentUser?.name || "?", at: v.date })
+          : conRecencia;
+      }));
+      if (cambio) logAudit?.("qualify", "prospect", visitFor.id, `Calificación actualizada: ${visitFor.name}`);
+    } else {
+      setClients(prev => prev.map(c => c.id === visitFor.id ? { ...c, lastVisitAt: v.date } : c));
+    }
     logAudit?.("visit", visitFor.type, visitFor.id, `Visita a ${visitFor.name}: ${visit.outcome}`);
     setVisitFor(null);
   };
@@ -146,10 +190,28 @@ export function Pipeline({ prospects = [], setProspects, clients = [], setClient
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {items.map(x => {
                   const lastV = lastVisitFor(visits, x.id);
+                  const chip = isClient ? null : ranking.porId[x.id]?.chip;
                   return (
                     <div key={x.id} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, padding: 10 }}>
-                      <div style={{ fontWeight: 700, color: T.text, fontSize: 13 }}>{x.businessName || x.name}</div>
-                      <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 6 }}>{x.zone || "sin zona"}{x.contactName ? ` · ${x.contactName}` : ""}</div>
+                      {/* Encabezado: en prospectos abre la ficha de diagnóstico
+                          (el chip es el resumen; tocarlo lleva al detalle). */}
+                      <div
+                        onClick={chip ? () => setDiagId(x.id) : undefined}
+                        title={chip ? "Ver diagnóstico" : undefined}
+                        style={{
+                          display: "flex", alignItems: "flex-start", justifyContent: "space-between",
+                          gap: 6, cursor: chip ? "pointer" : "default", minHeight: chip ? 30 : undefined,
+                        }}
+                      >
+                        <div style={{ fontWeight: 700, color: T.text, fontSize: 13, flex: 1, minWidth: 0 }}>
+                          {x.businessName || x.name}
+                          {/* espacio duro: el chevron nunca se separa del nombre al envolver */}
+                          {chip && <span style={{ color: T.textFaint, fontWeight: 400 }}>{" ›"}</span>}
+                        </div>
+                        {chip && <span style={{ flexShrink: 0 }}><Badge color={PRIORIDAD_COLOR[chip.prioridad] ?? T.textFaint}>{chip.etiqueta}</Badge></span>}
+                      </div>
+                      <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 6, marginTop: 2 }}>{x.zone || "sin zona"}{x.contactName ? ` · ${x.contactName}` : ""}</div>
+                      {chip?.aviso && <div style={{ fontSize: 10, color: T.textFaint, marginBottom: 6, display: "flex", gap: 4 }}><span style={{ flexShrink: 0 }}>◍</span><span>{chip.aviso}</span></div>}
                       {lastV && <div style={{ fontSize: 10, color: T.textFaint, marginBottom: 6 }}>Últ. visita: {formatDate(lastV.date)} ({lastV.outcome})</div>}
                       <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                         {!isClient && stage !== "visitado" && (
@@ -158,7 +220,7 @@ export function Pipeline({ prospects = [], setProspects, clients = [], setClient
                         {!isClient && stage === "visitado" && (
                           <MiniBtn onClick={() => convert(x)} color={T.green}>✓ Convertir</MiniBtn>
                         )}
-                        <MiniBtn onClick={() => openVisit(x.id, isClient ? "client" : "prospect", x.businessName || x.name)} color={T.amber}>📋 Visita</MiniBtn>
+                        <MiniBtn onClick={() => openVisit(x, isClient ? "client" : "prospect")} color={T.amber}>📋 Visita</MiniBtn>
                         {!isClient && <MiniBtn onClick={() => setPresTarget(x)} color={T.green}>💬 Presentar</MiniBtn>}
                         {!isClient && <MiniBtn onClick={() => openEdit(x)} color={T.textMuted}>✏️</MiniBtn>}
                         {isClient && stage !== "activo" && <MiniBtn onClick={() => setClientStage(x, "activo")} color={T.green}>Activar</MiniBtn>}
@@ -204,12 +266,48 @@ export function Pipeline({ prospects = [], setProspects, clients = [], setClient
       {/* Modal registrar visita */}
       <Modal open={!!visitFor} onClose={() => setVisitFor(null)} title={`Visita — ${visitFor?.name || ""}`}>
         <Select label="Resultado" options={VISIT_OUTCOMES} value={visit.outcome} onChange={e => setVisit(v => ({ ...v, outcome: e.target.value }))} />
+
+        {/* Calificación rápida (Prospect Engine): los controles, sus opciones y
+            el merge los define el dominio. Acá solo se pintan y se eligen. */}
+        {visitFor?.type === "prospect" && (
+          <div style={{ marginBottom: 14, background: T.bg, border: `1px solid ${T.borderSoft}`, borderRadius: 10, padding: 10 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: T.text }}>Calificación rápida</div>
+            <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 8 }}>
+              Opcional. Lo que no marques queda sin datos — nunca se completa solo.
+            </div>
+            {CALIFICACION_CAMPOS.map(c => (
+              <div key={c.campo} style={{ marginBottom: 8 }}>
+                <div style={{ fontSize: 12, color: T.textSub, marginBottom: 4 }}>{c.pregunta}</div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {c.opciones.map(o => {
+                    const sel = calif[c.campo] === o.valor;
+                    return (
+                      <MiniBtn key={o.valor} color={sel ? T.blue : T.textFaint}
+                        onClick={() => setCalif(s => ({ ...s, [c.campo]: o.valor }))}
+                        style={sel ? { background: T.blueBg, borderColor: T.blueBorder } : undefined}>
+                        {o.etiqueta}
+                      </MiniBtn>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         <Input label="Notas" value={visit.notes} onChange={e => setVisit(v => ({ ...v, notes: e.target.value }))} />
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
           <Btn variant="secondary" onClick={() => setVisitFor(null)}>Cancelar</Btn>
           <Btn onClick={saveVisit}>Registrar</Btn>
         </div>
       </Modal>
+
+      {/* Ficha de diagnóstico del Prospect Engine (render puro de la fachada) */}
+      <ProspectDiagnosisModal
+        open={!!diagId} onClose={() => setDiagId(null)}
+        item={diagId ? ranking.porId[diagId] : null}
+        prioridadColor={PRIORIDAD_COLOR[ranking.porId[diagId]?.chip?.prioridad] ?? T.textFaint}
+      />
 
       {/* Bloque 2 — mensaje de presentación B2B (primer contacto con el prospecto) */}
       <PresentationMessageModal open={!!presTarget} onClose={() => setPresTarget(null)}

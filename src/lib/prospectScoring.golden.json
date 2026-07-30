@@ -1,0 +1,3280 @@
+{
+  "_comment": "Casos de oro del Prospect Engine (Atlas -> Imports). Generada por export_golden_cases.py. NO editar a mano. Sin PII: señales TRI + resultados esperados de la capa medida del engine.",
+  "engineVersion": "v1",
+  "minConfPrioridad": 0.35,
+  "rubrica": {
+    "version": "atlas-v1",
+    "oportunidad": [
+      {
+        "id": "op_sin_web",
+        "pregunta": "¿No tiene sitio web propio?",
+        "peso": 18,
+        "fraseOportunidad": "No tiene sitio web propio (solo redes)",
+        "fraseFortaleza": "Tiene sitio web propio"
+      },
+      {
+        "id": "op_web_lenta",
+        "pregunta": "¿La web es lenta en móvil (PSI<50)?",
+        "peso": 12,
+        "fraseOportunidad": "La web carga lento en móvil",
+        "fraseFortaleza": "La web carga bien en móvil"
+      },
+      {
+        "id": "op_seo_pobre",
+        "pregunta": "¿SEO técnico bajo (PSI SEO<70)?",
+        "peso": 8,
+        "fraseOportunidad": "SEO técnico por debajo del estándar",
+        "fraseFortaleza": "SEO técnico correcto"
+      },
+      {
+        "id": "op_sin_blog",
+        "pregunta": "¿Sin blog?",
+        "peso": 6,
+        "fraseOportunidad": "Sin blog ni contenido educativo en la web",
+        "fraseFortaleza": "Tiene blog"
+      },
+      {
+        "id": "op_no_mobile",
+        "pregunta": "¿Web no responsive?",
+        "peso": 8,
+        "fraseOportunidad": "La web no está optimizada para móvil",
+        "fraseFortaleza": "Web optimizada para móvil"
+      },
+      {
+        "id": "op_sin_seolocal",
+        "pregunta": "¿Sin SEO local?",
+        "peso": 8,
+        "fraseOportunidad": "No aprovecha el SEO local",
+        "fraseFortaleza": "Trabaja el SEO local"
+      },
+      {
+        "id": "op_sin_ctas",
+        "pregunta": "¿Sin CTAs claros en la web?",
+        "peso": 6,
+        "fraseOportunidad": "La web no tiene llamados a la acción claros",
+        "fraseFortaleza": "La web tiene CTAs claros"
+      },
+      {
+        "id": "op_sin_forms",
+        "pregunta": "¿Sin formularios de contacto?",
+        "peso": 5,
+        "fraseOportunidad": "Sin formularios de captación en la web",
+        "fraseFortaleza": "Tiene formularios de contacto"
+      },
+      {
+        "id": "op_sin_reels",
+        "pregunta": "¿No publica Reels?",
+        "peso": 10,
+        "fraseOportunidad": "No usa Reels (formato de mayor alcance)",
+        "fraseFortaleza": "Publica Reels"
+      },
+      {
+        "id": "op_sin_ig",
+        "pregunta": "¿Sin Instagram?",
+        "peso": 8,
+        "fraseOportunidad": "Sin presencia en Instagram",
+        "fraseFortaleza": "Presente en Instagram"
+      },
+      {
+        "id": "op_baja_frec",
+        "pregunta": "¿Publica poco (<4/mes)?",
+        "peso": 8,
+        "fraseOportunidad": "Publica con baja frecuencia",
+        "fraseFortaleza": "Publica con buena frecuencia"
+      },
+      {
+        "id": "op_inactivo",
+        "pregunta": "¿Inactivo en IG (>60 días sin postear)?",
+        "peso": 8,
+        "fraseOportunidad": "Cuenta de Instagram inactiva (>60 días sin publicar)",
+        "fraseFortaleza": "Cuenta de Instagram activa"
+      },
+      {
+        "id": "op_sin_cta_bio",
+        "pregunta": "¿Sin CTA en la bio de IG?",
+        "peso": 5,
+        "fraseOportunidad": "Sin llamado a la acción en la bio",
+        "fraseFortaleza": "Tiene CTA en la bio"
+      },
+      {
+        "id": "op_sin_link_bio",
+        "pregunta": "¿Sin link en la bio de IG?",
+        "peso": 4,
+        "fraseOportunidad": "Sin link en la bio",
+        "fraseFortaleza": "Tiene link en la bio"
+      },
+      {
+        "id": "op_sin_casos",
+        "pregunta": "¿No muestra casos/testimonios?",
+        "peso": 6,
+        "fraseOportunidad": "No muestra casos, testimonios ni resultados",
+        "fraseFortaleza": "Muestra casos y testimonios"
+      },
+      {
+        "id": "op_no_responde",
+        "pregunta": "¿No responde reseñas?",
+        "peso": 5,
+        "fraseOportunidad": "No responde las reseñas de Google",
+        "fraseFortaleza": "Responde las reseñas"
+      }
+    ],
+    "fit": [
+      {
+        "id": "fit_reputacion",
+        "pregunta": "¿Buena reputación (rating≥4.0)?",
+        "peso": 18,
+        "fraseOportunidad": null,
+        "fraseFortaleza": "Buena reputación online"
+      },
+      {
+        "id": "fit_volumen",
+        "pregunta": "¿Volumen de reseñas (≥50)?",
+        "peso": 22,
+        "fraseOportunidad": null,
+        "fraseFortaleza": "Base sólida de reseñas (negocio con flujo de pacientes)"
+      },
+      {
+        "id": "fit_volumen_alto",
+        "pregunta": "¿Alto volumen de reseñas (≥150)?",
+        "peso": 12,
+        "fraseOportunidad": null,
+        "fraseFortaleza": "Alto volumen de reseñas"
+      },
+      {
+        "id": "fit_madurez_web",
+        "pregunta": "¿Tiene sitio web propio (señal de inversión)?",
+        "peso": 16,
+        "fraseOportunidad": null,
+        "fraseFortaleza": "Ya invierte en presencia digital (web propia)"
+      },
+      {
+        "id": "fit_presencia_social",
+        "pregunta": "¿Tiene presencia en redes?",
+        "peso": 10,
+        "fraseOportunidad": null,
+        "fraseFortaleza": "Presencia en redes sociales"
+      },
+      {
+        "id": "fit_actividad",
+        "pregunta": "¿Activo en redes (entiende el canal)?",
+        "peso": 12,
+        "fraseOportunidad": null,
+        "fraseFortaleza": "Activo en redes (entiende el canal)"
+      },
+      {
+        "id": "fit_formal",
+        "pregunta": "¿Negocio formal (horarios completos)?",
+        "peso": 10,
+        "fraseOportunidad": null,
+        "fraseFortaleza": "Negocio formal y establecido"
+      }
+    ]
+  },
+  "casos": [
+    {
+      "caseId": "golden_01",
+      "hoy": "2026-07-27",
+      "senales": {
+        "op_sin_web": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "op_web_lenta": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_seo_pobre": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_blog": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_no_mobile": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_seolocal": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_ctas": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_forms": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_reels": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_ig": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "op_baja_frec": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_inactivo": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_cta_bio": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_link_bio": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_casos": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_no_responde": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "fit_reputacion": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_volumen": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_volumen_alto": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_madurez_web": {
+          "valor": "no",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_presencia_social": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_actividad": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "fit_formal": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        }
+      },
+      "esperado": {
+        "opportunity": {
+          "total": 100.0,
+          "coverage": 0.208,
+          "resumen": "2/16 criterios con datos",
+          "criterios": [
+            {
+              "id": "op_sin_web",
+              "valor": "si",
+              "puntos": 18.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "op_web_lenta",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_seo_pobre",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_blog",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_no_mobile",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_seolocal",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_ctas",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_forms",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_reels",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_ig",
+              "valor": "si",
+              "puntos": 8.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "op_baja_frec",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_inactivo",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_cta_bio",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_link_bio",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_casos",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_no_responde",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            }
+          ]
+        },
+        "fit": {
+          "total": 81.8,
+          "coverage": 0.88,
+          "resumen": "6/7 criterios con datos",
+          "criterios": [
+            {
+              "id": "fit_reputacion",
+              "valor": "si",
+              "puntos": 18.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_volumen",
+              "valor": "si",
+              "puntos": 22.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_volumen_alto",
+              "valor": "si",
+              "puntos": 12.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_madurez_web",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_presencia_social",
+              "valor": "si",
+              "puntos": 10.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_actividad",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "fit_formal",
+              "valor": "si",
+              "puntos": 10.0,
+              "fuentes": [
+                "s1"
+              ]
+            }
+          ]
+        },
+        "confidence": 0.507,
+        "prioridad": "muy_alta",
+        "prioridadBase": "muy_alta",
+        "fortalezas": [
+          "Buena reputación online",
+          "Base sólida de reseñas (negocio con flujo de pacientes)",
+          "Alto volumen de reseñas",
+          "Presencia en redes sociales",
+          "Negocio formal y establecido"
+        ],
+        "oportunidades": [
+          "No tiene sitio web propio (solo redes)",
+          "Sin presencia en Instagram"
+        ]
+      }
+    },
+    {
+      "caseId": "golden_02",
+      "hoy": "2026-07-27",
+      "senales": {
+        "op_sin_web": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "op_web_lenta": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_seo_pobre": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_blog": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_no_mobile": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_seolocal": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_ctas": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_forms": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_reels": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_ig": {
+          "valor": "no",
+          "fuentes": [
+            "s2"
+          ]
+        },
+        "op_baja_frec": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_inactivo": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_cta_bio": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_link_bio": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_casos": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_no_responde": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "fit_reputacion": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_volumen": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_volumen_alto": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_madurez_web": {
+          "valor": "no",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_presencia_social": {
+          "valor": "si",
+          "fuentes": [
+            "s2"
+          ]
+        },
+        "fit_actividad": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "fit_formal": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        }
+      },
+      "esperado": {
+        "opportunity": {
+          "total": 69.2,
+          "coverage": 0.208,
+          "resumen": "2/16 criterios con datos",
+          "criterios": [
+            {
+              "id": "op_sin_web",
+              "valor": "si",
+              "puntos": 18.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "op_web_lenta",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_seo_pobre",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_blog",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_no_mobile",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_seolocal",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_ctas",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_forms",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_reels",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_ig",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s2"
+              ]
+            },
+            {
+              "id": "op_baja_frec",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_inactivo",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_cta_bio",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_link_bio",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_casos",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_no_responde",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            }
+          ]
+        },
+        "fit": {
+          "total": 81.8,
+          "coverage": 0.88,
+          "resumen": "6/7 criterios con datos",
+          "criterios": [
+            {
+              "id": "fit_reputacion",
+              "valor": "si",
+              "puntos": 18.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_volumen",
+              "valor": "si",
+              "puntos": 22.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_volumen_alto",
+              "valor": "si",
+              "puntos": 12.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_madurez_web",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_presencia_social",
+              "valor": "si",
+              "puntos": 10.0,
+              "fuentes": [
+                "s2"
+              ]
+            },
+            {
+              "id": "fit_actividad",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "fit_formal",
+              "valor": "si",
+              "puntos": 10.0,
+              "fuentes": [
+                "s1"
+              ]
+            }
+          ]
+        },
+        "confidence": 0.507,
+        "prioridad": "alta",
+        "prioridadBase": "alta",
+        "fortalezas": [
+          "Buena reputación online",
+          "Base sólida de reseñas (negocio con flujo de pacientes)",
+          "Alto volumen de reseñas",
+          "Presencia en redes sociales",
+          "Negocio formal y establecido",
+          "Presente en Instagram"
+        ],
+        "oportunidades": [
+          "No tiene sitio web propio (solo redes)"
+        ]
+      }
+    },
+    {
+      "caseId": "golden_03",
+      "hoy": "2026-07-27",
+      "senales": {
+        "op_sin_web": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "op_web_lenta": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_seo_pobre": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_blog": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_no_mobile": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_seolocal": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_ctas": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_forms": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_reels": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_ig": {
+          "valor": "no",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "op_baja_frec": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_inactivo": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_cta_bio": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_link_bio": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_casos": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_no_responde": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "fit_reputacion": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "fit_volumen": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "fit_volumen_alto": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "fit_madurez_web": {
+          "valor": "no",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_presencia_social": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_actividad": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "fit_formal": {
+          "valor": "sin_datos",
+          "fuentes": []
+        }
+      },
+      "esperado": {
+        "opportunity": {
+          "total": 69.2,
+          "coverage": 0.208,
+          "resumen": "2/16 criterios con datos",
+          "criterios": [
+            {
+              "id": "op_sin_web",
+              "valor": "si",
+              "puntos": 18.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "op_web_lenta",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_seo_pobre",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_blog",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_no_mobile",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_seolocal",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_ctas",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_forms",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_reels",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_ig",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "op_baja_frec",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_inactivo",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_cta_bio",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_link_bio",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_casos",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_no_responde",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            }
+          ]
+        },
+        "fit": {
+          "total": 38.5,
+          "coverage": 0.26,
+          "resumen": "2/7 criterios con datos",
+          "criterios": [
+            {
+              "id": "fit_reputacion",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "fit_volumen",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "fit_volumen_alto",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "fit_madurez_web",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_presencia_social",
+              "valor": "si",
+              "puntos": 10.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_actividad",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "fit_formal",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            }
+          ]
+        },
+        "confidence": 0.231,
+        "prioridad": "media",
+        "prioridadBase": "media",
+        "fortalezas": [
+          "Presencia en redes sociales",
+          "Presente en Instagram"
+        ],
+        "oportunidades": [
+          "No tiene sitio web propio (solo redes)"
+        ]
+      }
+    },
+    {
+      "caseId": "golden_04",
+      "hoy": "2026-07-27",
+      "senales": {
+        "op_sin_web": {
+          "valor": "no",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "op_web_lenta": {
+          "valor": "no",
+          "fuentes": [
+            "s2",
+            "s4"
+          ]
+        },
+        "op_seo_pobre": {
+          "valor": "no",
+          "fuentes": [
+            "s2",
+            "s4"
+          ]
+        },
+        "op_sin_blog": {
+          "valor": "si",
+          "fuentes": [
+            "s2",
+            "s4"
+          ]
+        },
+        "op_no_mobile": {
+          "valor": "no",
+          "fuentes": [
+            "s2",
+            "s4"
+          ]
+        },
+        "op_sin_seolocal": {
+          "valor": "si",
+          "fuentes": [
+            "s2",
+            "s4"
+          ]
+        },
+        "op_sin_ctas": {
+          "valor": "no",
+          "fuentes": [
+            "s2",
+            "s4"
+          ]
+        },
+        "op_sin_forms": {
+          "valor": "no",
+          "fuentes": [
+            "s2",
+            "s4"
+          ]
+        },
+        "op_sin_reels": {
+          "valor": "no",
+          "fuentes": [
+            "s3"
+          ]
+        },
+        "op_sin_ig": {
+          "valor": "no",
+          "fuentes": [
+            "s2"
+          ]
+        },
+        "op_baja_frec": {
+          "valor": "si",
+          "fuentes": [
+            "s3"
+          ]
+        },
+        "op_inactivo": {
+          "valor": "no",
+          "fuentes": [
+            "s3"
+          ]
+        },
+        "op_sin_cta_bio": {
+          "valor": "no",
+          "fuentes": [
+            "s3"
+          ]
+        },
+        "op_sin_link_bio": {
+          "valor": "no",
+          "fuentes": [
+            "s3"
+          ]
+        },
+        "op_sin_casos": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_no_responde": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "fit_reputacion": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_volumen": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_volumen_alto": {
+          "valor": "no",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_madurez_web": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_presencia_social": {
+          "valor": "si",
+          "fuentes": [
+            "s2",
+            "s2",
+            "s2"
+          ]
+        },
+        "fit_actividad": {
+          "valor": "si",
+          "fuentes": [
+            "s3"
+          ]
+        },
+        "fit_formal": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        }
+      },
+      "esperado": {
+        "opportunity": {
+          "total": 19.3,
+          "coverage": 0.912,
+          "resumen": "14/16 criterios con datos",
+          "criterios": [
+            {
+              "id": "op_sin_web",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "op_web_lenta",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s2",
+                "s4"
+              ]
+            },
+            {
+              "id": "op_seo_pobre",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s2",
+                "s4"
+              ]
+            },
+            {
+              "id": "op_sin_blog",
+              "valor": "si",
+              "puntos": 6.0,
+              "fuentes": [
+                "s2",
+                "s4"
+              ]
+            },
+            {
+              "id": "op_no_mobile",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s2",
+                "s4"
+              ]
+            },
+            {
+              "id": "op_sin_seolocal",
+              "valor": "si",
+              "puntos": 8.0,
+              "fuentes": [
+                "s2",
+                "s4"
+              ]
+            },
+            {
+              "id": "op_sin_ctas",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s2",
+                "s4"
+              ]
+            },
+            {
+              "id": "op_sin_forms",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s2",
+                "s4"
+              ]
+            },
+            {
+              "id": "op_sin_reels",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s3"
+              ]
+            },
+            {
+              "id": "op_sin_ig",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s2"
+              ]
+            },
+            {
+              "id": "op_baja_frec",
+              "valor": "si",
+              "puntos": 8.0,
+              "fuentes": [
+                "s3"
+              ]
+            },
+            {
+              "id": "op_inactivo",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s3"
+              ]
+            },
+            {
+              "id": "op_sin_cta_bio",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s3"
+              ]
+            },
+            {
+              "id": "op_sin_link_bio",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s3"
+              ]
+            },
+            {
+              "id": "op_sin_casos",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_no_responde",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            }
+          ]
+        },
+        "fit": {
+          "total": 88.0,
+          "coverage": 1.0,
+          "resumen": "7/7 criterios con datos",
+          "criterios": [
+            {
+              "id": "fit_reputacion",
+              "valor": "si",
+              "puntos": 18.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_volumen",
+              "valor": "si",
+              "puntos": 22.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_volumen_alto",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_madurez_web",
+              "valor": "si",
+              "puntos": 16.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_presencia_social",
+              "valor": "si",
+              "puntos": 10.0,
+              "fuentes": [
+                "s2",
+                "s2",
+                "s2"
+              ]
+            },
+            {
+              "id": "fit_actividad",
+              "valor": "si",
+              "puntos": 12.0,
+              "fuentes": [
+                "s3"
+              ]
+            },
+            {
+              "id": "fit_formal",
+              "valor": "si",
+              "puntos": 10.0,
+              "fuentes": [
+                "s1"
+              ]
+            }
+          ]
+        },
+        "confidence": 0.951,
+        "prioridad": "media",
+        "prioridadBase": "media",
+        "fortalezas": [
+          "Buena reputación online",
+          "Base sólida de reseñas (negocio con flujo de pacientes)",
+          "Ya invierte en presencia digital (web propia)",
+          "Presencia en redes sociales",
+          "Activo en redes (entiende el canal)",
+          "Negocio formal y establecido",
+          "Tiene sitio web propio",
+          "La web carga bien en móvil",
+          "SEO técnico correcto",
+          "Web optimizada para móvil",
+          "La web tiene CTAs claros",
+          "Tiene formularios de contacto",
+          "Publica Reels",
+          "Presente en Instagram",
+          "Cuenta de Instagram activa",
+          "Tiene CTA en la bio",
+          "Tiene link en la bio"
+        ],
+        "oportunidades": [
+          "Sin blog ni contenido educativo en la web",
+          "No aprovecha el SEO local",
+          "Publica con baja frecuencia"
+        ]
+      }
+    },
+    {
+      "caseId": "golden_05",
+      "hoy": "2026-07-27",
+      "senales": {
+        "op_sin_web": {
+          "valor": "no",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "op_web_lenta": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_seo_pobre": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_blog": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_no_mobile": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_seolocal": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_ctas": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_forms": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_reels": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_ig": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "op_baja_frec": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_inactivo": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_cta_bio": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_link_bio": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_casos": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_no_responde": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "fit_reputacion": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_volumen": {
+          "valor": "no",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_volumen_alto": {
+          "valor": "no",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_madurez_web": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_presencia_social": {
+          "valor": "no",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_actividad": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "fit_formal": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        }
+      },
+      "esperado": {
+        "opportunity": {
+          "total": 30.8,
+          "coverage": 0.208,
+          "resumen": "2/16 criterios con datos",
+          "criterios": [
+            {
+              "id": "op_sin_web",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "op_web_lenta",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_seo_pobre",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_blog",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_no_mobile",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_seolocal",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_ctas",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_forms",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_reels",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_ig",
+              "valor": "si",
+              "puntos": 8.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "op_baja_frec",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_inactivo",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_cta_bio",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_link_bio",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_casos",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_no_responde",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            }
+          ]
+        },
+        "fit": {
+          "total": 50.0,
+          "coverage": 0.88,
+          "resumen": "6/7 criterios con datos",
+          "criterios": [
+            {
+              "id": "fit_reputacion",
+              "valor": "si",
+              "puntos": 18.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_volumen",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_volumen_alto",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_madurez_web",
+              "valor": "si",
+              "puntos": 16.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_presencia_social",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_actividad",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "fit_formal",
+              "valor": "si",
+              "puntos": 10.0,
+              "fuentes": [
+                "s1"
+              ]
+            }
+          ]
+        },
+        "confidence": 0.507,
+        "prioridad": "baja",
+        "prioridadBase": "baja",
+        "fortalezas": [
+          "Buena reputación online",
+          "Ya invierte en presencia digital (web propia)",
+          "Negocio formal y establecido",
+          "Tiene sitio web propio"
+        ],
+        "oportunidades": [
+          "Sin presencia en Instagram"
+        ]
+      }
+    },
+    {
+      "caseId": "golden_06",
+      "hoy": "2026-07-27",
+      "senales": {
+        "op_sin_web": {
+          "valor": "no",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "op_web_lenta": {
+          "valor": "no",
+          "fuentes": [
+            "s2",
+            "s4"
+          ]
+        },
+        "op_seo_pobre": {
+          "valor": "si",
+          "fuentes": [
+            "s2",
+            "s4"
+          ]
+        },
+        "op_sin_blog": {
+          "valor": "no",
+          "fuentes": [
+            "s2",
+            "s4"
+          ]
+        },
+        "op_no_mobile": {
+          "valor": "no",
+          "fuentes": [
+            "s2",
+            "s4"
+          ]
+        },
+        "op_sin_seolocal": {
+          "valor": "si",
+          "fuentes": [
+            "s2",
+            "s4"
+          ]
+        },
+        "op_sin_ctas": {
+          "valor": "no",
+          "fuentes": [
+            "s2",
+            "s4"
+          ]
+        },
+        "op_sin_forms": {
+          "valor": "no",
+          "fuentes": [
+            "s2",
+            "s4"
+          ]
+        },
+        "op_sin_reels": {
+          "valor": "no",
+          "fuentes": [
+            "s3"
+          ]
+        },
+        "op_sin_ig": {
+          "valor": "no",
+          "fuentes": [
+            "s2"
+          ]
+        },
+        "op_baja_frec": {
+          "valor": "si",
+          "fuentes": [
+            "s3"
+          ]
+        },
+        "op_inactivo": {
+          "valor": "no",
+          "fuentes": [
+            "s3"
+          ]
+        },
+        "op_sin_cta_bio": {
+          "valor": "no",
+          "fuentes": [
+            "s3"
+          ]
+        },
+        "op_sin_link_bio": {
+          "valor": "no",
+          "fuentes": [
+            "s3"
+          ]
+        },
+        "op_sin_casos": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_no_responde": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "fit_reputacion": {
+          "valor": "no",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_volumen": {
+          "valor": "no",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_volumen_alto": {
+          "valor": "no",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_madurez_web": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_presencia_social": {
+          "valor": "si",
+          "fuentes": [
+            "s2",
+            "s2"
+          ]
+        },
+        "fit_actividad": {
+          "valor": "si",
+          "fuentes": [
+            "s3"
+          ]
+        },
+        "fit_formal": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        }
+      },
+      "esperado": {
+        "opportunity": {
+          "total": 21.1,
+          "coverage": 0.912,
+          "resumen": "14/16 criterios con datos",
+          "criterios": [
+            {
+              "id": "op_sin_web",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "op_web_lenta",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s2",
+                "s4"
+              ]
+            },
+            {
+              "id": "op_seo_pobre",
+              "valor": "si",
+              "puntos": 8.0,
+              "fuentes": [
+                "s2",
+                "s4"
+              ]
+            },
+            {
+              "id": "op_sin_blog",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s2",
+                "s4"
+              ]
+            },
+            {
+              "id": "op_no_mobile",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s2",
+                "s4"
+              ]
+            },
+            {
+              "id": "op_sin_seolocal",
+              "valor": "si",
+              "puntos": 8.0,
+              "fuentes": [
+                "s2",
+                "s4"
+              ]
+            },
+            {
+              "id": "op_sin_ctas",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s2",
+                "s4"
+              ]
+            },
+            {
+              "id": "op_sin_forms",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s2",
+                "s4"
+              ]
+            },
+            {
+              "id": "op_sin_reels",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s3"
+              ]
+            },
+            {
+              "id": "op_sin_ig",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s2"
+              ]
+            },
+            {
+              "id": "op_baja_frec",
+              "valor": "si",
+              "puntos": 8.0,
+              "fuentes": [
+                "s3"
+              ]
+            },
+            {
+              "id": "op_inactivo",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s3"
+              ]
+            },
+            {
+              "id": "op_sin_cta_bio",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s3"
+              ]
+            },
+            {
+              "id": "op_sin_link_bio",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s3"
+              ]
+            },
+            {
+              "id": "op_sin_casos",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_no_responde",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            }
+          ]
+        },
+        "fit": {
+          "total": 48.0,
+          "coverage": 1.0,
+          "resumen": "7/7 criterios con datos",
+          "criterios": [
+            {
+              "id": "fit_reputacion",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_volumen",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_volumen_alto",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_madurez_web",
+              "valor": "si",
+              "puntos": 16.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_presencia_social",
+              "valor": "si",
+              "puntos": 10.0,
+              "fuentes": [
+                "s2",
+                "s2"
+              ]
+            },
+            {
+              "id": "fit_actividad",
+              "valor": "si",
+              "puntos": 12.0,
+              "fuentes": [
+                "s3"
+              ]
+            },
+            {
+              "id": "fit_formal",
+              "valor": "si",
+              "puntos": 10.0,
+              "fuentes": [
+                "s1"
+              ]
+            }
+          ]
+        },
+        "confidence": 0.951,
+        "prioridad": "baja",
+        "prioridadBase": "baja",
+        "fortalezas": [
+          "Ya invierte en presencia digital (web propia)",
+          "Presencia en redes sociales",
+          "Activo en redes (entiende el canal)",
+          "Negocio formal y establecido",
+          "Tiene sitio web propio",
+          "La web carga bien en móvil",
+          "Tiene blog",
+          "Web optimizada para móvil",
+          "La web tiene CTAs claros",
+          "Tiene formularios de contacto",
+          "Publica Reels",
+          "Presente en Instagram",
+          "Cuenta de Instagram activa",
+          "Tiene CTA en la bio",
+          "Tiene link en la bio"
+        ],
+        "oportunidades": [
+          "SEO técnico por debajo del estándar",
+          "No aprovecha el SEO local",
+          "Publica con baja frecuencia"
+        ]
+      }
+    },
+    {
+      "caseId": "golden_07",
+      "hoy": "2026-07-27",
+      "senales": {
+        "op_sin_web": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "op_web_lenta": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_seo_pobre": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_blog": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_no_mobile": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_seolocal": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_ctas": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_forms": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_reels": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_ig": {
+          "valor": "no",
+          "fuentes": [
+            "s2"
+          ]
+        },
+        "op_baja_frec": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_inactivo": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_cta_bio": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_link_bio": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_casos": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_no_responde": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "fit_reputacion": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_volumen": {
+          "valor": "no",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_volumen_alto": {
+          "valor": "no",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_madurez_web": {
+          "valor": "no",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_presencia_social": {
+          "valor": "si",
+          "fuentes": [
+            "s2"
+          ]
+        },
+        "fit_actividad": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "fit_formal": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        }
+      },
+      "esperado": {
+        "opportunity": {
+          "total": 69.2,
+          "coverage": 0.208,
+          "resumen": "2/16 criterios con datos",
+          "criterios": [
+            {
+              "id": "op_sin_web",
+              "valor": "si",
+              "puntos": 18.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "op_web_lenta",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_seo_pobre",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_blog",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_no_mobile",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_seolocal",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_ctas",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_forms",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_reels",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_ig",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s2"
+              ]
+            },
+            {
+              "id": "op_baja_frec",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_inactivo",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_cta_bio",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_link_bio",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_casos",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_no_responde",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            }
+          ]
+        },
+        "fit": {
+          "total": 43.2,
+          "coverage": 0.88,
+          "resumen": "6/7 criterios con datos",
+          "criterios": [
+            {
+              "id": "fit_reputacion",
+              "valor": "si",
+              "puntos": 18.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_volumen",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_volumen_alto",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_madurez_web",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_presencia_social",
+              "valor": "si",
+              "puntos": 10.0,
+              "fuentes": [
+                "s2"
+              ]
+            },
+            {
+              "id": "fit_actividad",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "fit_formal",
+              "valor": "si",
+              "puntos": 10.0,
+              "fuentes": [
+                "s1"
+              ]
+            }
+          ]
+        },
+        "confidence": 0.507,
+        "prioridad": "media",
+        "prioridadBase": "media",
+        "fortalezas": [
+          "Buena reputación online",
+          "Presencia en redes sociales",
+          "Negocio formal y establecido",
+          "Presente en Instagram"
+        ],
+        "oportunidades": [
+          "No tiene sitio web propio (solo redes)"
+        ]
+      }
+    },
+    {
+      "caseId": "golden_08",
+      "hoy": "2026-07-27",
+      "senales": {
+        "op_sin_web": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "op_web_lenta": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_seo_pobre": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_blog": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_no_mobile": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_seolocal": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_ctas": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_forms": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_reels": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_ig": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "op_baja_frec": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_inactivo": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_cta_bio": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_link_bio": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_casos": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_no_responde": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "fit_reputacion": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_volumen": {
+          "valor": "no",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_volumen_alto": {
+          "valor": "no",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_madurez_web": {
+          "valor": "no",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_presencia_social": {
+          "valor": "no",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_actividad": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "fit_formal": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        }
+      },
+      "esperado": {
+        "opportunity": {
+          "total": 100.0,
+          "coverage": 0.208,
+          "resumen": "2/16 criterios con datos",
+          "criterios": [
+            {
+              "id": "op_sin_web",
+              "valor": "si",
+              "puntos": 18.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "op_web_lenta",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_seo_pobre",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_blog",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_no_mobile",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_seolocal",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_ctas",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_forms",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_reels",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_ig",
+              "valor": "si",
+              "puntos": 8.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "op_baja_frec",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_inactivo",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_cta_bio",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_link_bio",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_casos",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_no_responde",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            }
+          ]
+        },
+        "fit": {
+          "total": 31.8,
+          "coverage": 0.88,
+          "resumen": "6/7 criterios con datos",
+          "criterios": [
+            {
+              "id": "fit_reputacion",
+              "valor": "si",
+              "puntos": 18.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_volumen",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_volumen_alto",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_madurez_web",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_presencia_social",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_actividad",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "fit_formal",
+              "valor": "si",
+              "puntos": 10.0,
+              "fuentes": [
+                "s1"
+              ]
+            }
+          ]
+        },
+        "confidence": 0.507,
+        "prioridad": "media",
+        "prioridadBase": "media",
+        "fortalezas": [
+          "Buena reputación online",
+          "Negocio formal y establecido"
+        ],
+        "oportunidades": [
+          "No tiene sitio web propio (solo redes)",
+          "Sin presencia en Instagram"
+        ]
+      }
+    },
+    {
+      "caseId": "golden_09",
+      "hoy": "2026-07-27",
+      "senales": {
+        "op_sin_web": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "op_web_lenta": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_seo_pobre": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_blog": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_no_mobile": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_seolocal": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_ctas": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_forms": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_reels": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_ig": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "op_baja_frec": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_inactivo": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_cta_bio": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_link_bio": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_casos": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_no_responde": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "fit_reputacion": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_volumen": {
+          "valor": "no",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_volumen_alto": {
+          "valor": "no",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_madurez_web": {
+          "valor": "no",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_presencia_social": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_actividad": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "fit_formal": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        }
+      },
+      "esperado": {
+        "opportunity": {
+          "total": 100.0,
+          "coverage": 0.208,
+          "resumen": "2/16 criterios con datos",
+          "criterios": [
+            {
+              "id": "op_sin_web",
+              "valor": "si",
+              "puntos": 18.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "op_web_lenta",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_seo_pobre",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_blog",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_no_mobile",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_seolocal",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_ctas",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_forms",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_reels",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_ig",
+              "valor": "si",
+              "puntos": 8.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "op_baja_frec",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_inactivo",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_cta_bio",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_link_bio",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_casos",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_no_responde",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            }
+          ]
+        },
+        "fit": {
+          "total": 43.2,
+          "coverage": 0.88,
+          "resumen": "6/7 criterios con datos",
+          "criterios": [
+            {
+              "id": "fit_reputacion",
+              "valor": "si",
+              "puntos": 18.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_volumen",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_volumen_alto",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_madurez_web",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_presencia_social",
+              "valor": "si",
+              "puntos": 10.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_actividad",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "fit_formal",
+              "valor": "si",
+              "puntos": 10.0,
+              "fuentes": [
+                "s1"
+              ]
+            }
+          ]
+        },
+        "confidence": 0.507,
+        "prioridad": "media",
+        "prioridadBase": "media",
+        "fortalezas": [
+          "Buena reputación online",
+          "Presencia en redes sociales",
+          "Negocio formal y establecido"
+        ],
+        "oportunidades": [
+          "No tiene sitio web propio (solo redes)",
+          "Sin presencia en Instagram"
+        ]
+      }
+    },
+    {
+      "caseId": "golden_10",
+      "hoy": "2026-07-27",
+      "senales": {
+        "op_sin_web": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "op_web_lenta": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_seo_pobre": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_blog": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_no_mobile": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_seolocal": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_ctas": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_forms": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_reels": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_ig": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "op_baja_frec": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_inactivo": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_cta_bio": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_link_bio": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_sin_casos": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "op_no_responde": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "fit_reputacion": {
+          "valor": "si",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_volumen": {
+          "valor": "no",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_volumen_alto": {
+          "valor": "no",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_madurez_web": {
+          "valor": "no",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_presencia_social": {
+          "valor": "no",
+          "fuentes": [
+            "s1"
+          ]
+        },
+        "fit_actividad": {
+          "valor": "sin_datos",
+          "fuentes": []
+        },
+        "fit_formal": {
+          "valor": "sin_datos",
+          "fuentes": []
+        }
+      },
+      "esperado": {
+        "opportunity": {
+          "total": 100.0,
+          "coverage": 0.208,
+          "resumen": "2/16 criterios con datos",
+          "criterios": [
+            {
+              "id": "op_sin_web",
+              "valor": "si",
+              "puntos": 18.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "op_web_lenta",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_seo_pobre",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_blog",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_no_mobile",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_seolocal",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_ctas",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_forms",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_reels",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_ig",
+              "valor": "si",
+              "puntos": 8.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "op_baja_frec",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_inactivo",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_cta_bio",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_link_bio",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_sin_casos",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "op_no_responde",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            }
+          ]
+        },
+        "fit": {
+          "total": 23.1,
+          "coverage": 0.78,
+          "resumen": "5/7 criterios con datos",
+          "criterios": [
+            {
+              "id": "fit_reputacion",
+              "valor": "si",
+              "puntos": 18.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_volumen",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_volumen_alto",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_madurez_web",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_presencia_social",
+              "valor": "no",
+              "puntos": 0.0,
+              "fuentes": [
+                "s1"
+              ]
+            },
+            {
+              "id": "fit_actividad",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            },
+            {
+              "id": "fit_formal",
+              "valor": "sin_datos",
+              "puntos": 0.0,
+              "fuentes": []
+            }
+          ]
+        },
+        "confidence": 0.462,
+        "prioridad": "media",
+        "prioridadBase": "media",
+        "fortalezas": [
+          "Buena reputación online"
+        ],
+        "oportunidades": [
+          "No tiene sitio web propio (solo redes)",
+          "Sin presencia en Instagram"
+        ]
+      }
+    }
+  ]
+}

@@ -56,6 +56,118 @@ describe("prioritizeProspects", () => {
   });
 });
 
+describe("prioritizeProspects con contexto (Prospect Engine, Fase 3)", () => {
+  // Casos con bandas distintas: A calificado completo (alta), B auto-only en
+  // zona con demanda (media), E descartable con confianza total (baja),
+  // X sin ninguna señal conocida ("" → último).
+  const engineProspects = [
+    { id: "pX", businessName: "Sin datos", zone: "Nowhere" },
+    {
+      id: "pE", businessName: "Chico frío", zone: "Boulogne", source: "manual",
+      contactName: "Susana", phone: "11-5", lastContactAt: ago(30),
+      calificacion: { vendeCategoria: "si", proveedorEstable: "si", competenciaVisible: "si",
+                      tamano: "chico", movimiento: "no", actualizadoAt: ago(8) },
+    },
+    {
+      id: "pA", businessName: "Estrella", zone: "Villa Adelina", source: "referido",
+      contactName: "Marta", phone: "11-1", pipelineStage: "contactado", lastContactAt: ago(2),
+      calificacion: { vendeCategoria: "no", proveedorEstable: "no", competenciaVisible: "no",
+                      tamano: "grande", movimiento: "si", actualizadoAt: ago(2) },
+    },
+    {
+      id: "pB", businessName: "Maxi Munro", zone: "Munro", source: "mapa",
+      contactName: "", phone: "11-2", pipelineStage: "visitado", lastContactAt: ago(4),
+    },
+    { id: "pConv", zone: "Munro", convertedClientId: "c9" },
+  ];
+  const contexto = {
+    visits: [
+      { id: "v1", targetId: "pA", date: ago(2), outcome: "interesado" },
+      { id: "v2", targetId: "pB", date: ago(4), outcome: "volver" },
+      { id: "v3", targetId: "pE", date: ago(30), outcome: "no_interesado" },
+    ],
+    clients: [{ id: "c1", type: "mayorista", zone: "Munro" }],
+    sales: [{ id: "s1", saleType: "mayorista", clientId: "c1", items: [{ productId: "pr1", qty: 10 }] }],
+    products: [{ id: "pr1", brand: "Elfbar", model: "BC5000", flavor: "Mint" }],
+  };
+
+  it("ordena por valor comercial (banda → opp → fit → conf), no por recencia", () => {
+    const r = prioritizeProspects(engineProspects, NOW, contexto);
+    // pX (pelado, zona virgen) mide señales AUTO reales con contexto completo:
+    // nunca_visitado + zona_sin_mayorista disparan → opp 66.7, banda media —
+    // y dentro de media le gana a pB (45.8). Observación de calibración
+    // registrada; la rúbrica está congelada por decisión.
+    expect(r.map(x => x.prospect.id)).toStrictEqual(["pA", "pX", "pB", "pE"]);
+    expect(r[0].scoreResult.prioridad).toBe("alta");
+    expect(r[1].scoreResult.prioridad).toBe("media");
+    // pE fue el contacto más viejo (30d): la recencia ya no manda
+    expect(r[3].scoreResult.prioridad).toBe("baja");
+  });
+
+  it("sin ninguna señal conocida (contexto {} y ficha vacía): prioridad '' y va último", () => {
+    const r = prioritizeProspects(
+      [{ id: "pVacio", zone: "Z" }, engineProspects.find(p => p.id === "pA")], NOW, {});
+    const x = r.find(i => i.prospect.id === "pVacio");
+    expect(x.scoreResult.prioridad).toBe("");
+    expect(x.reason).toBe("Sin señales todavía — visitar y calificar");
+    expect(r[r.length - 1].prospect.id).toBe("pVacio");
+  });
+
+  it("rankKey es un escalar monótono con el orden (clave técnica, no comercial)", () => {
+    const r = prioritizeProspects(engineProspects, NOW, contexto);
+    for (let i = 1; i < r.length; i++) expect(r[i - 1].rankKey).toBeGreaterThanOrEqual(r[i].rankKey);
+  });
+
+  it("la razón es el gap más fuerte confirmado; con fit alto y sin gaps lo dice", () => {
+    const r = prioritizeProspects(engineProspects, NOW, contexto);
+    expect(r[0].reason).toBe("No tiene proveedor fijo de la categoría — entrada directa");
+    // pD: todo en contra (ya vende, ya tiene proveedor, zona cubierta sin
+    // demanda propia, visitado sin respuesta) pero gran fit ⇒ cero disparos.
+    const sinGaps = prioritizeProspects([{
+      id: "pD", zone: "Florida", source: "mapa", contactName: "Raúl", phone: "11-4",
+      calificacion: { vendeCategoria: "si", proveedorEstable: "si", competenciaVisible: "si",
+                      tamano: "grande", movimiento: "si", actualizadoAt: ago(1) },
+    }], NOW, {
+      ...contexto,
+      clients: [...contexto.clients, { id: "c2", type: "mayorista", zone: "Florida" }],
+      visits: [{ id: "v9", targetId: "pD", date: ago(1), outcome: "sin_respuesta" }],
+    });
+    expect(sinGaps[0].scoreResult.oportunidades).toStrictEqual([]);
+    expect(sinGaps[0].reason).toMatch(/^Sin gaps confirmados/);
+  });
+
+  it("shapes por camino: motor usa rankKey+scoreResult; legacy conserva score histórico", () => {
+    const conMotor = prioritizeProspects(engineProspects, NOW, contexto)[0];
+    expect(Object.keys(conMotor).sort())
+      .toStrictEqual(["daysSinceContact", "prospect", "rankKey", "reason", "scoreResult", "stage"]);
+    const legacy = prioritizeProspects(prospects, NOW)[0];
+    expect(Object.keys(legacy).sort())
+      .toStrictEqual(["daysSinceContact", "prospect", "reason", "score", "stage"]);
+  });
+
+  it("excluye convertidos/borrados también en el camino motor", () => {
+    const ids = prioritizeProspects(engineProspects, NOW, contexto).map(x => x.prospect.id);
+    expect(ids).not.toContain("pConv");
+  });
+
+  it("determinista: mismo input ⇒ mismo ranking, independiente del reloj", () => {
+    const r1 = prioritizeProspects(engineProspects, NOW, contexto);
+    const r2 = prioritizeProspects(engineProspects, NOW + 999, contexto);
+    expect(r1.map(x => [x.prospect.id, x.rankKey])).toStrictEqual(r2.map(x => [x.prospect.id, x.rankKey]));
+  });
+
+  it("contexto {} es motor (no legacy) con señales auto en sin_datos honesto", () => {
+    const r = prioritizeProspects(engineProspects, NOW, {});
+    expect(r.every(x => x.scoreResult != null)).toBe(true);
+    // los que dependen de contexto quedan con confianza baja (solo ficha)...
+    const pB = r.find(x => x.prospect.id === "pB");
+    expect(pB.scoreResult.confidence).toBeLessThan(0.35);
+    // ...pero la calificación de visita ya cargada sigue contando (pA)
+    const pA = r.find(x => x.prospect.id === "pA");
+    expect(pA.scoreResult.confidence).toBeGreaterThan(0.5);
+  });
+});
+
 describe("zonesCoverage + zonesWithoutCoverage", () => {
   it("agrupa activos y prospectos por zona", () => {
     const z = zonesCoverage({ clients, prospects });
