@@ -1,0 +1,2545 @@
+{
+  "_meta": {
+    "corrida": {
+      "proveedor": "gosom v1.17.2",
+      "termino": "kiosco",
+      "tope": 30,
+      "ubicacion": "Palermo, CABA, Argentina",
+      "via": "google_maps"
+    },
+    "generado": "2026-07-30",
+    "nota": "Se regenera SOLO en Atlas (este script). Copia byte-identica en imports-zona-norte/src/lib/discovery/."
+  },
+  "calidad": {
+    "categorias": [
+      "Comercio",
+      "Heladería",
+      "Kiosco",
+      "Quiosco",
+      "Tienda de golosinas"
+    ],
+    "con_direccion_pct": 100,
+    "con_place_id_pct": 100,
+    "con_rating_pct": 100,
+    "con_telefono_pct": 45,
+    "con_web_pct": 45,
+    "horarios": {
+      "no": 0,
+      "si": 20,
+      "sin_datos": 0
+    },
+    "raws": 20
+  },
+  "identidad": [
+    {
+      "claves": [
+        "nd:kiosco-emaupesa|fitz-roy-1707-c1414-chy-cdad-autonoma-de-buenos-aires"
+      ],
+      "nombre": "Kiosco Emaupesa",
+      "red": "",
+      "slugNombre": "kiosco-emaupesa",
+      "synthetic": false
+    },
+    {
+      "claves": [
+        "nd:maxikiosco-mi-reina|el-salvador-4813-c1414-cdad-autonoma-de-buenos-aires"
+      ],
+      "nombre": "Maxikiosco Mí Reina",
+      "red": "",
+      "slugNombre": "maxikiosco-mi-reina",
+      "synthetic": false
+    },
+    {
+      "claves": [
+        "nd:the-best|costa-rica-entre-jorge-luis-borges-y-buenos-aires",
+        "url:https://i2v75.app.link/thebest"
+      ],
+      "nombre": "The Best",
+      "red": "",
+      "slugNombre": "the-best",
+      "synthetic": false
+    },
+    {
+      "claves": [
+        "nd:kiosko-24-hrs|baez-506-c1426brl-cdad-autonoma-de-buenos-aires"
+      ],
+      "nombre": "Kiosko 24 hrs",
+      "red": "",
+      "slugNombre": "kiosko-24-hrs",
+      "synthetic": false
+    },
+    {
+      "claves": [
+        "nd:365-kioscos-argentinos|charcas-4301-c1425bnp-cdad-autonoma-de-buenos-aires",
+        "url:https://instagram.com/365kioscosargentinos"
+      ],
+      "nombre": "365 Kioscos Argentinos",
+      "red": "instagram",
+      "slugNombre": "365-kioscos-argentinos",
+      "synthetic": false
+    },
+    {
+      "claves": [
+        "nd:el-jevi-kioscos|av-raul-scalabrini-ortiz-1602-c1414doq-cdad-autonoma-de-buenos-aires",
+        "url:http://www.facebook.com/eljevikioscos"
+      ],
+      "nombre": "EL JEVI kioscos",
+      "red": "facebook",
+      "slugNombre": "el-jevi-kioscos",
+      "synthetic": false
+    },
+    {
+      "claves": [
+        "nd:pit-stop|humboldt-2322-c1414-cdad-autonoma-de-buenos-aires"
+      ],
+      "nombre": "Pit stop",
+      "red": "",
+      "slugNombre": "pit-stop",
+      "synthetic": false
+    },
+    {
+      "claves": [
+        "nd:kiosco-de-helados-el-preferido|guatemala-4785-c1425bum-c1425bum-cdad-autonoma-de-buenos-aires",
+        "url:https://kiosco.elpreferidopalermo.com"
+      ],
+      "nombre": "Kiosco de helados El Preferido",
+      "red": "",
+      "slugNombre": "kiosco-de-helados-el-preferido",
+      "synthetic": false
+    },
+    {
+      "claves": [
+        "nd:lucky-13-kiosko|soler-6002-c1425byp-cdad-autonoma-de-buenos-aires"
+      ],
+      "nombre": "Lucky 13 Kiosko",
+      "red": "",
+      "slugNombre": "lucky-13-kiosko",
+      "synthetic": false
+    },
+    {
+      "claves": [
+        "nd:el-jevi-kioscos|jose-a-cabrera-3501-c1186-cdad-autonoma-de-buenos-aires",
+        "url:http://www.facebook.com/eljevikioscos"
+      ],
+      "nombre": "El Jevi Kioscos",
+      "red": "facebook",
+      "slugNombre": "el-jevi-kioscos",
+      "synthetic": false
+    },
+    {
+      "claves": [
+        "nd:kiosco-oro|fol-fray-justo-sta-maria-de-oro-2518-c1425-c1425fol-cdad-autonoma-de-buenos-aires",
+        "url:https://www.instagram.com/kiosco_oro?igsh=mtrwzhd5chhlbwnmzg%3d%3d&utm_source=qr"
+      ],
+      "nombre": "KIOSCO ORO",
+      "red": "instagram",
+      "slugNombre": "kiosco-oro",
+      "synthetic": false
+    },
+    {
+      "claves": [
+        "nd:365-kioscos-argentinos|fray-justo-sta-maria-de-oro-2700-c1425-cdad-autonoma-de-buenos-aires"
+      ],
+      "nombre": "365 Kioscos Argentinos",
+      "red": "",
+      "slugNombre": "365-kioscos-argentinos",
+      "synthetic": false
+    },
+    {
+      "claves": [
+        "nd:el-jevi-kioscos|raul-scalabrini-ortiz-3103-c1425dbm-cdad-autonoma-de-buenos-aires",
+        "url:http://www.facebook.com/eljevikioscos"
+      ],
+      "nombre": "El Jevi Kioscos",
+      "red": "facebook",
+      "slugNombre": "el-jevi-kioscos",
+      "synthetic": false
+    },
+    {
+      "claves": [
+        "nd:kioscoco|angel-justiniano-carranza-1997-c1414-cdad-autonoma-de-buenos-aires"
+      ],
+      "nombre": "KiosCoco",
+      "red": "",
+      "slugNombre": "kioscoco",
+      "synthetic": false
+    },
+    {
+      "claves": [
+        "nd:el-jevi-kioscos|charcas-3405-c1405-cdad-autonoma-de-buenos-aires",
+        "url:https://www.facebook.com/eljevikioscos"
+      ],
+      "nombre": "El Jevi kioscos",
+      "red": "facebook",
+      "slugNombre": "el-jevi-kioscos",
+      "synthetic": false
+    },
+    {
+      "claves": [
+        "nd:365-kioscos-argentinos|beruti-3582-local-2699-c1425-cdad-autonoma-de-buenos-aires",
+        "url:https://instagram.com/365kioscosargentinos"
+      ],
+      "nombre": "365 Kioscos Argentinos",
+      "red": "instagram",
+      "slugNombre": "365-kioscos-argentinos",
+      "synthetic": false
+    },
+    {
+      "claves": [
+        "nd:lucky13-kiosco-almacen-bar|cnel-niceto-vega-5656-c1414-c1414bff-cdad-autonoma-de-buenos-aires"
+      ],
+      "nombre": "Lucky13' kiosco almacén Bar.",
+      "red": "",
+      "slugNombre": "lucky13-kiosco-almacen-bar",
+      "synthetic": false
+    },
+    {
+      "claves": [
+        "nd:maxinet|av-sta-fe-4572-c1425-bhu-cdad-autonoma-de-buenos-aires"
+      ],
+      "nombre": "Maxinet",
+      "red": "",
+      "slugNombre": "maxinet",
+      "synthetic": false
+    },
+    {
+      "claves": [
+        "nd:el-kiosco-rosa|raul-scalabrini-ortiz-2534-c1425-cdad-autonoma-de-buenos-aires"
+      ],
+      "nombre": "El Kiosco Rosa",
+      "red": "",
+      "slugNombre": "el-kiosco-rosa",
+      "synthetic": false
+    },
+    {
+      "claves": [
+        "nd:kiosco-la-isla|jose-a-cabrera-c1414-cdad-autonoma-de-buenos-aires"
+      ],
+      "nombre": "Kiosco La Isla",
+      "red": "",
+      "slugNombre": "kiosco-la-isla",
+      "synthetic": false
+    },
+    {
+      "claves": [
+        "nd:kiosco-siete-dias|calle-falsa-123-caba",
+        "url:https://kioscosiete.com.ar"
+      ],
+      "nombre": "Kiosco Siete Días",
+      "red": "",
+      "slugNombre": "kiosco-siete-dias",
+      "synthetic": true
+    },
+    {
+      "claves": [
+        "nd:kiosco-cero|av-siempreviva-742"
+      ],
+      "nombre": "Kiosco Cero",
+      "red": "",
+      "slugNombre": "kiosco-cero",
+      "synthetic": true
+    },
+    {
+      "claves": [
+        "nd:kiosco-typo|borges-2100"
+      ],
+      "nombre": "Kiosco Typo",
+      "red": "",
+      "slugNombre": "kiosco-typo",
+      "synthetic": true
+    },
+    {
+      "claves": [
+        "nd:kiosco-insta|gorriti-5500",
+        "url:https://www.instagram.com/kioscoinsta"
+      ],
+      "nombre": "Kiosco Insta",
+      "red": "instagram",
+      "slugNombre": "kiosco-insta",
+      "synthetic": true
+    },
+    {
+      "claves": [
+        "nd:kiosco-pelado|thames-1800",
+        "url:facebook.com/kioscopelado"
+      ],
+      "nombre": "Kiosco Pelado",
+      "red": "",
+      "slugNombre": "kiosco-pelado",
+      "synthetic": true
+    },
+    {
+      "claves": [],
+      "nombre": "Kiosco Fantasma",
+      "red": "",
+      "slugNombre": "kiosco-fantasma",
+      "synthetic": true
+    }
+  ],
+  "parse": [
+    {
+      "in": {
+        "_descartados_p6": [
+          "about",
+          "categories",
+          "cid",
+          "complete_address",
+          "credit_cards_accepted",
+          "data_id",
+          "description",
+          "images",
+          "input_id",
+          "menu",
+          "order_online",
+          "owner",
+          "plus_code",
+          "popular_times",
+          "price_range",
+          "reservations",
+          "reviews_link",
+          "reviews_per_rating",
+          "status",
+          "street_view_url",
+          "thumbnail",
+          "timezone",
+          "user_reviews",
+          "user_reviews_extended"
+        ],
+        "address": "Fitz Roy 1707, C1414 CHY, Cdad. Autónoma de Buenos Aires",
+        "category": "Kiosco",
+        "emails": null,
+        "latitude": -34.5841099,
+        "link": "https://www.google.com/maps/place/Kiosco+Emaupesa/data=!4m7!3m6!1s0x95bcb58d93971aa3:0x97f851faf600c9c7!8m2!3d-34.5841099!4d-58.4360963!16s%2Fg%2F11dfx7p869!19sChIJoxqXk421vJURx8kA9vpR-Jc?authuser=0&hl=es&rclk=1",
+        "longitude": -58.436096299999996,
+        "longtitude": -58.436096299999996,
+        "open_hours": {
+          "domingo": [
+            "Abierto las 24 horas"
+          ],
+          "jueves": [
+            "Abierto las 24 horas"
+          ],
+          "lunes": [
+            "Abierto las 24 horas"
+          ],
+          "martes": [
+            "Abierto las 24 horas"
+          ],
+          "miércoles": [
+            "Abierto las 24 horas"
+          ],
+          "sábado": [
+            "Abierto las 24 horas"
+          ],
+          "viernes": [
+            "Abierto las 24 horas"
+          ]
+        },
+        "phone": "",
+        "place_id": "ChIJoxqXk421vJURx8kA9vpR-Jc",
+        "review_count": 20,
+        "review_rating": 2.6,
+        "title": "Kiosco Emaupesa",
+        "web_site": ""
+      },
+      "out": {
+        "categoria": "Kiosco",
+        "direccion": "Fitz Roy 1707, C1414 CHY, Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJoxqXk421vJURx8kA9vpR-Jc",
+        "latitud": -34.5841099,
+        "longitud": -58.436096299999996,
+        "nombre": "Kiosco Emaupesa",
+        "rating": 2.6,
+        "reviews_count": 20,
+        "telefono": "",
+        "url_origen": "https://www.google.com/maps/place/Kiosco+Emaupesa/data=!4m7!3m6!1s0x95bcb58d93971aa3:0x97f851faf600c9c7!8m2!3d-34.5841099!4d-58.4360963!16s%2Fg%2F11dfx7p869!19sChIJoxqXk421vJURx8kA9vpR-Jc?authuser=0&hl=es&rclk=1",
+        "web": ""
+      },
+      "synthetic": false
+    },
+    {
+      "in": {
+        "_descartados_p6": [
+          "about",
+          "categories",
+          "cid",
+          "complete_address",
+          "credit_cards_accepted",
+          "data_id",
+          "description",
+          "images",
+          "input_id",
+          "menu",
+          "order_online",
+          "owner",
+          "plus_code",
+          "popular_times",
+          "price_range",
+          "reservations",
+          "reviews_link",
+          "reviews_per_rating",
+          "status",
+          "street_view_url",
+          "thumbnail",
+          "timezone",
+          "user_reviews",
+          "user_reviews_extended"
+        ],
+        "address": "El Salvador 4813, C1414 Cdad. Autónoma de Buenos Aires",
+        "category": "Kiosco",
+        "emails": null,
+        "latitude": -34.5884946,
+        "link": "https://www.google.com/maps/place/Maxikiosco+M%C3%AD+Reina/data=!4m7!3m6!1s0x95bcb587d30db505:0xcceb3c8d4efe866b!8m2!3d-34.5884946!4d-58.4283035!16s%2Fg%2F11b6mpcc_4!19sChIJBbUN04e1vJURa4b-To0868w?authuser=0&hl=es&rclk=1",
+        "longitude": -58.4283035,
+        "longtitude": -58.4283035,
+        "open_hours": {
+          "domingo": [
+            "9 a. m.–2 a. m."
+          ],
+          "jueves": [
+            "8 a. m.–2 a. m."
+          ],
+          "lunes": [
+            "8 a. m.–2 a. m."
+          ],
+          "martes": [
+            "8 a. m.–2 a. m."
+          ],
+          "miércoles": [
+            "8 a. m.–2 a. m."
+          ],
+          "sábado": [
+            "9 a. m.–4 a. m."
+          ],
+          "viernes": [
+            "8 a. m.–4 a. m."
+          ]
+        },
+        "phone": "",
+        "place_id": "ChIJBbUN04e1vJURa4b-To0868w",
+        "review_count": 46,
+        "review_rating": 3.6,
+        "title": "Maxikiosco Mí Reina",
+        "web_site": ""
+      },
+      "out": {
+        "categoria": "Kiosco",
+        "direccion": "El Salvador 4813, C1414 Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJBbUN04e1vJURa4b-To0868w",
+        "latitud": -34.5884946,
+        "longitud": -58.4283035,
+        "nombre": "Maxikiosco Mí Reina",
+        "rating": 3.6,
+        "reviews_count": 46,
+        "telefono": "",
+        "url_origen": "https://www.google.com/maps/place/Maxikiosco+M%C3%AD+Reina/data=!4m7!3m6!1s0x95bcb587d30db505:0xcceb3c8d4efe866b!8m2!3d-34.5884946!4d-58.4283035!16s%2Fg%2F11b6mpcc_4!19sChIJBbUN04e1vJURa4b-To0868w?authuser=0&hl=es&rclk=1",
+        "web": ""
+      },
+      "synthetic": false
+    },
+    {
+      "in": {
+        "_descartados_p6": [
+          "about",
+          "categories",
+          "cid",
+          "complete_address",
+          "credit_cards_accepted",
+          "data_id",
+          "description",
+          "images",
+          "input_id",
+          "menu",
+          "order_online",
+          "owner",
+          "plus_code",
+          "popular_times",
+          "price_range",
+          "reservations",
+          "reviews_link",
+          "reviews_per_rating",
+          "status",
+          "street_view_url",
+          "thumbnail",
+          "timezone",
+          "user_reviews",
+          "user_reviews_extended"
+        ],
+        "address": "Costa Rica entre, Jorge Luis Borges y, Buenos Aires",
+        "category": "Kiosco",
+        "emails": null,
+        "latitude": -34.5875066,
+        "link": "https://www.google.com/maps/place/The+Best/data=!4m7!3m6!1s0x95bcb5c1ec8d2a49:0x53855d8023d65f9d!8m2!3d-34.5875066!4d-58.4281538!16s%2Fg%2F11pf988s3q!19sChIJSSqN7MG1vJURnV_WI4BdhVM?authuser=0&hl=es&rclk=1",
+        "longitude": -58.4281538,
+        "longtitude": -58.4281538,
+        "open_hours": {
+          "domingo": [
+            "Abierto las 24 horas"
+          ],
+          "jueves": [
+            "Abierto las 24 horas"
+          ],
+          "lunes": [
+            "Abierto las 24 horas"
+          ],
+          "martes": [
+            "Abierto las 24 horas"
+          ],
+          "miércoles": [
+            "Abierto las 24 horas"
+          ],
+          "sábado": [
+            "Abierto las 24 horas"
+          ],
+          "viernes": [
+            "Abierto las 24 horas"
+          ]
+        },
+        "phone": "",
+        "place_id": "ChIJSSqN7MG1vJURnV_WI4BdhVM",
+        "review_count": 32,
+        "review_rating": 1.8,
+        "title": "The Best",
+        "web_site": "https://i2v75.app.link/thebest"
+      },
+      "out": {
+        "categoria": "Kiosco",
+        "direccion": "Costa Rica entre, Jorge Luis Borges y, Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJSSqN7MG1vJURnV_WI4BdhVM",
+        "latitud": -34.5875066,
+        "longitud": -58.4281538,
+        "nombre": "The Best",
+        "rating": 1.8,
+        "reviews_count": 32,
+        "telefono": "",
+        "url_origen": "https://www.google.com/maps/place/The+Best/data=!4m7!3m6!1s0x95bcb5c1ec8d2a49:0x53855d8023d65f9d!8m2!3d-34.5875066!4d-58.4281538!16s%2Fg%2F11pf988s3q!19sChIJSSqN7MG1vJURnV_WI4BdhVM?authuser=0&hl=es&rclk=1",
+        "web": "https://i2v75.app.link/thebest"
+      },
+      "synthetic": false
+    },
+    {
+      "in": {
+        "_descartados_p6": [
+          "about",
+          "categories",
+          "cid",
+          "complete_address",
+          "credit_cards_accepted",
+          "data_id",
+          "description",
+          "images",
+          "input_id",
+          "menu",
+          "order_online",
+          "owner",
+          "plus_code",
+          "popular_times",
+          "price_range",
+          "reservations",
+          "reviews_link",
+          "reviews_per_rating",
+          "status",
+          "street_view_url",
+          "thumbnail",
+          "timezone",
+          "user_reviews",
+          "user_reviews_extended"
+        ],
+        "address": "Báez 506, C1426BRL Cdad. Autónoma de Buenos Aires",
+        "category": "Tienda de golosinas",
+        "emails": null,
+        "latitude": -34.5708836,
+        "link": "https://www.google.com/maps/place/Kiosko+24+hrs/data=!4m7!3m6!1s0x95bcb5bdc0935c81:0x874b68d109683ac9!8m2!3d-34.5708836!4d-58.4333774!16s%2Fg%2F11c0vyywxz!19sChIJgVyTwL21vJURyTpoCdFoS4c?authuser=0&hl=es&rclk=1",
+        "longitude": -58.4333774,
+        "longtitude": -58.4333774,
+        "open_hours": {
+          "domingo": [
+            "Abierto las 24 horas"
+          ],
+          "jueves": [
+            "Abierto las 24 horas"
+          ],
+          "lunes": [
+            "Abierto las 24 horas"
+          ],
+          "martes": [
+            "Abierto las 24 horas"
+          ],
+          "miércoles": [
+            "Abierto las 24 horas"
+          ],
+          "sábado": [
+            "Abierto las 24 horas"
+          ],
+          "viernes": [
+            "Abierto las 24 horas"
+          ]
+        },
+        "phone": "",
+        "place_id": "ChIJgVyTwL21vJURyTpoCdFoS4c",
+        "review_count": 69,
+        "review_rating": 3.9,
+        "title": "Kiosko 24 hrs",
+        "web_site": ""
+      },
+      "out": {
+        "categoria": "Tienda de golosinas",
+        "direccion": "Báez 506, C1426BRL Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJgVyTwL21vJURyTpoCdFoS4c",
+        "latitud": -34.5708836,
+        "longitud": -58.4333774,
+        "nombre": "Kiosko 24 hrs",
+        "rating": 3.9,
+        "reviews_count": 69,
+        "telefono": "",
+        "url_origen": "https://www.google.com/maps/place/Kiosko+24+hrs/data=!4m7!3m6!1s0x95bcb5bdc0935c81:0x874b68d109683ac9!8m2!3d-34.5708836!4d-58.4333774!16s%2Fg%2F11c0vyywxz!19sChIJgVyTwL21vJURyTpoCdFoS4c?authuser=0&hl=es&rclk=1",
+        "web": ""
+      },
+      "synthetic": false
+    },
+    {
+      "in": {
+        "_descartados_p6": [
+          "about",
+          "categories",
+          "cid",
+          "complete_address",
+          "credit_cards_accepted",
+          "data_id",
+          "description",
+          "images",
+          "input_id",
+          "menu",
+          "order_online",
+          "owner",
+          "plus_code",
+          "popular_times",
+          "price_range",
+          "reservations",
+          "reviews_link",
+          "reviews_per_rating",
+          "status",
+          "street_view_url",
+          "thumbnail",
+          "timezone",
+          "user_reviews",
+          "user_reviews_extended"
+        ],
+        "address": "Charcas 4301, C1425BNP Cdad. Autónoma de Buenos Aires",
+        "category": "Quiosco",
+        "emails": null,
+        "latitude": -34.583528699999995,
+        "link": "https://www.google.com/maps/place/365+Kioscos+Argentinos/data=!4m7!3m6!1s0x95bcb583f6230093:0x6fdc91fb19995c8a!8m2!3d-34.5835287!4d-58.4231018!16s%2Fg%2F11b6ynz9xt!19sChIJkwAj9oO1vJURilyZGfuR3G8?authuser=0&hl=es&rclk=1",
+        "longitude": -58.4231018,
+        "longtitude": -58.4231018,
+        "open_hours": {
+          "domingo": [
+            "Abierto las 24 horas"
+          ],
+          "jueves": [
+            "Abierto las 24 horas"
+          ],
+          "lunes": [
+            "Abierto las 24 horas"
+          ],
+          "martes": [
+            "Abierto las 24 horas"
+          ],
+          "miércoles": [
+            "Abierto las 24 horas"
+          ],
+          "sábado": [
+            "Abierto las 24 horas"
+          ],
+          "viernes": [
+            "Abierto las 24 horas"
+          ]
+        },
+        "phone": "",
+        "place_id": "ChIJkwAj9oO1vJURilyZGfuR3G8",
+        "review_count": 149,
+        "review_rating": 4,
+        "title": "365 Kioscos Argentinos",
+        "web_site": "https://instagram.com/365kioscosargentinos"
+      },
+      "out": {
+        "categoria": "Quiosco",
+        "direccion": "Charcas 4301, C1425BNP Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJkwAj9oO1vJURilyZGfuR3G8",
+        "latitud": -34.583528699999995,
+        "longitud": -58.4231018,
+        "nombre": "365 Kioscos Argentinos",
+        "rating": 4.0,
+        "reviews_count": 149,
+        "telefono": "",
+        "url_origen": "https://www.google.com/maps/place/365+Kioscos+Argentinos/data=!4m7!3m6!1s0x95bcb583f6230093:0x6fdc91fb19995c8a!8m2!3d-34.5835287!4d-58.4231018!16s%2Fg%2F11b6ynz9xt!19sChIJkwAj9oO1vJURilyZGfuR3G8?authuser=0&hl=es&rclk=1",
+        "web": "https://instagram.com/365kioscosargentinos"
+      },
+      "synthetic": false
+    },
+    {
+      "in": {
+        "_descartados_p6": [
+          "about",
+          "categories",
+          "cid",
+          "complete_address",
+          "credit_cards_accepted",
+          "data_id",
+          "description",
+          "images",
+          "input_id",
+          "menu",
+          "order_online",
+          "owner",
+          "plus_code",
+          "popular_times",
+          "price_range",
+          "reservations",
+          "reviews_link",
+          "reviews_per_rating",
+          "status",
+          "street_view_url",
+          "thumbnail",
+          "timezone",
+          "user_reviews",
+          "user_reviews_extended"
+        ],
+        "address": "Av. Raúl Scalabrini Ortiz 1602, C1414DOQ Cdad. Autónoma de Buenos Aires",
+        "category": "Quiosco",
+        "emails": null,
+        "latitude": -34.590722299999996,
+        "link": "https://www.google.com/maps/place/EL+JEVI+kioscos/data=!4m7!3m6!1s0x95bcca7891a05fa9:0x9999f2a5a87d9bd7!8m2!3d-34.5907223!4d-58.4249637!16s%2Fg%2F11bxf02gbs!19sChIJqV-gkXjKvJUR15t9qKXymZk?authuser=0&hl=es&rclk=1",
+        "longitude": -58.4249637,
+        "longtitude": -58.4249637,
+        "open_hours": {
+          "domingo": [
+            "Abierto las 24 horas"
+          ],
+          "jueves": [
+            "Abierto las 24 horas"
+          ],
+          "lunes": [
+            "Abierto las 24 horas"
+          ],
+          "martes": [
+            "Abierto las 24 horas"
+          ],
+          "miércoles": [
+            "Abierto las 24 horas"
+          ],
+          "sábado": [
+            "Abierto las 24 horas"
+          ],
+          "viernes": [
+            "Abierto las 24 horas"
+          ]
+        },
+        "phone": "011 4831-4286",
+        "place_id": "ChIJqV-gkXjKvJUR15t9qKXymZk",
+        "review_count": 37,
+        "review_rating": 3.4,
+        "title": "EL JEVI kioscos",
+        "web_site": "http://www.facebook.com/ElJeviKioscos"
+      },
+      "out": {
+        "categoria": "Quiosco",
+        "direccion": "Av. Raúl Scalabrini Ortiz 1602, C1414DOQ Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJqV-gkXjKvJUR15t9qKXymZk",
+        "latitud": -34.590722299999996,
+        "longitud": -58.4249637,
+        "nombre": "EL JEVI kioscos",
+        "rating": 3.4,
+        "reviews_count": 37,
+        "telefono": "011 4831-4286",
+        "url_origen": "https://www.google.com/maps/place/EL+JEVI+kioscos/data=!4m7!3m6!1s0x95bcca7891a05fa9:0x9999f2a5a87d9bd7!8m2!3d-34.5907223!4d-58.4249637!16s%2Fg%2F11bxf02gbs!19sChIJqV-gkXjKvJUR15t9qKXymZk?authuser=0&hl=es&rclk=1",
+        "web": "http://www.facebook.com/ElJeviKioscos"
+      },
+      "synthetic": false
+    },
+    {
+      "in": {
+        "_descartados_p6": [
+          "about",
+          "categories",
+          "cid",
+          "complete_address",
+          "credit_cards_accepted",
+          "data_id",
+          "description",
+          "images",
+          "input_id",
+          "menu",
+          "order_online",
+          "owner",
+          "plus_code",
+          "popular_times",
+          "price_range",
+          "reservations",
+          "reviews_link",
+          "reviews_per_rating",
+          "status",
+          "street_view_url",
+          "thumbnail",
+          "timezone",
+          "user_reviews",
+          "user_reviews_extended"
+        ],
+        "address": "Humboldt 2322, C1414 Cdad. Autónoma de Buenos Aires",
+        "category": "Kiosco",
+        "emails": null,
+        "latitude": -34.5798645,
+        "link": "https://www.google.com/maps/place/Pit+stop/data=!4m7!3m6!1s0x95bcb5906c0f9b0d:0x293b19162e6f60fc!8m2!3d-34.5798645!4d-58.4298602!16s%2Fg%2F11f03nh6pf!19sChIJDZsPbJC1vJUR_GBvLhYZOyk?authuser=0&hl=es&rclk=1",
+        "longitude": -58.4298602,
+        "longtitude": -58.4298602,
+        "open_hours": {
+          "domingo": [
+            "9 a. m.–10 p. m."
+          ],
+          "jueves": [
+            "8 a. m.–11 p. m."
+          ],
+          "lunes": [
+            "8 a. m.–10 p. m."
+          ],
+          "martes": [
+            "8 a. m.–11 p. m."
+          ],
+          "miércoles": [
+            "8 a. m.–11 p. m."
+          ],
+          "sábado": [
+            "Abierto las 24 horas"
+          ],
+          "viernes": [
+            "8 a. m.–11 p. m."
+          ]
+        },
+        "phone": "011 7638-7352",
+        "place_id": "ChIJDZsPbJC1vJUR_GBvLhYZOyk",
+        "review_count": 18,
+        "review_rating": 4.9,
+        "title": "Pit stop",
+        "web_site": ""
+      },
+      "out": {
+        "categoria": "Kiosco",
+        "direccion": "Humboldt 2322, C1414 Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJDZsPbJC1vJUR_GBvLhYZOyk",
+        "latitud": -34.5798645,
+        "longitud": -58.4298602,
+        "nombre": "Pit stop",
+        "rating": 4.9,
+        "reviews_count": 18,
+        "telefono": "011 7638-7352",
+        "url_origen": "https://www.google.com/maps/place/Pit+stop/data=!4m7!3m6!1s0x95bcb5906c0f9b0d:0x293b19162e6f60fc!8m2!3d-34.5798645!4d-58.4298602!16s%2Fg%2F11f03nh6pf!19sChIJDZsPbJC1vJUR_GBvLhYZOyk?authuser=0&hl=es&rclk=1",
+        "web": ""
+      },
+      "synthetic": false
+    },
+    {
+      "in": {
+        "_descartados_p6": [
+          "about",
+          "categories",
+          "cid",
+          "complete_address",
+          "credit_cards_accepted",
+          "data_id",
+          "description",
+          "images",
+          "input_id",
+          "menu",
+          "order_online",
+          "owner",
+          "plus_code",
+          "popular_times",
+          "price_range",
+          "reservations",
+          "reviews_link",
+          "reviews_per_rating",
+          "status",
+          "street_view_url",
+          "thumbnail",
+          "timezone",
+          "user_reviews",
+          "user_reviews_extended"
+        ],
+        "address": "Guatemala 4785, C1425BUM C1425BUM, Cdad. Autónoma de Buenos Aires",
+        "category": "Heladería",
+        "emails": null,
+        "latitude": -34.5856373,
+        "link": "https://www.google.com/maps/place/Kiosco+de+helados+El+Preferido/data=!4m7!3m6!1s0x95bcb50000d4a42f:0xb24c9def81a372ee!8m2!3d-34.5856373!4d-58.4250395!16s%2Fg%2F11mrf88n0_!19sChIJL6TUAAC1vJUR7nKjge-dTLI?authuser=0&hl=es&rclk=1",
+        "longitude": -58.4250395,
+        "longtitude": -58.4250395,
+        "open_hours": {
+          "domingo": [
+            "12 p. m.–1 a. m."
+          ],
+          "jueves": [
+            "12 p. m.–1 a. m."
+          ],
+          "lunes": [
+            "12 p. m.–1 a. m."
+          ],
+          "martes": [
+            "12 p. m.–1 a. m."
+          ],
+          "miércoles": [
+            "12 p. m.–1 a. m."
+          ],
+          "sábado": [
+            "12 p. m.–1 a. m."
+          ],
+          "viernes": [
+            "12 p. m.–1 a. m."
+          ]
+        },
+        "phone": "011 15-2865-1231",
+        "place_id": "ChIJL6TUAAC1vJUR7nKjge-dTLI",
+        "review_count": 413,
+        "review_rating": 4.4,
+        "title": "Kiosco de helados El Preferido",
+        "web_site": "https://kiosco.elpreferidopalermo.com/"
+      },
+      "out": {
+        "categoria": "Heladería",
+        "direccion": "Guatemala 4785, C1425BUM C1425BUM, Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJL6TUAAC1vJUR7nKjge-dTLI",
+        "latitud": -34.5856373,
+        "longitud": -58.4250395,
+        "nombre": "Kiosco de helados El Preferido",
+        "rating": 4.4,
+        "reviews_count": 413,
+        "telefono": "011 15-2865-1231",
+        "url_origen": "https://www.google.com/maps/place/Kiosco+de+helados+El+Preferido/data=!4m7!3m6!1s0x95bcb50000d4a42f:0xb24c9def81a372ee!8m2!3d-34.5856373!4d-58.4250395!16s%2Fg%2F11mrf88n0_!19sChIJL6TUAAC1vJUR7nKjge-dTLI?authuser=0&hl=es&rclk=1",
+        "web": "https://kiosco.elpreferidopalermo.com/"
+      },
+      "synthetic": false
+    },
+    {
+      "in": {
+        "_descartados_p6": [
+          "about",
+          "categories",
+          "cid",
+          "complete_address",
+          "credit_cards_accepted",
+          "data_id",
+          "description",
+          "images",
+          "input_id",
+          "menu",
+          "order_online",
+          "owner",
+          "plus_code",
+          "popular_times",
+          "price_range",
+          "reservations",
+          "reviews_link",
+          "reviews_per_rating",
+          "status",
+          "street_view_url",
+          "thumbnail",
+          "timezone",
+          "user_reviews",
+          "user_reviews_extended"
+        ],
+        "address": "Soler 6002, C1425BYP Cdad. Autónoma de Buenos Aires",
+        "category": "Kiosco",
+        "emails": null,
+        "latitude": -34.577632,
+        "link": "https://www.google.com/maps/place/Lucky+13+Kiosko/data=!4m7!3m6!1s0x95bcb5ac1c153fb3:0xcbb7d8350885d3d0!8m2!3d-34.577632!4d-58.4368238!16s%2Fg%2F11j08bv_w6!19sChIJsz8VHKy1vJUR0NOFCDXYt8s?authuser=0&hl=es&rclk=1",
+        "longitude": -58.4368238,
+        "longtitude": -58.4368238,
+        "open_hours": {
+          "domingo": [
+            "Abierto las 24 horas"
+          ],
+          "jueves": [
+            "Abierto las 24 horas"
+          ],
+          "lunes": [
+            "Abierto las 24 horas"
+          ],
+          "martes": [
+            "Abierto las 24 horas"
+          ],
+          "miércoles": [
+            "Abierto las 24 horas"
+          ],
+          "sábado": [
+            "Abierto las 24 horas"
+          ],
+          "viernes": [
+            "Abierto las 24 horas"
+          ]
+        },
+        "phone": "",
+        "place_id": "ChIJsz8VHKy1vJUR0NOFCDXYt8s",
+        "review_count": 60,
+        "review_rating": 3.1,
+        "title": "Lucky 13 Kiosko",
+        "web_site": ""
+      },
+      "out": {
+        "categoria": "Kiosco",
+        "direccion": "Soler 6002, C1425BYP Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJsz8VHKy1vJUR0NOFCDXYt8s",
+        "latitud": -34.577632,
+        "longitud": -58.4368238,
+        "nombre": "Lucky 13 Kiosko",
+        "rating": 3.1,
+        "reviews_count": 60,
+        "telefono": "",
+        "url_origen": "https://www.google.com/maps/place/Lucky+13+Kiosko/data=!4m7!3m6!1s0x95bcb5ac1c153fb3:0xcbb7d8350885d3d0!8m2!3d-34.577632!4d-58.4368238!16s%2Fg%2F11j08bv_w6!19sChIJsz8VHKy1vJUR0NOFCDXYt8s?authuser=0&hl=es&rclk=1",
+        "web": ""
+      },
+      "synthetic": false
+    },
+    {
+      "in": {
+        "_descartados_p6": [
+          "about",
+          "categories",
+          "cid",
+          "complete_address",
+          "credit_cards_accepted",
+          "data_id",
+          "description",
+          "images",
+          "input_id",
+          "menu",
+          "order_online",
+          "owner",
+          "plus_code",
+          "popular_times",
+          "price_range",
+          "reservations",
+          "reviews_link",
+          "reviews_per_rating",
+          "status",
+          "street_view_url",
+          "thumbnail",
+          "timezone",
+          "user_reviews",
+          "user_reviews_extended"
+        ],
+        "address": "José A. Cabrera 3501, C1186 Cdad. Autónoma de Buenos Aires",
+        "category": "Quiosco",
+        "emails": null,
+        "latitude": -34.596627,
+        "link": "https://www.google.com/maps/place/El+Jevi+Kioscos/data=!4m7!3m6!1s0x95bcc890a375d321:0x18f7b6e4d443f44b!8m2!3d-34.596627!4d-58.4156172!16s%2Fg%2F11ckqn97xl!19sChIJIdN1o5DIvJURS_RD1OS29xg?authuser=0&hl=es&rclk=1",
+        "longitude": -58.4156172,
+        "longtitude": -58.4156172,
+        "open_hours": {
+          "domingo": [
+            "Abierto las 24 horas"
+          ],
+          "jueves": [
+            "Abierto las 24 horas"
+          ],
+          "lunes": [
+            "Abierto las 24 horas"
+          ],
+          "martes": [
+            "Abierto las 24 horas"
+          ],
+          "miércoles": [
+            "Abierto las 24 horas"
+          ],
+          "sábado": [
+            "Abierto las 24 horas"
+          ],
+          "viernes": [
+            "Abierto las 24 horas"
+          ]
+        },
+        "phone": "011 4806-3995",
+        "place_id": "ChIJIdN1o5DIvJURS_RD1OS29xg",
+        "review_count": 32,
+        "review_rating": 2.5,
+        "title": "El Jevi Kioscos",
+        "web_site": "http://www.facebook.com/ElJeviKioscos"
+      },
+      "out": {
+        "categoria": "Quiosco",
+        "direccion": "José A. Cabrera 3501, C1186 Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJIdN1o5DIvJURS_RD1OS29xg",
+        "latitud": -34.596627,
+        "longitud": -58.4156172,
+        "nombre": "El Jevi Kioscos",
+        "rating": 2.5,
+        "reviews_count": 32,
+        "telefono": "011 4806-3995",
+        "url_origen": "https://www.google.com/maps/place/El+Jevi+Kioscos/data=!4m7!3m6!1s0x95bcc890a375d321:0x18f7b6e4d443f44b!8m2!3d-34.596627!4d-58.4156172!16s%2Fg%2F11ckqn97xl!19sChIJIdN1o5DIvJURS_RD1OS29xg?authuser=0&hl=es&rclk=1",
+        "web": "http://www.facebook.com/ElJeviKioscos"
+      },
+      "synthetic": false
+    },
+    {
+      "in": {
+        "_descartados_p6": [
+          "about",
+          "categories",
+          "cid",
+          "complete_address",
+          "credit_cards_accepted",
+          "data_id",
+          "description",
+          "images",
+          "input_id",
+          "menu",
+          "order_online",
+          "owner",
+          "plus_code",
+          "popular_times",
+          "price_range",
+          "reservations",
+          "reviews_link",
+          "reviews_per_rating",
+          "status",
+          "street_view_url",
+          "thumbnail",
+          "timezone",
+          "user_reviews",
+          "user_reviews_extended"
+        ],
+        "address": "FOL, Fray Justo Sta. María de Oro 2518, C1425 C1425FOL, Cdad. Autónoma de Buenos Aires",
+        "category": "Kiosco",
+        "emails": null,
+        "latitude": -34.5788357,
+        "link": "https://www.google.com/maps/place/KIOSCO+ORO/data=!4m7!3m6!1s0x95bcb5a432997ec9:0x90d3554e31f83230!8m2!3d-34.5788357!4d-58.4241475!16s%2Fg%2F11fjb0x5hp!19sChIJyX6ZMqS1vJURMDL4MU5V05A?authuser=0&hl=es&rclk=1",
+        "longitude": -58.4241475,
+        "longtitude": -58.4241475,
+        "open_hours": {
+          "domingo": [
+            "Abierto las 24 horas"
+          ],
+          "jueves": [
+            "Abierto las 24 horas"
+          ],
+          "lunes": [
+            "Abierto las 24 horas"
+          ],
+          "martes": [
+            "Abierto las 24 horas"
+          ],
+          "miércoles": [
+            "Abierto las 24 horas"
+          ],
+          "sábado": [
+            "Abierto las 24 horas"
+          ],
+          "viernes": [
+            "Abierto las 24 horas"
+          ]
+        },
+        "phone": "011 7124-5928",
+        "place_id": "ChIJyX6ZMqS1vJURMDL4MU5V05A",
+        "review_count": 53,
+        "review_rating": 4.2,
+        "title": "KIOSCO ORO",
+        "web_site": "https://www.instagram.com/kiosco_oro?igsh=MTRwZHd5cHhlbWNmZg%3D%3D&utm_source=qr"
+      },
+      "out": {
+        "categoria": "Kiosco",
+        "direccion": "FOL, Fray Justo Sta. María de Oro 2518, C1425 C1425FOL, Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJyX6ZMqS1vJURMDL4MU5V05A",
+        "latitud": -34.5788357,
+        "longitud": -58.4241475,
+        "nombre": "KIOSCO ORO",
+        "rating": 4.2,
+        "reviews_count": 53,
+        "telefono": "011 7124-5928",
+        "url_origen": "https://www.google.com/maps/place/KIOSCO+ORO/data=!4m7!3m6!1s0x95bcb5a432997ec9:0x90d3554e31f83230!8m2!3d-34.5788357!4d-58.4241475!16s%2Fg%2F11fjb0x5hp!19sChIJyX6ZMqS1vJURMDL4MU5V05A?authuser=0&hl=es&rclk=1",
+        "web": "https://www.instagram.com/kiosco_oro?igsh=MTRwZHd5cHhlbWNmZg%3D%3D&utm_source=qr"
+      },
+      "synthetic": false
+    },
+    {
+      "in": {
+        "_descartados_p6": [
+          "about",
+          "categories",
+          "cid",
+          "complete_address",
+          "credit_cards_accepted",
+          "data_id",
+          "description",
+          "images",
+          "input_id",
+          "menu",
+          "order_online",
+          "owner",
+          "plus_code",
+          "popular_times",
+          "price_range",
+          "reservations",
+          "reviews_link",
+          "reviews_per_rating",
+          "status",
+          "street_view_url",
+          "thumbnail",
+          "timezone",
+          "user_reviews",
+          "user_reviews_extended"
+        ],
+        "address": "Fray Justo Sta. María de Oro 2700, C1425 Cdad. Autónoma de Buenos Aires",
+        "category": "Kiosco",
+        "emails": null,
+        "latitude": -34.5774092,
+        "link": "https://www.google.com/maps/place/365+Kioscos+Argentinos/data=!4m7!3m6!1s0x95bcb5db3f51e2b1:0x76ac2cdff98382d2!8m2!3d-34.5774092!4d-58.4228083!16s%2Fg%2F11khkt4q1g!19sChIJseJRP9u1vJUR0oKD-d8srHY?authuser=0&hl=es&rclk=1",
+        "longitude": -58.4228083,
+        "longtitude": -58.4228083,
+        "open_hours": {
+          "domingo": [
+            "Abierto las 24 horas"
+          ],
+          "jueves": [
+            "Abierto las 24 horas"
+          ],
+          "lunes": [
+            "Abierto las 24 horas"
+          ],
+          "martes": [
+            "Abierto las 24 horas"
+          ],
+          "miércoles": [
+            "Abierto las 24 horas"
+          ],
+          "sábado": [
+            "Abierto las 24 horas"
+          ],
+          "viernes": [
+            "Abierto las 24 horas"
+          ]
+        },
+        "phone": "",
+        "place_id": "ChIJseJRP9u1vJUR0oKD-d8srHY",
+        "review_count": 13,
+        "review_rating": 2.4,
+        "title": "365 Kioscos Argentinos",
+        "web_site": ""
+      },
+      "out": {
+        "categoria": "Kiosco",
+        "direccion": "Fray Justo Sta. María de Oro 2700, C1425 Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJseJRP9u1vJUR0oKD-d8srHY",
+        "latitud": -34.5774092,
+        "longitud": -58.4228083,
+        "nombre": "365 Kioscos Argentinos",
+        "rating": 2.4,
+        "reviews_count": 13,
+        "telefono": "",
+        "url_origen": "https://www.google.com/maps/place/365+Kioscos+Argentinos/data=!4m7!3m6!1s0x95bcb5db3f51e2b1:0x76ac2cdff98382d2!8m2!3d-34.5774092!4d-58.4228083!16s%2Fg%2F11khkt4q1g!19sChIJseJRP9u1vJUR0oKD-d8srHY?authuser=0&hl=es&rclk=1",
+        "web": ""
+      },
+      "synthetic": false
+    },
+    {
+      "in": {
+        "_descartados_p6": [
+          "about",
+          "categories",
+          "cid",
+          "complete_address",
+          "credit_cards_accepted",
+          "data_id",
+          "description",
+          "images",
+          "input_id",
+          "menu",
+          "order_online",
+          "owner",
+          "plus_code",
+          "popular_times",
+          "price_range",
+          "reservations",
+          "reviews_link",
+          "reviews_per_rating",
+          "status",
+          "street_view_url",
+          "thumbnail",
+          "timezone",
+          "user_reviews",
+          "user_reviews_extended"
+        ],
+        "address": "Raúl Scalabrini Ortiz 3103, C1425DBM Cdad. Autónoma de Buenos Aires",
+        "category": "Tienda de golosinas",
+        "emails": null,
+        "latitude": -34.5807472,
+        "link": "https://www.google.com/maps/place/El+Jevi+Kioscos/data=!4m7!3m6!1s0x95bcb57c0a7351d7:0x295d50604ed16b38!8m2!3d-34.5807472!4d-58.4102403!16s%2Fg%2F11b6ydh8dj!19sChIJ11FzCny1vJUROGvRTmBQXSk?authuser=0&hl=es&rclk=1",
+        "longitude": -58.4102403,
+        "longtitude": -58.4102403,
+        "open_hours": {
+          "domingo": [
+            "8 a. m.–1 a. m."
+          ],
+          "jueves": [
+            "7 a. m.–12 a. m."
+          ],
+          "lunes": [
+            "7 a. m.–12 a. m."
+          ],
+          "martes": [
+            "7 a. m.–12 a. m."
+          ],
+          "miércoles": [
+            "7 a. m.–12 a. m."
+          ],
+          "sábado": [
+            "8 a. m.–12 a. m."
+          ],
+          "viernes": [
+            "7 a. m.–12 a. m."
+          ]
+        },
+        "phone": "011 4806-3995",
+        "place_id": "ChIJ11FzCny1vJUROGvRTmBQXSk",
+        "review_count": 40,
+        "review_rating": 2.2,
+        "title": "El Jevi Kioscos",
+        "web_site": "http://www.facebook.com/ElJeviKioscos"
+      },
+      "out": {
+        "categoria": "Tienda de golosinas",
+        "direccion": "Raúl Scalabrini Ortiz 3103, C1425DBM Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJ11FzCny1vJUROGvRTmBQXSk",
+        "latitud": -34.5807472,
+        "longitud": -58.4102403,
+        "nombre": "El Jevi Kioscos",
+        "rating": 2.2,
+        "reviews_count": 40,
+        "telefono": "011 4806-3995",
+        "url_origen": "https://www.google.com/maps/place/El+Jevi+Kioscos/data=!4m7!3m6!1s0x95bcb57c0a7351d7:0x295d50604ed16b38!8m2!3d-34.5807472!4d-58.4102403!16s%2Fg%2F11b6ydh8dj!19sChIJ11FzCny1vJUROGvRTmBQXSk?authuser=0&hl=es&rclk=1",
+        "web": "http://www.facebook.com/ElJeviKioscos"
+      },
+      "synthetic": false
+    },
+    {
+      "in": {
+        "_descartados_p6": [
+          "about",
+          "categories",
+          "cid",
+          "complete_address",
+          "credit_cards_accepted",
+          "data_id",
+          "description",
+          "images",
+          "input_id",
+          "menu",
+          "order_online",
+          "owner",
+          "plus_code",
+          "popular_times",
+          "price_range",
+          "reservations",
+          "reviews_link",
+          "reviews_per_rating",
+          "status",
+          "street_view_url",
+          "thumbnail",
+          "timezone",
+          "user_reviews",
+          "user_reviews_extended"
+        ],
+        "address": "Ángel Justiniano Carranza 1997, C1414 Cdad. Autónoma de Buenos Aires",
+        "category": "Kiosco",
+        "emails": null,
+        "latitude": -34.5802413,
+        "link": "https://www.google.com/maps/place/KiosCoco/data=!4m7!3m6!1s0x95bcb59677573f3d:0x9cfd96c41c63f83c!8m2!3d-34.5802413!4d-58.435511!16s%2Fg%2F11h6t7jf14!19sChIJPT9Xd5a1vJURPPhjHMSW_Zw?authuser=0&hl=es&rclk=1",
+        "longitude": -58.435511,
+        "longtitude": -58.435511,
+        "open_hours": {
+          "domingo": [
+            "11 a. m.–11 p. m."
+          ],
+          "jueves": [
+            "8 a. m.–1 a. m."
+          ],
+          "lunes": [
+            "8 a. m.–11 p. m."
+          ],
+          "martes": [
+            "8 a. m.–11 p. m."
+          ],
+          "miércoles": [
+            "8 a. m.–11 p. m."
+          ],
+          "sábado": [
+            "10 a. m.–4 a. m."
+          ],
+          "viernes": [
+            "8 a. m.–3 a. m."
+          ]
+        },
+        "phone": "011 5320-7200",
+        "place_id": "ChIJPT9Xd5a1vJURPPhjHMSW_Zw",
+        "review_count": 28,
+        "review_rating": 4.1,
+        "title": "KiosCoco",
+        "web_site": ""
+      },
+      "out": {
+        "categoria": "Kiosco",
+        "direccion": "Ángel Justiniano Carranza 1997, C1414 Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJPT9Xd5a1vJURPPhjHMSW_Zw",
+        "latitud": -34.5802413,
+        "longitud": -58.435511,
+        "nombre": "KiosCoco",
+        "rating": 4.1,
+        "reviews_count": 28,
+        "telefono": "011 5320-7200",
+        "url_origen": "https://www.google.com/maps/place/KiosCoco/data=!4m7!3m6!1s0x95bcb59677573f3d:0x9cfd96c41c63f83c!8m2!3d-34.5802413!4d-58.435511!16s%2Fg%2F11h6t7jf14!19sChIJPT9Xd5a1vJURPPhjHMSW_Zw?authuser=0&hl=es&rclk=1",
+        "web": ""
+      },
+      "synthetic": false
+    },
+    {
+      "in": {
+        "_descartados_p6": [
+          "about",
+          "categories",
+          "cid",
+          "complete_address",
+          "credit_cards_accepted",
+          "data_id",
+          "description",
+          "images",
+          "input_id",
+          "menu",
+          "order_online",
+          "owner",
+          "plus_code",
+          "popular_times",
+          "price_range",
+          "reservations",
+          "reviews_link",
+          "reviews_per_rating",
+          "status",
+          "street_view_url",
+          "thumbnail",
+          "timezone",
+          "user_reviews",
+          "user_reviews_extended"
+        ],
+        "address": "Charcas 3405, C1405 Cdad. Autónoma de Buenos Aires",
+        "category": "Quiosco",
+        "emails": null,
+        "latitude": -34.5903638,
+        "link": "https://www.google.com/maps/place/El+Jevi+kioscos/data=!4m7!3m6!1s0x95bcca8118f97abb:0xb3bc1b6f4899d3c8!8m2!3d-34.5903638!4d-58.4139414!16s%2Fg%2F11bttpy4sy!19sChIJu3r5GIHKvJURyNOZSG8bvLM?authuser=0&hl=es&rclk=1",
+        "longitude": -58.4139414,
+        "longtitude": -58.4139414,
+        "open_hours": {
+          "domingo": [
+            "Abierto las 24 horas"
+          ],
+          "jueves": [
+            "Abierto las 24 horas"
+          ],
+          "lunes": [
+            "Abierto las 24 horas"
+          ],
+          "martes": [
+            "Abierto las 24 horas"
+          ],
+          "miércoles": [
+            "Abierto las 24 horas"
+          ],
+          "sábado": [
+            "Abierto las 24 horas"
+          ],
+          "viernes": [
+            "Abierto las 24 horas"
+          ]
+        },
+        "phone": "",
+        "place_id": "ChIJu3r5GIHKvJURyNOZSG8bvLM",
+        "review_count": 27,
+        "review_rating": 3.2,
+        "title": "El Jevi kioscos",
+        "web_site": "https://www.facebook.com/ElJeviKioscos/"
+      },
+      "out": {
+        "categoria": "Quiosco",
+        "direccion": "Charcas 3405, C1405 Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJu3r5GIHKvJURyNOZSG8bvLM",
+        "latitud": -34.5903638,
+        "longitud": -58.4139414,
+        "nombre": "El Jevi kioscos",
+        "rating": 3.2,
+        "reviews_count": 27,
+        "telefono": "",
+        "url_origen": "https://www.google.com/maps/place/El+Jevi+kioscos/data=!4m7!3m6!1s0x95bcca8118f97abb:0xb3bc1b6f4899d3c8!8m2!3d-34.5903638!4d-58.4139414!16s%2Fg%2F11bttpy4sy!19sChIJu3r5GIHKvJURyNOZSG8bvLM?authuser=0&hl=es&rclk=1",
+        "web": "https://www.facebook.com/ElJeviKioscos/"
+      },
+      "synthetic": false
+    },
+    {
+      "in": {
+        "_descartados_p6": [
+          "about",
+          "categories",
+          "cid",
+          "complete_address",
+          "credit_cards_accepted",
+          "data_id",
+          "description",
+          "images",
+          "input_id",
+          "menu",
+          "order_online",
+          "owner",
+          "plus_code",
+          "popular_times",
+          "price_range",
+          "reservations",
+          "reviews_link",
+          "reviews_per_rating",
+          "status",
+          "street_view_url",
+          "thumbnail",
+          "timezone",
+          "user_reviews",
+          "user_reviews_extended"
+        ],
+        "address": "Beruti 3582. Local 2699, C1425 Cdad. Autónoma de Buenos Aires",
+        "category": "Kiosco",
+        "emails": null,
+        "latitude": -34.5853748,
+        "link": "https://www.google.com/maps/place/365+Kioscos+Argentinos/data=!4m7!3m6!1s0x95bcb57e75c05eab:0x713d8da7beaeb76!8m2!3d-34.5853748!4d-58.4125571!16s%2Fg%2F11g01lh57m!19sChIJq17AdX61vJURduvqe9rYEwc?authuser=0&hl=es&rclk=1",
+        "longitude": -58.4125571,
+        "longtitude": -58.4125571,
+        "open_hours": {
+          "domingo": [
+            "Abierto las 24 horas"
+          ],
+          "jueves": [
+            "Abierto las 24 horas"
+          ],
+          "lunes": [
+            "Abierto las 24 horas"
+          ],
+          "martes": [
+            "Abierto las 24 horas"
+          ],
+          "miércoles": [
+            "Abierto las 24 horas"
+          ],
+          "sábado": [
+            "Abierto las 24 horas"
+          ],
+          "viernes": [
+            "Abierto las 24 horas"
+          ]
+        },
+        "phone": "011 4821-5771",
+        "place_id": "ChIJq17AdX61vJURduvqe9rYEwc",
+        "review_count": 30,
+        "review_rating": 2.7,
+        "title": "365 Kioscos Argentinos",
+        "web_site": "https://instagram.com/365kioscosargentinos"
+      },
+      "out": {
+        "categoria": "Kiosco",
+        "direccion": "Beruti 3582. Local 2699, C1425 Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJq17AdX61vJURduvqe9rYEwc",
+        "latitud": -34.5853748,
+        "longitud": -58.4125571,
+        "nombre": "365 Kioscos Argentinos",
+        "rating": 2.7,
+        "reviews_count": 30,
+        "telefono": "011 4821-5771",
+        "url_origen": "https://www.google.com/maps/place/365+Kioscos+Argentinos/data=!4m7!3m6!1s0x95bcb57e75c05eab:0x713d8da7beaeb76!8m2!3d-34.5853748!4d-58.4125571!16s%2Fg%2F11g01lh57m!19sChIJq17AdX61vJURduvqe9rYEwc?authuser=0&hl=es&rclk=1",
+        "web": "https://instagram.com/365kioscosargentinos"
+      },
+      "synthetic": false
+    },
+    {
+      "in": {
+        "_descartados_p6": [
+          "about",
+          "categories",
+          "cid",
+          "complete_address",
+          "credit_cards_accepted",
+          "data_id",
+          "description",
+          "images",
+          "input_id",
+          "menu",
+          "order_online",
+          "owner",
+          "plus_code",
+          "popular_times",
+          "price_range",
+          "reservations",
+          "reviews_link",
+          "reviews_per_rating",
+          "status",
+          "street_view_url",
+          "thumbnail",
+          "timezone",
+          "user_reviews",
+          "user_reviews_extended"
+        ],
+        "address": "Cnel. Niceto Vega 5656, C1414 C1414BFF, Cdad. Autónoma de Buenos Aires",
+        "category": "Kiosco",
+        "emails": null,
+        "latitude": -34.5864066,
+        "link": "https://www.google.com/maps/place/Lucky13%27+kiosco+almac%C3%A9n+Bar./data=!4m7!3m6!1s0x95bcb575b7a1b3bb:0xc2dd51084455d0a9!8m2!3d-34.5864066!4d-58.4400781!16s%2Fg%2F11my1z02_9!19sChIJu7Oht3W1vJURqdBVRAhR3cI?authuser=0&hl=es&rclk=1",
+        "longitude": -58.440078099999994,
+        "longtitude": -58.440078099999994,
+        "open_hours": {
+          "domingo": [
+            "Abierto las 24 horas"
+          ],
+          "jueves": [
+            "Abierto las 24 horas"
+          ],
+          "lunes": [
+            "Abierto las 24 horas"
+          ],
+          "martes": [
+            "Abierto las 24 horas"
+          ],
+          "miércoles": [
+            "Abierto las 24 horas"
+          ],
+          "sábado": [
+            "Abierto las 24 horas"
+          ],
+          "viernes": [
+            "Abierto las 24 horas"
+          ]
+        },
+        "phone": "",
+        "place_id": "ChIJu7Oht3W1vJURqdBVRAhR3cI",
+        "review_count": 45,
+        "review_rating": 3.5,
+        "title": "Lucky13' kiosco almacén Bar.",
+        "web_site": ""
+      },
+      "out": {
+        "categoria": "Kiosco",
+        "direccion": "Cnel. Niceto Vega 5656, C1414 C1414BFF, Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJu7Oht3W1vJURqdBVRAhR3cI",
+        "latitud": -34.5864066,
+        "longitud": -58.440078099999994,
+        "nombre": "Lucky13' kiosco almacén Bar.",
+        "rating": 3.5,
+        "reviews_count": 45,
+        "telefono": "",
+        "url_origen": "https://www.google.com/maps/place/Lucky13%27+kiosco+almac%C3%A9n+Bar./data=!4m7!3m6!1s0x95bcb575b7a1b3bb:0xc2dd51084455d0a9!8m2!3d-34.5864066!4d-58.4400781!16s%2Fg%2F11my1z02_9!19sChIJu7Oht3W1vJURqdBVRAhR3cI?authuser=0&hl=es&rclk=1",
+        "web": ""
+      },
+      "synthetic": false
+    },
+    {
+      "in": {
+        "_descartados_p6": [
+          "about",
+          "categories",
+          "cid",
+          "complete_address",
+          "credit_cards_accepted",
+          "data_id",
+          "description",
+          "images",
+          "input_id",
+          "menu",
+          "order_online",
+          "owner",
+          "plus_code",
+          "popular_times",
+          "price_range",
+          "reservations",
+          "reviews_link",
+          "reviews_per_rating",
+          "status",
+          "street_view_url",
+          "thumbnail",
+          "timezone",
+          "user_reviews",
+          "user_reviews_extended"
+        ],
+        "address": "Av. Sta. Fe 4572, C1425 BHU, Cdad. Autónoma de Buenos Aires",
+        "category": "Kiosco",
+        "emails": null,
+        "latitude": -34.5789848,
+        "link": "https://www.google.com/maps/place/Maxinet/data=!4m7!3m6!1s0x95bcb59b3d006abd:0x8b1389adb6bcc41f!8m2!3d-34.5789848!4d-58.4251867!16s%2Fg%2F11b6szy880!19sChIJvWoAPZu1vJURH8S8tq2JE4s?authuser=0&hl=es&rclk=1",
+        "longitude": -58.4251867,
+        "longtitude": -58.4251867,
+        "open_hours": {
+          "domingo": [
+            "Cerrado"
+          ],
+          "jueves": [
+            "7 a. m.–11 p. m."
+          ],
+          "lunes": [
+            "7 a. m.–11 p. m."
+          ],
+          "martes": [
+            "7 a. m.–11 p. m."
+          ],
+          "miércoles": [
+            "7 a. m.–11 p. m."
+          ],
+          "sábado": [
+            "7 a. m.–11 p. m."
+          ],
+          "viernes": [
+            "7 a. m.–11 p. m."
+          ]
+        },
+        "phone": "011 4773-8210",
+        "place_id": "ChIJvWoAPZu1vJURH8S8tq2JE4s",
+        "review_count": 158,
+        "review_rating": 4.3,
+        "title": "Maxinet",
+        "web_site": ""
+      },
+      "out": {
+        "categoria": "Kiosco",
+        "direccion": "Av. Sta. Fe 4572, C1425 BHU, Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJvWoAPZu1vJURH8S8tq2JE4s",
+        "latitud": -34.5789848,
+        "longitud": -58.4251867,
+        "nombre": "Maxinet",
+        "rating": 4.3,
+        "reviews_count": 158,
+        "telefono": "011 4773-8210",
+        "url_origen": "https://www.google.com/maps/place/Maxinet/data=!4m7!3m6!1s0x95bcb59b3d006abd:0x8b1389adb6bcc41f!8m2!3d-34.5789848!4d-58.4251867!16s%2Fg%2F11b6szy880!19sChIJvWoAPZu1vJURH8S8tq2JE4s?authuser=0&hl=es&rclk=1",
+        "web": ""
+      },
+      "synthetic": false
+    },
+    {
+      "in": {
+        "_descartados_p6": [
+          "about",
+          "categories",
+          "cid",
+          "complete_address",
+          "credit_cards_accepted",
+          "data_id",
+          "description",
+          "images",
+          "input_id",
+          "menu",
+          "order_online",
+          "owner",
+          "plus_code",
+          "popular_times",
+          "price_range",
+          "reservations",
+          "reviews_link",
+          "reviews_per_rating",
+          "status",
+          "street_view_url",
+          "thumbnail",
+          "timezone",
+          "user_reviews",
+          "user_reviews_extended"
+        ],
+        "address": "Raúl Scalabrini Ortiz 2534, C1425 Cdad. Autónoma de Buenos Aires",
+        "category": "Comercio",
+        "emails": null,
+        "latitude": -34.584834,
+        "link": "https://www.google.com/maps/place/El+Kiosco+Rosa/data=!4m7!3m6!1s0x95bcb5001c9de405:0x48508089effdb3d9!8m2!3d-34.584834!4d-58.4156537!16s%2Fg%2F11ys2tfhf2!19sChIJBeSdHAC1vJUR2bP974mAUEg?authuser=0&hl=es&rclk=1",
+        "longitude": -58.4156537,
+        "longtitude": -58.4156537,
+        "open_hours": {
+          "domingo": [
+            "1 p. m.–1 a. m."
+          ],
+          "jueves": [
+            "8 a. m.–2 a. m."
+          ],
+          "lunes": [
+            "8 a. m.–12 a. m."
+          ],
+          "martes": [
+            "8 a. m.–12 a. m."
+          ],
+          "miércoles": [
+            "8 a. m.–1 a. m."
+          ],
+          "sábado": [
+            "12 p. m.–2:30 a. m."
+          ],
+          "viernes": [
+            "8 a. m.–2:30 a. m."
+          ]
+        },
+        "phone": "",
+        "place_id": "ChIJBeSdHAC1vJUR2bP974mAUEg",
+        "review_count": 9,
+        "review_rating": 4.9,
+        "title": "El Kiosco Rosa",
+        "web_site": ""
+      },
+      "out": {
+        "categoria": "Comercio",
+        "direccion": "Raúl Scalabrini Ortiz 2534, C1425 Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJBeSdHAC1vJUR2bP974mAUEg",
+        "latitud": -34.584834,
+        "longitud": -58.4156537,
+        "nombre": "El Kiosco Rosa",
+        "rating": 4.9,
+        "reviews_count": 9,
+        "telefono": "",
+        "url_origen": "https://www.google.com/maps/place/El+Kiosco+Rosa/data=!4m7!3m6!1s0x95bcb5001c9de405:0x48508089effdb3d9!8m2!3d-34.584834!4d-58.4156537!16s%2Fg%2F11ys2tfhf2!19sChIJBeSdHAC1vJUR2bP974mAUEg?authuser=0&hl=es&rclk=1",
+        "web": ""
+      },
+      "synthetic": false
+    },
+    {
+      "in": {
+        "_descartados_p6": [
+          "about",
+          "categories",
+          "cid",
+          "complete_address",
+          "credit_cards_accepted",
+          "data_id",
+          "description",
+          "images",
+          "input_id",
+          "menu",
+          "order_online",
+          "owner",
+          "plus_code",
+          "popular_times",
+          "price_range",
+          "reservations",
+          "reviews_link",
+          "reviews_per_rating",
+          "status",
+          "street_view_url",
+          "thumbnail",
+          "timezone",
+          "user_reviews",
+          "user_reviews_extended"
+        ],
+        "address": "José A. Cabrera, C1414 Cdad. Autónoma de Buenos Aires",
+        "category": "Tienda de golosinas",
+        "emails": null,
+        "latitude": -34.5901596,
+        "link": "https://www.google.com/maps/place/Kiosco+La+Isla/data=!4m7!3m6!1s0x95bcb589b1c62559:0x8ee7713ffc3433cf!8m2!3d-34.5901596!4d-58.4321358!16s%2Fg%2F11g6hyw0w2!19sChIJWSXGsYm1vJURzzM0_D9x544?authuser=0&hl=es&rclk=1",
+        "longitude": -58.4321358,
+        "longtitude": -58.4321358,
+        "open_hours": {
+          "domingo": [
+            "9:31 a. m.–1:33 a. m."
+          ],
+          "jueves": [
+            "9:31 a. m.–1:33 a. m."
+          ],
+          "lunes": [
+            "9:31 a. m.–1:33 a. m."
+          ],
+          "martes": [
+            "9:31 a. m.–1:33 a. m."
+          ],
+          "miércoles": [
+            "9:31 a. m.–1:33 a. m."
+          ],
+          "sábado": [
+            "9:31 a. m.–1:33 a. m."
+          ],
+          "viernes": [
+            "9:31 a. m.–1:33 a. m."
+          ]
+        },
+        "phone": "",
+        "place_id": "ChIJWSXGsYm1vJURzzM0_D9x544",
+        "review_count": 16,
+        "review_rating": 4.9,
+        "title": "Kiosco La Isla",
+        "web_site": ""
+      },
+      "out": {
+        "categoria": "Tienda de golosinas",
+        "direccion": "José A. Cabrera, C1414 Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJWSXGsYm1vJURzzM0_D9x544",
+        "latitud": -34.5901596,
+        "longitud": -58.4321358,
+        "nombre": "Kiosco La Isla",
+        "rating": 4.9,
+        "reviews_count": 16,
+        "telefono": "",
+        "url_origen": "https://www.google.com/maps/place/Kiosco+La+Isla/data=!4m7!3m6!1s0x95bcb589b1c62559:0x8ee7713ffc3433cf!8m2!3d-34.5901596!4d-58.4321358!16s%2Fg%2F11g6hyw0w2!19sChIJWSXGsYm1vJURzzM0_D9x544?authuser=0&hl=es&rclk=1",
+        "web": ""
+      },
+      "synthetic": false
+    },
+    {
+      "in": {
+        "address": "Calle Falsa 123, CABA",
+        "category": "Kiosco",
+        "emails": [
+          "hola@kioscosiete.com.ar",
+          "otro@x.com"
+        ],
+        "latitude": -34.58,
+        "link": "https://maps.google.com/?cid=1",
+        "longitude": -58.42,
+        "open_hours": {
+          "Friday": [
+            "9-18"
+          ],
+          "Monday": [
+            "9-18"
+          ],
+          "Saturday": [
+            "9-13"
+          ],
+          "Sunday": [
+            "10-13"
+          ],
+          "Thursday": [
+            "9-18"
+          ],
+          "Tuesday": [
+            "9-18"
+          ],
+          "Wednesday": [
+            "9-18"
+          ]
+        },
+        "phone": "+54 11 4444-5555",
+        "place_id": "SINT_001",
+        "review_count": 120,
+        "review_rating": 4.5,
+        "title": "Kiosco Siete Días",
+        "web_site": "https://kioscosiete.com.ar/"
+      },
+      "out": {
+        "categoria": "Kiosco",
+        "direccion": "Calle Falsa 123, CABA",
+        "email": "hola@kioscosiete.com.ar",
+        "horarios_completos": "si",
+        "id_externo": "SINT_001",
+        "latitud": -34.58,
+        "longitud": -58.42,
+        "nombre": "Kiosco Siete Días",
+        "rating": 4.5,
+        "reviews_count": 120,
+        "telefono": "+54 11 4444-5555",
+        "url_origen": "https://maps.google.com/?cid=1",
+        "web": "https://kioscosiete.com.ar/"
+      },
+      "synthetic": true
+    },
+    {
+      "in": {
+        "address": "Av. Siempreviva 742",
+        "open_hours": {
+          "Monday": [
+            "9-18"
+          ],
+          "Tuesday": [
+            "9-18"
+          ]
+        },
+        "place_id": "SINT_002",
+        "review_count": 0,
+        "review_rating": 0,
+        "title": "Kiosco Cero"
+      },
+      "out": {
+        "categoria": "",
+        "direccion": "Av. Siempreviva 742",
+        "email": "",
+        "horarios_completos": "no",
+        "id_externo": "SINT_002",
+        "latitud": null,
+        "longitud": null,
+        "nombre": "Kiosco Cero",
+        "rating": null,
+        "reviews_count": 0,
+        "telefono": "",
+        "url_origen": "",
+        "web": ""
+      },
+      "synthetic": true
+    },
+    {
+      "in": {
+        "address": "Borges 2100",
+        "latitude": -34.59,
+        "longtitude": -58.43,
+        "place_id": "SINT_003",
+        "title": "Kiosco Typo"
+      },
+      "out": {
+        "categoria": "",
+        "direccion": "Borges 2100",
+        "email": "",
+        "horarios_completos": "sin_datos",
+        "id_externo": "SINT_003",
+        "latitud": -34.59,
+        "longitud": -58.43,
+        "nombre": "Kiosco Typo",
+        "rating": null,
+        "reviews_count": null,
+        "telefono": "",
+        "url_origen": "",
+        "web": ""
+      },
+      "synthetic": true
+    },
+    {
+      "in": {
+        "address": "Gorriti 5500",
+        "place_id": "SINT_004",
+        "title": "Kiosco Insta",
+        "web_site": "https://www.instagram.com/kioscoinsta/"
+      },
+      "out": {
+        "categoria": "",
+        "direccion": "Gorriti 5500",
+        "email": "",
+        "horarios_completos": "sin_datos",
+        "id_externo": "SINT_004",
+        "latitud": null,
+        "longitud": null,
+        "nombre": "Kiosco Insta",
+        "rating": null,
+        "reviews_count": null,
+        "telefono": "",
+        "url_origen": "",
+        "web": "https://www.instagram.com/kioscoinsta/"
+      },
+      "synthetic": true
+    },
+    {
+      "in": {
+        "address": "Thames 1800",
+        "place_id": "SINT_005",
+        "title": "Kiosco Pelado",
+        "web_site": "facebook.com/kioscopelado"
+      },
+      "out": {
+        "categoria": "",
+        "direccion": "Thames 1800",
+        "email": "",
+        "horarios_completos": "sin_datos",
+        "id_externo": "SINT_005",
+        "latitud": null,
+        "longitud": null,
+        "nombre": "Kiosco Pelado",
+        "rating": null,
+        "reviews_count": null,
+        "telefono": "",
+        "url_origen": "",
+        "web": "facebook.com/kioscopelado"
+      },
+      "synthetic": true
+    },
+    {
+      "in": {
+        "title": "Kiosco Fantasma"
+      },
+      "out": {
+        "categoria": "",
+        "direccion": "",
+        "email": "",
+        "horarios_completos": "sin_datos",
+        "id_externo": "",
+        "latitud": null,
+        "longitud": null,
+        "nombre": "Kiosco Fantasma",
+        "rating": null,
+        "reviews_count": null,
+        "telefono": "",
+        "url_origen": "",
+        "web": ""
+      },
+      "synthetic": true
+    }
+  ],
+  "runner": {
+    "raws": [
+      {
+        "categoria": "Kiosco",
+        "direccion": "Fitz Roy 1707, C1414 CHY, Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJoxqXk421vJURx8kA9vpR-Jc",
+        "latitud": -34.5841099,
+        "longitud": -58.436096299999996,
+        "nombre": "Kiosco Emaupesa",
+        "rating": 2.6,
+        "reviews_count": 20,
+        "telefono": "",
+        "url_origen": "https://www.google.com/maps/place/Kiosco+Emaupesa/data=!4m7!3m6!1s0x95bcb58d93971aa3:0x97f851faf600c9c7!8m2!3d-34.5841099!4d-58.4360963!16s%2Fg%2F11dfx7p869!19sChIJoxqXk421vJURx8kA9vpR-Jc?authuser=0&hl=es&rclk=1",
+        "web": ""
+      },
+      {
+        "categoria": "Kiosco",
+        "direccion": "El Salvador 4813, C1414 Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJBbUN04e1vJURa4b-To0868w",
+        "latitud": -34.5884946,
+        "longitud": -58.4283035,
+        "nombre": "Maxikiosco Mí Reina",
+        "rating": 3.6,
+        "reviews_count": 46,
+        "telefono": "",
+        "url_origen": "https://www.google.com/maps/place/Maxikiosco+M%C3%AD+Reina/data=!4m7!3m6!1s0x95bcb587d30db505:0xcceb3c8d4efe866b!8m2!3d-34.5884946!4d-58.4283035!16s%2Fg%2F11b6mpcc_4!19sChIJBbUN04e1vJURa4b-To0868w?authuser=0&hl=es&rclk=1",
+        "web": ""
+      },
+      {
+        "categoria": "Kiosco",
+        "direccion": "Costa Rica entre, Jorge Luis Borges y, Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJSSqN7MG1vJURnV_WI4BdhVM",
+        "latitud": -34.5875066,
+        "longitud": -58.4281538,
+        "nombre": "The Best",
+        "rating": 1.8,
+        "reviews_count": 32,
+        "telefono": "",
+        "url_origen": "https://www.google.com/maps/place/The+Best/data=!4m7!3m6!1s0x95bcb5c1ec8d2a49:0x53855d8023d65f9d!8m2!3d-34.5875066!4d-58.4281538!16s%2Fg%2F11pf988s3q!19sChIJSSqN7MG1vJURnV_WI4BdhVM?authuser=0&hl=es&rclk=1",
+        "web": "https://i2v75.app.link/thebest"
+      },
+      {
+        "categoria": "Tienda de golosinas",
+        "direccion": "Báez 506, C1426BRL Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJgVyTwL21vJURyTpoCdFoS4c",
+        "latitud": -34.5708836,
+        "longitud": -58.4333774,
+        "nombre": "Kiosko 24 hrs",
+        "rating": 3.9,
+        "reviews_count": 69,
+        "telefono": "",
+        "url_origen": "https://www.google.com/maps/place/Kiosko+24+hrs/data=!4m7!3m6!1s0x95bcb5bdc0935c81:0x874b68d109683ac9!8m2!3d-34.5708836!4d-58.4333774!16s%2Fg%2F11c0vyywxz!19sChIJgVyTwL21vJURyTpoCdFoS4c?authuser=0&hl=es&rclk=1",
+        "web": ""
+      },
+      {
+        "categoria": "Quiosco",
+        "direccion": "Charcas 4301, C1425BNP Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJkwAj9oO1vJURilyZGfuR3G8",
+        "latitud": -34.583528699999995,
+        "longitud": -58.4231018,
+        "nombre": "365 Kioscos Argentinos",
+        "rating": 4.0,
+        "reviews_count": 149,
+        "telefono": "",
+        "url_origen": "https://www.google.com/maps/place/365+Kioscos+Argentinos/data=!4m7!3m6!1s0x95bcb583f6230093:0x6fdc91fb19995c8a!8m2!3d-34.5835287!4d-58.4231018!16s%2Fg%2F11b6ynz9xt!19sChIJkwAj9oO1vJURilyZGfuR3G8?authuser=0&hl=es&rclk=1",
+        "web": "https://instagram.com/365kioscosargentinos"
+      },
+      {
+        "categoria": "Quiosco",
+        "direccion": "Av. Raúl Scalabrini Ortiz 1602, C1414DOQ Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJqV-gkXjKvJUR15t9qKXymZk",
+        "latitud": -34.590722299999996,
+        "longitud": -58.4249637,
+        "nombre": "EL JEVI kioscos",
+        "rating": 3.4,
+        "reviews_count": 37,
+        "telefono": "011 4831-4286",
+        "url_origen": "https://www.google.com/maps/place/EL+JEVI+kioscos/data=!4m7!3m6!1s0x95bcca7891a05fa9:0x9999f2a5a87d9bd7!8m2!3d-34.5907223!4d-58.4249637!16s%2Fg%2F11bxf02gbs!19sChIJqV-gkXjKvJUR15t9qKXymZk?authuser=0&hl=es&rclk=1",
+        "web": "http://www.facebook.com/ElJeviKioscos"
+      },
+      {
+        "categoria": "Kiosco",
+        "direccion": "Humboldt 2322, C1414 Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJDZsPbJC1vJUR_GBvLhYZOyk",
+        "latitud": -34.5798645,
+        "longitud": -58.4298602,
+        "nombre": "Pit stop",
+        "rating": 4.9,
+        "reviews_count": 18,
+        "telefono": "011 7638-7352",
+        "url_origen": "https://www.google.com/maps/place/Pit+stop/data=!4m7!3m6!1s0x95bcb5906c0f9b0d:0x293b19162e6f60fc!8m2!3d-34.5798645!4d-58.4298602!16s%2Fg%2F11f03nh6pf!19sChIJDZsPbJC1vJUR_GBvLhYZOyk?authuser=0&hl=es&rclk=1",
+        "web": ""
+      },
+      {
+        "categoria": "Heladería",
+        "direccion": "Guatemala 4785, C1425BUM C1425BUM, Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJL6TUAAC1vJUR7nKjge-dTLI",
+        "latitud": -34.5856373,
+        "longitud": -58.4250395,
+        "nombre": "Kiosco de helados El Preferido",
+        "rating": 4.4,
+        "reviews_count": 413,
+        "telefono": "011 15-2865-1231",
+        "url_origen": "https://www.google.com/maps/place/Kiosco+de+helados+El+Preferido/data=!4m7!3m6!1s0x95bcb50000d4a42f:0xb24c9def81a372ee!8m2!3d-34.5856373!4d-58.4250395!16s%2Fg%2F11mrf88n0_!19sChIJL6TUAAC1vJUR7nKjge-dTLI?authuser=0&hl=es&rclk=1",
+        "web": "https://kiosco.elpreferidopalermo.com/"
+      },
+      {
+        "categoria": "Kiosco",
+        "direccion": "Soler 6002, C1425BYP Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJsz8VHKy1vJUR0NOFCDXYt8s",
+        "latitud": -34.577632,
+        "longitud": -58.4368238,
+        "nombre": "Lucky 13 Kiosko",
+        "rating": 3.1,
+        "reviews_count": 60,
+        "telefono": "",
+        "url_origen": "https://www.google.com/maps/place/Lucky+13+Kiosko/data=!4m7!3m6!1s0x95bcb5ac1c153fb3:0xcbb7d8350885d3d0!8m2!3d-34.577632!4d-58.4368238!16s%2Fg%2F11j08bv_w6!19sChIJsz8VHKy1vJUR0NOFCDXYt8s?authuser=0&hl=es&rclk=1",
+        "web": ""
+      },
+      {
+        "categoria": "Quiosco",
+        "direccion": "José A. Cabrera 3501, C1186 Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJIdN1o5DIvJURS_RD1OS29xg",
+        "latitud": -34.596627,
+        "longitud": -58.4156172,
+        "nombre": "El Jevi Kioscos",
+        "rating": 2.5,
+        "reviews_count": 32,
+        "telefono": "011 4806-3995",
+        "url_origen": "https://www.google.com/maps/place/El+Jevi+Kioscos/data=!4m7!3m6!1s0x95bcc890a375d321:0x18f7b6e4d443f44b!8m2!3d-34.596627!4d-58.4156172!16s%2Fg%2F11ckqn97xl!19sChIJIdN1o5DIvJURS_RD1OS29xg?authuser=0&hl=es&rclk=1",
+        "web": "http://www.facebook.com/ElJeviKioscos"
+      },
+      {
+        "categoria": "Kiosco",
+        "direccion": "FOL, Fray Justo Sta. María de Oro 2518, C1425 C1425FOL, Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJyX6ZMqS1vJURMDL4MU5V05A",
+        "latitud": -34.5788357,
+        "longitud": -58.4241475,
+        "nombre": "KIOSCO ORO",
+        "rating": 4.2,
+        "reviews_count": 53,
+        "telefono": "011 7124-5928",
+        "url_origen": "https://www.google.com/maps/place/KIOSCO+ORO/data=!4m7!3m6!1s0x95bcb5a432997ec9:0x90d3554e31f83230!8m2!3d-34.5788357!4d-58.4241475!16s%2Fg%2F11fjb0x5hp!19sChIJyX6ZMqS1vJURMDL4MU5V05A?authuser=0&hl=es&rclk=1",
+        "web": "https://www.instagram.com/kiosco_oro?igsh=MTRwZHd5cHhlbWNmZg%3D%3D&utm_source=qr"
+      },
+      {
+        "categoria": "Kiosco",
+        "direccion": "Fray Justo Sta. María de Oro 2700, C1425 Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJseJRP9u1vJUR0oKD-d8srHY",
+        "latitud": -34.5774092,
+        "longitud": -58.4228083,
+        "nombre": "365 Kioscos Argentinos",
+        "rating": 2.4,
+        "reviews_count": 13,
+        "telefono": "",
+        "url_origen": "https://www.google.com/maps/place/365+Kioscos+Argentinos/data=!4m7!3m6!1s0x95bcb5db3f51e2b1:0x76ac2cdff98382d2!8m2!3d-34.5774092!4d-58.4228083!16s%2Fg%2F11khkt4q1g!19sChIJseJRP9u1vJUR0oKD-d8srHY?authuser=0&hl=es&rclk=1",
+        "web": ""
+      },
+      {
+        "categoria": "Tienda de golosinas",
+        "direccion": "Raúl Scalabrini Ortiz 3103, C1425DBM Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJ11FzCny1vJUROGvRTmBQXSk",
+        "latitud": -34.5807472,
+        "longitud": -58.4102403,
+        "nombre": "El Jevi Kioscos",
+        "rating": 2.2,
+        "reviews_count": 40,
+        "telefono": "011 4806-3995",
+        "url_origen": "https://www.google.com/maps/place/El+Jevi+Kioscos/data=!4m7!3m6!1s0x95bcb57c0a7351d7:0x295d50604ed16b38!8m2!3d-34.5807472!4d-58.4102403!16s%2Fg%2F11b6ydh8dj!19sChIJ11FzCny1vJUROGvRTmBQXSk?authuser=0&hl=es&rclk=1",
+        "web": "http://www.facebook.com/ElJeviKioscos"
+      },
+      {
+        "categoria": "Kiosco",
+        "direccion": "Ángel Justiniano Carranza 1997, C1414 Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJPT9Xd5a1vJURPPhjHMSW_Zw",
+        "latitud": -34.5802413,
+        "longitud": -58.435511,
+        "nombre": "KiosCoco",
+        "rating": 4.1,
+        "reviews_count": 28,
+        "telefono": "011 5320-7200",
+        "url_origen": "https://www.google.com/maps/place/KiosCoco/data=!4m7!3m6!1s0x95bcb59677573f3d:0x9cfd96c41c63f83c!8m2!3d-34.5802413!4d-58.435511!16s%2Fg%2F11h6t7jf14!19sChIJPT9Xd5a1vJURPPhjHMSW_Zw?authuser=0&hl=es&rclk=1",
+        "web": ""
+      },
+      {
+        "categoria": "Quiosco",
+        "direccion": "Charcas 3405, C1405 Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJu3r5GIHKvJURyNOZSG8bvLM",
+        "latitud": -34.5903638,
+        "longitud": -58.4139414,
+        "nombre": "El Jevi kioscos",
+        "rating": 3.2,
+        "reviews_count": 27,
+        "telefono": "",
+        "url_origen": "https://www.google.com/maps/place/El+Jevi+kioscos/data=!4m7!3m6!1s0x95bcca8118f97abb:0xb3bc1b6f4899d3c8!8m2!3d-34.5903638!4d-58.4139414!16s%2Fg%2F11bttpy4sy!19sChIJu3r5GIHKvJURyNOZSG8bvLM?authuser=0&hl=es&rclk=1",
+        "web": "https://www.facebook.com/ElJeviKioscos/"
+      },
+      {
+        "categoria": "Kiosco",
+        "direccion": "Beruti 3582. Local 2699, C1425 Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJq17AdX61vJURduvqe9rYEwc",
+        "latitud": -34.5853748,
+        "longitud": -58.4125571,
+        "nombre": "365 Kioscos Argentinos",
+        "rating": 2.7,
+        "reviews_count": 30,
+        "telefono": "011 4821-5771",
+        "url_origen": "https://www.google.com/maps/place/365+Kioscos+Argentinos/data=!4m7!3m6!1s0x95bcb57e75c05eab:0x713d8da7beaeb76!8m2!3d-34.5853748!4d-58.4125571!16s%2Fg%2F11g01lh57m!19sChIJq17AdX61vJURduvqe9rYEwc?authuser=0&hl=es&rclk=1",
+        "web": "https://instagram.com/365kioscosargentinos"
+      },
+      {
+        "categoria": "Kiosco",
+        "direccion": "Cnel. Niceto Vega 5656, C1414 C1414BFF, Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJu7Oht3W1vJURqdBVRAhR3cI",
+        "latitud": -34.5864066,
+        "longitud": -58.440078099999994,
+        "nombre": "Lucky13' kiosco almacén Bar.",
+        "rating": 3.5,
+        "reviews_count": 45,
+        "telefono": "",
+        "url_origen": "https://www.google.com/maps/place/Lucky13%27+kiosco+almac%C3%A9n+Bar./data=!4m7!3m6!1s0x95bcb575b7a1b3bb:0xc2dd51084455d0a9!8m2!3d-34.5864066!4d-58.4400781!16s%2Fg%2F11my1z02_9!19sChIJu7Oht3W1vJURqdBVRAhR3cI?authuser=0&hl=es&rclk=1",
+        "web": ""
+      },
+      {
+        "categoria": "Kiosco",
+        "direccion": "Av. Sta. Fe 4572, C1425 BHU, Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJvWoAPZu1vJURH8S8tq2JE4s",
+        "latitud": -34.5789848,
+        "longitud": -58.4251867,
+        "nombre": "Maxinet",
+        "rating": 4.3,
+        "reviews_count": 158,
+        "telefono": "011 4773-8210",
+        "url_origen": "https://www.google.com/maps/place/Maxinet/data=!4m7!3m6!1s0x95bcb59b3d006abd:0x8b1389adb6bcc41f!8m2!3d-34.5789848!4d-58.4251867!16s%2Fg%2F11b6szy880!19sChIJvWoAPZu1vJURH8S8tq2JE4s?authuser=0&hl=es&rclk=1",
+        "web": ""
+      },
+      {
+        "categoria": "Comercio",
+        "direccion": "Raúl Scalabrini Ortiz 2534, C1425 Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJBeSdHAC1vJUR2bP974mAUEg",
+        "latitud": -34.584834,
+        "longitud": -58.4156537,
+        "nombre": "El Kiosco Rosa",
+        "rating": 4.9,
+        "reviews_count": 9,
+        "telefono": "",
+        "url_origen": "https://www.google.com/maps/place/El+Kiosco+Rosa/data=!4m7!3m6!1s0x95bcb5001c9de405:0x48508089effdb3d9!8m2!3d-34.584834!4d-58.4156537!16s%2Fg%2F11ys2tfhf2!19sChIJBeSdHAC1vJUR2bP974mAUEg?authuser=0&hl=es&rclk=1",
+        "web": ""
+      },
+      {
+        "categoria": "Tienda de golosinas",
+        "direccion": "José A. Cabrera, C1414 Cdad. Autónoma de Buenos Aires",
+        "email": "",
+        "horarios_completos": "si",
+        "id_externo": "ChIJWSXGsYm1vJURzzM0_D9x544",
+        "latitud": -34.5901596,
+        "longitud": -58.4321358,
+        "nombre": "Kiosco La Isla",
+        "rating": 4.9,
+        "reviews_count": 16,
+        "telefono": "",
+        "url_origen": "https://www.google.com/maps/place/Kiosco+La+Isla/data=!4m7!3m6!1s0x95bcb589b1c62559:0x8ee7713ffc3433cf!8m2!3d-34.5901596!4d-58.4321358!16s%2Fg%2F11g6hyw0w2!19sChIJWSXGsYm1vJURzzM0_D9x544?authuser=0&hl=es&rclk=1",
+        "web": ""
+      }
+    ],
+    "run1": {
+      "descubiertos": 17,
+      "kept": [
+        {
+          "nombre": "Kiosco Emaupesa",
+          "redes": [],
+          "web_final": ""
+        },
+        {
+          "nombre": "Maxikiosco Mí Reina",
+          "redes": [],
+          "web_final": ""
+        },
+        {
+          "nombre": "The Best",
+          "redes": [],
+          "web_final": "https://i2v75.app.link/thebest"
+        },
+        {
+          "nombre": "Kiosko 24 hrs",
+          "redes": [],
+          "web_final": ""
+        },
+        {
+          "nombre": "365 Kioscos Argentinos",
+          "redes": [
+            {
+              "plataforma": "instagram",
+              "url": "https://instagram.com/365kioscosargentinos"
+            }
+          ],
+          "web_final": ""
+        },
+        {
+          "nombre": "EL JEVI kioscos",
+          "redes": [
+            {
+              "plataforma": "facebook",
+              "url": "http://www.facebook.com/ElJeviKioscos"
+            }
+          ],
+          "web_final": ""
+        },
+        {
+          "nombre": "Pit stop",
+          "redes": [],
+          "web_final": ""
+        },
+        {
+          "nombre": "Kiosco de helados El Preferido",
+          "redes": [],
+          "web_final": "https://kiosco.elpreferidopalermo.com/"
+        },
+        {
+          "nombre": "Lucky 13 Kiosko",
+          "redes": [],
+          "web_final": ""
+        },
+        {
+          "nombre": "KIOSCO ORO",
+          "redes": [
+            {
+              "plataforma": "instagram",
+              "url": "https://www.instagram.com/kiosco_oro?igsh=MTRwZHd5cHhlbWNmZg%3D%3D&utm_source=qr"
+            }
+          ],
+          "web_final": ""
+        },
+        {
+          "nombre": "365 Kioscos Argentinos",
+          "redes": [],
+          "web_final": ""
+        },
+        {
+          "nombre": "KiosCoco",
+          "redes": [],
+          "web_final": ""
+        },
+        {
+          "nombre": "El Jevi kioscos",
+          "redes": [
+            {
+              "plataforma": "facebook",
+              "url": "https://www.facebook.com/ElJeviKioscos/"
+            }
+          ],
+          "web_final": ""
+        },
+        {
+          "nombre": "Lucky13' kiosco almacén Bar.",
+          "redes": [],
+          "web_final": ""
+        },
+        {
+          "nombre": "Maxinet",
+          "redes": [],
+          "web_final": ""
+        },
+        {
+          "nombre": "El Kiosco Rosa",
+          "redes": [],
+          "web_final": ""
+        },
+        {
+          "nombre": "Kiosco La Isla",
+          "redes": [],
+          "web_final": ""
+        }
+      ],
+      "saltados_duplicados": 3,
+      "saltados_suprimidos": 0
+    },
+    "run2_idempotencia": {
+      "descubiertos": 0,
+      "saltados_duplicados": 20,
+      "saltados_suprimidos": 0
+    },
+    "run3_supresion": {
+      "descubiertos": 15,
+      "ledger": [
+        {
+          "at": "2026-07-30",
+          "direccion": "Fitz Roy 1707, C1414 CHY, Cdad. Autónoma de Buenos Aires",
+          "motivo": "fixture",
+          "nombre": "Kiosco Emaupesa"
+        },
+        {
+          "at": "2026-07-30",
+          "motivo": "fixture",
+          "web": "https://i2v75.app.link/thebest"
+        }
+      ],
+      "saltados_duplicados": 3,
+      "saltados_suprimidos": 2
+    }
+  }
+}
