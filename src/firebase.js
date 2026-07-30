@@ -97,6 +97,24 @@ export const subscribeDiscoveryResults = (callback) =>
 export const deleteDiscoveryResult = (id) =>
   deleteDoc(doc(db, "discoveryResults", id)).catch(() => {});
 
+// ---- Discovery: jobs de búsqueda (contrato §3) ----
+// La app crea el job en "pendiente" y puede borrarlo (cancelar uno en cola o
+// descartar uno en error). El worker (Admin SDK) lo toma y lo cierra.
+export const createDiscoveryJob = (job) =>
+  setDoc(doc(db, "discoveryJobs", job.id), job).catch(() => {});
+
+export const deleteDiscoveryJob = (id) =>
+  deleteDoc(doc(db, "discoveryJobs", id)).catch(() => {});
+
+export const subscribeDiscoveryJobs = (callback) =>
+  onSnapshot(collection(db, "discoveryJobs"), (snap) => {
+    const list = [];
+    snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+    // Más nuevo primero (es la lista de "búsquedas en curso" del Pipeline).
+    list.sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
+    callback(list);
+  }, () => {});
+
 // Borra el cache offline de Firestore (IndexedDB) — usado al cerrar sesión
 // para no dejar data del negocio (PII + finanzas) en el dispositivo.
 // Tras terminar Firestore el `db` queda inutilizable: el caller debe recargar.

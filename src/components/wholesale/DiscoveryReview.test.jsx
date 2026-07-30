@@ -16,12 +16,13 @@ vi.mock("../../firebase.js", () => ({
   saveToFirestore: vi.fn(), mergeIntoFirestore: vi.fn(),
   subscribeToFirestore: () => () => {}, clearFirestoreCache: vi.fn(),
   subscribeDiscoveryResults: () => () => {}, deleteDiscoveryResult: vi.fn(),
+  subscribeDiscoveryJobs: () => () => {}, createDiscoveryJob: vi.fn(), deleteDiscoveryJob: vi.fn(),
   lastKnownTimestamps: {}, lastWriteError: null, clearWriteError: vi.fn(),
   isOwner: () => true, canDelete: () => true, canViewFinances: () => true,
 }));
 vi.mock("firebase/auth", () => ({ onAuthStateChanged: () => () => {} }));
 
-import { DiscoveryReviewModal, DiscoverySuppressedModal } from "./DiscoveryReview.jsx";
+import { DiscoveryReviewModal, DiscoverySuppressedModal, DiscoverySearchModal, DiscoveryJobsStatus } from "./DiscoveryReview.jsx";
 import { Pipeline } from "../Pipeline.jsx";
 import { AppContext } from "../../AppContext.js";
 
@@ -90,6 +91,62 @@ describe("DiscoverySuppressedModal", () => {
     render(<DiscoverySuppressedModal open suprimidos={[s]} onRehabilitar={onRehabilitar} onClose={vi.fn()} />);
     fireEvent.click(screen.getByText("↩ Rehabilitar"));
     expect(onRehabilitar).toHaveBeenCalledWith(s);
+  });
+});
+
+describe("DiscoverySearchModal — form de nueva búsqueda (§3)", () => {
+  // El Input de UI.jsx no asocia label↔input (sin htmlFor): se selecciona por
+  // placeholder, y el tope (type number) por su rol spinbutton.
+  const llenar = (placeholder, valor) => {
+    fireEvent.change(screen.getByPlaceholderText(placeholder), { target: { value: valor } });
+  };
+
+  it("crea la búsqueda validada; ubicación vacía se compone desde la zona", () => {
+    const onCreate = vi.fn();
+    render(<DiscoverySearchModal open onClose={vi.fn()} onCreate={onCreate} />);
+    llenar("kiosco, maxikiosco, drugstore...", "quioscos");
+    llenar("Palermo", "Palermo");
+    fireEvent.click(screen.getByText("Buscar"));
+    expect(onCreate).toHaveBeenCalledWith({
+      termino: "quioscos", zona: "Palermo",
+      ubicacion: "Palermo, Buenos Aires, Argentina", tope: 60,
+    });
+  });
+
+  it("la validación del dominio frena búsquedas incompletas o con tope inválido", () => {
+    const onCreate = vi.fn();
+    render(<DiscoverySearchModal open onClose={vi.fn()} onCreate={onCreate} />);
+    fireEvent.click(screen.getByText("Buscar"));
+    expect(onCreate).not.toHaveBeenCalled();
+    expect(screen.getByText(/sin término/)).toBeTruthy();
+    llenar("kiosco, maxikiosco, drugstore...", "kiosco");
+    llenar("Palermo", "Palermo");
+    fireEvent.change(screen.getByRole("spinbutton"), { target: { value: "500" } });
+    fireEvent.click(screen.getByText("Buscar"));
+    expect(onCreate).not.toHaveBeenCalled();
+    expect(screen.getByText(/techo anti-crawling/)).toBeTruthy();
+  });
+});
+
+describe("DiscoveryJobsStatus — búsquedas activas", () => {
+  it("muestra pendiente/en_curso/error; lo listo no aparece; cancela lo cancelable", () => {
+    const onCancel = vi.fn();
+    const jobs = [
+      { id: "j1", termino: "kiosco", zona: "Palermo", status: "pendiente" },
+      { id: "j2", termino: "drugstore", zona: "Núñez", status: "en_curso" },
+      { id: "j3", termino: "maxikiosco", zona: "Saavedra", status: "error", error: "gosom no produjo resultados (exit 1)" },
+      { id: "j4", termino: "kiosco", zona: "Colegiales", status: "listo" },
+    ];
+    render(<DiscoveryJobsStatus jobs={jobs} onCancel={onCancel} />);
+    expect(screen.getByText(/en cola/)).toBeTruthy();
+    expect(screen.getByText(/buscando/)).toBeTruthy();
+    expect(screen.getByText(/gosom no produjo resultados/)).toBeTruthy();
+    expect(screen.queryByText(/Colegiales/)).toBeNull();
+    // Cancelables: el pendiente y el error (el en_curso no se toca).
+    const cancelar = screen.getAllByText("✕");
+    expect(cancelar).toHaveLength(2);
+    fireEvent.click(cancelar[0]);
+    expect(onCancel).toHaveBeenCalledWith(jobs[0]);
   });
 });
 

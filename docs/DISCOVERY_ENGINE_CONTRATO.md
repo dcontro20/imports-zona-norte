@@ -166,8 +166,11 @@ El equivalente IZN del ledger P5 de Atlas: **descartar recuerda**.
 ## 8. Reglas Firestore (F2/F3)
 
 - `discoveryJobs`: read/write solo Diego.
-- `discoveryResults`: read solo Diego; escribe el worker vía Admin SDK
-  (service account — precedente `api/send-daily-push.js`).
+- `discoveryResults`: read solo Diego; escribe SOLO el worker vía Admin SDK
+  (service account — precedente `api/send-daily-push.js`). **Precisión
+  aprobada en el gate F2:** la app puede además BORRAR el doc ya consumido en
+  la revisión — es el ciclo de vida del staging, no una escritura de
+  contenido. Rules: `create`/`update` denegados; `read`/`delete` owner.
 
 ## 9. Compromisos verificables
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { saveToFirestore, mergeIntoFirestore, subscribeToFirestore, subscribeDiscoveryResults, auth } from "./firebase.js";
+import { saveToFirestore, mergeIntoFirestore, subscribeToFirestore, subscribeDiscoveryResults, subscribeDiscoveryJobs, auth } from "./firebase.js";
 import { onAuthStateChanged } from "firebase/auth";
 import { DEFAULT_PRODUCTS } from "./constants.js";
 import { loadData, uid } from "./helpers.js";
@@ -87,6 +87,9 @@ export function useFirebaseSync() {
   // Staging del discovery (colección discoveryResults, FUERA de appData):
   // solo lectura — lo escribe el worker vía Admin SDK, la app lo consume.
   const [discoveryResults, setDiscoveryResults] = useState([]);
+  // Jobs de búsqueda (colección discoveryJobs): lectura en vivo para mostrar
+  // estado; la escritura va por createDiscoveryJob/deleteDiscoveryJob directo.
+  const [discoveryJobs, setDiscoveryJobs] = useState([]);
   const [routes, setRoutes] = useState(() => loadData("routes", []));
 
   // ---- Sync flags ----
@@ -243,6 +246,7 @@ export function useFirebaseSync() {
     // anti-loop — la app jamás escribe contenido; consume y borra el doc).
     // No participa del gate de dataReady: puede no haber ningún doc.
     const unsubDiscovery = subscribeDiscoveryResults(setDiscoveryResults);
+    const unsubDiscoveryJobs = subscribeDiscoveryJobs(setDiscoveryJobs);
 
     // Timeout fallback: if nothing loaded after 15s, show cached data
     const timeout = setTimeout(() => {
@@ -258,6 +262,7 @@ export function useFirebaseSync() {
       unsubRate();
       unsubBackup();
       unsubDiscovery();
+      unsubDiscoveryJobs();
       clearTimeout(timeout);
     };
   }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -390,7 +395,7 @@ export function useFirebaseSync() {
     supplierAliases, setSupplierAliases,
     supplierLists, setSupplierLists,
     prospects, setProspects, visits, setVisits, routes, setRoutes,
-    discoverySuppressed, setDiscoverySuppressed, discoveryResults,
+    discoverySuppressed, setDiscoverySuppressed, discoveryResults, discoveryJobs,
     dataReady, syncStatus, fromFirestore,
     backupStatus,
     logStock, logPrice,

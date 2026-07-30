@@ -6,7 +6,7 @@ import { saveSettings, loadSettings } from "./settings.js";
 import { scheduleDailyNotifications, cancelScheduled, hasPermission } from "./lib/notifications.js";
 import { useFirebaseSync } from "./useFirebaseSync.js";
 import { AppContext } from "./AppContext.js";
-import { loginWithEmail, logout, onAuthChange, getUserProfile, updatePresence, subscribePresence, deleteDiscoveryResult } from "./firebase.js";
+import { loginWithEmail, logout, onAuthChange, getUserProfile, updatePresence, subscribePresence, deleteDiscoveryResult, createDiscoveryJob, deleteDiscoveryJob } from "./firebase.js";
 import { isPresenceActive, formatRelative } from "./collaboration.js";
 import { LogoMark, LogoFull } from "./components/Logo.jsx";
 
@@ -540,7 +540,7 @@ export default function App() {
     supplierAliases, setSupplierAliases,
     supplierLists, setSupplierLists,
     prospects, setProspects, visits, setVisits, routes, setRoutes,
-    discoverySuppressed, setDiscoverySuppressed, discoveryResults,
+    discoverySuppressed, setDiscoverySuppressed, discoveryResults, discoveryJobs,
     syncStatus, backupStatus, logStock, logPrice,
   } = sync;
 
@@ -760,7 +760,7 @@ export default function App() {
       case "kioscos": return <Kioscos clients={clients} setClients={setClients} sales={activeSales} products={activeProducts} />;
       case "wholesaleOrder": return <WholesaleOrder clients={clients} products={products} setProducts={setProducts} sales={activeSales} setSales={setSales} logStock={logStock} />;
       case "priceList": return <PriceListScreen products={activeProducts} />;
-      case "pipeline": return <Pipeline prospects={prospects} setProspects={setProspects} clients={clients} setClients={setClients} visits={visits} setVisits={setVisits} products={activeProducts} sales={activeSales} discoveryResults={discoveryResults} onConsumeDiscoveryResult={deleteDiscoveryResult} discoverySuppressed={discoverySuppressed} setDiscoverySuppressed={setDiscoverySuppressed} />;
+      case "pipeline": return <Pipeline prospects={prospects} setProspects={setProspects} clients={clients} setClients={setClients} visits={visits} setVisits={setVisits} products={activeProducts} sales={activeSales} discoveryResults={discoveryResults} onConsumeDiscoveryResult={deleteDiscoveryResult} discoverySuppressed={discoverySuppressed} setDiscoverySuppressed={setDiscoverySuppressed} discoveryJobs={discoveryJobs} onCreateDiscoveryJob={createDiscoveryJob} onCancelDiscoveryJob={deleteDiscoveryJob} />;
       case "prospectMap": return <ProspectMap prospects={activeProspects} clients={clients} sales={activeSales} products={activeProducts} />;
       case "routes": return <Routes routes={routes} setRoutes={setRoutes} clients={clients} sales={activeSales} setSales={setSales} />;
       case "cuentasCorrientes": return <CuentasCorrientes clients={clients} sales={activeSales} setSales={setSales} />;

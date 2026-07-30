@@ -15,7 +15,7 @@ import {
 import { useAppContext } from "../AppContext.js";
 import { PresentationMessageModal } from "./wholesale/PresentationMessageModal.jsx";
 import { ProspectDiagnosisModal } from "./wholesale/ProspectDiagnosisModal.jsx";
-import { DiscoveryReviewModal, DiscoverySuppressedModal } from "./wholesale/DiscoveryReview.jsx";
+import { DiscoveryReviewModal, DiscoverySuppressedModal, DiscoverySearchModal, DiscoveryJobsStatus } from "./wholesale/DiscoveryReview.jsx";
 import { altaDesdeDescubierto, suprimirDescubierto } from "../lib/discovery/discoveryImport.js";
 
 // Pipeline de captación mayorista (kanban sin drag — botones de avance, anda en
@@ -47,6 +47,7 @@ export function Pipeline({
   // con memoria + callback para borrar el doc de staging ya consumido.
   discoveryResults = [], onConsumeDiscoveryResult,
   discoverySuppressed = [], setDiscoverySuppressed,
+  discoveryJobs = [], onCreateDiscoveryJob, onCancelDiscoveryJob,
 }) {
   const { isMobile } = useResponsive();
   const { logAudit, currentUser, exchangeRate } = useAppContext();
@@ -62,6 +63,7 @@ export function Pipeline({
   const [calif, setCalif] = useState({});             // calificación rápida (solo prospectos)
   const [revisando, setRevisando] = useState(false);  // revisión de descubiertos (discovery)
   const [suppModal, setSuppModal] = useState(false);  // descartados con memoria (discovery §7)
+  const [buscando, setBuscando] = useState(false);    // form de nueva búsqueda (discovery §3)
 
   const activeProspects = useMemo(() => prospects.filter(p => p && !p.isDeleted && !p.convertedClientId), [prospects]);
   const mayoristas = useMemo(() => clients.filter(c => c && !c.isDeleted && c.type === "mayorista"), [clients]);
@@ -198,6 +200,19 @@ export function Pipeline({
     setDiscoverySuppressed?.(prev => prev.filter(e => e.id !== s.id));
     logAudit?.("rehab", "prospect", s.id, `Rehabilitado del descarte: ${s.nombre || s.web}`);
   };
+  const crearBusqueda = (busqueda) => {
+    const job = {
+      id: uid(), ...busqueda, status: "pendiente", counts: null, error: "",
+      createdBy: currentUser?.name || "?", createdAt: now(), startedAt: "", finishedAt: "",
+    };
+    onCreateDiscoveryJob?.(job);
+    logAudit?.("create", "discoveryJob", job.id, `Búsqueda: "${job.termino}" en ${job.zona} (tope ${job.tope})`);
+    setBuscando(false);
+  };
+  const cancelarBusqueda = (j) => {
+    onCancelDiscoveryJob?.(j.id);
+    logAudit?.("delete", "discoveryJob", j.id, `Búsqueda ${j.status === "error" ? "descartada" : "cancelada"}: "${j.termino}" en ${j.zona}`);
+  };
 
   return (
     <div>
@@ -208,9 +223,13 @@ export function Pipeline({
             <Btn variant="secondary" onClick={() => setSuppModal(true)}>⛔ Descartados ({discoverySuppressed.length})</Btn>
           )}
           {activeProspects.length > 0 && <Btn variant="secondary" onClick={() => downloadCSV(`prospectos_${new Date().toISOString().slice(0, 10)}.csv`, prospectsToCSV(prospects))}>📥 CSV</Btn>}
+          <Btn variant="secondary" onClick={() => setBuscando(true)}>🔎 Descubrir</Btn>
           <Btn onClick={openNew}>+ Nuevo prospecto</Btn>
         </div>
       </div>
+
+      {/* Discovery: búsquedas en cola / en curso / con error */}
+      <DiscoveryJobsStatus jobs={discoveryJobs} onCancel={cancelarBusqueda} />
 
       {/* Discovery: búsquedas terminadas esperando revisión (nada entra solo) */}
       {pendienteDiscovery && (
@@ -384,6 +403,9 @@ export function Pipeline({
       <DiscoverySuppressedModal
         open={suppModal} onClose={() => setSuppModal(false)}
         suprimidos={discoverySuppressed} onRehabilitar={rehabilitar}
+      />
+      <DiscoverySearchModal
+        open={buscando} onClose={() => setBuscando(false)} onCreate={crearBusqueda}
       />
     </div>
   );

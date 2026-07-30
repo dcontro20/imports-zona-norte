@@ -4,6 +4,7 @@ import { describe, it, expect } from "vitest";
 import {
   normalizarTelefono, clavesDeRegistro, puedeSuprimirse,
   revisarDescubiertos, altaDesdeDescubierto, suprimirDescubierto,
+  identidadesExistentes,
 } from "./discoveryImport.js";
 
 const desc = (over = {}) => ({
@@ -108,6 +109,27 @@ describe("revisarDescubiertos — dedup + supresión", () => {
       clients: [{ name: "Cliente Ajeno", phone: "011 5555 0002" }],
     });
     expect(r.importables).toBe(1);
+  });
+});
+
+describe("identidadesExistentes — el estado que el worker inyecta al runner", () => {
+  it("junta prospectos + clientes vivos + staging pendiente; ignora borrados", () => {
+    const claves = identidadesExistentes({
+      prospects: [
+        { businessName: "Kiosco A", address: "Calle 1" },
+        { businessName: "Kiosco Borrado", address: "Calle 2", isDeleted: true },
+      ],
+      clients: [{ name: "Cliente B", phone: "011 4444 5555" }],
+      staging: [{ prospectos: [{ businessName: "Staged C", address: "Calle 3", placeId: "PID_C" }] }],
+    });
+    expect(claves.has("nd:kiosco-a|calle-1")).toBe(true);
+    expect(claves.has("nd:kiosco-borrado|calle-2")).toBe(false);
+    expect(claves.has("tel:1144445555")).toBe(true);
+    expect(claves.has("pid:PID_C")).toBe(true);
+  });
+  it("vacío da set vacío (primera corrida del sistema)", () => {
+    expect(identidadesExistentes({}).size).toBe(0);
+    expect(identidadesExistentes().size).toBe(0);
   });
 });
 

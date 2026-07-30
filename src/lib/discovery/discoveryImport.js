@@ -94,6 +94,30 @@ export function revisarDescubiertos({ prospectos = [], prospects = [], clients =
   };
 }
 
+// Identidades ya conocidas por el sistema, para inyectar al runner como
+// `existentes` (el worker las arma desde Firestore antes de scrapear).
+// Incluye: prospectos vivos, clientes vivos y descubiertos todavía en staging
+// (una búsqueda repetida antes de revisar la anterior no re-staged lo mismo).
+// Los suprimidos NO van acá: viajan aparte al runner (cuentan como
+// saltadosSuprimidos, no como duplicados — contrato §3).
+export function identidadesExistentes({ prospects = [], clients = [], staging = [] } = {}) {
+  const claves = new Set();
+  for (const p of prospects) {
+    if (!p || p.isDeleted) continue;
+    for (const k of clavesDeRegistro(p)) claves.add(k);
+  }
+  for (const c of clients) {
+    if (!c || c.isDeleted) continue;
+    for (const k of clavesDeRegistro(c)) claves.add(k);
+  }
+  for (const doc of staging) {
+    for (const p of doc?.prospectos || []) {
+      for (const k of clavesDeRegistro(p)) claves.add(k);
+    }
+  }
+  return claves;
+}
+
 // Descubierto confirmado → prospecto FINAL (nace en IZN acá — contrato §5).
 // id/fechas los inyecta el llamador (uid()/now() viven en la app).
 export function altaDesdeDescubierto(p, { id, at } = {}) {
