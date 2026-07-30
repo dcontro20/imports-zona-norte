@@ -98,6 +98,17 @@ margen de 5000ms, no un problema funcional (los tests pasan aislados y el
 camino legacy está intacto). Mitigación candidata cuando se decida:
 `testTimeout` mayor para App.test.jsx o drenar lazy chunks con más margen.
 
+**Actualización 2026-07-30 (F2/F3 del Discovery Engine):** el flake se
+AMPLIFICÓ — ahora falla ~1 test por corrida completa de forma casi
+consistente, y una vez falló 4/4 incluso aislado con la máquina cargada
+(post-build; re-corrido dos veces dio 4/4). Causa probable acumulada: App
+monta 2 suscripciones más (discoveryResults + discoveryJobs) y el chunk de
+Pipeline creció con la UI de revisión. Sigue sin ser funcional. Decisión de
+Gustavo (gate F3): queda en backlog, NO se corrige mezclado con la
+validación del Discovery. Mitigación recomendada al retomarlo: subir
+`testTimeout` de App.test.jsx (p. ej. 15000) — es un smoke de montaje, no
+un test de latencia.
+
 ## 🟢 B7 — Menores
 
 - `docs/PLAN_MAYORISTA.md:158-159` desactualizado: dice `businessMode` default
