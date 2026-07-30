@@ -328,6 +328,9 @@ export function useFirebaseSync() {
   useEffect(() => smartSave("supplierProfiles", supplierProfiles), [supplierProfiles]); // eslint-disable-line
   useEffect(() => smartSave("supplierAliases", supplierAliases), [supplierAliases]); // eslint-disable-line
   useEffect(() => smartSave("supplierLists", supplierLists), [supplierLists]); // eslint-disable-line
+  useEffect(() => smartSave("prospects", prospects), [prospects]); // eslint-disable-line
+  useEffect(() => smartSave("visits", visits), [visits]); // eslint-disable-line
+  useEffect(() => smartSave("routes", routes), [routes]); // eslint-disable-line
   useEffect(() => smartSave("exchangeRate", exchangeRate), [exchangeRate]); // eslint-disable-line
 
   // ---- Auto-fetch dolar blue ----
