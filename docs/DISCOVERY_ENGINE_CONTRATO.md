@@ -1,6 +1,6 @@
 # DISCOVERY ENGINE — Contrato (v2, capacidad propia)
 
-**Fecha:** 2026-07-30 · **Branch:** `feature/discovery-engine` · **Estado:** propuesto (gate F1)
+**Fecha:** 2026-07-30 · **Branch:** `feature/discovery-engine` · **Estado:** ✅ **CONGELADO** (gate F1 aprobado por Gustavo, 2026-07-30)
 
 **v2 reemplaza a v1** (misma fecha): la v1 describía un puente donde el worker
 invocaba código de Atlas en runtime. Por decisión de Gustavo, el objetivo es
@@ -119,6 +119,13 @@ manual. Nada entra al Pipeline sin confirmación humana.
 | término/ubicación/fecha del job, via | `descubiertoTermino`, `descubiertoEn`, `descubiertoAt`, `via` | procedencia (espíritu P1) |
 | `web`, red detectada | `web`, `redSocial` | la URL siempre queda en `web`; `redSocial` etiqueta la plataforma (facebook/instagram/tiktok/linktree) o `""` |
 | `categoria`, `email`, `rating`, `reviews_count`, `horarios_completos` | `categoria`, `email`, `rating`, `reviewsCount`, `horariosCompletos` | passthrough para calibración futura — **hoy NO alimentan señales** (rúbrica congelada) |
+
+**Regla sobre `categoria` (aclaración del gate F1):** es un hecho INFORMATIVO.
+La categorización de Maps es inconsistente (la corrida real trajo "Kiosco",
+"Quiosco", "Heladería", "Comercio" y "Tienda de golosinas" para la misma
+búsqueda), así que **ningún código filtra, matchea ni deduplica por categoría —
+ni ahora ni en F2/F3**. La búsqueda se basa en el término que ingresa Diego; el
+filtro de rubro es humano, en el modal de revisión.
 
 `id` y `createdAt` los pone el import de la app al confirmar Diego. La señales
 del engine leen `zone`/`phone`/`source`/`calificacion` — un descubierto entra
