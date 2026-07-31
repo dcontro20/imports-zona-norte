@@ -63,3 +63,24 @@ describe("packBackup + validateBackup", () => {
     expect(r.summary.schemaResults.products.invalid).toBe(1);
   });
 });
+
+describe("strictSchemas — colecciones del CRM (ciclo B3)", () => {
+  it("valida prospects/visits/routes/discoverySuppressed y reporta los inválidos", () => {
+    const packed = packBackup({
+      prospects: [
+        { id: "p1", businessName: "Kiosco OK", zone: "Martínez" },
+        { id: "p2" },                                     // sin businessName ⇒ inválido
+      ],
+      visits: [{ id: "v1", targetId: "p1", outcome: "interesado" }],
+      routes: [{ id: "r1", status: "planificada" }],
+      discoverySuppressed: [{ id: "s1", nombre: "X", direccion: "C 1" }],
+    });
+    const r = validateBackup(packed, { strictSchemas: true });
+    expect(r.valid).toBe(true);                            // checksum OK (soft schemas)
+    expect(r.summary.schemaResults.prospects.valid).toBe(1);
+    expect(r.summary.schemaResults.prospects.invalid).toBe(1);
+    expect(r.summary.schemaResults.visits.invalid).toBe(0);
+    expect(r.summary.schemaResults.routes.invalid).toBe(0);
+    expect(r.summary.schemaResults.discoverySuppressed.invalid).toBe(0);
+  });
+});

@@ -7,7 +7,10 @@
 // — no es criptográfico (no necesitamos seguridad, solo detección de
 // corrupción accidental).
 
-import { validateBatch, ProductSchema, SaleSchema, ClientSchema, ExpenseSchema } from "./schemas.js";
+import {
+  validateBatch, ProductSchema, SaleSchema, ClientSchema, ExpenseSchema,
+  ProspectSchema, VisitSchema, RouteSchema, DiscoverySuppressedSchema,
+} from "./schemas.js";
 
 // Hash determinístico de un string (DJB2). Suficiente para detectar
 // modificación accidental, no para verificar autenticidad.
@@ -75,6 +78,19 @@ export function validateBackup(backup, { strictSchemas = false } = {}) {
     }
     if (Array.isArray(backup.data.expenses)) {
       schemaResults.expenses = validateBatch(ExpenseSchema, backup.data.expenses);
+    }
+    // CRM de prospección (ciclo B3)
+    if (Array.isArray(backup.data.prospects)) {
+      schemaResults.prospects = validateBatch(ProspectSchema, backup.data.prospects);
+    }
+    if (Array.isArray(backup.data.visits)) {
+      schemaResults.visits = validateBatch(VisitSchema, backup.data.visits);
+    }
+    if (Array.isArray(backup.data.routes)) {
+      schemaResults.routes = validateBatch(RouteSchema, backup.data.routes);
+    }
+    if (Array.isArray(backup.data.discoverySuppressed)) {
+      schemaResults.discoverySuppressed = validateBatch(DiscoverySuppressedSchema, backup.data.discoverySuppressed);
     }
   }
 
