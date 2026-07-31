@@ -79,20 +79,37 @@ gestiona copia propia.
 `779c5e8` F3 UI búsqueda · `35d652e` F3 worker + binario · `6c531d4` journal +
 B9 · `d08a6db` crearJob.mjs + ADC.
 
-## Pendiente para cerrar (pasos manuales + revisión visual)
+## F4 CERRADA (2026-07-31) — bloque completo
 
-1. **`sudo chown -R $USER /Users/Gustavo/.config`** (ownership roto de la Mac)
-   y **`firebase login`** → deploy de rules (`firebase deploy --only
-   firestore:rules`): la service account no tiene rol de deploy (403
-   serviceusage) — sirve para el worker, no para administrar el proyecto.
-2. **Mover la credencial**: `mv ~/Downloads/imports-zona-norte-firebase-adminsdk-*.json
-   .credentials/firebase-admin-sa.json && chmod 600 ...` (hoy se usa vía
-   `GOOGLE_APPLICATION_CREDENTIALS`; el LaunchAgent espera la ruta estándar).
-3. **Revisión visual de la mitad app** (post-deploy de rules, en local dev):
-   banner "🔎 10 descubiertos de kiosco — Martínez" → revisar → importar
-   alguno y descartar otro → verlos rankeados. Con eso F4 cierra entera.
-4. Instalar el LaunchAgent (`scripts/DISCOVERY_SETUP.md` paso 5).
-5. Merge a `main` cuando Gustavo/Diego lo decidan (mismo protocolo PR que el
-   Prospect Engine).
-6. Repo de Atlas: commitear allá el alta kiosco + script de fixtures +
-   fixture (junto con los entregables F0 del engine, pendientes de antes).
+- **Rules deployadas** (login de Gustavo; la service account quedó solo para
+  datos, como corresponde).
+- **Revisión visual aprobada**: banner de Martínez → importación + descarte →
+  chips "Baja" + ◍ → **F5 con persistencia (B1 en acción)** → ⛔ Descartados.
+- **Segundo ciclo entero desde la UI**: búsqueda "Kiosko" — Palermo creada
+  por Gustavo en 🔎 Descubrir → worker 49 s → 9 descubiertos + 1 dup del
+  runner → banner en vivo → revisión. Todo el circuito validado en
+  producción, ida y vuelta.
+- Dato: Maps publica teléfono solo en ~45% de fichas de kioscos — cuando
+  está, viaja entero (modal, ficha, clave de dedup). No es pérdida nuestra.
+
+## Pendientes operativos (Gustavo, sin bloqueo técnico)
+
+1. Mover la credencial: `mkdir -p .credentials && mv
+   ~/Downloads/imports-zona-norte-firebase-adminsdk-*.json
+   .credentials/firebase-admin-sa.json && chmod 600
+   .credentials/firebase-admin-sa.json` (hoy vía
+   `GOOGLE_APPLICATION_CREDENTIALS`; el LaunchAgent espera esa ruta).
+2. Instalar el LaunchAgent (`scripts/DISCOVERY_SETUP.md` paso 5).
+3. Higiene de la Mac: `sudo chown -R $USER:$(id -gn $USER) ~/.config` y
+   `sudo chown -R 501:20 ~/.npm` (root-owned; molestan a todo npm/npx).
+4. Repo de Atlas: commitear allá alta kiosco + script + fixture (junto con
+   los entregables F0 del engine, pendientes de antes).
+5. Merge a `main` cuando Gustavo/Diego decidan (protocolo PR como el engine).
+
+## Próximo bloque candidato (aprobado como idea, SIN construir)
+
+**Dashboard de captación**: reorganizar Panel mayorista / Pipeline /
+Prospección con un dashboard madre (búsquedas en curso, descubiertos
+esperando, funnel, zonas) y el kanban/revisión como vistas. Rediseño de
+navegación — el engine y el discovery no se tocan. Requiere propuesta de
+pantallas aprobada ANTES de construir.

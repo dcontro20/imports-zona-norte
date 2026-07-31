@@ -375,16 +375,24 @@ Sesión con gates por fase dirigida por Gustavo. **Contrato CONGELADO:**
 - **Worker** `scripts/discovery/` (Node + Admin SDK + LaunchAgent 5 min):
   claim TRANSACCIONAL (solapamiento inofensivo), jamás escribe appData,
   errores textuales al job. Herramienta ops: `crearJob.mjs`.
-- **Validado con producción real (F4 mitad worker)**: job kiosco/Martínez
-  tope 10 → worker 39s → staging contrato §5 OK 10/10 → revisión: 9
-  importables + 1 dup real por teléfono compartido (sucursales) → ranking
-  9/9 Baja+◍, gate OK. **Staging quedó en prod SIN consumir** (para la
-  revisión visual). Suite **1229 tests** (+82 en el bloque).
-- **Pendiente**: deploy de rules (la SA no tiene rol — necesita
-  `firebase login` de Gustavo tras arreglar ownership de `~/.config`),
-  mover credencial a `.credentials/firebase-admin-sa.json`, revisión visual
-  de la mitad app en local dev, LaunchAgent, merge. Mejoras futuras
-  documentadas SIN implementar: M-D1/M-D2 en el backlog.
+- **F4 COMPLETA — BLOQUE CERRADO (2026-07-31), validado en producción real
+  ida y vuelta**: (1) job kiosco/Martínez tope 10 → worker 39s → staging §5
+  OK 10/10 → revisión: 9 importables + 1 dup real por teléfono compartido
+  (sucursales) → ranking 9/9 Baja+◍, gate OK; (2) rules deployadas (login de
+  Gustavo — la SA firebase-adminsdk NO tiene rol de deploy, solo datos);
+  (3) revisión visual aprobada: banner → importar/descartar → F5 persiste
+  (B1 en acción) → ⛔ Descartados; (4) segundo ciclo ENTERO desde la UI
+  ("Kiosko"—Palermo creada en 🔎 Descubrir → worker 49s → 9+1dup → revisión).
+  Suite **1229 tests** (+82 en el bloque). Dato: Maps publica teléfono en
+  ~45% de fichas de kioscos (no es pérdida nuestra).
+- **Pendientes operativos** (sin bloqueo): mover credencial a
+  `.credentials/firebase-admin-sa.json` (hoy va por
+  GOOGLE_APPLICATION_CREDENTIALS desde ~/Downloads), LaunchAgent, chowns de
+  higiene (~/.config y ~/.npm root-owned), commitear el lado Atlas, merge a
+  main (protocolo PR). Mejoras futuras SIN implementar: M-D1/M-D2 (backlog).
+- **Próximo bloque candidato** (idea aprobada, sin construir): "dashboard de
+  captación" — Panel/Pipeline/Prospección reorganizados con dashboard madre
+  y vistas; propuesta de pantallas ANTES de construir.
 
 ## Estado del proyecto al 28/07/2026
 

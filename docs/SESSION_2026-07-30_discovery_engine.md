@@ -176,3 +176,34 @@ cambiar comportamiento en esta versión):**
 rules, es el banner "🔎 10 descubiertos" con el que Gustavo cierra la mitad
 app a ojo (local dev — el branch no está mergeado). B1 quedó anotado como
 RESUELTO en el backlog; B9 amplificado quedó con su mitigación recomendada.
+
+## F4 mitad app + CIERRE DEL BLOQUE (2026-07-31)
+
+Gustavo destrabó el deploy con `firebase login` (workaround sin sudo: cache
+npm y XDG_CONFIG_HOME en /tmp — las dos carpetas root-owned de la Mac siguen
+pendientes de chown). **Rules deployadas** (compilaron y se liberaron OK) con
+su login; la service account quedó solo para datos (worker), como
+corresponde.
+
+**Revisión visual en local dev (contra prod), aprobada por Gustavo:**
+- Banner de Martínez → modal de revisión → importación + descarte → chips
+  "Baja" + aviso ◍ → F5 con persistencia (B1 en acción) → ⛔ Descartados.
+- **Segundo ciclo COMPLETO desde la UI**: Gustavo creó "Kiosko" — Palermo
+  (tope 10) desde 🔎 Descubrir (rules nuevas permitiendo el write del job;
+  ubicación autocompuesta por el form) → worker 49 s → 9 descubiertos + 1
+  dup filtrado por el runner → banner en vivo → revisión en la app. El único
+  tramo que faltaba validar en producción (job desde el form) quedó cubierto.
+
+**Pregunta de Gustavo sobre teléfonos**: no es pérdida nuestra — Maps solo
+publica teléfono en ~45% de las fichas de kioscos (medido en ambas corridas);
+cuando está, viaja entero (modal, ficha, clave de dedup).
+
+**Próximo bloque candidato (a proponer ANTES de construir, como siempre):**
+"dashboard de captación" — reorganizar Panel mayorista / Pipeline /
+Prospección con un dashboard madre y el kanban/revisión como vistas.
+Rediseño de navegación; el engine y el discovery no se tocan.
+
+**El bloque Discovery Engine queda CERRADO.** Pendientes operativos (Gustavo):
+mover la credencial a `.credentials/firebase-admin-sa.json`, instalar el
+LaunchAgent, los dos `sudo chown` de higiene de la Mac, commitear el lado
+Atlas, y decidir el merge a main (protocolo PR como el engine).
