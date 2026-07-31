@@ -1,6 +1,6 @@
 # 📐 Estructura del sistema — snapshot automático
 
-> Actualizado: **2026-07-30** · Generado por `scripts/generate-structure-doc.mjs`
+> Actualizado: **2026-07-31** · Generado por `scripts/generate-structure-doc.mjs`
 > (cron nocturno). **No editar a mano** — los cambios se sobrescriben.
 > Para la guía humana de cómo está organizado todo, ver `MAPA_DEL_SISTEMA.md`.
 > Para decisiones y contexto, ver `CLAUDE.md` + `docs/SESSION_*.md`.
@@ -9,14 +9,14 @@
 
 | Capa | Archivos | Líneas (aprox.) |
 |---|---:|---:|
-| Componentes (pantallas + sub-piezas) | 72 | 27.959 |
-| Módulos puros (cerebro de cálculos) | 20 | 2.600 |
-| Utilidades (`src/lib/`) | 59 | 6.265 |
-| Tests | 73 | — |
+| Componentes (pantallas + sub-piezas) | 78 | 28.700 |
+| Módulos puros (cerebro de cálculos) | 20 | 2.634 |
+| Utilidades (`src/lib/`) | 60 | 6.303 |
+| Tests | 83 | — |
 | Scripts | 14 | — |
 | Endpoints serverless | 2 | — |
 | Workflows GitHub Actions | 5 | — |
-| Docs (.md) | 49 | — |
+| Docs (.md) | 55 | — |
 
 ---
 
@@ -32,7 +32,7 @@ Cada archivo `.jsx` es una pantalla o módulo visible en la nav. La columna
 | CashBox.jsx | 991 | — |
 | Clients.jsx | 1048 | — |
 | Closures.jsx | 457 | -- MONTHLY CLOSURES -- |
-| CommandPalette.jsx | 169 | Command palette estilo Linear / Notion. Se abre con Cmd+K (Mac) o Ctrl+K (PC). Lista TODAS las acciones del sistema con fuzzy match. Diego s |
+| CommandPalette.jsx | 170 | Command palette estilo Linear / Notion. Se abre con Cmd+K (Mac) o Ctrl+K (PC). Lista TODAS las acciones del sistema con fuzzy match. Diego s |
 | Coupons.jsx | 577 | — |
 | CuentasCorrientes.jsx | 114 | — |
 | Dashboard.jsx | 1353 | ---------- helpers ---------- |
@@ -46,11 +46,12 @@ Cada archivo `.jsx` es una pantalla o módulo visible en la nav. La columna
 | Offers.jsx | 1398 | — |
 | OnboardingTour.jsx | 123 | Onboarding tour mínimo. Se muestra UNA SOLA VEZ por device (localStorage flag). Sirve para explicarle a Diego (o a un usuario nuevo |
 | Partners.jsx | 629 | — |
-| Pipeline.jsx | 278 | — |
+| Pipeline.jsx | 158 | — |
 | PriceLog.jsx | 620 | -- PRICE MANAGEMENT -- |
 | Procurement.jsx | 142 | Hub unificado de Abastecimiento — un solo punto de entrada para todo el ciclo de compra: Resumen (centro de comando) + Pedidos + Proveedores |
 | Products.jsx | 837 | — |
 | ProspectMap.jsx | 94 | Mapa de prospección — VISTA POR ZONA (cobertura). El mapa geográfico con pins llega junto con Google Places (2.5, diferido). Por ahora, para |
+| Prospectos.jsx | 333 | Prospectos.jsx — el mini CRM de Prospect Intelligence (spec CONGELADO: docs/PROSPECT_CRM_SPEC.md). Una sola puerta para todo el ciclo del |
 | PublicCatalog.jsx | 218 | Vista pública del catálogo. Renderiza un snapshot decodificado del hash de la URL. NO requiere autenticación ni Firebase. NO tiene navegació |
 | Purchases.jsx | 1067 | — |
 | QuickSale.jsx | 334 | ============================================ QUICK SALE — Mobile-optimized one-tap sale |
@@ -129,13 +130,18 @@ Cada archivo `.jsx` es una pantalla o módulo visible en la nav. La columna
 | SupplierProfileModal.jsx | 145 | — |
 | processHelpers.js | 91 | src/components/supplier/processHelpers.js Helpers compartidos entre las tabs del módulo de Proveedores. |
 
-### `src/components/wholesale/` (3 archivos)
+### `src/components/wholesale/` (8 archivos)
 
 | Archivo | Líneas | Qué hace |
 |---|---|---|
+| DiscoveryReview.jsx | 205 | DiscoveryReview.jsx — revisión humana de descubiertos (contrato §4/§6/§7). Regla de consumo: esta UI usa SOLO discoveryImport.js (revisar/pu |
 | PresentationMessageModal.jsx | 45 | Modal compartido (Pipeline + Kioscos) para el mensaje de PRESENTACIÓN B2B (Bloque 2 — front de ventas): primer contacto con un kiosco. Elegí |
 | PriceListScreen.jsx | 82 | 🏷️ Lista de precios (Bloque 2.2 — front de ventas). Herramienta de venta para usar PARADO EN EL MOSTRADOR con el kiosquero enfrente: |
-| ProspectDiagnosisModal.jsx | 90 | Ficha de diagnóstico de un prospecto. RENDER PURO de lo que la fachada del Prospect Engine ya dejó listo (item.diagnostico / item.scoreResul |
+| ProspectDiagnosisModal.jsx | 98 | Ficha de diagnóstico de un prospecto. RENDER PURO de lo que la fachada del Prospect Engine ya dejó listo (item.diagnostico / item.scoreResul |
+| ProspectFicha.jsx | 139 | ProspectFicha.jsx — la FICHA del prospecto: el centro operativo del mini CRM (spec docs/PROSPECT_CRM_SPEC.md §Ficha, F3). No es un detalle d |
+| ProspectFormModal.jsx | 65 | ProspectFormModal.jsx — alta/edición de prospecto. Extraído de Pipeline en F2 del mini CRM (spec docs/PROSPECT_CRM_SPEC.md) para usarlo tamb |
+| VisitModal.jsx | 79 | VisitModal.jsx — registro de visita + calificación rápida (Prospect Engine). Extraído de Pipeline en F2 del mini CRM (spec docs/PROSPECT_CRM |
+| prospectActions.js | 31 | prospectActions.js — las acciones de gestión del prospecto (avanzar etapa / convertir a mayorista / borrar) como ÚNICA fuente: las usan el k |
 
 ## 🧠 Módulos puros — el "cerebro" de cálculos (`src/`)
 
@@ -151,7 +157,7 @@ producto/cliente, métricas, sync. Sin pantalla → testeable.
 | constants.js | 4 | Fachada de re-export — mantiene todos los imports existentes funcionando. Contenido real en src/constants/*.js organizados por tema. |
 | executiveMetrics.js | 43 | Métricas ejecutivas — lógica pura para el panorama "salud del negocio en 1 pantalla" (S19). Sin side effects, testeable. |
 | finance.js | 222 | src/finance.js Motor financiero PURO. Funciones de costeo real, COGS devengado, valuación |
-| firebase.js | 169 | — |
+| firebase.js | 189 | — |
 | helpers.js | 38 | — |
 | pricing.js | 313 | src/pricing.js Funciones PURAS de pricing y promos. Sin state. Reciben datos por |
 | productIntelligence.js | 467 | src/productIntelligence.js Funciones PURAS de inteligencia de producto. |
@@ -159,7 +165,7 @@ producto/cliente, métricas, sync. Sin pantalla → testeable.
 | routes.js | 91 | src/routes.js Lógica PURA de rutas de reparto mayorista. Nivel BÁSICO (acordado): agrupar |
 | settings.js | 48 | Settings configurables por el usuario. Persisten en localStorage. Si en el futuro queremos sync entre devices, se migra a Firestore key. |
 | theme.js | 49 | Paleta inspirada en el logo de Imports Zona Norte: navy profundo + cream cálido. El navy se usa como primary y para texto. El cream da una a |
-| useFirebaseSync.js | 286 | safeSetItem — escribe a localStorage manejando QuotaExceededError. Si el storage llena (típicamente 5-10MB en mobile/Safari), el setItem |
+| useFirebaseSync.js | 300 | safeSetItem — escribe a localStorage manejando QuotaExceededError. Si el storage llena (típicamente 5-10MB en mobile/Safari), el setItem |
 | useSettings.js | 11 | Hook para consumir settings configurables. Re-renderiza cuando se emiten cambios (event "izn:settings-changed"). |
 | wholesale.js | 92 | src/wholesale.js Motor de pricing MAYORISTA (pivote a venta mayorista). Funciones PURAS. |
 | wholesaleIntelligence.js | 133 | src/wholesaleIntelligence.js Inteligencia B2B (mayorista). Funciones PURAS. Opera sobre clientes |
@@ -198,6 +204,7 @@ producto/cliente, métricas, sync. Sin pantalla → testeable.
 | offerCalendar.js | 68 | src/lib/offerCalendar.js Plan semanal sugerido de ofertas: qué audiencia y qué tipo de mensaje |
 | offerHistory.js | 115 | src/lib/offerHistory.js Historial de ofertas mandadas + tracking de conversión. |
 | offers.js | 319 | src/lib/offers.js Generador de mensajes de oferta para WhatsApp. Funciones PURAS que arman |
+| prospectActividad.js | 38 | prospectActividad.js — la sección Actividad de la Ficha (spec §Ficha.5, docs/PROSPECT_CRM_SPEC.md) como LISTA DE EVENTOS TIPADOS: |
 | prospectDiagnosis.js | 115 | prospectDiagnosis.js — número → LENGUAJE. Port de la mecánica de prospect_crm/diagnosis.py de Atlas (la palabra lidera, el número respalda, |
 | prospectRanking.js | 38 | prospectRanking.js — LA FACHADA del Prospect Engine para la UI. Este es el ÚNICO módulo del engine que la capa de React debe importar. |
 | prospectRubric.js | 61 | prospectRubric.js — la rúbrica de Imports para el Prospect Engine, como DATOS. Versión izn-v1 · BORRADOR del diseño §7 (PROSPECT_ENGINE_DESI |
@@ -269,15 +276,17 @@ producto/cliente, métricas, sync. Sin pantalla → testeable.
 
 ## 🧪 Tests
 
-Tests detectados: **73**. Para correrlos: `npm test`.
+Tests detectados: **83**. Para correrlos: `npm test`.
 
 - `src/App.test.jsx`
 - `src/calcs.test.js`
 - `src/clientIntelligence.test.js`
 - `src/collaboration.test.js`
 - `src/components/Pipeline.test.jsx`
+- `src/components/Prospectos.test.jsx`
 - `src/components/UI.test.jsx`
 - `src/components/purchases/purchaseHelpers.test.js`
+- `src/components/wholesale/DiscoveryReview.test.jsx`
 - `src/executiveMetrics.test.js`
 - `src/finance.test.js`
 - `src/lib/arrayMerge.test.js`
@@ -292,6 +301,12 @@ Tests detectados: **73**. Para correrlos: `npm test`.
 - `src/lib/dailyPlan.test.js`
 - `src/lib/dashboardAlerts.test.js`
 - `src/lib/dashboardGoal.test.js`
+- `src/lib/discovery/discoverRun.test.js`
+- `src/lib/discovery/discoveryImport.test.js`
+- `src/lib/discovery/gosomParse.test.js`
+- `src/lib/discovery/identity.test.js`
+- `src/lib/discovery/izn_discovery.golden.test.js`
+- `src/lib/discovery/mapProspect.test.js`
 - `src/lib/errorReporter.test.js`
 - `src/lib/financeForecast.test.js`
 - `src/lib/financeInsights.test.js`
@@ -309,6 +324,7 @@ Tests detectados: **73**. Para correrlos: `npm test`.
 - `src/lib/offerHistory.test.js`
 - `src/lib/offers.test.js`
 - `src/lib/operationsCap7.test.js`
+- `src/lib/prospectActividad.test.js`
 - `src/lib/prospectDiagnosis.test.js`
 - `src/lib/prospectRanking.test.js`
 - `src/lib/prospectRubric.test.js`
@@ -338,6 +354,7 @@ Tests detectados: **73**. Para correrlos: `npm test`.
 - `src/prospecting.test.js`
 - `src/routes.edge.test.js`
 - `src/routes.test.js`
+- `src/useFirebaseSync.autosave.test.js`
 - `src/wholesale.edge.test.js`
 - `src/wholesale.test.js`
 - `src/wholesaleIntelligence.edge.test.js`
@@ -359,15 +376,18 @@ Tests detectados: **73**. Para correrlos: `npm test`.
 - `docs/BACKLOG_TECNICO_2026-07-28_prospeccion_y_sync.md`
 - `docs/BACKUP_AUTOMATION.md`
 - `docs/CHECKLIST_PRIMER_USO.md`
+- `docs/DISCOVERY_ENGINE_CONTRATO.md`
 - `docs/ESTRUCTURA.md`
 - `docs/FIREBASE_AUTH_SETUP.md`
 - `docs/GUIA_MAYORISTA.md`
 - `docs/INTEGRACION_PROSPECT_ENGINE.md`
 - `docs/IZN_Backup_Hardening_Resumen.md`
+- `docs/IZN_Discovery_Engine_Resumen.md`
 - `docs/IZN_Fix_Borrar_Mayorista_Resumen.md`
 - `docs/IZN_Front_Ventas_Resumen.md`
 - `docs/IZN_Merge_Mayorista_Resumen.md`
 - `docs/IZN_Mobile_Hardening_Resumen.md`
+- `docs/IZN_Prospect_CRM_Resumen.md`
 - `docs/IZN_Prospect_Engine_Resumen.md`
 - `docs/IZN_Tanda_E_Docs_Resumen.md`
 - `docs/IZN_Tanda_F1_Modos_Resumen.md`
@@ -377,6 +397,7 @@ Tests detectados: **73**. Para correrlos: `npm test`.
 - `docs/PLAN_MAYORISTA.md`
 - `docs/PLAN_MEJORAS_MAYORISTA.md`
 - `docs/PLAN_S14_S22.md`
+- `docs/PROSPECT_CRM_SPEC.md`
 - `docs/PROSPECT_ENGINE_ARQUITECTURA.md`
 - `docs/PROSPECT_ENGINE_CONTRATO.md`
 - `docs/PUSH_SETUP.md`
@@ -403,4 +424,6 @@ Tests detectados: **73**. Para correrlos: `npm test`.
 - `docs/SESSION_2026-07-24_fixes_y_front_ventas.md`
 - `docs/SESSION_2026-07-24_tanda_F_completa.md`
 - `docs/SESSION_2026-07-28_prospect_engine.md`
+- `docs/SESSION_2026-07-30_discovery_engine.md`
+- `docs/SESSION_2026-07-31_prospect_crm.md`
 - `docs/TEST_ENV_SETUP.md`
