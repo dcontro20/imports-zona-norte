@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { saveToFirestore, mergeIntoFirestore, subscribeToFirestore, auth } from "./firebase.js";
+import { saveToFirestore, mergeIntoFirestore, subscribeToFirestore, subscribeDiscoveryResults, subscribeDiscoveryJobs, auth } from "./firebase.js";
 import { onAuthStateChanged } from "firebase/auth";
 import { DEFAULT_PRODUCTS } from "./constants.js";
 import { loadData, uid } from "./helpers.js";
@@ -55,6 +55,7 @@ const DATA_KEYS = [
   { key: "prospects", default: [] },        // mayorista: kioscos-lead sin convertir
   { key: "visits", default: [] },           // mayorista: bitácora de visitas comerciales
   { key: "routes", default: [] },           // mayorista: rutas de reparto
+  { key: "discoverySuppressed", default: [] }, // discovery: descartados con memoria (P5 IZN, contrato §7)
 ];
 
 export function useFirebaseSync() {
@@ -82,6 +83,13 @@ export function useFirebaseSync() {
   const [supplierLists, setSupplierLists] = useState(() => loadData("supplierLists", []));
   const [prospects, setProspects] = useState(() => loadData("prospects", []));
   const [visits, setVisits] = useState(() => loadData("visits", []));
+  const [discoverySuppressed, setDiscoverySuppressed] = useState(() => loadData("discoverySuppressed", []));
+  // Staging del discovery (colección discoveryResults, FUERA de appData):
+  // solo lectura — lo escribe el worker vía Admin SDK, la app lo consume.
+  const [discoveryResults, setDiscoveryResults] = useState([]);
+  // Jobs de búsqueda (colección discoveryJobs): lectura en vivo para mostrar
+  // estado; la escritura va por createDiscoveryJob/deleteDiscoveryJob directo.
+  const [discoveryJobs, setDiscoveryJobs] = useState([]);
   const [routes, setRoutes] = useState(() => loadData("routes", []));
 
   // ---- Sync flags ----
@@ -142,6 +150,7 @@ export function useFirebaseSync() {
     supplierAliases: setSupplierAliases,
     supplierLists: setSupplierLists,
     prospects: setProspects, visits: setVisits, routes: setRoutes,
+    discoverySuppressed: setDiscoverySuppressed,
   }).current;
 
   // ---- Subscribe to Firestore ONLY when authenticated ----
@@ -233,6 +242,12 @@ export function useFirebaseSync() {
       (err) => { console.error("[SYNC] backupStatus error:", err.code || err.message); }
     );
 
+    // discoveryResults: staging del discovery, solo lectura (sin smartSave ni
+    // anti-loop — la app jamás escribe contenido; consume y borra el doc).
+    // No participa del gate de dataReady: puede no haber ningún doc.
+    const unsubDiscovery = subscribeDiscoveryResults(setDiscoveryResults);
+    const unsubDiscoveryJobs = subscribeDiscoveryJobs(setDiscoveryJobs);
+
     // Timeout fallback: if nothing loaded after 15s, show cached data
     const timeout = setTimeout(() => {
       if (!firestoreReady.current) {
@@ -246,6 +261,8 @@ export function useFirebaseSync() {
       unsubscribers.forEach(u => u());
       unsubRate();
       unsubBackup();
+      unsubDiscovery();
+      unsubDiscoveryJobs();
       clearTimeout(timeout);
     };
   }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -328,6 +345,10 @@ export function useFirebaseSync() {
   useEffect(() => smartSave("supplierProfiles", supplierProfiles), [supplierProfiles]); // eslint-disable-line
   useEffect(() => smartSave("supplierAliases", supplierAliases), [supplierAliases]); // eslint-disable-line
   useEffect(() => smartSave("supplierLists", supplierLists), [supplierLists]); // eslint-disable-line
+  useEffect(() => smartSave("prospects", prospects), [prospects]); // eslint-disable-line
+  useEffect(() => smartSave("visits", visits), [visits]); // eslint-disable-line
+  useEffect(() => smartSave("routes", routes), [routes]); // eslint-disable-line
+  useEffect(() => smartSave("discoverySuppressed", discoverySuppressed), [discoverySuppressed]); // eslint-disable-line
   useEffect(() => smartSave("exchangeRate", exchangeRate), [exchangeRate]); // eslint-disable-line
 
   // ---- Auto-fetch dolar blue ----
@@ -374,6 +395,7 @@ export function useFirebaseSync() {
     supplierAliases, setSupplierAliases,
     supplierLists, setSupplierLists,
     prospects, setProspects, visits, setVisits, routes, setRoutes,
+    discoverySuppressed, setDiscoverySuppressed, discoveryResults, discoveryJobs,
     dataReady, syncStatus, fromFirestore,
     backupStatus,
     logStock, logPrice,

@@ -12,6 +12,12 @@ Verificados sobre `feature/prospect-engine` @ `1d67ee8` (clon 2026-07-28).
 
 ## 🔴 B1 — `prospects`, `visits` y `routes` nunca se persisten
 
+> ✅ **RESUELTO 2026-07-30** (`60b368b`, branch `feature/discovery-engine`),
+> con OK explícito de Gustavo como prerequisito del Discovery Engine: 3
+> autosaves espejo + test de paridad `useFirebaseSync.autosave.test.js`
+> (invariante sobre el fuente: toda key de DATA_KEYS tiene su smartSave —
+> cubre la clase del bug). B2 y B3 siguen abiertos.
+
 **Dónde:** `src/useFirebaseSync.js:314-331`.
 
 Las tres colecciones están registradas en `DATA_KEYS` (`:55-57`), en el state
@@ -98,6 +104,17 @@ margen de 5000ms, no un problema funcional (los tests pasan aislados y el
 camino legacy está intacto). Mitigación candidata cuando se decida:
 `testTimeout` mayor para App.test.jsx o drenar lazy chunks con más margen.
 
+**Actualización 2026-07-30 (F2/F3 del Discovery Engine):** el flake se
+AMPLIFICÓ — ahora falla ~1 test por corrida completa de forma casi
+consistente, y una vez falló 4/4 incluso aislado con la máquina cargada
+(post-build; re-corrido dos veces dio 4/4). Causa probable acumulada: App
+monta 2 suscripciones más (discoveryResults + discoveryJobs) y el chunk de
+Pipeline creció con la UI de revisión. Sigue sin ser funcional. Decisión de
+Gustavo (gate F3): queda en backlog, NO se corrige mezclado con la
+validación del Discovery. Mitigación recomendada al retomarlo: subir
+`testTimeout` de App.test.jsx (p. ej. 15000) — es un smoke de montaje, no
+un test de latencia.
+
 ## 🟢 B7 — Menores
 
 - `docs/PLAN_MAYORISTA.md:158-159` desactualizado: dice `businessMode` default
@@ -133,3 +150,29 @@ Hallazgo de cobertura: en los 37 casos reales el **gate de confianza nunca
 actúa** (ningún caso con base alta/muy_alta y confidence < 0.35). El gate queda
 sin caso de oro real; la Fase 1 debe cubrirlo con tests unitarios propios del
 motor JS (o casos sintéticos marcados, a decidir).
+
+---
+
+## Mejoras futuras del Discovery Engine (observadas en F4, 2026-07-31)
+
+Decisión de Gustavo (gate F4): quedan DOCUMENTADAS, sin cambiar comportamiento
+antes de cerrar esta versión.
+
+### M-D1 — Duplicado por teléfono compartido entre sucursales
+
+En la corrida real de Martínez, "Kiosko y almacén lo del PELA II" cayó como
+duplicado de "lo del PELA": dos sucursales del mismo dueño que comparten
+teléfono (la clave fuerte `tel:` de la capa de import las une; el runner NO las
+unió porque nombre+dirección difieren — el layering funcionó como se diseñó).
+Para B2B es defendible (mismo decisor), pero Diego podría querer visitar ambas
+ubicaciones. Mejora candidata: permitir importar un "duplicado" igual, con
+confirmación explícita en el modal de revisión (hoy los duplicados no son
+accionables).
+
+### M-D2 — Zona del lote vs. ubicación real del negocio
+
+La búsqueda de Martínez trajo un kiosco de Benavídez (Maps decide el radio) y
+quedó estampado `zone: "Martínez"` — el riesgo de aproximación documentado en
+el plan. Mitigación vigente: la zona es editable en la revisión/ficha. Mejora
+candidata: detectar discrepancia dirección↔zona en el modal (aviso suave), o
+derivar zona de la dirección cuando difiere de la del job.

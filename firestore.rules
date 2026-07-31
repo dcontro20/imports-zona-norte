@@ -47,6 +47,19 @@ service cloud.firestore {
       allow read, write: if isOwner();
     }
 
+    // Discovery Engine (docs/DISCOVERY_ENGINE_CONTRATO.md §3/§4/§8):
+    // - discoveryJobs: la app crea la búsqueda y puede cancelarla; el worker
+    //   (Admin SDK, bypasea rules) la toma y la cierra.
+    // - discoveryResults: staging que escribe SOLO el worker; la app lee y
+    //   borra el doc una vez consumido en la revisión. No crea ni edita.
+    match /discoveryJobs/{jobId} {
+      allow read, write: if isOwner();
+    }
+    match /discoveryResults/{resultId} {
+      allow read, delete: if isOwner();
+      allow create, update: if false;
+    }
+
     // Fallback: cualquier otra colección — cerrada
     match /{document=**} {
       allow read, write: if false;

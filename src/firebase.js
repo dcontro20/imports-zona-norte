@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import {
-  initializeFirestore, doc, setDoc, getDoc, onSnapshot, collection,
+  initializeFirestore, doc, setDoc, getDoc, deleteDoc, onSnapshot, collection,
   persistentLocalCache, persistentMultipleTabManager,
   terminate, clearIndexedDbPersistence, runTransaction,
 } from "firebase/firestore";
@@ -78,6 +78,40 @@ export const subscribePresence = (callback) =>
   onSnapshot(collection(db, "presence"), (snap) => {
     const list = [];
     snap.forEach(d => list.push({ uid: d.id, ...d.data() }));
+    callback(list);
+  }, () => {});
+
+// ---- Discovery: staging de descubiertos (DISCOVERY_ENGINE_CONTRATO.md §4) ----
+// El worker escribe `discoveryResults` vía Admin SDK (bypasea rules); la app
+// solo LEE, y borra el doc una vez consumido en la revisión (importar /
+// descartar). La app jamás escribe contenido en esta colección.
+export const subscribeDiscoveryResults = (callback) =>
+  onSnapshot(collection(db, "discoveryResults"), (snap) => {
+    const list = [];
+    snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+    // Más viejo primero: la revisión consume en orden de llegada.
+    list.sort((a, b) => String(a.at || "").localeCompare(String(b.at || "")));
+    callback(list);
+  }, () => {});
+
+export const deleteDiscoveryResult = (id) =>
+  deleteDoc(doc(db, "discoveryResults", id)).catch(() => {});
+
+// ---- Discovery: jobs de búsqueda (contrato §3) ----
+// La app crea el job en "pendiente" y puede borrarlo (cancelar uno en cola o
+// descartar uno en error). El worker (Admin SDK) lo toma y lo cierra.
+export const createDiscoveryJob = (job) =>
+  setDoc(doc(db, "discoveryJobs", job.id), job).catch(() => {});
+
+export const deleteDiscoveryJob = (id) =>
+  deleteDoc(doc(db, "discoveryJobs", id)).catch(() => {});
+
+export const subscribeDiscoveryJobs = (callback) =>
+  onSnapshot(collection(db, "discoveryJobs"), (snap) => {
+    const list = [];
+    snap.forEach(d => list.push({ id: d.id, ...d.data() }));
+    // Más nuevo primero (es la lista de "búsquedas en curso" del Pipeline).
+    list.sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
     callback(list);
   }, () => {});
 
