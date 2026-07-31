@@ -14,6 +14,7 @@ import { PresentationMessageModal } from "./wholesale/PresentationMessageModal.j
 import { ProspectDiagnosisModal } from "./wholesale/ProspectDiagnosisModal.jsx";
 import { ProspectFormModal } from "./wholesale/ProspectFormModal.jsx";
 import { VisitModal } from "./wholesale/VisitModal.jsx";
+import { ProspectMapsLine } from "./wholesale/ProspectMapsLine.jsx";
 import { makeProspectActions } from "./wholesale/prospectActions.js";
 
 // Pipeline de captación mayorista (kanban sin drag — botones de avance, anda en
@@ -144,7 +145,9 @@ export function Pipeline({
                         </div>
                         {chip && <span style={{ flexShrink: 0 }}><Badge color={PRIORIDAD_COLOR[chip.prioridad] ?? T.textFaint}>{chip.etiqueta}</Badge></span>}
                       </div>
-                      <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 6, marginTop: 2 }}>{x.zone || "sin zona"}{x.contactName ? ` · ${x.contactName}` : ""}</div>
+                      <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2, marginBottom: isClient ? 6 : 3 }}>{x.zone || "sin zona"}{x.contactName ? ` · ${x.contactName}` : ""}</div>
+                      {/* Lo esencial de Google Maps + salto a la ficha real (micro-iteración 2026-08-01) */}
+                      {!isClient && <ProspectMapsLine prospect={x} style={{ marginTop: 2, marginBottom: 6 }} />}
                       {chip?.aviso && <div style={{ fontSize: 10, color: T.textFaint, marginBottom: 6, display: "flex", gap: 4 }}><span style={{ flexShrink: 0 }}>◍</span><span>{chip.aviso}</span></div>}
                       {lastV && <div style={{ fontSize: 10, color: T.textFaint, marginBottom: 6 }}>Últ. visita: {formatDate(lastV.date)} ({lastV.outcome})</div>}
                       <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>

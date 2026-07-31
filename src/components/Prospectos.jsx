@@ -25,6 +25,7 @@ import { PresentationMessageModal } from "./wholesale/PresentationMessageModal.j
 import { ProspectFormModal } from "./wholesale/ProspectFormModal.jsx";
 import { VisitModal } from "./wholesale/VisitModal.jsx";
 import { ProspectFicha } from "./wholesale/ProspectFicha.jsx";
+import { ProspectMapsLine } from "./wholesale/ProspectMapsLine.jsx";
 import { makeProspectActions } from "./wholesale/prospectActions.js";
 import {
   DiscoveryReviewModal, DiscoverySuppressedModal, DiscoverySearchModal, DiscoveryJobsStatus,
@@ -241,6 +242,8 @@ export function Prospectos({
                           <Badge color={PRIORIDAD_COLOR[it.chip?.prioridad] ?? T.textFaint}>{it.chip?.etiqueta}</Badge>
                         </span>
                       </div>
+                      {/* Lo esencial de Google Maps + salto a la ficha real */}
+                      <ProspectMapsLine prospect={p} style={{ marginTop: 4 }} />
                       {/* El próximo paso del diagnóstico: el engine propone (ícono y
                           texto vienen del dominio), el operador ejecuta */}
                       <div style={{ fontSize: 12, color: T.textSub, margin: "8px 0", display: "flex", gap: 6 }}>
