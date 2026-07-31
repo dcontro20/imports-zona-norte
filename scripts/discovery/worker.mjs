@@ -16,7 +16,8 @@
 //
 // Credenciales Admin SDK (orden de precedencia):
 //   1. env FIREBASE_SERVICE_ACCOUNT → JSON string de la service account
-//   2. .credentials/firebase-admin-sa.json (gitignoreado)
+//   2. env GOOGLE_APPLICATION_CREDENTIALS → ruta al JSON (convención ADC)
+//   3. .credentials/firebase-admin-sa.json (gitignoreado)
 // Setup completo: scripts/DISCOVERY_SETUP.md
 import { initializeApp, cert } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
@@ -38,10 +39,13 @@ function resolveServiceAccount() {
     try { return JSON.parse(env); }
     catch (e) { console.error("❌ FIREBASE_SERVICE_ACCOUNT no es JSON válido:", e.message); process.exit(1); }
   }
+  const adc = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  if (adc && existsSync(adc)) return JSON.parse(readFileSync(adc, "utf8"));
   const p = join(PROJECT_ROOT, ".credentials", "firebase-admin-sa.json");
   if (existsSync(p)) return JSON.parse(readFileSync(p, "utf8"));
   console.error("❌ Sin credenciales Admin SDK.");
-  console.error("   Env FIREBASE_SERVICE_ACCOUNT o .credentials/firebase-admin-sa.json");
+  console.error("   Env FIREBASE_SERVICE_ACCOUNT / GOOGLE_APPLICATION_CREDENTIALS,");
+  console.error("   o .credentials/firebase-admin-sa.json");
   console.error("   Cómo generarla: scripts/DISCOVERY_SETUP.md");
   process.exit(1);
 }
