@@ -208,11 +208,11 @@ describe("Prospectos (módulo) — pestañas y alias de deep-link (F1)", () => {
     </AppContext.Provider>,
   );
 
-  it("abre en Hoy por default, con 🔎 Descubrir y el empty state", () => {
+  it("abre en Hoy por default, con 🔎 Descubrir y Para hoy", () => {
     montar();
     expect(screen.getByText("🎯 Prospectos")).toBeTruthy();
     expect(screen.getByText("🔎 Descubrir")).toBeTruthy();
-    expect(screen.getByText(/Sin búsquedas activas/)).toBeTruthy();
+    expect(screen.getByText("☀️ Para hoy")).toBeTruthy();
   });
 
   it("Embudo muestra el kanban puro (sin discovery adentro)", () => {
@@ -239,6 +239,6 @@ describe("Prospectos (módulo) — pestañas y alias de deep-link (F1)", () => {
     cleanup();
     // Un tab desconocido cae a Hoy, no rompe.
     montar({ tabInicial: "loQueSea" });
-    expect(screen.getByText(/Sin búsquedas activas/)).toBeTruthy();
+    expect(screen.getByText("☀️ Para hoy")).toBeTruthy();
   });
 });

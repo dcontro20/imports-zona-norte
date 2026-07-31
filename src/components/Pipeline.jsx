@@ -1,20 +1,19 @@
 import { useState, useMemo } from "react";
 import { uid, formatDate } from "../helpers.js";
 import { useResponsive } from "../App.jsx";
-import { Card, Btn, Modal, Input, Select, StatCard, MiniBtn, Badge, downloadCSV } from "./UI.jsx";
+import { Btn, StatCard, MiniBtn, Badge, downloadCSV } from "./UI.jsx";
 import { T } from "../theme.js";
-import { PROSPECT_SOURCES, VISIT_OUTCOMES } from "../constants.js";
 import {
   PROSPECT_STAGES_ORDER, CLIENT_STAGES_ORDER,
   funnelSummary, lastVisitFor,
 } from "../prospecting.js";
 import { prospectsToCSV } from "../lib/wholesaleExport.js";
-import {
-  buildProspectRanking, CALIFICACION_CAMPOS, calificacionActual, aplicarCalificacion,
-} from "../lib/prospectRanking.js";
+import { buildProspectRanking } from "../lib/prospectRanking.js";
 import { useAppContext } from "../AppContext.js";
 import { PresentationMessageModal } from "./wholesale/PresentationMessageModal.jsx";
 import { ProspectDiagnosisModal } from "./wholesale/ProspectDiagnosisModal.jsx";
+import { ProspectFormModal } from "./wholesale/ProspectFormModal.jsx";
+import { VisitModal } from "./wholesale/VisitModal.jsx";
 
 // Pipeline de captación mayorista (kanban sin drag — botones de avance, anda en
 // mobile). Prospectos en las 3 primeras columnas; clientes mayoristas en las 3
@@ -32,15 +31,15 @@ const STAGE_COLOR = {
 
 // Color del chip de prioridad (mapeo de DISPLAY; la etiqueta la da el dominio).
 // Escala de calor para que el ojo encuentre primero lo que más conviene trabajar.
-const PRIORIDAD_COLOR = {
+// Exportado: la pestaña Hoy del módulo Prospectos usa la MISMA escala.
+export const PRIORIDAD_COLOR = {
   muy_alta: T.green, alta: T.blue, media: T.amber, baja: T.textMuted, "": T.textFaint,
 };
 
-const emptyProspect = { businessName: "", zone: "", address: "", phone: "", contactName: "", source: "manual", notes: "", lat: "", lng: "" };
-
 // Kanban PURO desde F1 del mini CRM (spec docs/PROSPECT_CRM_SPEC.md): el
-// discovery que vivió acá se mudó al módulo Prospectos (pestaña Hoy). Este
-// componente es la pestaña Embudo — no conoce jobs, staging ni supresión.
+// discovery que vivió acá se mudó al módulo Prospectos (pestaña Hoy), y en F2
+// los modales de alta/edición y visita se extrajeron como compartidos
+// (ProspectFormModal / VisitModal) para que Hoy los reuse sin duplicar lógica.
 export function Pipeline({
   prospects = [], setProspects, clients = [], setClients, visits = [], setVisits,
   products = [], sales = [],
@@ -49,14 +48,10 @@ export function Pipeline({
   const { logAudit, currentUser, exchangeRate } = useAppContext();
 
   const [pModal, setPModal] = useState(false);
-  const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState(emptyProspect);
-  const [err, setErr] = useState("");
-  const [visitFor, setVisitFor] = useState(null);
+  const [editing, setEditing] = useState(null);       // prospecto a editar (null = alta)
+  const [visitFor, setVisitFor] = useState(null);     // { id, type, name } | null
   const [presTarget, setPresTarget] = useState(null); // Bloque 2: mensaje de presentación
   const [diagId, setDiagId] = useState(null);         // ficha de diagnóstico (Prospect Engine)
-  const [visit, setVisit] = useState({ outcome: "interesado", notes: "" });
-  const [calif, setCalif] = useState({});             // calificación rápida (solo prospectos)
 
   const activeProspects = useMemo(() => prospects.filter(p => p && !p.isDeleted && !p.convertedClientId), [prospects]);
   const mayoristas = useMemo(() => clients.filter(c => c && !c.isDeleted && c.type === "mayorista"), [clients]);
@@ -79,27 +74,9 @@ export function Pipeline({
 
   const now = () => new Date().toISOString();
 
-  // --- Prospecto: crear/editar ---
-  const openNew = () => { setForm(emptyProspect); setEditingId(null); setErr(""); setPModal(true); };
-  const openEdit = (p) => { setForm({ ...emptyProspect, ...p, lat: p.lat ?? "", lng: p.lng ?? "" }); setEditingId(p.id); setErr(""); setPModal(true); };
-  const saveProspect = () => {
-    if (!form.businessName.trim()) { setErr("El nombre del comercio es obligatorio"); return; }
-    const base = {
-      businessName: form.businessName.trim(), zone: form.zone.trim(), address: form.address.trim(),
-      phone: form.phone.trim(), contactName: form.contactName.trim(),
-      source: form.source || "manual", notes: form.notes.trim(),
-      lat: form.lat === "" ? null : Number(form.lat), lng: form.lng === "" ? null : Number(form.lng),
-    };
-    if (editingId) {
-      setProspects(prev => prev.map(p => p.id === editingId ? { ...p, ...base } : p));
-      logAudit?.("update", "prospect", editingId, `Prospecto editado: ${base.businessName}`);
-    } else {
-      const id = uid();
-      setProspects(prev => [{ id, pipelineStage: "prospecto", foundAt: now(), lastContactAt: now(), ...base }, ...prev]);
-      logAudit?.("create", "prospect", id, `Prospecto nuevo: ${base.businessName}`);
-    }
-    setPModal(false);
-  };
+  // --- Prospecto: crear/editar (el form vive en ProspectFormModal) ---
+  const openNew = () => { setEditing(null); setPModal(true); };
+  const openEdit = (p) => { setEditing(p); setPModal(true); };
   const deleteProspect = (p) => {
     setProspects(prev => prev.map(x => x.id === p.id ? { ...x, isDeleted: true, deletedAt: now(), deletedBy: currentUser?.name || "?" } : x));
     logAudit?.("delete", "prospect", p.id, `Prospecto borrado: ${p.businessName}`);
@@ -132,35 +109,9 @@ export function Pipeline({
     logAudit?.("convert", "prospect", p.id, `Prospecto → mayorista: ${newClient.businessName || newClient.name}`);
   };
 
-  // --- Visitas ---
+  // --- Visitas (el modal + calificación viven en VisitModal) ---
   const openVisit = (target, type) => {
     setVisitFor({ id: target.id, type, name: target.businessName || target.name });
-    setVisit({ outcome: "interesado", notes: "" });
-    // La calificación arranca en el estado actual del prospecto (lo ya sabido
-    // se conserva; lo que nunca se evaluó aparece como "Sin datos").
-    setCalif(type === "prospect" ? calificacionActual(target) : {});
-  };
-  const saveVisit = () => {
-    const v = { id: uid(), targetId: visitFor.id, targetType: visitFor.type, date: now(), outcome: visit.outcome, notes: visit.notes.trim(), byUser: currentUser?.name || "?" };
-    setVisits(prev => [v, ...prev]);
-    if (visitFor.type === "prospect") {
-      // Solo se re-califica si algo cambió: sellar autor y fecha sin haber
-      // evaluado nada diría "lo revisamos hoy" cuando no se revisó.
-      const previa = calificacionActual(prospects.find(p => p.id === visitFor.id));
-      const cambio = CALIFICACION_CAMPOS.some(c => calif[c.campo] !== previa[c.campo]);
-      setProspects(prev => prev.map(p => {
-        if (p.id !== visitFor.id) return p;
-        const conRecencia = { ...p, lastContactAt: v.date };
-        return cambio
-          ? aplicarCalificacion(conRecencia, calif, { autor: currentUser?.name || "?", at: v.date })
-          : conRecencia;
-      }));
-      if (cambio) logAudit?.("qualify", "prospect", visitFor.id, `Calificación actualizada: ${visitFor.name}`);
-    } else {
-      setClients(prev => prev.map(c => c.id === visitFor.id ? { ...c, lastVisitAt: v.date } : c));
-    }
-    logAudit?.("visit", visitFor.type, visitFor.id, `Visita a ${visitFor.name}: ${visit.outcome}`);
-    setVisitFor(null);
   };
 
   const columns = [
@@ -245,68 +196,10 @@ export function Pipeline({
         })}
       </div>
 
-      {/* Modal nuevo/editar prospecto */}
-      <Modal open={pModal} onClose={() => setPModal(false)} title={editingId ? "Editar prospecto" : "Nuevo prospecto"}>
-        <Input label="Nombre del comercio *" value={form.businessName} onChange={e => setForm(f => ({ ...f, businessName: e.target.value }))} />
-        <div style={{ display: "flex", gap: 10, flexDirection: isMobile ? "column" : "row" }}>
-          <div style={{ flex: 1 }}><Input label="Zona / barrio" value={form.zone} onChange={e => setForm(f => ({ ...f, zone: e.target.value }))} /></div>
-          <div style={{ flex: 1 }}><Select label="Origen" options={PROSPECT_SOURCES} value={form.source} onChange={e => setForm(f => ({ ...f, source: e.target.value }))} /></div>
-        </div>
-        <Input label="Dirección" value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} />
-        <div style={{ display: "flex", gap: 10, flexDirection: isMobile ? "column" : "row" }}>
-          <div style={{ flex: 1 }}><Input label="Teléfono" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /></div>
-          <div style={{ flex: 1 }}><Input label="Contacto / encargado" value={form.contactName} onChange={e => setForm(f => ({ ...f, contactName: e.target.value }))} /></div>
-        </div>
-        <div style={{ display: "flex", gap: 10, flexDirection: isMobile ? "column" : "row" }}>
-          <div style={{ flex: 1 }}><Input label="Lat (opcional)" value={form.lat} onChange={e => setForm(f => ({ ...f, lat: e.target.value }))} /></div>
-          <div style={{ flex: 1 }}><Input label="Lng (opcional)" value={form.lng} onChange={e => setForm(f => ({ ...f, lng: e.target.value }))} /></div>
-        </div>
-        <Input label="Notas" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
-        {err && <div style={{ color: T.red, fontSize: 13, marginBottom: 10 }}>{err}</div>}
-        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-          <Btn variant="secondary" onClick={() => setPModal(false)}>Cancelar</Btn>
-          <Btn onClick={saveProspect}>{editingId ? "Guardar" : "Crear"}</Btn>
-        </div>
-      </Modal>
-
-      {/* Modal registrar visita */}
-      <Modal open={!!visitFor} onClose={() => setVisitFor(null)} title={`Visita — ${visitFor?.name || ""}`}>
-        <Select label="Resultado" options={VISIT_OUTCOMES} value={visit.outcome} onChange={e => setVisit(v => ({ ...v, outcome: e.target.value }))} />
-
-        {/* Calificación rápida (Prospect Engine): los controles, sus opciones y
-            el merge los define el dominio. Acá solo se pintan y se eligen. */}
-        {visitFor?.type === "prospect" && (
-          <div style={{ marginBottom: 14, background: T.bg, border: `1px solid ${T.borderSoft}`, borderRadius: 10, padding: 10 }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: T.text }}>Calificación rápida</div>
-            <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 8 }}>
-              Opcional. Lo que no marques queda sin datos — nunca se completa solo.
-            </div>
-            {CALIFICACION_CAMPOS.map(c => (
-              <div key={c.campo} style={{ marginBottom: 8 }}>
-                <div style={{ fontSize: 12, color: T.textSub, marginBottom: 4 }}>{c.pregunta}</div>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {c.opciones.map(o => {
-                    const sel = calif[c.campo] === o.valor;
-                    return (
-                      <MiniBtn key={o.valor} color={sel ? T.blue : T.textFaint}
-                        onClick={() => setCalif(s => ({ ...s, [c.campo]: o.valor }))}
-                        style={sel ? { background: T.blueBg, borderColor: T.blueBorder } : undefined}>
-                        {o.etiqueta}
-                      </MiniBtn>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <Input label="Notas" value={visit.notes} onChange={e => setVisit(v => ({ ...v, notes: e.target.value }))} />
-        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-          <Btn variant="secondary" onClick={() => setVisitFor(null)}>Cancelar</Btn>
-          <Btn onClick={saveVisit}>Registrar</Btn>
-        </div>
-      </Modal>
+      {/* Modales compartidos (F2 del CRM: también los usa la pestaña Hoy) */}
+      <ProspectFormModal open={pModal} editing={editing} onClose={() => setPModal(false)} setProspects={setProspects} />
+      <VisitModal target={visitFor} onClose={() => setVisitFor(null)}
+        prospects={prospects} setProspects={setProspects} setClients={setClients} setVisits={setVisits} />
 
       {/* Ficha de diagnóstico del Prospect Engine (render puro de la fachada) */}
       <ProspectDiagnosisModal

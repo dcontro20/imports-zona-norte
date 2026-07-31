@@ -122,11 +122,12 @@ const BUSQUEDA_VACIA = { termino: "", zona: "", ubicacion: "", tope: String(TOPE
 
 // Modal de nueva búsqueda (contrato §3): crea el job que el worker va a tomar.
 // La validación es la del dominio (validarBusqueda — el validate_encargo de
-// IZN); acá solo se pinta el primer problema.
-export function DiscoverySearchModal({ open, onClose, onCreate }) {
+// IZN); acá solo se pinta el primer problema. `inicial` pre-carga campos
+// (p. ej. la zona desde "🔎 buscar en esta zona" — F2 del CRM).
+export function DiscoverySearchModal({ open, onClose, onCreate, inicial = null }) {
   const [form, setForm] = useState(BUSQUEDA_VACIA);
   const [err, setErr] = useState("");
-  useEffect(() => { if (open) { setForm(BUSQUEDA_VACIA); setErr(""); } }, [open]);
+  useEffect(() => { if (open) { setForm({ ...BUSQUEDA_VACIA, ...(inicial || {}) }); setErr(""); } }, [open, inicial]);
 
   const crear = () => {
     const zona = form.zona.trim();
