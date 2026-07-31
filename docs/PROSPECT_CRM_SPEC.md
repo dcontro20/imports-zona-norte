@@ -29,7 +29,7 @@ NO se tocan. Esto es navegación, composición de vistas y una vista nueva
 | D-3 | **"Para hoy" Top 5** es el elemento principal de la pestaña Hoy |
 | D-4 | El kanban pasa a ser la pestaña **Embudo** — vista, no centro |
 | D-5 | **La Ficha entra al MVP** como centro operativo del prospecto, con sección **"Actividad"** prevista para crecer |
-| D-A | Animaciones: micro-transiciones CSS puras (sin dependencias) propuestas; **alcance a confirmar en el gate de F4** (pulido) — no bloquean nada |
+| D-A | ✅ **Resuelta en F4** con criterio conservador de Gustavo (solo claridad, CSS puro, 150–250ms, nada que distraiga): fade de contenido al cambiar pestaña (180ms), entrada del banner de descubiertos (200ms — avisa que llegó algo en tiempo real), pulso suave en el ícono de "buscando..." (feedback de trabajo en curso). `prefers-reduced-motion` las apaga todas. El Modal global NO se animó (compartido por toda la app — fuera del alcance del módulo) |
 
 ## Estructura del módulo
 

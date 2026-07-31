@@ -74,9 +74,12 @@ export function ProspectFicha({
         <MiniBtn onClick={() => onVisita?.(p)} color={T.amber}>📋 Visita</MiniBtn>
         <MiniBtn onClick={() => onPresentar?.(p)} color={T.green}>💬 Presentar</MiniBtn>
         {p.phone && (
-          <a href={`tel:${String(p.phone).replace(/[^\d+]/g, "")}`} style={{ textDecoration: "none" }}>
-            <MiniBtn color={T.blue}>📞 Llamar</MiniBtn>
-          </a>
+          // MiniBtn con navegación tel: (un <button> dentro de <a> es HTML
+          // inválido — interactivo anidado en interactivo)
+          <MiniBtn color={T.blue}
+            onClick={() => { window.location.href = `tel:${String(p.phone).replace(/[^\d+]/g, "")}`; }}>
+            📞 Llamar
+          </MiniBtn>
         )}
         <MiniBtn onClick={() => onEditar?.(p)} color={T.textMuted}>✏️ Editar</MiniBtn>
         {etapa !== "visitado" && (

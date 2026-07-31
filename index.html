@@ -64,6 +64,13 @@
         ::-webkit-scrollbar-thumb:hover { background: #B5A480; }
       }
       @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+      /* Mini CRM (F4, D-A aprobada con criterio conservador): microanimaciones
+         que aportan claridad — nada decorativo. pulseSoft = "algo está
+         trabajando" (jobs de búsqueda en curso). */
+      @keyframes pulseSoft { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+      @media (prefers-reduced-motion: reduce) {
+        * { animation: none !important; transition: none !important; }
+      }
     </style>
   </head>
   <body>

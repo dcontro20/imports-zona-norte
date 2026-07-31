@@ -338,7 +338,43 @@ A partir del 14/04/2026, GitHub está sincronizado y es la fuente de verdad del 
 
 ## Estado del proyecto al 31/07/2026
 
-### 🔎 DISCOVERY ENGINE — capacidad propia COMPLETA (branch `feature/discovery-engine`, SIN pushear/mergear)
+### 🎯 PROSPECTOS — mini CRM de Prospect Intelligence COMPLETO (branch `feature/prospect-crm`, SIN mergear)
+
+**Bloque CERRADO 2026-07-31** (sobre `feature/discovery-engine`; **rebasar a
+main cuando mergee el PR #4** → PR propio). Visión de Gustavo: NO "una
+pantalla de captación" sino un **mini CRM** — descubrir, revisar, priorizar,
+visitar, contactar, convertir y seguir, en un solo lugar; data compartida
+(usuario = autoría/permisos/futuras asignaciones). Spec CONGELADO:
+`docs/PROSPECT_CRM_SPEC.md` · Journal:
+`docs/SESSION_2026-07-31_prospect_crm.md` · Resumen:
+`docs/IZN_Prospect_CRM_Resumen.md`. **1254 tests** (+25); con B9 mitigado
+(`067cecc`, causa validada por experimento de control, testTimeout 15000 en
+App.test — regla: "si reaparece con 15000ms, sospechar del código") las
+suites completas corren VERDES ENTERAS.
+
+- **Una puerta (D-1)**: ítem 🎯 Prospectos reemplaza a "Pipeline" Y
+  "Prospección" en el nav; keys históricos = alias deep-link/⌘K con
+  `tabInicial`. Pestañas: ☀️ Hoy (Para hoy Top 5 protagonista + discovery +
+  funnel + zonas con "buscar acá" + últimas visitas + alta) · 🎯 Embudo
+  (Pipeline PURO — el discovery se mudó a Hoy) · 🗺️ Zonas (ProspectMap).
+- **La Ficha = centro operativo** (tocar cualquier prospecto): acciones
+  (visita/presentar/📞 tel:/editar/avanzar/convertir/borrar), datos con
+  procedencia del discovery, diagnóstico embebido (DiagnosisContent),
+  calificación con autoría, **Actividad como lib de eventos tipados**
+  (`src/lib/prospectActividad.js` — tipo nuevo = builder en la lib, la
+  pantalla no cambia; v1 = visits + auditLog del prospecto).
+- **Única fuente** (Pipeline 15/15 como árbitro de cada extracción):
+  ProspectFormModal, VisitModal, makeProspectActions, DiagnosisContent,
+  PRIORIDAD_COLOR. Engine/discovery/contratos INTACTOS.
+- **D-A (animaciones)**: criterio conservador de Gustavo — solo claridad, CSS
+  puro (keyframes globales en index.html), 150–250ms, prefers-reduced-motion
+  las apaga. Fade de pestañas, entrada del banner, pulso en "buscando".
+- Datos técnicos: `proximoPaso` es OBJETO {tono,icono,texto,pendientes};
+  auditLog entry {id,timestamp,user,action,entityType,entityId,description}.
+- ⚠️ Atlas ya divergió del fork del Discovery (verticales abiertas, sistema
+  de búsquedas propio) — esperado y sin efecto en Imports (copia soberana).
+
+### 🔎 DISCOVERY ENGINE — capacidad propia COMPLETA (PR #4 ABIERTO, CI verde, listo para merge)
 
 **El Prospect Engine se mergeó a `main` (PR #3, `15392c4`) y está en
 producción.** Encima se construyó el **Discovery Engine**: Diego busca

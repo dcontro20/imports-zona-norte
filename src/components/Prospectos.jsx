@@ -181,8 +181,10 @@ export function Prospectos({
       </div>
 
       {/* ---- Hoy ---- */}
+      {/* key={tab} remonta el contenido al cambiar de pestaña: el fadeIn de
+          180ms da el feedback de "cambió la vista" (D-A, criterio conservador) */}
       {tab === "hoy" && (
-        <div>
+        <div key="hoy" style={{ animation: "fadeIn 180ms ease-out" }}>
           {/* Discovery primero cuando pide acción (jobs activos / revisión) */}
           <DiscoveryJobsStatus jobs={discoveryJobs} onCancel={cancelarBusqueda} />
           {pendienteDiscovery && (
@@ -190,6 +192,9 @@ export function Prospectos({
               background: T.blueBg, border: `1px solid ${T.blueBorder}`, borderRadius: 12,
               padding: 12, marginBottom: 16, display: "flex", alignItems: "center",
               justifyContent: "space-between", gap: 10, flexWrap: "wrap",
+              // Llega en tiempo real (onSnapshot): la entrada suave avisa que
+              // apareció algo nuevo sin que Diego lo haya pedido.
+              animation: "fadeIn 200ms ease-out",
             }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 700, fontSize: 13, color: T.text }}>
@@ -306,18 +311,22 @@ export function Prospectos({
 
       {/* ---- Embudo (kanban puro) ---- */}
       {tab === "embudo" && (
-        <Pipeline
-          prospects={prospects} setProspects={setProspects}
-          clients={clients} setClients={setClients}
-          visits={visits} setVisits={setVisits}
-          products={products} sales={sales}
-          onOpenFicha={setFichaId}
-        />
+        <div key="embudo" style={{ animation: "fadeIn 180ms ease-out" }}>
+          <Pipeline
+            prospects={prospects} setProspects={setProspects}
+            clients={clients} setClients={setClients}
+            visits={visits} setVisits={setVisits}
+            products={products} sales={sales}
+            onOpenFicha={setFichaId}
+          />
+        </div>
       )}
 
       {/* ---- Zonas ---- */}
       {tab === "zonas" && (
-        <ProspectMap prospects={activeProspects} clients={clients} sales={sales} products={products} />
+        <div key="zonas" style={{ animation: "fadeIn 180ms ease-out" }}>
+          <ProspectMap prospects={activeProspects} clients={clients} sales={sales} products={products} />
+        </div>
       )}
 
       {/* Modales del módulo (los dispara Hoy; el Embudo tiene los suyos adentro) */}

@@ -183,7 +183,8 @@ export function DiscoveryJobsStatus({ jobs = [], onCancel }) {
             background: T.bg, border: `1px solid ${T.borderSoft}`, borderRadius: 10,
             padding: "8px 12px", display: "flex", alignItems: "center", gap: 8,
           }}>
-            <span style={{ flexShrink: 0 }}>{e.icono}</span>
+            {/* El pulso solo en "buscando": feedback de trabajo en curso (D-A) */}
+            <span style={{ flexShrink: 0, animation: j.status === "en_curso" ? "pulseSoft 1.6s ease-in-out infinite" : undefined }}>{e.icono}</span>
             <div style={{ flex: 1, minWidth: 0, fontSize: 12, color: T.text }}>
               <b>"{j.termino}"</b> — {j.zona} · <span style={{ color: e.color }}>{e.texto}</span>
               {j.status === "error" && j.error && (
