@@ -10,8 +10,14 @@ const DRIVE_BACKUP_FOLDER_URL = "https://drive.google.com/drive/folders/1d57fOks
 export const ExportData = ({
   products, sales, purchases, expenses, withdrawals, cashMovements, stockLog, priceLog,
   clients, partnerWithdrawals, monthlyClosures, exchangeRate,
+  // B3: colecciones del CRM de prospección — van CRUDAS (con soft-deleted):
+  // el backup es para recuperación ante incidente, no una vista. auditLog
+  // entra también: la Actividad de la Ficha se compone de él (sin auditLog,
+  // un restore deja las Fichas sin historial).
+  prospects = [], visits = [], routes = [], discoverySuppressed = [], auditLog = [],
   setProducts, setSales, setPurchases, setExpenses, setWithdrawals, setCashMovements,
   setClients, setPartnerWithdrawals, setMonthlyClosures, setStockLog, setPriceLog,
+  setProspects, setVisits, setRoutes, setDiscoverySuppressed, setAuditLog,
   logAudit, currentUser,
 }) => {
   const { isMobile } = useResponsive();
@@ -61,6 +67,11 @@ export const ExportData = ({
     if (Array.isArray(d.monthlyClosures) && setMonthlyClosures) setMonthlyClosures(d.monthlyClosures);
     if (Array.isArray(d.stockLog) && setStockLog) setStockLog(d.stockLog);
     if (Array.isArray(d.priceLog) && setPriceLog) setPriceLog(d.priceLog);
+    if (Array.isArray(d.prospects) && setProspects) setProspects(d.prospects);
+    if (Array.isArray(d.visits) && setVisits) setVisits(d.visits);
+    if (Array.isArray(d.routes) && setRoutes) setRoutes(d.routes);
+    if (Array.isArray(d.discoverySuppressed) && setDiscoverySuppressed) setDiscoverySuppressed(d.discoverySuppressed);
+    if (Array.isArray(d.auditLog) && setAuditLog) setAuditLog(d.auditLog);
     if (logAudit) {
       logAudit("restore", "backup", "full", `Restore completo desde ${restorePreview.filename}`);
     }
@@ -115,6 +126,11 @@ export const ExportData = ({
           priceLog: (priceLog || []).length,
           partnerWithdrawals: (partnerWithdrawals || []).length,
           monthlyClosures: (monthlyClosures || []).length,
+          prospects: (prospects || []).length,
+          visits: (visits || []).length,
+          routes: (routes || []).length,
+          discoverySuppressed: (discoverySuppressed || []).length,
+          auditLog: (auditLog || []).length,
         }
       },
       products,
@@ -128,6 +144,11 @@ export const ExportData = ({
       priceLog: priceLog || [],
       partnerWithdrawals: partnerWithdrawals || [],
       monthlyClosures: monthlyClosures || [],
+      prospects: prospects || [],
+      visits: visits || [],
+      routes: routes || [],
+      discoverySuppressed: discoverySuppressed || [],
+      auditLog: auditLog || [],
       exchangeRate
     };
     const dateStr = new Date().toISOString().slice(0, 10);

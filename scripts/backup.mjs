@@ -108,7 +108,10 @@ const firebaseConfig = {
 const COLLECTIONS = [
   "products", "sales", "purchases", "clients", "expenses",
   "withdrawals", "cashMovements", "stockLog", "priceLog",
-  "monthlyClosures", "partnerWithdrawals", "exchangeRate", "auditLog"
+  "monthlyClosures", "partnerWithdrawals", "exchangeRate", "auditLog",
+  // B3 (ciclo de resiliencia 2026-08-01): las colecciones del CRM de
+  // prospección — desde el Discovery Engine acá vive data de negocio real.
+  "prospects", "visits", "routes", "discoverySuppressed",
 ];
 
 const BACKUP_DIR = join(PROJECT_ROOT, "backups");

@@ -787,6 +787,8 @@ export default function App() {
         withdrawals={activeWithdrawals} cashMovements={activeCashMovements} stockLog={stockLog}
         priceLog={priceLog} clients={clients} partnerWithdrawals={partnerWithdrawals}
         monthlyClosures={monthlyClosures} exchangeRate={exchangeRate}
+        prospects={prospects} visits={visits} routes={routes} discoverySuppressed={discoverySuppressed} auditLog={auditLog}
+        setProspects={setProspects} setVisits={setVisits} setRoutes={setRoutes} setDiscoverySuppressed={setDiscoverySuppressed} setAuditLog={sync.setAuditLog}
         setProducts={setProducts} setSales={setSales} setPurchases={setPurchases} setExpenses={setExpenses}
         setWithdrawals={setWithdrawals} setCashMovements={setCashMovements} setClients={setClients}
         setPartnerWithdrawals={setPartnerWithdrawals} setMonthlyClosures={setMonthlyClosures}

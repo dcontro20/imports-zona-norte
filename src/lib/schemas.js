@@ -138,6 +138,45 @@ export const PurchaseSchema = z.object({
   isDeleted: boolOpt,
 }).passthrough();
 
+// === CRM DE PROSPECCIÓN (ciclo B3 — red de seguridad de datos) ===
+// Cierran el gap B3: estas colecciones tienen data de negocio real desde el
+// Discovery Engine y no tenían schema. Misma filosofía soft + passthrough
+// (los descubiertos traen extras: placeId, rating, clavesIdentidad, etc.).
+
+export const ProspectSchema = z.object({
+  id: z.string().min(1),
+  businessName: z.string().min(1),
+  zone: strOpt, address: strOpt, phone: strOpt, contactName: strOpt,
+  source: strOpt, notes: strOpt,
+  pipelineStage: strOpt,
+  lat: numLoose, lng: numLoose,
+  foundAt: strOpt, lastContactAt: strOpt,
+  convertedClientId: strOpt,
+  calificacion: z.object({}).passthrough().optional().nullable(),
+  isDeleted: boolOpt,
+}).passthrough();
+
+export const VisitSchema = z.object({
+  id: z.string().min(1),
+  targetId: z.string().min(1),          // sin target no hay bitácora que valga
+  targetType: strOpt, date: strOpt, outcome: strOpt, notes: strOpt, byUser: strOpt,
+  isDeleted: boolOpt,
+}).passthrough();
+
+export const RouteSchema = z.object({
+  id: z.string().min(1),
+  date: strOpt, status: strOpt,
+  stops: z.array(z.object({}).passthrough()).optional().default([]),
+  isDeleted: boolOpt,
+}).passthrough();
+
+export const DiscoverySuppressedSchema = z.object({
+  id: z.string().min(1),
+  nombre: strOpt, direccion: strOpt, web: strOpt,
+  claves: z.array(z.string()).optional().default([]),
+  motivo: strOpt, at: strOpt, por: strOpt,
+}).passthrough();
+
 // === VALIDADOR SOFT ===
 // Devuelve { valid: bool, data?, errors? }
 // No tira excepciones — perfecto para validar data histórica sin romper.
