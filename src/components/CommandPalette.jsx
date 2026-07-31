@@ -28,8 +28,9 @@ const DEFAULT_COMMANDS = (ctx) => [
   { id: "go-dashMayorista", title: "Ir a Panel mayorista", icon: "📊", group: "Mayorista", action: () => ctx.onNavigate("dashMayorista"), keywords: "b2b dashboard kioscos kpi pnl" },
   { id: "go-kioscos", title: "Ir a Kioscos", icon: "🏪", group: "Mayorista", action: () => ctx.onNavigate("kioscos"), keywords: "mayorista clientes b2b comercios" },
   { id: "go-wholesaleOrder", title: "Nuevo pedido mayorista", icon: "🧾", group: "Mayorista", action: () => ctx.onNavigate("wholesaleOrder"), keywords: "pedido b2b vender kiosco tier" },
-  { id: "go-pipeline", title: "Ir a Pipeline", icon: "🎯", group: "Mayorista", action: () => ctx.onNavigate("pipeline"), keywords: "prospectos captacion embudo leads" },
-  { id: "go-prospectMap", title: "Ir a Prospección", icon: "🗺️", group: "Mayorista", action: () => ctx.onNavigate("prospectMap"), keywords: "zonas cobertura mapa" },
+  { id: "go-prospectos", title: "Ir a Prospectos (CRM)", icon: "🎯", group: "Mayorista", action: () => ctx.onNavigate("prospectos"), keywords: "prospectos captacion crm hoy descubrir" },
+  { id: "go-pipeline", title: "Ir a Embudo (kanban)", icon: "📋", group: "Mayorista", action: () => ctx.onNavigate("pipeline"), keywords: "pipeline captacion embudo leads kanban" },
+  { id: "go-prospectMap", title: "Ir a Zonas de prospección", icon: "🗺️", group: "Mayorista", action: () => ctx.onNavigate("prospectMap"), keywords: "zonas cobertura mapa prospeccion" },
   { id: "go-routes", title: "Ir a Rutas", icon: "🚚", group: "Mayorista", action: () => ctx.onNavigate("routes"), keywords: "reparto entrega paradas hoja" },
   { id: "go-cuentasCorrientes", title: "Ir a Cuentas corrientes", icon: "💳", group: "Mayorista", action: () => ctx.onNavigate("cuentasCorrientes"), keywords: "cobranza deuda fiado credito" },
 

@@ -122,11 +122,12 @@ const BUSQUEDA_VACIA = { termino: "", zona: "", ubicacion: "", tope: String(TOPE
 
 // Modal de nueva búsqueda (contrato §3): crea el job que el worker va a tomar.
 // La validación es la del dominio (validarBusqueda — el validate_encargo de
-// IZN); acá solo se pinta el primer problema.
-export function DiscoverySearchModal({ open, onClose, onCreate }) {
+// IZN); acá solo se pinta el primer problema. `inicial` pre-carga campos
+// (p. ej. la zona desde "🔎 buscar en esta zona" — F2 del CRM).
+export function DiscoverySearchModal({ open, onClose, onCreate, inicial = null }) {
   const [form, setForm] = useState(BUSQUEDA_VACIA);
   const [err, setErr] = useState("");
-  useEffect(() => { if (open) { setForm(BUSQUEDA_VACIA); setErr(""); } }, [open]);
+  useEffect(() => { if (open) { setForm({ ...BUSQUEDA_VACIA, ...(inicial || {}) }); setErr(""); } }, [open, inicial]);
 
   const crear = () => {
     const zona = form.zona.trim();
@@ -182,7 +183,8 @@ export function DiscoveryJobsStatus({ jobs = [], onCancel }) {
             background: T.bg, border: `1px solid ${T.borderSoft}`, borderRadius: 10,
             padding: "8px 12px", display: "flex", alignItems: "center", gap: 8,
           }}>
-            <span style={{ flexShrink: 0 }}>{e.icono}</span>
+            {/* El pulso solo en "buscando": feedback de trabajo en curso (D-A) */}
+            <span style={{ flexShrink: 0, animation: j.status === "en_curso" ? "pulseSoft 1.6s ease-in-out infinite" : undefined }}>{e.icono}</span>
             <div style={{ flex: 1, minWidth: 0, fontSize: 12, color: T.text }}>
               <b>"{j.termino}"</b> — {j.zona} · <span style={{ color: e.color }}>{e.texto}</span>
               {j.status === "error" && j.error && (

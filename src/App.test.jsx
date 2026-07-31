@@ -13,6 +13,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, act, within, fireEvent, waitFor, cleanup } from "@testing-library/react";
 
+// B9 (backlog 2026-07-28, mitigación aplicada 2026-07-31 con OK de Gustavo):
+// este smoke corre AL LÍMITE del testTimeout default (5.96s de tests medidos
+// contra 5000ms/test en la Mac de referencia) y flakeaba bajo carga de suite
+// completa — llegó a fallar aislado con la máquina caliente. La causa se
+// validó con experimento de control (stash con/sin cambios: la correlación
+// con el código era espuria). Es un smoke de montaje, no un test de latencia:
+// margen holgado a propósito.
+vi.setConfig({ testTimeout: 15000 });
+
 // Holder hoisted para capturar el callback de onAuthChange y poder disparar
 // las transiciones de auth desde el test.
 const authState = vi.hoisted(() => ({ callback: null }));

@@ -89,8 +89,9 @@ const Clients = lazy(() => import("./components/Clients.jsx").then(m => ({ defau
 const Kioscos = lazy(() => import("./components/Kioscos.jsx").then(m => ({ default: m.Kioscos })));
 const WholesaleOrder = lazy(() => import("./components/WholesaleOrder.jsx").then(m => ({ default: m.WholesaleOrder })));
 const PriceListScreen = lazy(() => import("./components/wholesale/PriceListScreen.jsx").then(m => ({ default: m.PriceListScreen })));
-const Pipeline = lazy(() => import("./components/Pipeline.jsx").then(m => ({ default: m.Pipeline })));
-const ProspectMap = lazy(() => import("./components/ProspectMap.jsx").then(m => ({ default: m.ProspectMap })));
+// Mini CRM de Prospect Intelligence: Prospectos absorbe Pipeline (pestaña
+// Embudo) y ProspectMap (pestaña Zonas) — ambos se importan estáticos adentro.
+const Prospectos = lazy(() => import("./components/Prospectos.jsx").then(m => ({ default: m.Prospectos })));
 const Routes = lazy(() => import("./components/Routes.jsx").then(m => ({ default: m.Routes })));
 const CuentasCorrientes = lazy(() => import("./components/CuentasCorrientes.jsx").then(m => ({ default: m.CuentasCorrientes })));
 const DashboardMayorista = lazy(() => import("./components/DashboardMayorista.jsx").then(m => ({ default: m.DashboardMayorista })));
@@ -231,8 +232,10 @@ const NAV_ITEMS = [
   { key: "kioscos", label: "Kioscos", icon: "🏪", group: "mayorista" },
   { key: "wholesaleOrder", label: "Pedido mayorista", icon: "🧾", group: "mayorista" },
   { key: "priceList", label: "Lista de precios", icon: "🏷️", group: "mayorista" },
-  { key: "pipeline", label: "Pipeline", icon: "🎯", group: "mayorista" },
-  { key: "prospectMap", label: "Prospección", icon: "🗺️", group: "mayorista" },
+  // Mini CRM de Prospect Intelligence (spec docs/PROSPECT_CRM_SPEC.md):
+  // UNA sola puerta — absorbe los ex-ítems "Pipeline" y "Prospección"
+  // (sus keys viven como alias de deep-link en renderPage).
+  { key: "prospectos", label: "Prospectos", icon: "🎯", group: "mayorista" },
   { key: "routes", label: "Rutas", icon: "🚚", group: "mayorista" },
   { key: "cuentasCorrientes", label: "Cuentas corrientes", icon: "💳", group: "mayorista" },
   // Ver / decidir
@@ -760,8 +763,14 @@ export default function App() {
       case "kioscos": return <Kioscos clients={clients} setClients={setClients} sales={activeSales} products={activeProducts} />;
       case "wholesaleOrder": return <WholesaleOrder clients={clients} products={products} setProducts={setProducts} sales={activeSales} setSales={setSales} logStock={logStock} />;
       case "priceList": return <PriceListScreen products={activeProducts} />;
-      case "pipeline": return <Pipeline prospects={prospects} setProspects={setProspects} clients={clients} setClients={setClients} visits={visits} setVisits={setVisits} products={activeProducts} sales={activeSales} discoveryResults={discoveryResults} onConsumeDiscoveryResult={deleteDiscoveryResult} discoverySuppressed={discoverySuppressed} setDiscoverySuppressed={setDiscoverySuppressed} discoveryJobs={discoveryJobs} onCreateDiscoveryJob={createDiscoveryJob} onCancelDiscoveryJob={deleteDiscoveryJob} />;
-      case "prospectMap": return <ProspectMap prospects={activeProspects} clients={clients} sales={activeSales} products={activeProducts} />;
+      case "prospectos":
+      // Alias de deep-links/⌘K (ex-pantallas absorbidas por el módulo):
+      case "pipeline":
+      case "prospectMap": {
+        const tabInicial = effectivePage === "pipeline" ? "embudo"
+          : effectivePage === "prospectMap" ? "zonas" : "hoy";
+        return <Prospectos tabInicial={tabInicial} prospects={prospects} setProspects={setProspects} clients={clients} setClients={setClients} visits={visits} setVisits={setVisits} products={activeProducts} sales={activeSales} auditLog={auditLog} discoveryResults={discoveryResults} onConsumeDiscoveryResult={deleteDiscoveryResult} discoverySuppressed={discoverySuppressed} setDiscoverySuppressed={setDiscoverySuppressed} discoveryJobs={discoveryJobs} onCreateDiscoveryJob={createDiscoveryJob} onCancelDiscoveryJob={deleteDiscoveryJob} />;
+      }
       case "routes": return <Routes routes={routes} setRoutes={setRoutes} clients={clients} sales={activeSales} setSales={setSales} />;
       case "cuentasCorrientes": return <CuentasCorrientes clients={clients} sales={activeSales} setSales={setSales} />;
       case "dashMayorista": return <DashboardMayorista clients={clients} sales={activeSales} products={activeProducts} prospects={activeProspects} />;

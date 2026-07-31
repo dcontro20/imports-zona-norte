@@ -23,7 +23,7 @@ vi.mock("../../firebase.js", () => ({
 vi.mock("firebase/auth", () => ({ onAuthStateChanged: () => () => {} }));
 
 import { DiscoveryReviewModal, DiscoverySuppressedModal, DiscoverySearchModal, DiscoveryJobsStatus } from "./DiscoveryReview.jsx";
-import { Pipeline } from "../Pipeline.jsx";
+import { Prospectos } from "../Prospectos.jsx";
 import { AppContext } from "../../AppContext.js";
 
 afterEach(() => cleanup());
@@ -150,14 +150,14 @@ describe("DiscoveryJobsStatus — búsquedas activas", () => {
   });
 });
 
-describe("Pipeline — flujo de revisión punta a punta", () => {
+describe("Prospectos (módulo) — flujo de revisión punta a punta en la pestaña Hoy", () => {
   const montar = (extra = {}) => {
     const setProspects = vi.fn();
     const setDiscoverySuppressed = vi.fn();
     const onConsume = vi.fn();
     render(
       <AppContext.Provider value={CTX}>
-        <Pipeline
+        <Prospectos
           prospects={[]} setProspects={setProspects}
           clients={[]} setClients={vi.fn()} visits={[]} setVisits={vi.fn()}
           discoveryResults={[RESULTADO]} onConsumeDiscoveryResult={onConsume}
@@ -195,5 +195,50 @@ describe("Pipeline — flujo de revisión punta a punta", () => {
     montar({ discoveryResults: [], discoverySuppressed: [{ id: "s-1", nombre: "X", direccion: "C 1", motivo: "m", at: "2026-07-30" }] });
     expect(screen.queryByText(/descubiertos de/)).toBeNull();
     expect(screen.getByText("⛔ Descartados (1)")).toBeTruthy();
+  });
+});
+
+describe("Prospectos (módulo) — pestañas y alias de deep-link (F1)", () => {
+  const montar = (props = {}) => render(
+    <AppContext.Provider value={CTX}>
+      <Prospectos
+        prospects={[]} setProspects={vi.fn()} clients={[]} setClients={vi.fn()}
+        visits={[]} setVisits={vi.fn()} {...props}
+      />
+    </AppContext.Provider>,
+  );
+
+  it("abre en Hoy por default, con 🔎 Descubrir y Para hoy", () => {
+    montar();
+    expect(screen.getByText("🎯 Prospectos")).toBeTruthy();
+    expect(screen.getByText("🔎 Descubrir")).toBeTruthy();
+    expect(screen.getByText("☀️ Para hoy")).toBeTruthy();
+  });
+
+  it("Embudo muestra el kanban puro (sin discovery adentro)", () => {
+    montar();
+    fireEvent.click(screen.getByText("🎯 Embudo"));
+    expect(screen.getByText("Embudo de captación")).toBeTruthy();
+    expect(screen.getByText("+ Nuevo prospecto")).toBeTruthy();
+    // El discovery vive en Hoy: el kanban no trae 🔎 propio.
+    expect(screen.queryByText("🔎 Descubrir")).toBeNull();
+  });
+
+  it("Zonas muestra el ProspectMap de siempre", () => {
+    montar();
+    fireEvent.click(screen.getByText("🗺️ Zonas"));
+    expect(screen.getByText("🗺️ Prospección por zona")).toBeTruthy();
+  });
+
+  it("tabInicial honra los alias históricos: pipeline→embudo, prospectMap→zonas", () => {
+    montar({ tabInicial: "embudo" });
+    expect(screen.getByText("Embudo de captación")).toBeTruthy();
+    cleanup();
+    montar({ tabInicial: "zonas" });
+    expect(screen.getByText("🗺️ Prospección por zona")).toBeTruthy();
+    cleanup();
+    // Un tab desconocido cae a Hoy, no rompe.
+    montar({ tabInicial: "loQueSea" });
+    expect(screen.getByText("☀️ Para hoy")).toBeTruthy();
   });
 });

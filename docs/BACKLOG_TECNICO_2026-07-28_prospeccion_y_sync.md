@@ -93,6 +93,14 @@ por el port (sus 33 tests pasan y ningún archivo previo cambió).
 
 ## 🟡 B9 — `App.test.jsx` flaky por timeout en suite completa
 
+> ✅ **MITIGADO 2026-07-31** (branch `feature/prospect-crm`, OK de Gustavo):
+> `vi.setConfig({ testTimeout: 15000 })` en App.test.jsx. **Causa VALIDADA**
+> con experimento de control (stash con/sin los cambios de F1 del CRM,
+> intercalado): la correlación con el código era espuria — el test corre al
+> límite del default en esta máquina (5.96s de tests medidos vs 5000ms/test)
+> y cualquier carga lo tira. Es margen del test, no regresión de ningún
+> feature. Si reaparece con 15000ms, ahí SÍ sospechar del código.
+
 En corridas de la suite COMPLETA, tests del smoke de App fallan intermitente
 con `Error: Test timed out in 5000ms` (una corrida 4 fallos, la siguiente 1,
 aislado pasa 4/4 siempre). Es la familia de flakiness ya documentada en
