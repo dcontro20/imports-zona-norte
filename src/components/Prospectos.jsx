@@ -21,10 +21,11 @@ import { funnelSummary, zonesWithoutCoverage, lastVisitFor } from "../prospectin
 import { buildProspectRanking } from "../lib/prospectRanking.js";
 import { Pipeline, PRIORIDAD_COLOR } from "./Pipeline.jsx";
 import { ProspectMap } from "./ProspectMap.jsx";
-import { ProspectDiagnosisModal } from "./wholesale/ProspectDiagnosisModal.jsx";
 import { PresentationMessageModal } from "./wholesale/PresentationMessageModal.jsx";
 import { ProspectFormModal } from "./wholesale/ProspectFormModal.jsx";
 import { VisitModal } from "./wholesale/VisitModal.jsx";
+import { ProspectFicha } from "./wholesale/ProspectFicha.jsx";
+import { makeProspectActions } from "./wholesale/prospectActions.js";
 import {
   DiscoveryReviewModal, DiscoverySuppressedModal, DiscoverySearchModal, DiscoveryJobsStatus,
 } from "./wholesale/DiscoveryReview.jsx";
@@ -41,7 +42,7 @@ const ETAPAS_HOY = ["prospecto", "contactado"];   // lo trabajable (visitado ya 
 
 export function Prospectos({
   prospects = [], setProspects, clients = [], setClients, visits = [], setVisits,
-  products = [], sales = [],
+  products = [], sales = [], auditLog = [],
   discoveryResults = [], onConsumeDiscoveryResult,
   discoverySuppressed = [], setDiscoverySuppressed,
   discoveryJobs = [], onCreateDiscoveryJob, onCancelDiscoveryJob,
@@ -55,9 +56,10 @@ export function Prospectos({
   const [buscando, setBuscando] = useState(false);
   const [busquedaInicial, setBusquedaInicial] = useState(null); // pre-carga de "buscar en esta zona"
   const [altaOpen, setAltaOpen] = useState(false);
+  const [editando, setEditando] = useState(null);     // prospecto en edición (desde la Ficha)
   const [visitFor, setVisitFor] = useState(null);
   const [presTarget, setPresTarget] = useState(null);
-  const [diagId, setDiagId] = useState(null);
+  const [fichaId, setFichaId] = useState(null);       // la Ficha: el centro operativo (F3)
 
   const activeProspects = useMemo(() => prospects.filter(p => p && !p.isDeleted), [prospects]);
   const now = () => new Date().toISOString();
@@ -134,6 +136,9 @@ export function Prospectos({
   };
   const buscarEnZona = (zona) => { setBusquedaInicial({ zona }); setBuscando(true); };
   const abrirBusqueda = () => { setBusquedaInicial(null); setBuscando(true); };
+
+  // Avanzar / convertir / borrar: la MISMA fuente que usa el kanban (F3).
+  const acciones = makeProspectActions({ setProspects, setClients, logAudit, currentUser });
 
   const seccionTitulo = (texto, extra = null) => (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
@@ -215,7 +220,7 @@ export function Prospectos({
                   return (
                     <div key={p.id} style={{ background: T.card, border: `1px solid ${T.border}`, borderRadius: 12, padding: 12 }}>
                       <div
-                        onClick={() => setDiagId(p.id)} title="Ver diagnóstico"
+                        onClick={() => setFichaId(p.id)} title="Abrir ficha"
                         style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, cursor: "pointer" }}
                       >
                         <div style={{ flex: 1, minWidth: 0 }}>
@@ -306,6 +311,7 @@ export function Prospectos({
           clients={clients} setClients={setClients}
           visits={visits} setVisits={setVisits}
           products={products} sales={sales}
+          onOpenFicha={setFichaId}
         />
       )}
 
@@ -329,14 +335,23 @@ export function Prospectos({
         open={buscando} onClose={() => setBuscando(false)} onCreate={crearBusqueda}
         inicial={busquedaInicial}
       />
-      <ProspectFormModal open={altaOpen} editing={null} onClose={() => setAltaOpen(false)} setProspects={setProspects} />
+      <ProspectFormModal open={altaOpen || !!editando} editing={editando}
+        onClose={() => { setAltaOpen(false); setEditando(null); }} setProspects={setProspects} />
       <VisitModal target={visitFor} onClose={() => setVisitFor(null)}
         prospects={prospects} setProspects={setProspects} setClients={setClients} setVisits={setVisits} />
-      <ProspectDiagnosisModal
-        open={!!diagId} onClose={() => setDiagId(null)}
-        item={diagId ? ranking.porId[diagId] : null}
-        prioridadColor={PRIORIDAD_COLOR[ranking.porId[diagId]?.chip?.prioridad] ?? T.textFaint}
-      />
+      {/* La Ficha: el centro operativo del prospecto (F3) */}
+      {fichaId && ranking.porId[fichaId] && (
+        <ProspectFicha
+          item={ranking.porId[fichaId]}
+          prioridadColor={PRIORIDAD_COLOR[ranking.porId[fichaId]?.chip?.prioridad] ?? T.textFaint}
+          visits={visits} auditLog={auditLog}
+          onClose={() => setFichaId(null)}
+          onVisita={(p) => setVisitFor({ id: p.id, type: "prospect", name: p.businessName })}
+          onPresentar={(p) => setPresTarget(p)}
+          onEditar={(p) => setEditando(p)}
+          acciones={acciones}
+        />
+      )}
       <PresentationMessageModal open={!!presTarget} onClose={() => setPresTarget(null)}
         target={presTarget} defaultTier="C"
         products={products} exchangeRate={exchangeRate} />

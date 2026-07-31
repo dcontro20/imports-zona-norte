@@ -91,13 +91,10 @@ describe("Prospectos — Hoy: Para hoy Top 5 (D-3)", () => {
     expect(screen.getByText(/Sin prospectos para trabajar/)).toBeTruthy();
   });
 
-  it("tocar la card abre el diagnóstico del engine", () => {
+  it("tocar la card abre la FICHA (F3: el centro operativo)", () => {
     montar();
-    // El nombre aparece en la card Y en últimas visitas: clickear la card
-    // (primer match) y verificar que el modal agrega una aparición más.
-    const antes = screen.getAllByText(/Kiosco Estrella/).length;
     fireEvent.click(screen.getAllByText(/Kiosco Estrella/)[0]);
-    expect(screen.getAllByText(/Kiosco Estrella/).length).toBeGreaterThan(antes);
+    expect(screen.getByText("Ficha — Kiosco Estrella")).toBeTruthy();
   });
 });
 
@@ -124,6 +121,72 @@ describe("Prospectos — Hoy: funnel, zonas y últimas visitas", () => {
     montar();
     expect(screen.getByText("interesado")).toBeTruthy();
     expect(screen.getByText(/Gustavo/)).toBeTruthy();
+  });
+});
+
+describe("Prospectos — Ficha (F3: centro operativo)", () => {
+  const abrirFicha = (props = {}) => {
+    const mounted = montar(props);
+    fireEvent.click(screen.getAllByText(/Kiosco Estrella/)[0]);
+    return mounted;
+  };
+
+  it("secciones completas: datos con tel:, diagnóstico, calificación con autoría, actividad", () => {
+    abrirFicha({
+      auditLog: [{ id: "a1", timestamp: "2026-07-20T09:00:00Z", user: "Diego", action: "create", entityType: "prospect", entityId: "p-estrella", description: "Prospecto nuevo: Kiosco Estrella" }],
+    });
+    // Datos: teléfono tappeable
+    const tel = document.querySelector('a[href^="tel:"]');
+    expect(tel).toBeTruthy();
+    // Diagnóstico embebido (render de la fachada: el "¿Por qué?" está)
+    expect(screen.getByText("¿Por qué?")).toBeTruthy();
+    // Calificación con autoría (estrella calificado el 25/07)
+    expect(screen.getByText(/por Sistema|por Diego|por Gustavo|Última:/)).toBeTruthy();
+    // Actividad: visita rica + alta del audit (por su detalle — "Alta" a secas
+    // colisiona con el chip de prioridad "Alta")
+    expect(screen.getByText("Visita: interesado")).toBeTruthy();
+    expect(screen.getByText("Prospecto nuevo: Kiosco Estrella")).toBeTruthy();
+  });
+
+  it("la procedencia del descubrimiento se muestra cuando corresponde", () => {
+    const descubierto = {
+      ...estrella, id: "p-desc", businessName: "Kiosco Golden", source: "descubrimiento",
+      descubiertoAt: "2026-07-30", descubiertoTermino: "kiosco", rating: 4.4, reviewsCount: 51,
+    };
+    montar({ prospects: [descubierto], visits: [] });
+    fireEvent.click(screen.getAllByText(/Kiosco Golden/)[0]);
+    expect(screen.getByText(/Descubierto/)).toBeTruthy();
+    expect(screen.getByText(/★ 4.4/)).toBeTruthy();
+  });
+
+  it("acciones desde la Ficha: avanzar usa la fuente compartida", () => {
+    const { setProspects } = abrirFicha();
+    fireEvent.click(screen.getByText("→ Avanzar"));
+    // estrella estaba en contactado → avanza a visitado (misma regla del kanban)
+    const lista = setProspects.mock.calls[0][0]([{ ...estrella }]);
+    expect(lista[0].pipelineStage).toBe("visitado");
+  });
+
+  it("✏️ Editar abre el form compartido con los datos cargados", () => {
+    abrirFicha();
+    fireEvent.click(screen.getByText("✏️ Editar"));
+    expect(screen.getByText("Editar prospecto")).toBeTruthy();
+    expect(screen.getByDisplayValue("Kiosco Estrella")).toBeTruthy();
+  });
+
+  it("🗑 Borrar borra (fuente compartida) y cierra la Ficha", () => {
+    const { setProspects } = abrirFicha();
+    fireEvent.click(screen.getByText("🗑 Borrar"));
+    const lista = setProspects.mock.calls[0][0]([{ ...estrella }]);
+    expect(lista[0].isDeleted).toBe(true);
+    expect(screen.queryByText("Ficha — Kiosco Estrella")).toBeNull();
+  });
+
+  it("desde el Embudo también se abre la Ficha (onOpenFicha)", () => {
+    montar();
+    fireEvent.click(screen.getByText("🎯 Embudo"));
+    fireEvent.click(screen.getAllByText(/Kiosco Estrella/)[0]);
+    expect(screen.getByText("Ficha — Kiosco Estrella")).toBeTruthy();
   });
 });
 

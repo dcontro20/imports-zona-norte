@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { uid, formatDate } from "../helpers.js";
+import { formatDate } from "../helpers.js";
 import { useResponsive } from "../App.jsx";
 import { Btn, StatCard, MiniBtn, Badge, downloadCSV } from "./UI.jsx";
 import { T } from "../theme.js";
@@ -14,6 +14,7 @@ import { PresentationMessageModal } from "./wholesale/PresentationMessageModal.j
 import { ProspectDiagnosisModal } from "./wholesale/ProspectDiagnosisModal.jsx";
 import { ProspectFormModal } from "./wholesale/ProspectFormModal.jsx";
 import { VisitModal } from "./wholesale/VisitModal.jsx";
+import { makeProspectActions } from "./wholesale/prospectActions.js";
 
 // Pipeline de captación mayorista (kanban sin drag — botones de avance, anda en
 // mobile). Prospectos en las 3 primeras columnas; clientes mayoristas en las 3
@@ -43,6 +44,9 @@ export const PRIORIDAD_COLOR = {
 export function Pipeline({
   prospects = [], setProspects, clients = [], setClients, visits = [], setVisits,
   products = [], sales = [],
+  // F3: dentro del módulo, tocar una card abre la FICHA (el centro operativo).
+  // Sin el prop (montaje suelto/tests) cae al modal de diagnóstico de siempre.
+  onOpenFicha = null,
 }) {
   const { isMobile } = useResponsive();
   const { logAudit, currentUser, exchangeRate } = useAppContext();
@@ -72,41 +76,14 @@ export function Pipeline({
       (ranking.porId[a.id]?.posicion ?? Infinity) - (ranking.porId[b.id]?.posicion ?? Infinity));
   };
 
-  const now = () => new Date().toISOString();
-
   // --- Prospecto: crear/editar (el form vive en ProspectFormModal) ---
   const openNew = () => { setEditing(null); setPModal(true); };
   const openEdit = (p) => { setEditing(p); setPModal(true); };
-  const deleteProspect = (p) => {
-    setProspects(prev => prev.map(x => x.id === p.id ? { ...x, isDeleted: true, deletedAt: now(), deletedBy: currentUser?.name || "?" } : x));
-    logAudit?.("delete", "prospect", p.id, `Prospecto borrado: ${p.businessName}`);
-  };
 
-  // --- Avanzar etapa ---
-  const advanceProspect = (p) => {
-    const i = PROSPECT_STAGES_ORDER.indexOf(p.pipelineStage || "prospecto");
-    const next = PROSPECT_STAGES_ORDER[Math.min(i + 1, PROSPECT_STAGES_ORDER.length - 1)];
-    setProspects(prev => prev.map(x => x.id === p.id ? { ...x, pipelineStage: next, lastContactAt: now() } : x));
-  };
+  // Avanzar / convertir / borrar: única fuente compartida con la Ficha (F3).
+  const acciones = makeProspectActions({ setProspects, setClients, logAudit, currentUser });
   const setClientStage = (c, stage) => {
     setClients(prev => prev.map(x => x.id === c.id ? { ...x, pipelineStage: stage } : x));
-  };
-
-  // --- Convertir prospecto → cliente mayorista ---
-  const convert = (p) => {
-    const id = uid();
-    const newClient = {
-      id, type: "mayorista",
-      name: p.contactName || p.businessName || "Mayorista",
-      businessName: p.businessName || "", businessType: null, wholesaleTier: null,
-      zone: p.zone || "", address: p.address || "", phone: p.phone || "", contactName: p.contactName || "",
-      source: p.source || "manual", pipelineStage: "primera_compra",
-      tier: "regular", balance: 0, notes: p.notes || "",
-      createdAt: now(), createdBy: currentUser?.name || "Sistema",
-    };
-    setClients(prev => [newClient, ...prev]);
-    setProspects(prev => prev.map(x => x.id === p.id ? { ...x, convertedClientId: id, isDeleted: true, deletedAt: now(), deletedBy: currentUser?.name || "?" } : x));
-    logAudit?.("convert", "prospect", p.id, `Prospecto → mayorista: ${newClient.businessName || newClient.name}`);
   };
 
   // --- Visitas (el modal + calificación viven en VisitModal) ---
@@ -153,8 +130,8 @@ export function Pipeline({
                       {/* Encabezado: en prospectos abre la ficha de diagnóstico
                           (el chip es el resumen; tocarlo lleva al detalle). */}
                       <div
-                        onClick={chip ? () => setDiagId(x.id) : undefined}
-                        title={chip ? "Ver diagnóstico" : undefined}
+                        onClick={chip ? () => (onOpenFicha ? onOpenFicha(x.id) : setDiagId(x.id)) : undefined}
+                        title={chip ? (onOpenFicha ? "Abrir ficha" : "Ver diagnóstico") : undefined}
                         style={{
                           display: "flex", alignItems: "flex-start", justifyContent: "space-between",
                           gap: 6, cursor: chip ? "pointer" : "default", minHeight: chip ? 30 : undefined,
@@ -172,17 +149,17 @@ export function Pipeline({
                       {lastV && <div style={{ fontSize: 10, color: T.textFaint, marginBottom: 6 }}>Últ. visita: {formatDate(lastV.date)} ({lastV.outcome})</div>}
                       <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                         {!isClient && stage !== "visitado" && (
-                          <MiniBtn onClick={() => advanceProspect(x)} color={T.blue}>→ Avanzar</MiniBtn>
+                          <MiniBtn onClick={() => acciones.avanzar(x)} color={T.blue}>→ Avanzar</MiniBtn>
                         )}
                         {!isClient && stage === "visitado" && (
-                          <MiniBtn onClick={() => convert(x)} color={T.green}>✓ Convertir</MiniBtn>
+                          <MiniBtn onClick={() => acciones.convertir(x)} color={T.green}>✓ Convertir</MiniBtn>
                         )}
                         <MiniBtn onClick={() => openVisit(x, isClient ? "client" : "prospect")} color={T.amber}>📋 Visita</MiniBtn>
                         {!isClient && <MiniBtn onClick={() => setPresTarget(x)} color={T.green}>💬 Presentar</MiniBtn>}
                         {!isClient && <MiniBtn onClick={() => openEdit(x)} color={T.textMuted}>✏️</MiniBtn>}
                         {isClient && stage !== "activo" && <MiniBtn onClick={() => setClientStage(x, "activo")} color={T.green}>Activar</MiniBtn>}
                         {isClient && stage !== "en_pausa" && <MiniBtn onClick={() => setClientStage(x, "en_pausa")} color={T.red}>Pausar</MiniBtn>}
-                        {!isClient && <MiniBtn onClick={() => deleteProspect(x)} color={T.red}>🗑</MiniBtn>}
+                        {!isClient && <MiniBtn onClick={() => acciones.borrar(x)} color={T.red}>🗑</MiniBtn>}
                       </div>
                     </div>
                   );

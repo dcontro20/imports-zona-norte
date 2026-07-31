@@ -40,14 +40,16 @@ function Dimension({ titulo, dim }) {
   );
 }
 
-export function ProspectDiagnosisModal({ open, onClose, item, prioridadColor }) {
+// El CONTENIDO del diagnóstico, sin el Modal — F3 del CRM: la Ficha lo embebe
+// como su sección central y este modal lo envuelve para el uso suelto.
+// Sigue siendo render puro de la fachada.
+export function DiagnosisContent({ item, prioridadColor }) {
   const { isMobile } = useResponsive();
-  if (!item) return <Modal open={false} onClose={onClose} title="" />;
-
-  const { diagnostico: d, scoreResult: s, proximoPaso: paso, prospect } = item;
+  if (!item) return null;
+  const { diagnostico: d, scoreResult: s, proximoPaso: paso } = item;
 
   return (
-    <Modal open={open} onClose={onClose} title={`Diagnóstico — ${prospect.businessName || prospect.name || ""}`}>
+    <div>
       {/* Veredicto: la palabra lidera */}
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 6 }}>
         <span style={{ fontSize: 18, fontWeight: 800, color: T.text }}>{d.veredicto}</span>
@@ -100,6 +102,15 @@ export function ProspectDiagnosisModal({ open, onClose, item, prioridadColor }) 
           </ul>
         )}
       </div>
+    </div>
+  );
+}
+
+export function ProspectDiagnosisModal({ open, onClose, item, prioridadColor }) {
+  if (!item) return <Modal open={false} onClose={onClose} title="" />;
+  return (
+    <Modal open={open} onClose={onClose} title={`Diagnóstico — ${item.prospect.businessName || item.prospect.name || ""}`}>
+      <DiagnosisContent item={item} prioridadColor={prioridadColor} />
     </Modal>
   );
 }

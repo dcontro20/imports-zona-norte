@@ -769,7 +769,7 @@ export default function App() {
       case "prospectMap": {
         const tabInicial = effectivePage === "pipeline" ? "embudo"
           : effectivePage === "prospectMap" ? "zonas" : "hoy";
-        return <Prospectos tabInicial={tabInicial} prospects={prospects} setProspects={setProspects} clients={clients} setClients={setClients} visits={visits} setVisits={setVisits} products={activeProducts} sales={activeSales} discoveryResults={discoveryResults} onConsumeDiscoveryResult={deleteDiscoveryResult} discoverySuppressed={discoverySuppressed} setDiscoverySuppressed={setDiscoverySuppressed} discoveryJobs={discoveryJobs} onCreateDiscoveryJob={createDiscoveryJob} onCancelDiscoveryJob={deleteDiscoveryJob} />;
+        return <Prospectos tabInicial={tabInicial} prospects={prospects} setProspects={setProspects} clients={clients} setClients={setClients} visits={visits} setVisits={setVisits} products={activeProducts} sales={activeSales} auditLog={auditLog} discoveryResults={discoveryResults} onConsumeDiscoveryResult={deleteDiscoveryResult} discoverySuppressed={discoverySuppressed} setDiscoverySuppressed={setDiscoverySuppressed} discoveryJobs={discoveryJobs} onCreateDiscoveryJob={createDiscoveryJob} onCancelDiscoveryJob={deleteDiscoveryJob} />;
       }
       case "routes": return <Routes routes={routes} setRoutes={setRoutes} clients={clients} sales={activeSales} setSales={setSales} />;
       case "cuentasCorrientes": return <CuentasCorrientes clients={clients} sales={activeSales} setSales={setSales} />;
