@@ -156,7 +156,8 @@ describe("Prospectos — Ficha (F3: centro operativo)", () => {
     montar({ prospects: [descubierto], visits: [] });
     fireEvent.click(screen.getAllByText(/Kiosco Golden/)[0]);
     expect(screen.getByText(/Descubierto/)).toBeTruthy();
-    expect(screen.getByText(/★ 4.4/)).toBeTruthy();
+    // ★ aparece en la card (ProspectMapsLine) Y en la procedencia de la Ficha.
+    expect(screen.getAllByText(/★ 4.4/).length).toBeGreaterThanOrEqual(2);
   });
 
   it("acciones desde la Ficha: avanzar usa la fuente compartida", () => {
@@ -187,6 +188,37 @@ describe("Prospectos — Ficha (F3: centro operativo)", () => {
     fireEvent.click(screen.getByText("🎯 Embudo"));
     fireEvent.click(screen.getAllByText(/Kiosco Estrella/)[0]);
     expect(screen.getByText("Ficha — Kiosco Estrella")).toBeTruthy();
+  });
+});
+
+describe("Prospectos — renglón de Google Maps en las cards (micro-iteración)", () => {
+  const descubierto = {
+    ...estrella, id: "p-maps", businessName: "Kiosco Maps", zone: "Microcentro",
+    source: "descubrimiento", rating: 4.7, reviewsCount: 33,
+    phone: "011 5555-1234", address: "Florida 550",
+    urlOrigen: "https://maps.google.com/?cid=999",
+  };
+
+  it("Para hoy muestra ★/📞/dirección y el link 🗺️ Maps a la ficha real", () => {
+    montar({ prospects: [descubierto], visits: [] });
+    expect(screen.getByText(/★ 4.7 \(33\) · 📞 011 5555-1234 · Florida 550/)).toBeTruthy();
+    const link = screen.getByText("🗺️ Maps");
+    expect(link.getAttribute("href")).toBe("https://maps.google.com/?cid=999");
+    // El link NO abre la Ficha (stopPropagation).
+    fireEvent.click(link);
+    expect(screen.queryByText("Ficha — Kiosco Maps")).toBeNull();
+  });
+
+  it("sin datos de Maps la card no muestra el renglón (cero ruido)", () => {
+    montar({ prospects: [{ id: "p-pelado2", businessName: "Kiosco Pelado", zone: "X", pipelineStage: "prospecto" }], visits: [] });
+    expect(screen.queryByText("🗺️ Maps")).toBeNull();
+  });
+
+  it("el Embudo también muestra el renglón en sus cards", () => {
+    montar({ prospects: [descubierto], visits: [] });
+    fireEvent.click(screen.getByText("🎯 Embudo"));
+    expect(screen.getByText(/★ 4.7/)).toBeTruthy();
+    expect(screen.getByText("🗺️ Maps")).toBeTruthy();
   });
 });
 
