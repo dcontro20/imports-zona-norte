@@ -12,6 +12,12 @@ Verificados sobre `feature/prospect-engine` @ `1d67ee8` (clon 2026-07-28).
 
 ## 🔴 B1 — `prospects`, `visits` y `routes` nunca se persisten
 
+> ✅ **RESUELTO 2026-07-30** (`60b368b`, branch `feature/discovery-engine`),
+> con OK explícito de Gustavo como prerequisito del Discovery Engine: 3
+> autosaves espejo + test de paridad `useFirebaseSync.autosave.test.js`
+> (invariante sobre el fuente: toda key de DATA_KEYS tiene su smartSave —
+> cubre la clase del bug). B2 y B3 siguen abiertos.
+
 **Dónde:** `src/useFirebaseSync.js:314-331`.
 
 Las tres colecciones están registradas en `DATA_KEYS` (`:55-57`), en el state
@@ -144,3 +150,29 @@ Hallazgo de cobertura: en los 37 casos reales el **gate de confianza nunca
 actúa** (ningún caso con base alta/muy_alta y confidence < 0.35). El gate queda
 sin caso de oro real; la Fase 1 debe cubrirlo con tests unitarios propios del
 motor JS (o casos sintéticos marcados, a decidir).
+
+---
+
+## Mejoras futuras del Discovery Engine (observadas en F4, 2026-07-31)
+
+Decisión de Gustavo (gate F4): quedan DOCUMENTADAS, sin cambiar comportamiento
+antes de cerrar esta versión.
+
+### M-D1 — Duplicado por teléfono compartido entre sucursales
+
+En la corrida real de Martínez, "Kiosko y almacén lo del PELA II" cayó como
+duplicado de "lo del PELA": dos sucursales del mismo dueño que comparten
+teléfono (la clave fuerte `tel:` de la capa de import las une; el runner NO las
+unió porque nombre+dirección difieren — el layering funcionó como se diseñó).
+Para B2B es defendible (mismo decisor), pero Diego podría querer visitar ambas
+ubicaciones. Mejora candidata: permitir importar un "duplicado" igual, con
+confirmación explícita en el modal de revisión (hoy los duplicados no son
+accionables).
+
+### M-D2 — Zona del lote vs. ubicación real del negocio
+
+La búsqueda de Martínez trajo un kiosco de Benavídez (Maps decide el radio) y
+quedó estampado `zone: "Martínez"` — el riesgo de aproximación documentado en
+el plan. Mitigación vigente: la zona es editable en la revisión/ficha. Mejora
+candidata: detectar discrepancia dirección↔zona en el modal (aviso suave), o
+derivar zona de la dirección cuando difiere de la del job.

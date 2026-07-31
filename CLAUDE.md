@@ -336,6 +336,56 @@ A partir del 14/04/2026, GitHub está sincronizado y es la fuente de verdad del 
 
 ---
 
+## Estado del proyecto al 31/07/2026
+
+### 🔎 DISCOVERY ENGINE — capacidad propia COMPLETA (branch `feature/discovery-engine`, SIN pushear/mergear)
+
+**El Prospect Engine se mergeó a `main` (PR #3, `15392c4`) y está en
+producción.** Encima se construyó el **Discovery Engine**: Diego busca
+"quioscos en Palermo" desde el Pipeline → worker en la Mac de Gustavo scrapea
+Google Maps (binario gosom PROPIO, tercero) → resultados al staging → **modal
+de revisión (nada entra solo)** → importados quedan como prospectos y el
+Prospect Engine los rankea (confianza baja + aviso ◍ hasta calificar).
+Sesión con gates por fase dirigida por Gustavo. **Contrato CONGELADO:**
+`docs/DISCOVERY_ENGINE_CONTRATO.md` · Journal:
+`docs/SESSION_2026-07-30_discovery_engine.md` · Resumen:
+`docs/IZN_Discovery_Engine_Resumen.md` · Setup: `scripts/DISCOVERY_SETUP.md`.
+
+- **Objetivo fijado por Gustavo:** capacidad PROPIA, igual que el engine —
+  Atlas es solo implementación de REFERENCIA (fixtures + equivalencia golden
+  byte-idéntica, regeneradas SOLO allá). Ningún código de Atlas en runtime.
+  Fork asumido. La única pieza no-JS es el binario gosom v1.17.2 (tercero),
+  copia propia en `scripts/discovery/bin/` (gitignoreado).
+- **Dominio puro** `src/lib/discovery/`: gosomParse (P6: reviews/fotos/owner
+  se descartan en origen), identity (única fuente de identidad: runner +
+  import + supresión), discoverRun (puro por inyección), mapProspect
+  (RawBusiness→IZN directo; lat/lng viajan), discoveryImport (dedup
+  placeId→tel AR→nombre+dirección contra prospectos Y clientes; Papelera no
+  bloquea, descarte SÍ). Regla fijada: `categoria` de Maps es INFORMATIVA —
+  jamás filtra/matchea/deduplica.
+- **B1 RESUELTO** (`60b368b`, prerequisito con OK): 3 autosaves + test de
+  paridad DATA_KEYS↔smartSave que cubre la clase del bug. B2/B3 siguen
+  abiertos. B9 se AMPLIFICÓ (queda en backlog por decisión, mitigación:
+  testTimeout).
+- **Supresión con memoria** (`discoverySuppressed` en appData): descartar
+  recuerda, rehabilitar es explícito. Colecciones nuevas FUERA de appData:
+  `discoveryJobs` (app crea/cancela; worker cierra) y `discoveryResults`
+  (staging: escribe SOLO el worker vía Admin SDK; la app lee y BORRA al
+  consumir — rules `create/update: false`).
+- **Worker** `scripts/discovery/` (Node + Admin SDK + LaunchAgent 5 min):
+  claim TRANSACCIONAL (solapamiento inofensivo), jamás escribe appData,
+  errores textuales al job. Herramienta ops: `crearJob.mjs`.
+- **Validado con producción real (F4 mitad worker)**: job kiosco/Martínez
+  tope 10 → worker 39s → staging contrato §5 OK 10/10 → revisión: 9
+  importables + 1 dup real por teléfono compartido (sucursales) → ranking
+  9/9 Baja+◍, gate OK. **Staging quedó en prod SIN consumir** (para la
+  revisión visual). Suite **1229 tests** (+82 en el bloque).
+- **Pendiente**: deploy de rules (la SA no tiene rol — necesita
+  `firebase login` de Gustavo tras arreglar ownership de `~/.config`),
+  mover credencial a `.credentials/firebase-admin-sa.json`, revisión visual
+  de la mitad app en local dev, LaunchAgent, merge. Mejoras futuras
+  documentadas SIN implementar: M-D1/M-D2 en el backlog.
+
 ## Estado del proyecto al 28/07/2026
 
 ### 🧭 PROSPECT ENGINE — capa de dominio COMPLETA (branch `feature/prospect-engine`, SIN pushear)

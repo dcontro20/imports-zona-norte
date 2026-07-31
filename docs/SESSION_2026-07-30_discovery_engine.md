@@ -133,3 +133,46 @@ Contrato v2 CONGELADO en el gate F1.
   revisión (un import + un descarte) → verificar ranking con confianza baja
   + aviso ◍ → resumen MD autocontenido (regla permanente) + actualización de
   CLAUDE.md.
+
+## F4 (2026-07-31) — validación con producción real (mitad worker COMPLETA)
+
+Gustavo generó la service account (la única credencial que solo él podía
+crear). El entorno de permisos me bloqueó moverla a `.credentials/` (dos
+denegaciones — correcto: capa de seguridad sobre archivos sensibles), así que
+quedó en `~/Downloads` y se usa vía `GOOGLE_APPLICATION_CREDENTIALS`
+(convención ADC agregada al worker como precedencia; la mudanza es de Gustavo).
+
+**El deploy de rules NO salió**: la SA `firebase-adminsdk` autentica bien pero
+no tiene rol de administración del proyecto (403 en serviceusage al verificar
+la API). Sirve para datos (el worker — su propósito), no para deployar rules.
+En el camino: dos roturas de ownership de la Mac (npm cache y `~/.config` de
+root) esquivadas con cache/XDG temporales — los `sudo chown` quedaron para
+Gustavo. Resolución elegida: `firebase login` de Gustavo + deploy mío después.
+
+**La mitad worker de F4 no dependía de rules (Admin SDK las bypasea) y se
+corrió ENTERA contra producción:**
+- Job real `ms895vdlv27kx5s` ("kiosco" — Martínez, tope 10) creado con
+  `crearJob.mjs` (herramienta ops nueva que espeja el shape exacto del form).
+- Worker: claim transaccional → scrape → **39 segundos** → 10 descubiertos,
+  job `listo` con counts.
+- Verificación read-only (script temporal, borrado tras la corrida): contrato
+  §5 OK 10/10 (zona estampada, source, contactName vacío, P6 limpio,
+  **lat/lng 10/10** — la mejora del port, con data real), revisión contra la
+  data viva (16 clientes, 0 prospectos — la secuela histórica de B1): 9
+  importables + 1 duplicado + 0 suprimidos, ranking del engine 9/9 con chip
+  "Baja" y aviso ◍, gate de confianza capando — el comportamiento diseñado.
+
+**Dos hallazgos de data real → backlog M-D1/M-D2 (decisión: documentar, no
+cambiar comportamiento en esta versión):**
+- M-D1: "lo del PELA" y "lo del PELA II" son sucursales con TELÉFONO
+  compartido — la clave fuerte `tel:` de la capa de import las une (el runner
+  no: nombre+dirección difieren; el layering funcionó como se diseñó). Diego
+  podría querer ambas ubicaciones.
+- M-D2: la búsqueda de Martínez trajo un kiosco de Benavídez con
+  `zone: "Martínez"` — la aproximación de zona documentada; mitigación
+  vigente: zona editable en la revisión.
+
+**El staging quedó en producción SIN consumir a propósito**: al deployar las
+rules, es el banner "🔎 10 descubiertos" con el que Gustavo cierra la mitad
+app a ojo (local dev — el branch no está mergeado). B1 quedó anotado como
+RESUELTO en el backlog; B9 amplificado quedó con su mitigación recomendada.
