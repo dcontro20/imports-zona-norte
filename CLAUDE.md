@@ -336,9 +336,45 @@ A partir del 14/04/2026, GitHub está sincronizado y es la fuente de verdad del 
 
 ---
 
+## Estado del proyecto al 06/08/2026
+
+### ⚡ CICLO ACTIVO: Prospectos v2 — SISTEMA DE EJECUCIÓN COMERCIAL (branch `feature/crm-ejecucion`)
+
+**OBJETIVO REDEFINIDO por Gustavo tras uso en producción** (no corrige un
+error: evoluciona la UX sobre la base construida): Prospectos deja de ser un
+CRM tradicional y pasa a ser un **sistema de ejecución comercial** — el
+sistema organiza el trabajo y propone la siguiente acción; el usuario ejecuta
+o descarta. **Ese es EL modelo mental del módulo.** Spec CONGELADO:
+`docs/PROSPECT_CRM_EJECUCION_SPEC.md` (tabla de 7 etapas operativas DERIVADAS
+de hechos — jamás seteadas; precedencia; mapping al engine intacto).
+
+- **F1 ✅ APROBADA** (`e023418`): `src/lib/prospectEtapas.js` (+17 tests,
+  1288 total) — etapaOperativa/subEstadoEspera/etapaEngine/conEtapaLegacy/
+  conteoPorEtapa. **Sigue F2: auto-ingesta** (ids determinísticos
+  `dsc_<placeId>`, la app ingiere el staging al llegar, adiós modal de
+  revisión, descarte con memoria a card/Ficha; enmienda del §4 del contrato
+  Discovery APROBADA: "nada se CONTACTA sin análisis humano"). Después: F3
+  Hoy=colas de acción + captura de hechos · F4 Embudo operativo + Ficha con
+  acción primaria · F5 docs.
+- **6 principios del ciclo (mantener SIEMPRE)**: Ficha centro accesible desde
+  toda vista · descubiertos entran solos · sin teléfono ⇒ cola "Para visitar"
+  automática · UNA etapa operativa por prospecto · estación de trabajo de
+  ventas, no CRM · gates por fase, no avanzar sin aprobación de Gustavo.
+- **NO se replantea** la arquitectura ni el objetivo (orden explícita al
+  cerrar el chat anterior). Discovery Engine y Prospect Engine INTACTOS.
+
+**Ya en main y en producción (todo validado con prospectos reales):**
+Discovery Engine (PR #4) · mini CRM Prospectos (PR #5) · B3 red de seguridad
+de backups (PR #6, con invariante backupCoverage y hallazgo B3-H1 excluido
+documentado) · renglón de Maps en cards (PR #7). Pendientes operativos:
+LaunchAgent del worker (credencial→`.credentials/` + plist — sin eso las
+búsquedas quedan en cola salvo `node scripts/discovery/worker.mjs` manual) ·
+validación operativa B3 (leer `appData/backupStatus` vs baseline 397) · los
+23 descubiertos de Microcentro en staging (con F2 entrarán solos).
+
 ## Estado del proyecto al 31/07/2026
 
-### 🎯 PROSPECTOS — mini CRM de Prospect Intelligence COMPLETO (branch `feature/prospect-crm`, SIN mergear)
+### 🎯 PROSPECTOS — mini CRM de Prospect Intelligence COMPLETO (mergeado como PR #5)
 
 **Bloque CERRADO 2026-07-31** (sobre `feature/discovery-engine`; **rebasar a
 main cuando mergee el PR #4** → PR propio). Visión de Gustavo: NO "una
