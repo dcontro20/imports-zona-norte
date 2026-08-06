@@ -14,9 +14,13 @@ import { Btn, Modal, MiniBtn, Badge } from "../UI.jsx";
 import { T } from "../../theme.js";
 import { CALIFICACION_CAMPOS } from "../../lib/prospectRanking.js";
 import { actividadDeProspecto } from "../../lib/prospectActividad.js";
+import { ETAPAS_OPERATIVAS, etapaOperativa, subEstadoEspera } from "../../lib/prospectEtapas.js";
 import { DiagnosisContent } from "./ProspectDiagnosisModal.jsx";
 
-const ETAPA_LABEL = { prospecto: "Prospecto", contactado: "Contactado", visitado: "Visitado" };
+// La etapa que se muestra es la OPERATIVA (ciclo v2): la misma que decide en
+// qué cola vive el prospecto. Mostrar la del engine (prospecto/contactado/
+// visitado) haría que la Ficha y la pantalla Hoy digan cosas distintas.
+const ETAPA_OP = Object.fromEntries(ETAPAS_OPERATIVAS.map(e => [e.key, e]));
 
 const Seccion = ({ titulo, children }) => (
   <div style={{ marginBottom: 16 }}>
@@ -41,12 +45,14 @@ export function ProspectFicha({
   const { isMobile } = useResponsive();
   const p = item?.prospect;
   const eventos = useMemo(
-    () => actividadDeProspecto({ prospectId: p?.id, visits, auditLog }),
-    [p?.id, visits, auditLog],
+    () => actividadDeProspecto({ prospect: p, prospectId: p?.id, visits, auditLog }),
+    [p, visits, auditLog],
   );
   if (!item || !p) return <Modal open={false} onClose={onClose} title="" />;
 
-  const etapa = p.pipelineStage || "prospecto";
+  const etapa = etapaOperativa(p, { visits });
+  const etapaInfo = ETAPA_OP[etapa];
+  const reintentar = etapa === "esperando_respuesta" && subEstadoEspera(p) === "reintentar";
   const calif = p.calificacion || null;
   const califValores = CALIFICACION_CAMPOS.map(c => ({
     pregunta: c.pregunta,
@@ -59,7 +65,8 @@ export function ProspectFicha({
     <Modal open onClose={onClose} title={`Ficha — ${p.businessName || ""}`}>
       {/* Encabezado: etapa + prioridad + aviso */}
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
-        <Badge color={T.blue}>{ETAPA_LABEL[etapa] || etapa}</Badge>
+        <Badge color={T.blue}>{etapaInfo ? `${etapaInfo.icono} ${etapaInfo.etiqueta}` : etapa}</Badge>
+        {reintentar && <Badge color={T.red}>reintentar</Badge>}
         <Badge color={prioridadColor}>{item.chip?.etiqueta}</Badge>
         <span style={{ fontSize: 11, color: T.textMuted }}>{p.zone || "sin zona"}</span>
       </div>
@@ -82,10 +89,7 @@ export function ProspectFicha({
           </MiniBtn>
         )}
         <MiniBtn onClick={() => onEditar?.(p)} color={T.textMuted}>✏️ Editar</MiniBtn>
-        {etapa !== "visitado" && (
-          <MiniBtn onClick={() => acciones?.avanzar(p)} color={T.blue}>→ Avanzar</MiniBtn>
-        )}
-        {etapa === "visitado" && (
+        {(etapa === "visitado" || etapa === "negociacion") && (
           <MiniBtn onClick={() => { acciones?.convertir(p); onClose?.(); }} color={T.green}>✓ Convertir</MiniBtn>
         )}
         {/* Descartar (con memoria) vs Borrar (a Papelera): el descarte es el

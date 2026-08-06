@@ -4,11 +4,17 @@ import { T } from "../../theme.js";
 import { WHOLESALE_TIERS } from "../../constants.js";
 import { presentationMessage } from "../../lib/wholesaleMessage.js";
 
-// Modal compartido (Pipeline + Kioscos) para el mensaje de PRESENTACIÓN B2B
-// (Bloque 2 — front de ventas): primer contacto con un kiosco. Elegís el tier
-// a ofrecer → preview EDITABLE (ajustás el texto ahí mismo) → copiar y pegar
-// en WhatsApp. Pensado para el celu con el kiosco enfrente.
-export function PresentationMessageModal({ open, onClose, target, defaultTier = "C", products = [], exchangeRate = 0 }) {
+// Modal compartido (Prospectos + Pipeline + Kioscos) para el mensaje de
+// PRESENTACIÓN B2B: primer contacto con un kiosco. Elegís el tier a ofrecer →
+// preview EDITABLE → mandar por WhatsApp o copiar. Pensado para el celu con el
+// kiosco enfrente.
+//
+// `onEnviado` (ciclo v2 F3): registra el HECHO "mensaje enviado" — hasta acá
+// presentar no dejaba rastro y la etapa no podía derivar la espera. Se llama
+// cuando el usuario efectivamente MANDA (abre WhatsApp) o confirma a mano que
+// ya lo mandó tras copiar. Copiar solo NO cuenta: copiar no es enviar, y esta
+// casa deriva de hechos, no de intenciones.
+export function PresentationMessageModal({ open, onClose, target, defaultTier = "C", products = [], exchangeRate = 0, onEnviado }) {
   const [tier, setTier] = useState(defaultTier);
   const [text, setText] = useState("");
   const [copied, setCopied] = useState(false);
@@ -26,6 +32,16 @@ export function PresentationMessageModal({ open, onClose, target, defaultTier = 
 
   const copy = () => {
     navigator.clipboard?.writeText(text).then(() => setCopied(true)).catch(() => {});
+  };
+
+  const enviar = () => { onEnviado?.(target); onClose?.(); };
+
+  // wa.me con el texto ya cargado: la acción primaria de la cola 💬 es
+  // "enviar la presentación", no "copiarla".
+  const tel = String(target?.phone || "").replace(/\D/g, "");
+  const abrirWhatsApp = () => {
+    window.open(`https://wa.me/${tel}?text=${encodeURIComponent(text)}`, "_blank", "noopener");
+    enviar();
   };
 
   return (
@@ -46,10 +62,21 @@ export function PresentationMessageModal({ open, onClose, target, defaultTier = 
       <div style={{ fontSize: 11, color: T.textFaint, marginBottom: 12 }}>
         Los precios salen de la lista del tier elegido (solo productos con stock). Editá lo que quieras antes de copiar.
       </div>
-      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
         <Btn variant="secondary" onClick={onClose}>Cerrar</Btn>
-        <Btn onClick={copy}>{copied ? "✅ Copiado" : "📋 Copiar"}</Btn>
+        <Btn variant="secondary" onClick={copy}>{copied ? "✅ Copiado" : "📋 Copiar"}</Btn>
+        {onEnviado && (copied
+          // Copió y lo va a pegar a mano: que confirme el hecho, no lo asumimos.
+          ? <Btn onClick={enviar}>✅ Ya lo mandé</Btn>
+          : tel
+            ? <Btn onClick={abrirWhatsApp}>💬 Mandar por WhatsApp</Btn>
+            : null)}
       </div>
+      {onEnviado && !copied && !tel && (
+        <div style={{ fontSize: 11, color: T.textFaint, marginTop: 8, textAlign: "right" }}>
+          Sin teléfono: copiá el mensaje y confirmá cuando lo hayas mandado.
+        </div>
+      )}
     </Modal>
   );
 }

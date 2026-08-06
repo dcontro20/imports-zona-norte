@@ -125,26 +125,32 @@ describe("Prospectos (módulo) — auto-ingesta reflejada en la pestaña Hoy (F2
     </AppContext.Provider>,
   );
 
-  // Los descubiertos entran solos (la ingesta corre en App.jsx); la pantalla
-  // solo avisa que hay trabajo de análisis pendiente. Ya no hay "Revisar".
-  it("avisa los que entraron solos y NO ofrece revisión manual", () => {
+  // Los descubiertos entran solos (la ingesta corre en App.jsx) y aterrizan en
+  // la cola 🔍, que en F3 es el deck de análisis. Ya no hay modal de revisión
+  // ni banner aparte: la cola ES el aviso (criterio: nunca ruidoso).
+  it("los que entraron solos aterrizan en la cola de análisis, sin revisión manual", () => {
     montar({ prospects: [ingresado("Alfa"), ingresado("Beta")] });
-    expect(screen.getByText(/2 descubiertos entraron solos/)).toBeTruthy();
+    expect(screen.getByText("Por analizar")).toBeTruthy();
+    expect(screen.getByText("2 negocios sin decidir")).toBeTruthy();
+    expect(screen.getByText("Alfa")).toBeTruthy();
     expect(screen.queryByText("Revisar")).toBeNull();
   });
 
   // La enmienda del §4: nada se contacta sin análisis humano. Un descubierto
-  // sin analizar no puede aparecer propuesto en "Para hoy".
-  it("los que faltan analizar quedan fuera de Para hoy; los analizados entran", () => {
+  // sin analizar solo puede estar en 🔍; el analizado ya es trabajo ejecutable.
+  it("sin analizar solo aparece en 🔍; el analizado pasa a su cola de ejecución", () => {
     montar({ prospects: [ingresado("Alfa"), ingresado("Beta", { analizadoAt: "2026-08-06T10:00:00Z" })] });
-    expect(screen.queryByText(/Alfa/)).toBeNull();
+    expect(screen.getByText("1 negocio sin decidir")).toBeTruthy();   // solo Alfa
+    expect(screen.getByText("Alfa")).toBeTruthy();
+    // Beta (sin teléfono ⇒ regla automática) espera en "Visitar".
+    fireEvent.click(screen.getByText("Visitar").closest("button"));
     expect(screen.getAllByText(/Beta/).length).toBeGreaterThan(0);
-    expect(screen.getByText(/1 descubiertos entraron solos/)).toBeTruthy();
+    expect(screen.queryByText(/Alfa/)).toBeNull();
   });
 
-  it("sin descubiertos pendientes no hay aviso; con descartados aparece el botón ⛔", () => {
+  it("sin nada para analizar, la cola 🔍 ofrece conseguir más y los descartados", () => {
     montar({ discoverySuppressed: [{ id: "s-1", nombre: "X", direccion: "C 1", motivo: "m", at: "2026-07-30" }] });
-    expect(screen.queryByText(/entraron solos/)).toBeNull();
+    expect(screen.getByText(/Nada para analizar/)).toBeTruthy();
     expect(screen.getByText("⛔ Descartados (1)")).toBeTruthy();
   });
 });
@@ -159,11 +165,11 @@ describe("Prospectos (módulo) — pestañas y alias de deep-link (F1)", () => {
     </AppContext.Provider>,
   );
 
-  it("abre en Hoy por default, con 🔎 Descubrir y Para hoy", () => {
+  it("abre en Hoy por default, con la barra de colas y el descubrimiento a mano", () => {
     montar();
     expect(screen.getByText("🎯 Prospectos")).toBeTruthy();
+    expect(screen.getByText("Por analizar")).toBeTruthy();
     expect(screen.getByText("🔎 Descubrir")).toBeTruthy();
-    expect(screen.getByText("☀️ Para hoy")).toBeTruthy();
   });
 
   it("Embudo muestra el kanban puro (sin discovery adentro)", () => {
@@ -190,6 +196,6 @@ describe("Prospectos (módulo) — pestañas y alias de deep-link (F1)", () => {
     cleanup();
     // Un tab desconocido cae a Hoy, no rompe.
     montar({ tabInicial: "loQueSea" });
-    expect(screen.getByText("☀️ Para hoy")).toBeTruthy();
+    expect(screen.getByText("Por analizar")).toBeTruthy();
   });
 });

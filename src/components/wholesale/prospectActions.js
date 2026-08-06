@@ -6,6 +6,9 @@
 import { uid } from "../../helpers.js";
 import { PROSPECT_STAGES_ORDER } from "../../prospecting.js";
 import { suprimirDescubierto, puedeSuprimirse } from "../../lib/discovery/discoveryImport.js";
+import {
+  marcarAnalizado, marcarMensajeEnviado, marcarRespondio, marcarNoResponde, marcarNegociacion,
+} from "../../lib/prospectHechos.js";
 
 export function makeProspectActions({ setProspects, setClients, setDiscoverySuppressed, logAudit, currentUser }) {
   const now = () => new Date().toISOString();
@@ -34,6 +37,36 @@ export function makeProspectActions({ setProspects, setClients, setDiscoverySupp
       setProspects(prev => prev.map(x => x.id === p.id ? { ...x, isDeleted: true, deletedAt: now(), deletedBy: currentUser?.name || "?" } : x));
       logAudit?.("delete", "prospect", p.id, `Prospecto borrado: ${p.businessName}`);
     },
+    // --- Captura de hechos (ciclo v2 F3) ---
+    // Un tap = un hecho registrado. NINGUNA de estas acciones escribe una
+    // etapa: la etapa se deriva sola de los hechos (prospectEtapas.js). Por eso
+    // no hay "mover a la columna X" — hay "esto pasó".
+    analizar(p) {
+      const at = now(), por = currentUser?.name || "?";
+      setProspects(prev => prev.map(x => x.id === p.id ? marcarAnalizado(x, { at, por }) : x));
+      logAudit?.("analyze", "prospect", p.id, `Analizado: ${p.businessName}`);
+    },
+    mensajeEnviado(p) {
+      const at = now(), por = currentUser?.name || "?";
+      setProspects(prev => prev.map(x => x.id === p.id ? marcarMensajeEnviado(x, { at, por }) : x));
+      logAudit?.("message", "prospect", p.id, `Presentación enviada: ${p.businessName}`);
+    },
+    respondio(p) {
+      const at = now();
+      setProspects(prev => prev.map(x => x.id === p.id ? marcarRespondio(x, { at }) : x));
+      logAudit?.("reply", "prospect", p.id, `Respondió: ${p.businessName}`);
+    },
+    noResponde(p) {
+      const at = now();
+      setProspects(prev => prev.map(x => x.id === p.id ? marcarNoResponde(x, { at }) : x));
+      logAudit?.("noreply", "prospect", p.id, `No responde: ${p.businessName}`);
+    },
+    negociar(p) {
+      const at = now();
+      setProspects(prev => prev.map(x => x.id === p.id ? marcarNegociacion(x, { at }) : x));
+      logAudit?.("negotiate", "prospect", p.id, `Pasó a negociación: ${p.businessName}`);
+    },
+
     // Descartar ≠ borrar: el descarte RECUERDA (supresión, contrato §7) — el
     // negocio no vuelve a entrar por el discovery salvo rehabilitación
     // explícita. Es el mecanismo que traía el modal de revisión; con la

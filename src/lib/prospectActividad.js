@@ -24,13 +24,35 @@ const AUDIT_EVENTO = {
   delete:  { icono: "🗑", titulo: "Borrado" },
 };
 
-// actividadDeProspecto({ prospectId, visits, auditLog }) → eventos DESC por fecha.
-export function actividadDeProspecto({ prospectId, visits = [], auditLog = [] } = {}) {
-  if (!prospectId) return [];
+// Hechos del ciclo v2 (prospectHechos.js §2): los que la etapa DERIVA. Cada
+// uno es un builder — la pantalla sigue sin conocer los tipos.
+const HECHO_EVENTO = [
+  { campo: "analizadoAt", autor: "analizadoPor", tipo: "analizado", icono: "🔍", titulo: "Analizado — vale la pena trabajarlo" },
+  { campo: "mensajeEnviadoAt", autor: "mensajeEnviadoPor", tipo: "mensaje_enviado", icono: "💬", titulo: "Presentación enviada" },
+  { campo: "respondioAt", tipo: "respuesta", icono: "🟢", titulo: "Respondió" },
+  { campo: "noRespondeAt", tipo: "sin_respuesta", icono: "🔴", titulo: "No responde" },
+  { campo: "negociacionAt", tipo: "negociacion", icono: "🤝", titulo: "Pasó a negociación" },
+];
+
+// actividadDeProspecto({ prospect, prospectId, visits, auditLog }) → eventos
+// DESC por fecha. `prospect` es opcional por compatibilidad: sin él salen las
+// visitas y el auditLog (v1); con él salen además los hechos del ciclo v2.
+export function actividadDeProspecto({ prospect = null, prospectId, visits = [], auditLog = [] } = {}) {
+  const id = prospectId || prospect?.id;
+  if (!id) return [];
   const eventos = [];
 
+  for (const h of HECHO_EVENTO) {
+    const at = prospect?.[h.campo];
+    if (!at) continue;
+    eventos.push({
+      tipo: h.tipo, icono: h.icono, titulo: h.titulo, detalle: "",
+      at, por: (h.autor && prospect[h.autor]) || "",
+    });
+  }
+
   for (const v of visits) {
-    if (!v || v.isDeleted || v.targetId !== prospectId) continue;
+    if (!v || v.isDeleted || v.targetId !== id) continue;
     eventos.push({
       tipo: "visita",
       icono: "📋",
@@ -42,7 +64,7 @@ export function actividadDeProspecto({ prospectId, visits = [], auditLog = [] } 
   }
 
   for (const a of auditLog) {
-    if (!a || a.entityId !== prospectId || a.action === "visit") continue;
+    if (!a || a.entityId !== id || a.action === "visit") continue;
     const base = AUDIT_EVENTO[a.action];
     if (!base) continue;
     eventos.push({
