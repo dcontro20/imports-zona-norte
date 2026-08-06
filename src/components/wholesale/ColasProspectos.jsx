@@ -32,6 +32,14 @@ export const COLAS = ETAPAS_OPERATIVAS
 
 const HORARIOS = { si: "abre todos los días", no: "abre algunos días", sin_datos: "" };
 
+// Color del chip de prioridad (mapeo de DISPLAY; la etiqueta la da el dominio).
+// Escala de calor para que el ojo encuentre primero lo que más conviene
+// trabajar. Vivía en Pipeline.jsx, que se retiró en F4; la usan las colas, el
+// Embudo y la Ficha — una sola escala en todo el módulo.
+export const PRIORIDAD_COLOR = {
+  muy_alta: T.green, alta: T.blue, media: T.amber, baja: T.textMuted, "": T.textFaint,
+};
+
 // ---------------------------------------------------------------------------
 // Barra de colas: el mapa del trabajo del día. Solo aparecen las que TIENEN
 // trabajo; 🔍 es la excepción (queda siempre porque hospeda el descubrimiento,
@@ -244,7 +252,10 @@ export function ColaLista({ cola, items = [], visits = [], acciones, onFicha, on
                 <span>{it.proximoPaso?.texto}</span>
               </div>
               <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                {accionesDeCola(cola.key, p, { acciones, onVisita, onPresentar, espera })}
+                {accionesDeEtapa(cola.key, p, { espera }).map(a => (
+                  <MiniBtn key={a.key} color={a.color}
+                    onClick={() => a.run(p, { acciones, onVisita, onPresentar })}>{a.label}</MiniBtn>
+                ))}
               </div>
             </div>
           );
@@ -274,37 +285,37 @@ function ultimaVisitaDe(visits, id) {
   return max;
 }
 
-// La acción PRIMARIA de cada etapa (tabla §1 del spec, columna "Acción
-// primaria"), más las secundarias que evitan un rodeo por la Ficha.
-function accionesDeCola(colaKey, p, { acciones, onVisita, onPresentar, espera }) {
-  const visita = <MiniBtn key="v" onClick={() => onVisita?.(p)} color={T.amber}>📋 Visita</MiniBtn>;
-  const presentar = <MiniBtn key="p" onClick={() => onPresentar?.(p)} color={T.green}>💬 Presentar</MiniBtn>;
-  switch (colaKey) {
-    case "para_contactar":
-      return [presentar, p.phone && (
-        <MiniBtn key="t" color={T.blue}
-          onClick={() => { window.location.href = `tel:${String(p.phone).replace(/[^\d+]/g, "")}`; }}>📞 Llamar</MiniBtn>
-      )];
-    case "para_visitar":
-      return [visita];
-    case "esperando_respuesta":
-      return [
-        <MiniBtn key="si" onClick={() => acciones?.respondio(p)} color={T.green}>🟢 Respondió</MiniBtn>,
-        <MiniBtn key="no" onClick={() => acciones?.noResponde(p)} color={T.red}>🔴 No responde</MiniBtn>,
-        espera === "reintentar" ? <MiniBtn key="re" onClick={() => onPresentar?.(p)} color={T.blue}>💬 Reescribir</MiniBtn> : null,
-      ];
-    case "visitado":
-      return [
-        <MiniBtn key="n" onClick={() => acciones?.negociar(p)} color={T.blue}>🤝 Negociando</MiniBtn>,
-        <MiniBtn key="c" onClick={() => acciones?.convertir(p)} color={T.green}>✓ Convertir</MiniBtn>,
-        visita,
-      ];
-    case "negociacion":
-      return [
-        <MiniBtn key="c" onClick={() => acciones?.convertir(p)} color={T.green}>✓ Convertir</MiniBtn>,
-        presentar, visita,
-      ];
-    default:
-      return [visita];
+// Las acciones de cada etapa, en orden: **la primera es la PRIMARIA** (tabla §1
+// del spec, columna "Acción primaria"). Devuelve DESCRIPTORES, no JSX, porque
+// las consumen dos pantallas con formas distintas: la cola las pinta todas
+// como MiniBtn, y la Ficha pinta la primera como botón principal (F4). Única
+// fuente: si divergieran, la cola y la Ficha propondrían cosas distintas para
+// el mismo prospecto.
+const A = {
+  trabajar:   { key: "trabajar",   label: "✓ Trabajar",     color: T.green,  run: (p, h) => h.acciones?.analizar(p) },
+  descartar:  { key: "descartar",  label: "✗ Descartar",    color: T.red,    run: (p, h) => { h.acciones?.descartar(p); h.onCerrar?.(); } },
+  presentar:  { key: "presentar",  label: "💬 Presentar",   color: T.green,  run: (p, h) => h.onPresentar?.(p) },
+  reescribir: { key: "reescribir", label: "💬 Reescribir",  color: T.blue,   run: (p, h) => h.onPresentar?.(p) },
+  llamar:     { key: "llamar",     label: "📞 Llamar",      color: T.blue,   run: (p) => { window.location.href = `tel:${String(p.phone).replace(/[^\d+]/g, "")}`; } },
+  visita:     { key: "visita",     label: "📋 Visita",      color: T.amber,  run: (p, h) => h.onVisita?.(p) },
+  respondio:  { key: "respondio",  label: "🟢 Respondió",   color: T.green,  run: (p, h) => h.acciones?.respondio(p) },
+  noResponde: { key: "noResponde", label: "🔴 No responde", color: T.red,    run: (p, h) => h.acciones?.noResponde(p) },
+  negociar:   { key: "negociar",   label: "🤝 Negociando",  color: T.blue,   run: (p, h) => h.acciones?.negociar(p) },
+  convertir:  { key: "convertir",  label: "✓ Convertir",    color: T.green,  run: (p, h) => { h.acciones?.convertir(p); h.onCerrar?.(); } },
+};
+
+export function accionesDeEtapa(etapaKey, p = {}, { espera = "" } = {}) {
+  switch (etapaKey) {
+    case "por_analizar":        return [A.trabajar, A.descartar];
+    case "para_contactar":      return p.phone ? [A.presentar, A.llamar] : [A.presentar];
+    // Sin teléfono el plan es ir, pero el mensaje sigue sirviendo (mandarlo por
+    // IG, o mostrarlo en el mostrador): secundaria, no primaria.
+    case "para_visitar":        return [A.visita, A.presentar];
+    case "esperando_respuesta": return espera === "reintentar"
+      ? [A.respondio, A.noResponde, A.reescribir] : [A.respondio, A.noResponde];
+    // Después de visitar lo natural es negociar; convertir es el cierre.
+    case "visitado":            return [A.negociar, A.convertir, A.visita];
+    case "negociacion":         return [A.convertir, A.presentar, A.visita];
+    default:                    return [A.visita];
   }
 }

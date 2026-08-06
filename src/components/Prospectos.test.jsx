@@ -254,7 +254,6 @@ describe("Prospectos — presentar deja rastro (el gap que cerró F3)", () => {
   it("copiar NO cuenta como enviado: hay que confirmarlo (derivar de hechos, no de intenciones)", () => {
     const { setProspects } = montar();
     irA("Visitar");   // sin teléfono: el camino es copiar y confirmar
-    fireEvent.click(screen.getByText(/Kiosco Visitar/));
     fireEvent.click(screen.getByText("💬 Presentar"));
     expect(screen.queryByText("✅ Ya lo mandé")).toBeNull();
     expect(setProspects).not.toHaveBeenCalled();

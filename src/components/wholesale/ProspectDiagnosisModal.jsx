@@ -1,4 +1,4 @@
-import { Modal, Badge } from "../UI.jsx";
+import { Badge } from "../UI.jsx";
 import { T } from "../../theme.js";
 import { ETIQUETA_TRI } from "../../lib/prospectRanking.js";
 import { useResponsive } from "../../App.jsx";
@@ -103,14 +103,5 @@ export function DiagnosisContent({ item, prioridadColor }) {
         )}
       </div>
     </div>
-  );
-}
-
-export function ProspectDiagnosisModal({ open, onClose, item, prioridadColor }) {
-  if (!item) return <Modal open={false} onClose={onClose} title="" />;
-  return (
-    <Modal open={open} onClose={onClose} title={`Diagnóstico — ${item.prospect.businessName || item.prospect.name || ""}`}>
-      <DiagnosisContent item={item} prioridadColor={prioridadColor} />
-    </Modal>
   );
 }

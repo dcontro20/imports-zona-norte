@@ -1,10 +1,12 @@
-// prospectActions.js — las acciones de gestión del prospecto (avanzar etapa /
-// convertir a mayorista / borrar) como ÚNICA fuente: las usan el kanban
-// (pestaña Embudo) y la Ficha (F3 del CRM). Extraídas de Pipeline SIN cambio
-// de comportamiento — si esto y el kanban divergieran, dos pantallas contarían
-// historias distintas sobre el mismo prospecto.
+// prospectActions.js — las acciones de gestión del prospecto como ÚNICA
+// fuente: las usan las colas de ☀️ Hoy y la Ficha. Si divergieran, dos
+// pantallas contarían historias distintas sobre el mismo prospecto.
+//
+// Ciclo v2: se retiró `avanzar` (escribía `pipelineStage` a mano). Las etapas
+// ya no se mueven — se DERIVAN de hechos, y los hechos se registran con las
+// acciones de abajo. Mover una etapa sin que haya pasado nada era, justamente,
+// la mentira que este ciclo eliminó.
 import { uid } from "../../helpers.js";
-import { PROSPECT_STAGES_ORDER } from "../../prospecting.js";
 import { suprimirDescubierto, puedeSuprimirse } from "../../lib/discovery/discoveryImport.js";
 import {
   marcarAnalizado, marcarMensajeEnviado, marcarRespondio, marcarNoResponde, marcarNegociacion,
@@ -13,11 +15,6 @@ import {
 export function makeProspectActions({ setProspects, setClients, setDiscoverySuppressed, logAudit, currentUser }) {
   const now = () => new Date().toISOString();
   return {
-    avanzar(p) {
-      const i = PROSPECT_STAGES_ORDER.indexOf(p.pipelineStage || "prospecto");
-      const next = PROSPECT_STAGES_ORDER[Math.min(i + 1, PROSPECT_STAGES_ORDER.length - 1)];
-      setProspects(prev => prev.map(x => x.id === p.id ? { ...x, pipelineStage: next, lastContactAt: now() } : x));
-    },
     convertir(p) {
       const id = uid();
       const newClient = {

@@ -1,7 +1,8 @@
-// ProspectFicha.jsx — la FICHA del prospecto: el centro operativo del mini CRM
-// (spec docs/PROSPECT_CRM_SPEC.md §Ficha, F3). No es un detalle de lectura:
-// desde acá se gestiona — visitar, presentar, llamar, editar, avanzar,
-// convertir, borrar. Composición pura de capacidades existentes:
+// ProspectFicha.jsx — la FICHA del prospecto: el EXPEDIENTE PERMANENTE, y el
+// centro operativo del módulo. Se abre desde cualquier vista (colas, embudo) y
+// desde F4 encabeza con la ACCIÓN PRIMARIA de la etapa: propone lo mismo que
+// la cola porque lee la misma fuente (accionesDeEtapa). No es un detalle de
+// lectura — desde acá se trabaja. Composición pura de capacidades existentes:
 //   - diagnóstico = DiagnosisContent (render puro de la fachada del engine);
 //   - calificación = CALIFICACION_CAMPOS de la fachada + la firma de autoría;
 //   - Actividad = actividadDeProspecto (lib de eventos TIPADOS — agregar un
@@ -15,6 +16,7 @@ import { T } from "../../theme.js";
 import { CALIFICACION_CAMPOS } from "../../lib/prospectRanking.js";
 import { actividadDeProspecto } from "../../lib/prospectActividad.js";
 import { ETAPAS_OPERATIVAS, etapaOperativa, subEstadoEspera } from "../../lib/prospectEtapas.js";
+import { accionesDeEtapa } from "./ColasProspectos.jsx";
 import { DiagnosisContent } from "./ProspectDiagnosisModal.jsx";
 
 // La etapa que se muestra es la OPERATIVA (ciclo v2): la misma que decide en
@@ -53,6 +55,8 @@ export function ProspectFicha({
   const etapa = etapaOperativa(p, { visits });
   const etapaInfo = ETAPA_OP[etapa];
   const reintentar = etapa === "esperando_respuesta" && subEstadoEspera(p) === "reintentar";
+  const accionesEtapa = accionesDeEtapa(etapa, p, { espera: reintentar ? "reintentar" : "" });
+  const handlers = { acciones, onVisita, onPresentar, onCerrar: onClose };
   const calif = p.calificacion || null;
   const califValores = CALIFICACION_CAMPOS.map(c => ({
     pregunta: c.pregunta,
@@ -76,11 +80,18 @@ export function ProspectFicha({
         </div>
       )}
 
-      {/* Acciones: el centro OPERATIVO — gestionar, no solo leer */}
+      {/* Acciones (F4): la PRIMARIA de la etapa arriba, como botón principal —
+          la Ficha propone lo mismo que la cola porque leen la misma fuente
+          (accionesDeEtapa). Abajo, las secundarias de la etapa y por último
+          las administrativas, separadas: editar/borrar no son "trabajo". */}
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
+        {accionesEtapa.map((a, i) => (i === 0
+          ? <Btn key={a.key} onClick={() => a.run(p, handlers)}>{a.label}</Btn>
+          : <MiniBtn key={a.key} color={a.color} onClick={() => a.run(p, handlers)}>{a.label}</MiniBtn>
+        ))}
+      </div>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
-        <MiniBtn onClick={() => onVisita?.(p)} color={T.amber}>📋 Visita</MiniBtn>
-        <MiniBtn onClick={() => onPresentar?.(p)} color={T.green}>💬 Presentar</MiniBtn>
-        {p.phone && (
+        {p.phone && !accionesEtapa.some(a => a.key === "llamar") && (
           // MiniBtn con navegación tel: (un <button> dentro de <a> es HTML
           // inválido — interactivo anidado en interactivo)
           <MiniBtn color={T.blue}
@@ -88,13 +99,15 @@ export function ProspectFicha({
             📞 Llamar
           </MiniBtn>
         )}
-        <MiniBtn onClick={() => onEditar?.(p)} color={T.textMuted}>✏️ Editar</MiniBtn>
-        {(etapa === "visitado" || etapa === "negociacion") && (
-          <MiniBtn onClick={() => { acciones?.convertir(p); onClose?.(); }} color={T.green}>✓ Convertir</MiniBtn>
+        {!accionesEtapa.some(a => a.key === "visita") && (
+          <MiniBtn onClick={() => onVisita?.(p)} color={T.amber}>📋 Visita</MiniBtn>
         )}
+        <MiniBtn onClick={() => onEditar?.(p)} color={T.textMuted}>✏️ Editar</MiniBtn>
         {/* Descartar (con memoria) vs Borrar (a Papelera): el descarte es el
             "no me sirve" del discovery — no vuelve a entrar solo (§7). */}
-        <MiniBtn onClick={() => { acciones?.descartar?.(p); onClose?.(); }} color={T.red}>✗ Descartar</MiniBtn>
+        {!accionesEtapa.some(a => a.key === "descartar") && (
+          <MiniBtn onClick={() => { acciones?.descartar?.(p); onClose?.(); }} color={T.red}>✗ Descartar</MiniBtn>
+        )}
         <MiniBtn onClick={() => { acciones?.borrar(p); onClose?.(); }} color={T.textMuted}>🗑 Borrar</MiniBtn>
       </div>
 

@@ -21,7 +21,7 @@ import { T } from "../theme.js";
 import { useAppContext } from "../AppContext.js";
 import { zonesWithoutCoverage } from "../prospecting.js";
 import { buildProspectRanking } from "../lib/prospectRanking.js";
-import { Pipeline, PRIORIDAD_COLOR } from "./Pipeline.jsx";
+import { EmbudoOperativo } from "./wholesale/EmbudoOperativo.jsx";
 import { ProspectMap } from "./ProspectMap.jsx";
 import { PresentationMessageModal } from "./wholesale/PresentationMessageModal.jsx";
 import { ProspectFormModal } from "./wholesale/ProspectFormModal.jsx";
@@ -31,8 +31,8 @@ import { makeProspectActions } from "./wholesale/prospectActions.js";
 import {
   DiscoverySuppressedModal, DiscoverySearchModal, DiscoveryJobsStatus,
 } from "./wholesale/DiscoveryReview.jsx";
-import { etapaOperativa, conteoPorEtapa, subEstadoEspera } from "../lib/prospectEtapas.js";
-import { BarraColas, DeckAnalisis, ColaLista, COLAS } from "./wholesale/ColasProspectos.jsx";
+import { etapaOperativa, conteoPorEtapa, subEstadoEspera, conEtapaLegacy } from "../lib/prospectEtapas.js";
+import { BarraColas, DeckAnalisis, ColaLista, COLAS, PRIORIDAD_COLOR } from "./wholesale/ColasProspectos.jsx";
 
 const TABS = [
   { key: "hoy", label: "☀️ Hoy" },
@@ -65,9 +65,16 @@ export function Prospectos({
   const now = () => new Date().toISOString();
 
   // --- Las colas: el engine ordena DENTRO de cada una; la etapa decide en cuál ---
+  // Adapter del §4 del spec: el engine (y el funnel, y las zonas) siguen
+  // leyendo `pipelineStage`. Se lo entregamos DERIVADO de la etapa operativa,
+  // así el motor y la pantalla nunca cuentan historias distintas. El engine no
+  // se toca — sigue recibiendo las 3 etapas que conoce.
+  const prospectsParaEngine = useMemo(
+    () => conEtapaLegacy(prospects, { visits }), [prospects, visits],
+  );
   const ranking = useMemo(
-    () => buildProspectRanking({ prospects, visits, clients, sales, products }),
-    [prospects, visits, clients, sales, products],
+    () => buildProspectRanking({ prospects: prospectsParaEngine, visits, clients, sales, products }),
+    [prospectsParaEngine, visits, clients, sales, products],
   );
   const { conteo, vencidos } = useMemo(
     () => conteoPorEtapa(prospects, { visits }), [prospects, visits],
@@ -214,15 +221,12 @@ export function Prospectos({
         </div>
       )}
 
-      {/* ---- Embudo (kanban puro) ---- */}
+      {/* ---- Embudo: el tablero por las 7 etapas operativas (F4) ---- */}
       {tab === "embudo" && (
         <div key="embudo" style={{ animation: "fadeIn 180ms ease-out" }}>
-          <Pipeline
-            prospects={prospects} setProspects={setProspects}
-            clients={clients} setClients={setClients}
-            visits={visits} setVisits={setVisits}
-            products={products} sales={sales}
-            onOpenFicha={setFichaId}
+          <EmbudoOperativo
+            prospects={prospects} clients={clients} visits={visits}
+            ranking={ranking} onOpenFicha={setFichaId} onNuevo={() => setAltaOpen(true)}
           />
         </div>
       )}

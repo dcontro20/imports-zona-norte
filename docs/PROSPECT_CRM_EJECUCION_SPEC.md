@@ -166,17 +166,35 @@ volumen — p. ej. > 30 pendientes — para que el caso simple siga simple):
   que las primeras 10 decisiones sean las más rentables. **Ordenar es asistir;
   descartar es decidir.**
 - **Embudo**: tablero por las 7 etapas operativas (vista panorámica).
+  **F4:** es panorámico de verdad — las cards son compactas y **no tienen
+  botones de acción**: tocarlas abre la Ficha, que ya trae la acción primaria.
+  Hoy y Embudo son dos proyecciones de las mismas etapas; con acciones en los
+  dos, serían dos escritorios para el mismo trabajo. La columna 🏪 Cliente
+  muestra los mayoristas (el resultado del embudo) y no se gestionan ahí: al
+  cerrarse salen del CRM hacia Kioscos, donde ya se administran.
 - **Ficha**: centro del sistema — acción primaria de la etapa como botón
   principal arriba + hechos de un tap + Actividad (los hechos nuevos entran
   como builders: `analizado`, `mensaje_enviado`, `respuesta` — la pantalla no
-  cambia, por diseño de F3 del ciclo anterior).
+  cambia, por diseño de F3 del ciclo anterior). **F4:** la Ficha y la cola leen
+  la MISMA fuente (`accionesDeEtapa`), así que proponen lo mismo para el mismo
+  prospecto; abajo, separadas, quedan las administrativas (editar / descartar /
+  borrar), que no son trabajo comercial.
 - Sin duplicación Hoy↔Embudo: mismas etapas, dos proyecciones (colas vs tablero).
 
 ## 7. Fases
 
 F1 dominio de etapas ✅ → F2 auto-ingesta + enmienda contrato ✅ → F3 Hoy como
 colas + captura de hechos ✅ → F4 Embudo operativo + Ficha con acción primaria
-→ F5 pulido + docs de cierre. Gates entre todas.
+✅ → F5 pulido + docs de cierre. Gates entre todas.
+
+**Cerrado en F4** (además del tablero y la Ficha): se cableó el **adapter del
+§4** — el engine, el funnel y las zonas siguen leyendo `pipelineStage`, y ahora
+lo reciben DERIVADO (`conEtapaLegacy`) en vez de leer un campo que los hechos ya
+no actualizaban. Se **retiró `Pipeline.jsx`** (su kanban ordenaba por las 3
+etapas del engine, que dejaron de ser la verdad) y con él la acción `avanzar`,
+que escribía la etapa a mano: mover una etapa sin que hubiera pasado nada era la
+mentira que este ciclo eliminó. Toda su cobertura de tests se conservó montando
+directamente los componentes que hospedaba (diagnóstico y calificación).
 
 **Capturado en F3** (`prospectHechos.js`, funciones puras prospecto→prospecto;
 ninguna escribe una etapa): `analizadoAt/Por` (✓ Trabajar) · `mensajeEnviadoAt/
