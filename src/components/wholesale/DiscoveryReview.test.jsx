@@ -1,8 +1,8 @@
-// Test de integración UI ↔ ingesta del discovery (F2).
-// Las reglas viven en discoveryImport.js (con sus propios tests); acá se
-// testea que la UI CONSUME bien: estados pintados, toggle importar/descartar,
-// split del confirm, y el flujo completo montado en Pipeline (banner →
-// revisar → setProspects/setDiscoverySuppressed → consumo del staging).
+// Test de integración UI ↔ discovery. Las reglas viven en discoveryImport.js
+// (con sus propios tests); acá se testea que la UI CONSUME bien: alta de
+// búsqueda, estado de las que corren, descartados con memoria, y —desde F2 del
+// ciclo v2— que la pantalla refleja la AUTO-INGESTA (aviso de "por analizar")
+// en vez del viejo modal de revisión, que ya no existe.
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent, within } from "@testing-library/react";
 
@@ -22,7 +22,7 @@ vi.mock("../../firebase.js", () => ({
 }));
 vi.mock("firebase/auth", () => ({ onAuthStateChanged: () => () => {} }));
 
-import { DiscoveryReviewModal, DiscoverySuppressedModal, DiscoverySearchModal, DiscoveryJobsStatus } from "./DiscoveryReview.jsx";
+import { DiscoverySuppressedModal, DiscoverySearchModal, DiscoveryJobsStatus } from "./DiscoveryReview.jsx";
 import { Prospectos } from "../Prospectos.jsx";
 import { AppContext } from "../../AppContext.js";
 
@@ -40,48 +40,11 @@ const staged = (nombre, over = {}) => ({
   horariosCompletos: "si", ...over,
 });
 
-const RESULTADO = {
-  id: "job-1", jobId: "job-1", zona: "Palermo", termino: "kiosco",
-  at: "2026-07-30T12:00:00Z",
-  prospectos: [staged("Alfa"), staged("Beta"), staged("Gamma")],
-};
-
-describe("DiscoveryReviewModal", () => {
-  it("pinta estados: importable accionable, duplicado y suprimido informativos", () => {
-    render(<DiscoveryReviewModal
-      open resultado={RESULTADO} onConfirm={vi.fn()} onClose={vi.fn()}
-      prospects={[{ businessName: "Beta", placeId: "PID_Beta" }]}
-      suprimidos={[{ nombre: "Gamma", direccion: "Gamma 123, CABA" }]}
-    />);
-    expect(screen.getByText(/1 para importar · 1 duplicados · 1 descartados antes/)).toBeTruthy();
-    expect(screen.getByText("duplicado")).toBeTruthy();
-    expect(screen.getByText("descartado antes")).toBeTruthy();
-    // Solo el importable (Alfa) tiene botones de acción.
-    expect(screen.getAllByText("✓ Importar")).toHaveLength(1);
-  });
-
-  it("toggle a descartar parte el confirm en altas y supresiones", () => {
-    const onConfirm = vi.fn();
-    render(<DiscoveryReviewModal open resultado={RESULTADO} onConfirm={onConfirm} onClose={vi.fn()} />);
-    // Descartar a Beta (segundo importable).
-    fireEvent.click(screen.getAllByText("✗ Descartar")[1]);
-    fireEvent.click(screen.getByText("Importar 2"));
-    const arg = onConfirm.mock.calls[0][0];
-    expect(arg.altas.map(p => p.businessName)).toEqual(["Alfa", "Gamma"]);
-    expect(arg.supresiones.map(p => p.businessName)).toEqual(["Beta"]);
-    expect(arg.sinMemoria).toEqual([]);
-  });
-
-  it("descartado sin identidad suficiente va a sinMemoria y lo avisa", () => {
-    const onConfirm = vi.fn();
-    const pelado = staged("Fantasma", { address: "", web: "" });
-    render(<DiscoveryReviewModal open resultado={{ ...RESULTADO, prospectos: [pelado] }} onConfirm={onConfirm} onClose={vi.fn()} />);
-    fireEvent.click(screen.getByText("✗ Descartar"));
-    expect(screen.getByText(/sin identidad suficiente/)).toBeTruthy();
-    fireEvent.click(screen.getByText("Confirmar"));
-    expect(onConfirm.mock.calls[0][0].sinMemoria.map(p => p.businessName)).toEqual(["Fantasma"]);
-    expect(onConfirm.mock.calls[0][0].supresiones).toEqual([]);
-  });
+// Prospecto tal como lo deja la auto-ingesta: id determinístico + el hecho
+// `ingresoAutomatico` sin `analizadoAt` ⇒ etapa operativa `por_analizar`.
+const ingresado = (nombre, over = {}) => ({
+  ...staged(nombre), id: `dsc_PID_${nombre}`, ingresoAutomatico: true,
+  foundAt: "2026-08-06T12:00:00Z", lastContactAt: "2026-08-06T12:00:00Z", ...over,
 });
 
 describe("DiscoverySuppressedModal", () => {
@@ -150,50 +113,38 @@ describe("DiscoveryJobsStatus — búsquedas activas", () => {
   });
 });
 
-describe("Prospectos (módulo) — flujo de revisión punta a punta en la pestaña Hoy", () => {
-  const montar = (extra = {}) => {
-    const setProspects = vi.fn();
-    const setDiscoverySuppressed = vi.fn();
-    const onConsume = vi.fn();
-    render(
-      <AppContext.Provider value={CTX}>
-        <Prospectos
-          prospects={[]} setProspects={setProspects}
-          clients={[]} setClients={vi.fn()} visits={[]} setVisits={vi.fn()}
-          discoveryResults={[RESULTADO]} onConsumeDiscoveryResult={onConsume}
-          discoverySuppressed={[]} setDiscoverySuppressed={setDiscoverySuppressed}
-          {...extra}
-        />
-      </AppContext.Provider>,
-    );
-    return { setProspects, setDiscoverySuppressed, onConsume };
-  };
+describe("Prospectos (módulo) — auto-ingesta reflejada en la pestaña Hoy (F2)", () => {
+  const montar = (extra = {}) => render(
+    <AppContext.Provider value={CTX}>
+      <Prospectos
+        prospects={[]} setProspects={vi.fn()}
+        clients={[]} setClients={vi.fn()} visits={[]} setVisits={vi.fn()}
+        discoverySuppressed={[]} setDiscoverySuppressed={vi.fn()}
+        {...extra}
+      />
+    </AppContext.Provider>,
+  );
 
-  it("banner visible → revisar → importar: altas con id/fechas, descarte con memoria, staging consumido", () => {
-    const { setProspects, setDiscoverySuppressed, onConsume } = montar();
-    expect(screen.getByText(/3 descubiertos de "kiosco" — Palermo/)).toBeTruthy();
-    fireEvent.click(screen.getByText("Revisar"));
-    fireEvent.click(screen.getAllByText("✗ Descartar")[0]);   // descartar Alfa
-    fireEvent.click(screen.getByText("Importar 2"));
-
-    // Altas: prev => [...nuevos, ...prev] con id y fechas selladas.
-    const nuevos = setProspects.mock.calls[0][0]([]);
-    expect(nuevos.map(p => p.businessName)).toEqual(["Beta", "Gamma"]);
-    expect(nuevos.every(p => p.id && p.foundAt && p.lastContactAt)).toBe(true);
-    expect(nuevos.every(p => p.source === "descubrimiento")).toBe(true);
-
-    // Descarte con memoria, firmado.
-    const entradas = setDiscoverySuppressed.mock.calls[0][0]([]);
-    expect(entradas.map(e => e.nombre)).toEqual(["Alfa"]);
-    expect(entradas[0].por).toBe("Diego");
-
-    expect(onConsume).toHaveBeenCalledWith("job-1");
-    expect(CTX.logAudit).toHaveBeenCalledWith("import", "prospect", "job-1", expect.stringContaining("2 altas"));
+  // Los descubiertos entran solos (la ingesta corre en App.jsx); la pantalla
+  // solo avisa que hay trabajo de análisis pendiente. Ya no hay "Revisar".
+  it("avisa los que entraron solos y NO ofrece revisión manual", () => {
+    montar({ prospects: [ingresado("Alfa"), ingresado("Beta")] });
+    expect(screen.getByText(/2 descubiertos entraron solos/)).toBeTruthy();
+    expect(screen.queryByText("Revisar")).toBeNull();
   });
 
-  it("sin staging no hay banner; con descartados aparece el botón ⛔", () => {
-    montar({ discoveryResults: [], discoverySuppressed: [{ id: "s-1", nombre: "X", direccion: "C 1", motivo: "m", at: "2026-07-30" }] });
-    expect(screen.queryByText(/descubiertos de/)).toBeNull();
+  // La enmienda del §4: nada se contacta sin análisis humano. Un descubierto
+  // sin analizar no puede aparecer propuesto en "Para hoy".
+  it("los que faltan analizar quedan fuera de Para hoy; los analizados entran", () => {
+    montar({ prospects: [ingresado("Alfa"), ingresado("Beta", { analizadoAt: "2026-08-06T10:00:00Z" })] });
+    expect(screen.queryByText(/Alfa/)).toBeNull();
+    expect(screen.getAllByText(/Beta/).length).toBeGreaterThan(0);
+    expect(screen.getByText(/1 descubiertos entraron solos/)).toBeTruthy();
+  });
+
+  it("sin descubiertos pendientes no hay aviso; con descartados aparece el botón ⛔", () => {
+    montar({ discoverySuppressed: [{ id: "s-1", nombre: "X", direccion: "C 1", motivo: "m", at: "2026-07-30" }] });
+    expect(screen.queryByText(/entraron solos/)).toBeNull();
     expect(screen.getByText("⛔ Descartados (1)")).toBeTruthy();
   });
 });

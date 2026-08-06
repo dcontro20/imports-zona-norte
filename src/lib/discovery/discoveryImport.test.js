@@ -4,7 +4,8 @@ import { describe, it, expect } from "vitest";
 import {
   normalizarTelefono, clavesDeRegistro, puedeSuprimirse,
   revisarDescubiertos, altaDesdeDescubierto, suprimirDescubierto,
-  identidadesExistentes,
+  identidadesExistentes, hashDjb2, idDeterministico, altaAutomatica,
+  ingestarDescubiertos, ingestarLote,
 } from "./discoveryImport.js";
 
 const desc = (over = {}) => ({
@@ -156,5 +157,115 @@ describe("altaDesdeDescubierto / suprimirDescubierto", () => {
     expect(puedeSuprimirse(sinIdentidad)).toBe(false);
     expect(() => suprimirDescubierto(sinIdentidad, { at: "2026-07-30" })).toThrow(/insuficiente/);
     expect(puedeSuprimirse(desc())).toBe(true);
+  });
+});
+
+// --- F2 del ciclo v2: auto-ingesta (spec §5) ---
+
+describe("idDeterministico — el mismo descubrimiento da SIEMPRE el mismo id", () => {
+  it("con placeId: dsc_<placeId>", () => {
+    expect(idDeterministico(desc())).toBe("dsc_PID_GOLDEN");
+  });
+  it("sin placeId cae a la clave nd hasheada, estable entre corridas", () => {
+    const sinPid = desc({ placeId: "" });
+    const id = idDeterministico(sinPid);
+    expect(id).toBe("dsc_nd_" + hashDjb2("nd:kiosco-golden|el-salvador-4813-caba"));
+    expect(idDeterministico(desc({ placeId: "" }))).toBe(id);
+  });
+  it("el nd ignora la forma del texto: mismo negocio escrito distinto = mismo id", () => {
+    const a = desc({ placeId: "", businessName: "Kiosco Goldén", address: "El Salvador 4813, CABA" });
+    const b = desc({ placeId: "", businessName: "KIOSCO  GOLDEN", address: "el salvador 4813 caba" });
+    expect(idDeterministico(a)).toBe(idDeterministico(b));
+  });
+  it("negocios distintos NO colisionan", () => {
+    const otro = desc({ placeId: "", businessName: "Kiosco Plata", address: "Otra 100, CABA" });
+    expect(idDeterministico(otro)).not.toBe(idDeterministico(desc({ placeId: "" })));
+  });
+  it("sin placeId y sin nombre+dirección no hay identidad derivable ⇒ vacío", () => {
+    expect(idDeterministico(desc({ placeId: "", address: "" }))).toBe("");
+    expect(idDeterministico({})).toBe("");
+  });
+});
+
+describe("altaAutomatica — el descubierto que entra SOLO", () => {
+  it("sella ingresoAutomatico y NO inventa análisis humano", () => {
+    const p = altaAutomatica(desc(), { id: "dsc_PID_GOLDEN", at: "2026-08-06T12:00:00Z" });
+    expect(p.id).toBe("dsc_PID_GOLDEN");
+    expect(p.ingresoAutomatico).toBe(true);
+    expect(p.analizadoAt).toBeUndefined();
+    expect(p.foundAt).toBe("2026-08-06T12:00:00Z");
+    expect(p.source).toBe("descubrimiento");
+  });
+});
+
+describe("ingestarDescubiertos — el reemplazo del modal de revisión (§5)", () => {
+  const resultado = (prospectos) => ({ id: "job-1", zona: "Palermo", termino: "kiosco", prospectos });
+  const AT = "2026-08-06T12:00:00Z";
+  const ingerir = (over = {}) => ingestarDescubiertos({ at: AT, nuevoId: () => "uid-1", ...over });
+
+  it("todo lo importable entra solo, con id determinístico", () => {
+    const r = ingerir({ resultado: resultado([desc(), desc({ businessName: "Kiosco Plata", address: "Otra 100", placeId: "PID_PLATA", phone: "", clavesIdentidad: [] })]) });
+    expect(r.altas.map(p => p.id)).toEqual(["dsc_PID_GOLDEN", "dsc_PID_PLATA"]);
+    expect(r.altas.every(p => p.ingresoAutomatico)).toBe(true);
+  });
+
+  it("el dedup NO se perdió: lo que ya existe vivo no entra", () => {
+    const vivo = { id: "p-1", businessName: "Kiosco Golden", address: "El Salvador 4813, CABA", phone: "" };
+    const r = ingerir({ resultado: resultado([desc()]), prospects: [vivo] });
+    expect(r.altas).toEqual([]);
+    expect(r.duplicados).toBe(1);
+  });
+
+  it("lo descartado con memoria sigue sin volver", () => {
+    const supr = suprimirDescubierto(desc(), { id: "s-1", at: "2026-07-30", por: "Diego" });
+    const r = ingerir({ resultado: resultado([desc()]), suprimidos: [supr] });
+    expect(r.altas).toEqual([]);
+    expect(r.suprimidos).toBe(1);
+  });
+
+  it("idempotencia: ingerir dos veces produce el MISMO id (el merge lo absorbe)", () => {
+    const uno = ingerir({ resultado: resultado([desc()]) });
+    const dos = ingerir({ resultado: resultado([desc()]) });
+    expect(uno.altas[0].id).toBe(dos.altas[0].id);
+  });
+
+  it("el prospecto ya ingerido bloquea su propia re-ingesta (dedup por identidad)", () => {
+    const primera = ingerir({ resultado: resultado([desc()]) });
+    const segunda = ingerir({ resultado: resultado([desc()]), prospects: primera.altas });
+    expect(segunda.altas).toEqual([]);
+    expect(segunda.duplicados).toBe(1);
+  });
+
+  it("sin identidad derivable usa el id inyectado por la app (uid)", () => {
+    const anonimo = desc({ placeId: "", address: "", clavesIdentidad: [], web: "" });
+    const r = ingerir({ resultado: resultado([anonimo]) });
+    expect(r.altas[0].id).toBe("uid-1");
+  });
+});
+
+describe("ingestarLote — varias búsquedas que llegan juntas", () => {
+  const resultado = (id, prospectos) => ({ id, zona: "Palermo", termino: "kiosco", prospectos });
+  const plata = desc({ businessName: "Kiosco Plata", address: "Otra 100", placeId: "PID_PLATA", phone: "", clavesIdentidad: [] });
+
+  it("acumula: el mismo negocio en dos búsquedas entra UNA sola vez", () => {
+    const { altas, resumenes } = ingestarLote({
+      resultados: [resultado("job-1", [desc()]), resultado("job-2", [desc(), plata])],
+      at: "2026-08-06T12:00:00Z", nuevoId: () => "uid-x",
+    });
+    expect(altas.map(p => p.id)).toEqual(["dsc_PID_GOLDEN", "dsc_PID_PLATA"]);
+    expect(resumenes[1].duplicados).toBe(1);
+  });
+
+  it("un resumen por búsqueda, con su resultado para el audit y el consumo del staging", () => {
+    const { resumenes } = ingestarLote({
+      resultados: [resultado("job-1", [desc()]), resultado("job-2", [plata])],
+      at: "2026-08-06T12:00:00Z",
+    });
+    expect(resumenes.map(r => r.resultado.id)).toEqual(["job-1", "job-2"]);
+    expect(resumenes.every(r => r.altas.length === 1)).toBe(true);
+  });
+
+  it("sin resultados no hace nada", () => {
+    expect(ingestarLote({}).altas).toEqual([]);
   });
 });

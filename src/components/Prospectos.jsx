@@ -28,9 +28,9 @@ import { ProspectFicha } from "./wholesale/ProspectFicha.jsx";
 import { ProspectMapsLine } from "./wholesale/ProspectMapsLine.jsx";
 import { makeProspectActions } from "./wholesale/prospectActions.js";
 import {
-  DiscoveryReviewModal, DiscoverySuppressedModal, DiscoverySearchModal, DiscoveryJobsStatus,
+  DiscoverySuppressedModal, DiscoverySearchModal, DiscoveryJobsStatus,
 } from "./wholesale/DiscoveryReview.jsx";
-import { altaDesdeDescubierto, suprimirDescubierto } from "../lib/discovery/discoveryImport.js";
+import { etapaOperativa, conteoPorEtapa } from "../lib/prospectEtapas.js";
 
 const TABS = [
   { key: "hoy", label: "☀️ Hoy" },
@@ -44,7 +44,6 @@ const ETAPAS_HOY = ["prospecto", "contactado"];   // lo trabajable (visitado ya 
 export function Prospectos({
   prospects = [], setProspects, clients = [], setClients, visits = [], setVisits,
   products = [], sales = [], auditLog = [],
-  discoveryResults = [], onConsumeDiscoveryResult,
   discoverySuppressed = [], setDiscoverySuppressed,
   discoveryJobs = [], onCreateDiscoveryJob, onCancelDiscoveryJob,
   tabInicial = "hoy",
@@ -52,7 +51,6 @@ export function Prospectos({
   const { isMobile } = useResponsive();
   const { logAudit, currentUser, exchangeRate } = useAppContext();
   const [tab, setTab] = useState(TABS.some(t => t.key === tabInicial) ? tabInicial : "hoy");
-  const [revisando, setRevisando] = useState(false);
   const [suppModal, setSuppModal] = useState(false);
   const [buscando, setBuscando] = useState(false);
   const [busquedaInicial, setBusquedaInicial] = useState(null); // pre-carga de "buscar en esta zona"
@@ -70,13 +68,23 @@ export function Prospectos({
     () => buildProspectRanking({ prospects, visits, clients, sales, products }),
     [prospects, visits, clients, sales, products],
   );
+  // "Para hoy" propone trabajo REAL: los que entraron solos por el discovery y
+  // nadie miró todavía (`por_analizar`) quedan afuera — nada se contacta sin
+  // análisis humano (enmienda del §4 del contrato Discovery, ciclo v2 §5).
+  // Su cola propia llega en F3.
   const trabajables = useMemo(() => ranking.items.filter(it => {
     const p = it.prospect;
     return p && !p.isDeleted && !p.convertedClientId
+      && etapaOperativa(p, { visits }) !== "por_analizar"
       && ETAPAS_HOY.includes(p.pipelineStage || "prospecto");
-  }), [ranking]);
+  }), [ranking, visits]);
   const paraHoy = trabajables.slice(0, TOP_HOY);
   const sinCalificar = trabajables.filter(it => it.chip?.aviso).length;
+  // Descubiertos que entraron solos y esperan análisis (auto-ingesta, F2).
+  const porAnalizar = useMemo(
+    () => conteoPorEtapa(prospects, { visits }).conteo.por_analizar,
+    [prospects, visits],
+  );
 
   const funnel = useMemo(() => funnelSummary({ prospects, clients }), [prospects, clients]);
   const zonasSinCerrar = useMemo(
@@ -98,26 +106,9 @@ export function Prospectos({
       .map(v => ({ ...v, nombre: nombreDe(v) }));
   }, [visits, prospects, clients]);
 
-  // --- Discovery (contrato §3/§4/§7) ---
-  const pendienteDiscovery = discoveryResults[0] || null;
-  const confirmarRevision = ({ altas, supresiones, sinMemoria }) => {
-    const at = now();
-    if (altas.length) {
-      const nuevos = altas.map(p => altaDesdeDescubierto(p, { id: uid(), at }));
-      setProspects(prev => [...nuevos, ...prev]);
-    }
-    if (supresiones.length) {
-      const entradas = supresiones.map(p =>
-        suprimirDescubierto(p, { id: uid(), at, por: currentUser?.name || "?" }));
-      setDiscoverySuppressed?.(prev => [...entradas, ...prev]);
-    }
-    logAudit?.("import", "prospect", pendienteDiscovery.id,
-      `Descubrimiento "${pendienteDiscovery.termino}" (${pendienteDiscovery.zona}): ` +
-      `${altas.length} altas · ${supresiones.length} descartes` +
-      (sinMemoria.length ? ` · ${sinMemoria.length} sin memoria` : ""));
-    onConsumeDiscoveryResult?.(pendienteDiscovery.id);
-    setRevisando(false);
-  };
+  // --- Discovery (contrato §3/§7 + enmienda §4: auto-ingesta) ---
+  // La ingesta del staging NO vive acá: corre a nivel app (App.jsx) para que
+  // los descubiertos entren aunque Diego esté en otra pantalla.
   const rehabilitar = (s) => {
     setDiscoverySuppressed?.(prev => prev.filter(e => e.id !== s.id));
     logAudit?.("rehab", "prospect", s.id, `Rehabilitado del descarte: ${s.nombre || s.web}`);
@@ -139,7 +130,7 @@ export function Prospectos({
   const abrirBusqueda = () => { setBusquedaInicial(null); setBuscando(true); };
 
   // Avanzar / convertir / borrar: la MISMA fuente que usa el kanban (F3).
-  const acciones = makeProspectActions({ setProspects, setClients, logAudit, currentUser });
+  const acciones = makeProspectActions({ setProspects, setClients, setDiscoverySuppressed, logAudit, currentUser });
 
   const seccionTitulo = (texto, extra = null) => (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
@@ -188,25 +179,20 @@ export function Prospectos({
         <div key="hoy" style={{ animation: "fadeIn 180ms ease-out" }}>
           {/* Discovery primero cuando pide acción (jobs activos / revisión) */}
           <DiscoveryJobsStatus jobs={discoveryJobs} onCancel={cancelarBusqueda} />
-          {pendienteDiscovery && (
+          {porAnalizar > 0 && (
             <div style={{
               background: T.blueBg, border: `1px solid ${T.blueBorder}`, borderRadius: 12,
-              padding: 12, marginBottom: 16, display: "flex", alignItems: "center",
-              justifyContent: "space-between", gap: 10, flexWrap: "wrap",
-              // Llega en tiempo real (onSnapshot): la entrada suave avisa que
-              // apareció algo nuevo sin que Diego lo haya pedido.
+              padding: 12, marginBottom: 16,
+              // Aparecen en tiempo real (onSnapshot → auto-ingesta): la entrada
+              // suave avisa que entró algo sin que Diego lo haya pedido.
               animation: "fadeIn 200ms ease-out",
             }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 13, color: T.text }}>
-                  🔎 {pendienteDiscovery.prospectos?.length || 0} descubiertos de "{pendienteDiscovery.termino}" — {pendienteDiscovery.zona}
-                </div>
-                <div style={{ fontSize: 11, color: T.textMuted }}>
-                  Esperan tu revisión: nada entra al embudo sin confirmar.
-                  {discoveryResults.length > 1 ? ` (+${discoveryResults.length - 1} búsquedas más en cola)` : ""}
-                </div>
+              <div style={{ fontWeight: 700, fontSize: 13, color: T.text }}>
+                🔍 {porAnalizar} descubiertos entraron solos
               </div>
-              <span style={{ flexShrink: 0 }}><Btn onClick={() => setRevisando(true)}>Revisar</Btn></span>
+              <div style={{ fontSize: 11, color: T.textMuted }}>
+                Esperan tu análisis. No se contacta a nadie hasta que los mires.
+              </div>
             </div>
           )}
 
@@ -333,12 +319,6 @@ export function Prospectos({
       )}
 
       {/* Modales del módulo (los dispara Hoy; el Embudo tiene los suyos adentro) */}
-      <DiscoveryReviewModal
-        open={revisando} onClose={() => setRevisando(false)}
-        resultado={pendienteDiscovery}
-        prospects={prospects} clients={clients} suprimidos={discoverySuppressed}
-        onConfirm={confirmarRevision}
-      />
       <DiscoverySuppressedModal
         open={suppModal} onClose={() => setSuppModal(false)}
         suprimidos={discoverySuppressed} onRehabilitar={rehabilitar}

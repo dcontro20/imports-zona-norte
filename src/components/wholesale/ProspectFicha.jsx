@@ -88,7 +88,10 @@ export function ProspectFicha({
         {etapa === "visitado" && (
           <MiniBtn onClick={() => { acciones?.convertir(p); onClose?.(); }} color={T.green}>✓ Convertir</MiniBtn>
         )}
-        <MiniBtn onClick={() => { acciones?.borrar(p); onClose?.(); }} color={T.red}>🗑 Borrar</MiniBtn>
+        {/* Descartar (con memoria) vs Borrar (a Papelera): el descarte es el
+            "no me sirve" del discovery — no vuelve a entrar solo (§7). */}
+        <MiniBtn onClick={() => { acciones?.descartar?.(p); onClose?.(); }} color={T.red}>✗ Descartar</MiniBtn>
+        <MiniBtn onClick={() => { acciones?.borrar(p); onClose?.(); }} color={T.textMuted}>🗑 Borrar</MiniBtn>
       </div>
 
       {/* Datos (con procedencia si vino del descubrimiento) */}

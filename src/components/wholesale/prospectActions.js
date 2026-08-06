@@ -5,8 +5,9 @@
 // historias distintas sobre el mismo prospecto.
 import { uid } from "../../helpers.js";
 import { PROSPECT_STAGES_ORDER } from "../../prospecting.js";
+import { suprimirDescubierto, puedeSuprimirse } from "../../lib/discovery/discoveryImport.js";
 
-export function makeProspectActions({ setProspects, setClients, logAudit, currentUser }) {
+export function makeProspectActions({ setProspects, setClients, setDiscoverySuppressed, logAudit, currentUser }) {
   const now = () => new Date().toISOString();
   return {
     avanzar(p) {
@@ -32,6 +33,28 @@ export function makeProspectActions({ setProspects, setClients, logAudit, curren
     borrar(p) {
       setProspects(prev => prev.map(x => x.id === p.id ? { ...x, isDeleted: true, deletedAt: now(), deletedBy: currentUser?.name || "?" } : x));
       logAudit?.("delete", "prospect", p.id, `Prospecto borrado: ${p.businessName}`);
+    },
+    // Descartar ≠ borrar: el descarte RECUERDA (supresión, contrato §7) — el
+    // negocio no vuelve a entrar por el discovery salvo rehabilitación
+    // explícita. Es el mecanismo que traía el modal de revisión; con la
+    // auto-ingesta (F2) vive en el prospecto ya creado: se suprime la
+    // identidad y el prospecto se soft-borra (queda en Papelera como todo).
+    // Sin identidad suficiente no hay memoria posible (regla heredada: un
+    // bloqueo que no puede matchear es un hueco silencioso) — se avisa
+    // devolviendo `false` y se borra igual.
+    descartar(p, { motivo = "descartado desde la ficha" } = {}) {
+      const at = now();
+      const conMemoria = puedeSuprimirse(p);
+      if (conMemoria) {
+        const entrada = suprimirDescubierto(p, { id: uid(), motivo, at, por: currentUser?.name || "?" });
+        setDiscoverySuppressed?.(prev => [entrada, ...prev]);
+      }
+      setProspects(prev => prev.map(x => x.id === p.id
+        ? { ...x, descartadoAt: at, isDeleted: true, deletedAt: at, deletedBy: currentUser?.name || "?" }
+        : x));
+      logAudit?.("discard", "prospect", p.id,
+        `Prospecto descartado${conMemoria ? " (con memoria)" : " sin memoria — identidad insuficiente"}: ${p.businessName}`);
+      return conMemoria;
     },
   };
 }

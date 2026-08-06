@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense, Component, Fragment } from "react";
 import { uid, formatMoney, formatDate } from "./helpers.js";
 import { migrateToWholesaleModel } from "./wholesaleMigration.js";
+import { ingestarLote } from "./lib/discovery/discoveryImport.js";
 import { useSettings } from "./useSettings.js";
 import { saveSettings, loadSettings } from "./settings.js";
 import { scheduleDailyNotifications, cancelScheduled, hasPermission } from "./lib/notifications.js";
@@ -611,6 +612,43 @@ export default function App() {
     }
   }, [syncStatus]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ---- Auto-ingesta del discovery (ciclo v2 F2 — spec §5) ----
+  // "Los descubiertos entran solos": el staging que escribe el worker se
+  // ingiere ACÁ (nivel app, no en la pantalla) para que entren aunque Diego
+  // esté en otro módulo. Nacen en `por_analizar` — nada se contacta sin
+  // análisis humano, que es el compromiso que reemplazó al viejo modal.
+  // Corre solo con Firestore online: en modo offline las escrituras están
+  // bloqueadas y consumir el staging perdería los descubiertos.
+  const ingeridos = useRef(new Set());
+  useEffect(() => {
+    if (syncStatus !== "online" || !discoveryResults.length) return;
+    const pendientes = discoveryResults.filter(d => d && !ingeridos.current.has(d.id));
+    if (!pendientes.length) return;
+
+    pendientes.forEach(d => ingeridos.current.add(d.id));
+    const { altas, resumenes } = ingestarLote({
+      resultados: pendientes, prospects, clients,
+      suprimidos: discoverySuppressed, at: new Date().toISOString(), nuevoId: uid,
+    });
+    if (altas.length) {
+      // Filtro por id contra lo vivo: la ingesta es idempotente (mismo
+      // descubrimiento = mismo id determinístico), así dos clientes abiertos
+      // o un re-envío del worker no duplican.
+      setProspects(prev => {
+        const vistos = new Set(prev.map(p => p?.id));
+        const nuevos = altas.filter(n => !vistos.has(n.id));
+        return nuevos.length ? [...nuevos, ...prev] : prev;
+      });
+    }
+    for (const r of resumenes) {
+      logAudit("import", "prospect", r.resultado.id,
+        `Descubrimiento "${r.resultado.termino}" (${r.resultado.zona}): ${r.altas.length} entraron para analizar` +
+        (r.duplicados ? ` · ${r.duplicados} duplicados` : "") +
+        (r.suprimidos ? ` · ${r.suprimidos} descartados antes` : ""));
+      deleteDiscoveryResult(r.resultado.id);
+    }
+  }, [discoveryResults, syncStatus]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ---- Context value (for components that want to use context instead of props) ----
   const ctxValue = useMemo(() => ({
     currentUser, exchangeRate, logAudit, logStock, logPrice,
@@ -769,7 +807,7 @@ export default function App() {
       case "prospectMap": {
         const tabInicial = effectivePage === "pipeline" ? "embudo"
           : effectivePage === "prospectMap" ? "zonas" : "hoy";
-        return <Prospectos tabInicial={tabInicial} prospects={prospects} setProspects={setProspects} clients={clients} setClients={setClients} visits={visits} setVisits={setVisits} products={activeProducts} sales={activeSales} auditLog={auditLog} discoveryResults={discoveryResults} onConsumeDiscoveryResult={deleteDiscoveryResult} discoverySuppressed={discoverySuppressed} setDiscoverySuppressed={setDiscoverySuppressed} discoveryJobs={discoveryJobs} onCreateDiscoveryJob={createDiscoveryJob} onCancelDiscoveryJob={deleteDiscoveryJob} />;
+        return <Prospectos tabInicial={tabInicial} prospects={prospects} setProspects={setProspects} clients={clients} setClients={setClients} visits={visits} setVisits={setVisits} products={activeProducts} sales={activeSales} auditLog={auditLog} discoverySuppressed={discoverySuppressed} setDiscoverySuppressed={setDiscoverySuppressed} discoveryJobs={discoveryJobs} onCreateDiscoveryJob={createDiscoveryJob} onCancelDiscoveryJob={deleteDiscoveryJob} />;
       }
       case "routes": return <Routes routes={routes} setRoutes={setRoutes} clients={clients} sales={activeSales} setSales={setSales} />;
       case "cuentasCorrientes": return <CuentasCorrientes clients={clients} sales={activeSales} setSales={setSales} />;
