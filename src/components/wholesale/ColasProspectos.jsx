@@ -28,7 +28,7 @@ import { ProspectMapsLine } from "./ProspectMapsLine.jsx";
 // ejecutar → seguir → cerrar.
 export const COLAS = ETAPAS_OPERATIVAS
   .filter(e => e.key !== "cliente")
-  .map(e => ({ ...e, corto: { por_analizar: "Por analizar", para_contactar: "Contactar", para_visitar: "Visitar", esperando_respuesta: "Esperando", visitado: "Visitados", negociacion: "Cerrar" }[e.key] }));
+  .map(e => ({ ...e, corto: { por_analizar: "Analizar", para_contactar: "Contactar", para_visitar: "Visitar", esperando_respuesta: "Esperando", visitado: "Visitados", negociacion: "Cerrar" }[e.key] }));
 
 const HORARIOS = { si: "abre todos los días", no: "abre algunos días", sin_datos: "" };
 
@@ -64,7 +64,11 @@ export function BarraColas({ conteo = {}, vencidos = 0, activa, onSelect }) {
             fontWeight: sel ? 800 : 600,
           }}>
             <span>{c.icono}</span>
-            <span>{c.corto}</span>
+            {/* Mobile: solo la cola activa se nombra. Con 6 chips etiquetados
+                la barra ocupaba 3 filas antes de que se viera el trabajo; y el
+                chip activo alcanza para saber dónde estás (la lista ya no
+                lleva título propio). */}
+            {(!isMobile || sel) && <span>{c.corto}</span>}
             <span style={{ fontWeight: 800, color: sel ? T.primary : T.text }}>{n}</span>
             {/* Los vencidos son lo ÚNICO que pide atención dentro de la espera */}
             {c.key === "esperando_respuesta" && vencidos > 0 && (
@@ -85,7 +89,7 @@ export function BarraColas({ conteo = {}, vencidos = 0, activa, onSelect }) {
 // pregunta explícita. "Saltear" no registra ningún hecho: manda el negocio al
 // final de la fila y sigue — no es una decisión, es postergarla.
 // ---------------------------------------------------------------------------
-export function DeckAnalisis({ items = [], acciones, onFicha, herramientas = null }) {
+export function DeckAnalisis({ items = [], acciones, onFicha, herramientas = null, siguiente = null }) {
   const { isMobile } = useResponsive();
   const [salteados, setSalteados] = useState(() => new Set());
 
@@ -105,6 +109,13 @@ export function DeckAnalisis({ items = [], acciones, onFicha, herramientas = nul
           borderRadius: 12, padding: isMobile ? "24px 16px" : 28, textAlign: "center", marginBottom: 16,
         }}>
           Nada para analizar. Buscá negocios nuevos y entran solos acá.
+          {siguiente && (
+            <div style={{ marginTop: 10 }}>
+              <MiniBtn onClick={siguiente.onIr} color={T.blue}>
+                {siguiente.icono} Te quedan {siguiente.cantidad} en {siguiente.etiqueta} →
+              </MiniBtn>
+            </div>
+          )}
         </div>
         {herramientas}
       </div>

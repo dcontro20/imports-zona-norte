@@ -96,7 +96,7 @@ const irA = (corto) => fireEvent.click(screen.getByText(corto).closest("button")
 describe("Prospectos — barra de colas (criterio: nunca ruidoso)", () => {
   it("una cola por etapa operativa, con su conteo", () => {
     montar();
-    for (const corto of ["Por analizar", "Contactar", "Visitar", "Esperando", "Visitados", "Cerrar"]) {
+    for (const corto of ["Analizar", "Contactar", "Visitar", "Esperando", "Visitados", "Cerrar"]) {
       expect(screen.getByText(corto)).toBeTruthy();
     }
     // Los vencidos son lo único que grita dentro de la espera.
@@ -106,7 +106,7 @@ describe("Prospectos — barra de colas (criterio: nunca ruidoso)", () => {
   it("las colas SIN trabajo no se muestran; 🔍 queda siempre (es la puerta de entrada)", () => {
     montar({ prospects: [conTelefono], visits: [] });
     expect(screen.getByText("Contactar")).toBeTruthy();
-    expect(screen.getByText("Por analizar")).toBeTruthy();
+    expect(screen.getByText("Analizar")).toBeTruthy();
     expect(screen.queryByText("Esperando")).toBeNull();
     expect(screen.queryByText("Cerrar")).toBeNull();
   });
@@ -365,5 +365,84 @@ describe("Prospectos — acciones del módulo", () => {
     const lista = setProspects.mock.calls[0][0]([]);
     expect(lista[0].businessName).toBe("Kiosco Nuevo");
     expect(lista[0].id).toBeTruthy();
+  });
+});
+
+// --- F5: fricciones detectadas en la revisión de punta a punta ---
+
+describe("Prospectos — el sistema dice qué hizo y a dónde fue (F5)", () => {
+  it("cada hecho avisa el destino: la etapa se mueve sola, pero no en silencio", () => {
+    montar();
+    fireEvent.click(screen.getByText("✓ Trabajar"));
+    // golden no tiene teléfono ⇒ la regla automática lo manda a visitar
+    expect(screen.getByText("Kiosco Golden → 🚶 Para visitar")).toBeTruthy();
+  });
+
+  it("convertir explica dónde sigue el trabajo (el prospecto sale del CRM)", () => {
+    montar();
+    irA("Cerrar");
+    fireEvent.click(screen.getByText("✓ Convertir"));
+    expect(screen.getByText(/ya es mayorista — seguí en Kioscos/)).toBeTruthy();
+  });
+
+  it("descartar avisa que no vuelve a aparecer", () => {
+    montar();
+    fireEvent.click(screen.getByText("✗ Descartar"));
+    expect(screen.getByText(/descartado — no vuelve a aparecer/)).toBeTruthy();
+  });
+});
+
+describe("Prospectos — rehabilitar deshace el descarte ENTERO (F5)", () => {
+  const descartado = {
+    ...golden, isDeleted: true, descartadoAt: "2026-08-06T12:00:00Z",
+    deletedAt: "2026-08-06T12:00:00Z", deletedBy: "Diego",
+  };
+  const supresion = {
+    id: "s-1", nombre: "Kiosco Golden", direccion: "El Salvador 4813", web: "",
+    claves: ["pid:PID_GOLDEN"], motivo: "descartado desde la ficha", at: "2026-08-06T12:00:00Z", por: "Diego",
+  };
+
+  it("devuelve el prospecto a la cola de análisis, no solo borra el bloqueo", () => {
+    const { setProspects } = montar({ prospects: [descartado], visits: [], discoverySuppressed: [supresion] });
+    fireEvent.click(screen.getByText("⛔ Descartados (1)"));
+    fireEvent.click(screen.getByText("↩ Rehabilitar"));
+
+    const lista = setProspects.mock.calls[0][0]([descartado]);
+    expect(lista[0].isDeleted).toBeUndefined();
+    expect(lista[0].descartadoAt).toBeUndefined();
+    expect(screen.getByText(/volvió a 🔍 Por analizar/)).toBeTruthy();
+  });
+
+  it("si no queda prospecto que devolver, lo dice honestamente", () => {
+    montar({ prospects: [], visits: [], discoverySuppressed: [supresion] });
+    fireEvent.click(screen.getByText("⛔ Descartados (1)"));
+    fireEvent.click(screen.getByText("↩ Rehabilitar"));
+    expect(screen.getByText(/puede volver a aparecer en próximas búsquedas/)).toBeTruthy();
+  });
+
+  it("no toca prospectos BORRADOS que nunca se descartaron (papelera ≠ descarte)", () => {
+    const borrado = { ...golden, isDeleted: true, deletedAt: "2026-08-06T12:00:00Z" };
+    const { setProspects } = montar({ prospects: [borrado], visits: [], discoverySuppressed: [supresion] });
+    fireEvent.click(screen.getByText("⛔ Descartados (1)"));
+    fireEvent.click(screen.getByText("↩ Rehabilitar"));
+    // Ni siquiera lo toca: un borrado en Papelera se restaura desde Papelera.
+    expect(setProspects).not.toHaveBeenCalled();
+  });
+});
+
+describe("Prospectos — la cola 🔍 vacía no deja al usuario colgado (F5)", () => {
+  it("señala dónde quedó el trabajo sin sacarlo de 🔍 a la fuerza", () => {
+    montar({ prospects: [conTelefono, esperando], visits: [] });
+    irA("Analizar");
+    expect(screen.getByText(/Nada para analizar/)).toBeTruthy();
+    const atajo = screen.getByText(/Te quedan 1 en Para contactar/);
+    fireEvent.click(atajo);
+    expect(screen.getByText(/Kiosco Contactar/)).toBeTruthy();
+  });
+
+  it("sin trabajo en ninguna cola no inventa un atajo", () => {
+    montar({ prospects: [], visits: [] });
+    expect(screen.getByText(/Nada para analizar/)).toBeTruthy();
+    expect(screen.queryByText(/Te quedan/)).toBeNull();
   });
 });

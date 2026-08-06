@@ -130,7 +130,7 @@ describe("Prospectos (módulo) — auto-ingesta reflejada en la pestaña Hoy (F2
   // ni banner aparte: la cola ES el aviso (criterio: nunca ruidoso).
   it("los que entraron solos aterrizan en la cola de análisis, sin revisión manual", () => {
     montar({ prospects: [ingresado("Alfa"), ingresado("Beta")] });
-    expect(screen.getByText("Por analizar")).toBeTruthy();
+    expect(screen.getByText("Analizar")).toBeTruthy();
     expect(screen.getByText("2 negocios sin decidir")).toBeTruthy();
     expect(screen.getByText("Alfa")).toBeTruthy();
     expect(screen.queryByText("Revisar")).toBeNull();
@@ -168,7 +168,7 @@ describe("Prospectos (módulo) — pestañas y alias de deep-link (F1)", () => {
   it("abre en Hoy por default, con la barra de colas y el descubrimiento a mano", () => {
     montar();
     expect(screen.getByText("🎯 Prospectos")).toBeTruthy();
-    expect(screen.getByText("Por analizar")).toBeTruthy();
+    expect(screen.getByText("Analizar")).toBeTruthy();
     expect(screen.getByText("🔎 Descubrir")).toBeTruthy();
   });
 
@@ -196,6 +196,6 @@ describe("Prospectos (módulo) — pestañas y alias de deep-link (F1)", () => {
     cleanup();
     // Un tab desconocido cae a Hoy, no rompe.
     montar({ tabInicial: "loQueSea" });
-    expect(screen.getByText("Por analizar")).toBeTruthy();
+    expect(screen.getByText("Analizar")).toBeTruthy();
   });
 });

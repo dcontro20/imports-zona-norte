@@ -185,7 +185,34 @@ volumen — p. ej. > 30 pendientes — para que el caso simple siga simple):
 
 F1 dominio de etapas ✅ → F2 auto-ingesta + enmienda contrato ✅ → F3 Hoy como
 colas + captura de hechos ✅ → F4 Embudo operativo + Ficha con acción primaria
-✅ → F5 pulido + docs de cierre. Gates entre todas.
+✅ → F5 pulido + docs de cierre ✅. Gates entre todas. **CICLO CERRADO.**
+
+**F5 — revisión de punta a punta como usuario nuevo** (criterio de Gustavo: el
+módulo tiene que sentirse un solo sistema, no pantallas buenas por separado).
+Cuatro fricciones encontradas y corregidas:
+
+1. **El sistema movía cosas en silencio.** Al derivar la etapa, cada acción
+   reubica al prospecto sin que se vea: analizás y desaparece del deck, mandás
+   el mensaje y se va de la cola, convertís y se esfuma del módulo. Ahora cada
+   hecho avisa qué pasó y **a dónde fue** (`onHecho` en las acciones +
+   `Toast`/`useToast` compartidos en UI.jsx). Transitorio: no compite con la
+   cola. Era la fricción de fondo — una sola corrección la cierra en las seis
+   acciones.
+2. **"Rehabilitar" no rehabilitaba** (defecto real introducido en F2). Se
+   diseñó cuando el descarte pasaba ANTES de que el prospecto existiera (modal
+   de revisión); con la auto-ingesta el descarte además soft-borra el prospecto
+   ya creado, así que quitar el bloqueo no devolvía nada y el negocio solo
+   reaparecía con una búsqueda nueva. Ahora rehabilitar deshace el descarte
+   **entero** y el negocio vuelve a 🔍. Un borrado de Papelera NO se toca:
+   borrar y descartar son cosas distintas.
+3. **La cola 🔍 vacía dejaba al usuario colgado**: si la elegía a mano y la
+   terminaba, se quedaba mirando un vacío con trabajo pendiente en otras colas.
+   Ahora el estado vacío señala dónde siguió el trabajo, sin sacarlo de 🔍 (ahí
+   vive el descubrimiento).
+4. **La barra de colas comía la pantalla en mobile**: 6 chips etiquetados a
+   375px ocupaban tres filas antes de mostrar trabajo. En mobile solo la cola
+   ACTIVA se nombra; el resto va ícono + número. La orientación se mantiene
+   porque el chip activo hace de título de la lista.
 
 **Cerrado en F4** (además del tablero y la Ficha): se cableó el **adapter del
 §4** — el engine, el funnel y las zonas siguen leyendo `pipelineStage`, y ahora

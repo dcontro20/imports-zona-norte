@@ -16,7 +16,7 @@
 import { useMemo, useState } from "react";
 import { uid, formatDate } from "../helpers.js";
 import { useResponsive } from "../App.jsx";
-import { Btn, MiniBtn } from "./UI.jsx";
+import { Btn, MiniBtn, Toast, useToast } from "./UI.jsx";
 import { T } from "../theme.js";
 import { useAppContext } from "../AppContext.js";
 import { zonesWithoutCoverage } from "../prospecting.js";
@@ -31,7 +31,8 @@ import { makeProspectActions } from "./wholesale/prospectActions.js";
 import {
   DiscoverySuppressedModal, DiscoverySearchModal, DiscoveryJobsStatus,
 } from "./wholesale/DiscoveryReview.jsx";
-import { etapaOperativa, conteoPorEtapa, subEstadoEspera, conEtapaLegacy } from "../lib/prospectEtapas.js";
+import { ETAPAS_OPERATIVAS, etapaOperativa, conteoPorEtapa, subEstadoEspera, conEtapaLegacy } from "../lib/prospectEtapas.js";
+import { clavesDeRegistro } from "../lib/discovery/discoveryImport.js";
 import { BarraColas, DeckAnalisis, ColaLista, COLAS, PRIORIDAD_COLOR } from "./wholesale/ColasProspectos.jsx";
 
 const TABS = [
@@ -60,6 +61,7 @@ export function Prospectos({
   const [presTarget, setPresTarget] = useState(null);
   const [fichaId, setFichaId] = useState(null);       // la Ficha: el expediente permanente
   const [colaSel, setColaSel] = useState(null);       // cola elegida a mano (null = la que propone el sistema)
+  const [toast, showToast] = useToast();
 
   const activeProspects = useMemo(() => prospects.filter(p => p && !p.isDeleted), [prospects]);
   const now = () => new Date().toISOString();
@@ -103,6 +105,14 @@ export function Prospectos({
     ? colaSel : primeraConTrabajo;
   const cola = COLAS.find(c => c.key === colaActiva) || COLAS[0];
 
+  // Con la cola 🔍 vacía, el deck señala dónde quedó el trabajo en vez de
+  // dejar al usuario mirando una pantalla vacía (y sin sacarlo de 🔍 a la
+  // fuerza: ahí vive el descubrimiento).
+  const siguienteConTrabajo = useMemo(() => {
+    const c = COLAS.find(x => x.key !== "por_analizar" && (conteo[x.key] || 0) > 0);
+    return c ? { ...c, cantidad: conteo[c.key], onIr: () => setColaSel(c.key) } : null;
+  }, [conteo]);
+
   const zonasSinCerrar = useMemo(
     () => zonesWithoutCoverage({ clients, prospects: activeProspects }),
     [clients, activeProspects],
@@ -111,9 +121,30 @@ export function Prospectos({
   // --- Discovery (contrato §3/§7 + enmienda §4: auto-ingesta) ---
   // La ingesta del staging NO vive acá: corre a nivel app (App.jsx) para que
   // los descubiertos entren aunque Diego esté en otra pantalla.
+  // Rehabilitar = deshacer el descarte ENTERO. Antes solo borraba el bloqueo de
+  // supresión, porque el descarte ocurría ANTES de que el prospecto existiera
+  // (modal de revisión). Desde la auto-ingesta el descarte también soft-borra
+  // el prospecto ya creado: si no lo devolvemos, "rehabilitar" no devolvía
+  // nada y el negocio solo volvía con una búsqueda nueva.
   const rehabilitar = (s) => {
     setDiscoverySuppressed?.(prev => prev.filter(e => e.id !== s.id));
+    // El prospecto a devolver se busca ACÁ, no adentro del updater: el updater
+    // corre después (y puede correr dos veces en StrictMode), así que no sirve
+    // ni para decidir el mensaje ni para nada observable.
+    const claves = clavesDeRegistro(s);
+    const objetivo = prospects.find(p =>
+      p?.isDeleted && p.descartadoAt && [...clavesDeRegistro(p)].some(k => claves.has(k)));
+    if (objetivo) {
+      setProspects(prev => prev.map(p => {
+        if (p?.id !== objetivo.id) return p;
+        const { isDeleted, deletedAt, deletedBy, descartadoAt, ...limpio } = p;
+        return limpio;
+      }));
+    }
     logAudit?.("rehab", "prospect", s.id, `Rehabilitado del descarte: ${s.nombre || s.web}`);
+    showToast(objetivo
+      ? `${s.nombre || "El negocio"} volvió a 🔍 Por analizar`
+      : `${s.nombre || "El negocio"} puede volver a aparecer en próximas búsquedas`);
   };
   const crearBusqueda = (busqueda) => {
     const job = {
@@ -133,7 +164,19 @@ export function Prospectos({
 
   // Hechos / avanzar / convertir / descartar: la MISMA fuente que el kanban y
   // la Ficha. Si esto divergiera, dos pantallas contarían historias distintas.
-  const acciones = makeProspectActions({ setProspects, setClients, setDiscoverySuppressed, logAudit, currentUser });
+  // Cada hecho reubica al prospecto en silencio (la etapa se deriva). El aviso
+  // cierra el lazo: qué pasó y A DÓNDE fue. Transitorio — no compite con la cola.
+  const avisarHecho = (p, hecho) => {
+    const nombre = p?.businessName || "El prospecto";
+    if (hecho === "convertido") return showToast(`🏪 ${nombre} ya es mayorista — seguí en Kioscos`);
+    if (hecho === "descartado") return showToast(`✗ ${nombre} descartado — no vuelve a aparecer`);
+    if (hecho === "descartado_sin_memoria") return showToast(`✗ ${nombre} descartado (sin datos para recordarlo)`);
+    const destino = ETAPAS_OPERATIVAS.find(e => e.key === etapaOperativa(p, { visits }));
+    if (destino) showToast(`${nombre} → ${destino.icono} ${destino.etiqueta}`);
+  };
+  const acciones = makeProspectActions({
+    setProspects, setClients, setDiscoverySuppressed, logAudit, currentUser, onHecho: avisarHecho,
+  });
 
   // Las herramientas de descubrimiento viven DENTRO de la cola 🔍 (spec §6):
   // conseguir negocios nuevos es parte de "analizar", no un bloque aparte que
@@ -207,6 +250,7 @@ export function Prospectos({
               <DeckAnalisis
                 items={porCola.por_analizar} acciones={acciones} onFicha={setFichaId}
                 herramientas={herramientasDescubrimiento}
+                siguiente={siguienteConTrabajo}
               />
             ) : (
               <ColaLista
@@ -269,6 +313,7 @@ export function Prospectos({
         target={presTarget} defaultTier="C"
         products={products} exchangeRate={exchangeRate}
         onEnviado={(p) => acciones.mensajeEnviado(p)} />
+      <Toast message={toast} />
     </div>
   );
 }

@@ -12,7 +12,14 @@ import {
   marcarAnalizado, marcarMensajeEnviado, marcarRespondio, marcarNoResponde, marcarNegociacion,
 } from "../../lib/prospectHechos.js";
 
-export function makeProspectActions({ setProspects, setClients, setDiscoverySuppressed, logAudit, currentUser }) {
+// `onHecho(prospectoActualizado, hecho)` (F5): el llamador decide qué mostrar.
+// Existe porque en un sistema que DERIVA la etapa, cada acción reubica al
+// prospecto sin que se vea — y eso desorienta. El prospecto actualizado se
+// calcula acá, FUERA del updater de state (los updaters se pueden invocar dos
+// veces en StrictMode: no es lugar para efectos).
+export function makeProspectActions({
+  setProspects, setClients, setDiscoverySuppressed, logAudit, currentUser, onHecho,
+}) {
   const now = () => new Date().toISOString();
   return {
     convertir(p) {
@@ -29,6 +36,7 @@ export function makeProspectActions({ setProspects, setClients, setDiscoverySupp
       setClients(prev => [newClient, ...prev]);
       setProspects(prev => prev.map(x => x.id === p.id ? { ...x, convertedClientId: id, isDeleted: true, deletedAt: now(), deletedBy: currentUser?.name || "?" } : x));
       logAudit?.("convert", "prospect", p.id, `Prospecto → mayorista: ${newClient.businessName || newClient.name}`);
+      onHecho?.(p, "convertido");
     },
     borrar(p) {
       setProspects(prev => prev.map(x => x.id === p.id ? { ...x, isDeleted: true, deletedAt: now(), deletedBy: currentUser?.name || "?" } : x));
@@ -41,27 +49,37 @@ export function makeProspectActions({ setProspects, setClients, setDiscoverySupp
     analizar(p) {
       const at = now(), por = currentUser?.name || "?";
       setProspects(prev => prev.map(x => x.id === p.id ? marcarAnalizado(x, { at, por }) : x));
+      const actualizado = marcarAnalizado(p, { at, por });
       logAudit?.("analyze", "prospect", p.id, `Analizado: ${p.businessName}`);
+      onHecho?.(actualizado, "analizado");
     },
     mensajeEnviado(p) {
       const at = now(), por = currentUser?.name || "?";
       setProspects(prev => prev.map(x => x.id === p.id ? marcarMensajeEnviado(x, { at, por }) : x));
+      const actualizado = marcarMensajeEnviado(p, { at, por });
       logAudit?.("message", "prospect", p.id, `Presentación enviada: ${p.businessName}`);
+      onHecho?.(actualizado, "mensaje_enviado");
     },
     respondio(p) {
       const at = now();
       setProspects(prev => prev.map(x => x.id === p.id ? marcarRespondio(x, { at }) : x));
+      const actualizado = marcarRespondio(p, { at });
       logAudit?.("reply", "prospect", p.id, `Respondió: ${p.businessName}`);
+      onHecho?.(actualizado, "respondio");
     },
     noResponde(p) {
       const at = now();
       setProspects(prev => prev.map(x => x.id === p.id ? marcarNoResponde(x, { at }) : x));
+      const actualizado = marcarNoResponde(p, { at });
       logAudit?.("noreply", "prospect", p.id, `No responde: ${p.businessName}`);
+      onHecho?.(actualizado, "no_responde");
     },
     negociar(p) {
       const at = now();
       setProspects(prev => prev.map(x => x.id === p.id ? marcarNegociacion(x, { at }) : x));
+      const actualizado = marcarNegociacion(p, { at });
       logAudit?.("negotiate", "prospect", p.id, `Pasó a negociación: ${p.businessName}`);
+      onHecho?.(actualizado, "negociacion");
     },
 
     // Descartar ≠ borrar: el descarte RECUERDA (supresión, contrato §7) — el
@@ -84,6 +102,7 @@ export function makeProspectActions({ setProspects, setClients, setDiscoverySupp
         : x));
       logAudit?.("discard", "prospect", p.id,
         `Prospecto descartado${conMemoria ? " (con memoria)" : " sin memoria — identidad insuficiente"}: ${p.businessName}`);
+      onHecho?.(p, conMemoria ? "descartado" : "descartado_sin_memoria");
       return conMemoria;
     },
   };
