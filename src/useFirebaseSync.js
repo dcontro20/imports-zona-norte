@@ -3,6 +3,7 @@ import { saveToFirestore, mergeIntoFirestore, subscribeToFirestore, subscribeDis
 import { onAuthStateChanged } from "firebase/auth";
 import { DEFAULT_PRODUCTS } from "./constants.js";
 import { loadData, uid } from "./helpers.js";
+import { DEFAULT_PRICING_POLICY, fxDentroDeBanda } from "./lib/pricingPolicy.js";
 
 // safeSetItem — escribe a localStorage manejando QuotaExceededError.
 // Si el storage llena (típicamente 5-10MB en mobile/Safari), el setItem
@@ -56,6 +57,7 @@ const DATA_KEYS = [
   { key: "visits", default: [] },           // mayorista: bitácora de visitas comerciales
   { key: "routes", default: [] },           // mayorista: rutas de reparto
   { key: "discoverySuppressed", default: [] }, // discovery: descartados con memoria (P5 IZN, contrato §7)
+  { key: "pricingPolicy", default: DEFAULT_PRICING_POLICY }, // política comercial del Pricing Engine (RN-19) — objeto, no array
 ];
 
 export function useFirebaseSync() {
@@ -84,6 +86,7 @@ export function useFirebaseSync() {
   const [prospects, setProspects] = useState(() => loadData("prospects", []));
   const [visits, setVisits] = useState(() => loadData("visits", []));
   const [discoverySuppressed, setDiscoverySuppressed] = useState(() => loadData("discoverySuppressed", []));
+  const [pricingPolicy, setPricingPolicy] = useState(() => loadData("pricingPolicy", DEFAULT_PRICING_POLICY));
   // Staging del discovery (colección discoveryResults, FUERA de appData):
   // solo lectura — lo escribe el worker vía Admin SDK, la app lo consume.
   const [discoveryResults, setDiscoveryResults] = useState([]);
@@ -151,6 +154,7 @@ export function useFirebaseSync() {
     supplierLists: setSupplierLists,
     prospects: setProspects, visits: setVisits, routes: setRoutes,
     discoverySuppressed: setDiscoverySuppressed,
+    pricingPolicy: setPricingPolicy,
   }).current;
 
   // ---- Subscribe to Firestore ONLY when authenticated ----
@@ -349,15 +353,40 @@ export function useFirebaseSync() {
   useEffect(() => smartSave("visits", visits), [visits]); // eslint-disable-line
   useEffect(() => smartSave("routes", routes), [routes]); // eslint-disable-line
   useEffect(() => smartSave("discoverySuppressed", discoverySuppressed), [discoverySuppressed]); // eslint-disable-line
+  useEffect(() => smartSave("pricingPolicy", pricingPolicy), [pricingPolicy]); // eslint-disable-line
   useEffect(() => smartSave("exchangeRate", exchangeRate), [exchangeRate]); // eslint-disable-line
 
   // ---- Auto-fetch dolar blue ----
+  // Banda de sanidad (pricingPolicy.fxSanidadPct): si dolarapi devuelve un valor
+  // que se mueve más que la banda contra el último conocido, NO se aplica solo —
+  // se avisa por evento y se espera confirmación humana. Un glitch de la API no
+  // puede repreciar la lista entera. El mismo valor rechazado no re-avisa en loop.
+  const exchangeRateRef = useRef(exchangeRate);
+  useEffect(() => { exchangeRateRef.current = exchangeRate; }, [exchangeRate]);
+  const pricingPolicyRef = useRef(pricingPolicy);
+  useEffect(() => { pricingPolicyRef.current = pricingPolicy; }, [pricingPolicy]);
+  const fxRechazadoRef = useRef(null);
   useEffect(() => {
     const fetchBlue = async () => {
       try {
         const res = await fetch("https://dolarapi.com/v1/dolares/blue");
         const data = await res.json();
         if (data && data.venta && !fromFirestore.current["exchangeRate"]) {
+          const actual = exchangeRateRef.current;
+          const banda = Number(pricingPolicyRef.current?.fxSanidadPct) || 0.1;
+          if (!fxDentroDeBanda(actual, data.venta, banda)) {
+            if (fxRechazadoRef.current !== data.venta) {
+              fxRechazadoRef.current = data.venta;
+              console.warn(`[FX] Cotización fuera de banda (${actual} → ${data.venta}) — requiere confirmación`);
+              try {
+                window.dispatchEvent(new CustomEvent("izn:fx-fuera-de-banda", {
+                  detail: { actual, nuevo: data.venta, banda },
+                }));
+              } catch {}
+            }
+            return;
+          }
+          fxRechazadoRef.current = null;
           setExchangeRate(data.venta);
         }
       } catch (e) {
@@ -396,6 +425,7 @@ export function useFirebaseSync() {
     supplierLists, setSupplierLists,
     prospects, setProspects, visits, setVisits, routes, setRoutes,
     discoverySuppressed, setDiscoverySuppressed, discoveryResults, discoveryJobs,
+    pricingPolicy, setPricingPolicy,
     dataReady, syncStatus, fromFirestore,
     backupStatus,
     logStock, logPrice,

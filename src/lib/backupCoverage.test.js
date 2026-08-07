@@ -54,8 +54,16 @@ describe("cobertura de respaldo — invariante B3", () => {
   it("toda key cubierta tiene su rama de restore (applyRestore)", () => {
     // exchangeRate es escalar y el restore actual no lo aplica (pre-existente,
     // fuera de B3): el invariante cubre las colecciones-array.
-    const faltantes = cubiertas.filter(k =>
-      k !== "exchangeRate" && !new RegExp(`Array\\.isArray\\(d\\.${k}\\)`).test(exportSrc));
+    // Las keys-OBJETO (pricingPolicy) restauran con typeof en vez de
+    // Array.isArray — su rama es `typeof d.<key> === "object"`.
+    const OBJETOS = new Set(["pricingPolicy"]);
+    const faltantes = cubiertas.filter(k => {
+      if (k === "exchangeRate") return false;
+      const patron = OBJETOS.has(k)
+        ? new RegExp(`typeof d\\.${k} === "object"`)
+        : new RegExp(`Array\\.isArray\\(d\\.${k}\\)`);
+      return !patron.test(exportSrc);
+    });
     expect(faltantes).toEqual([]);
   });
 

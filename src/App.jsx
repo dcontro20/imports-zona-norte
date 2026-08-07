@@ -90,6 +90,7 @@ const Clients = lazy(() => import("./components/Clients.jsx").then(m => ({ defau
 const Kioscos = lazy(() => import("./components/Kioscos.jsx").then(m => ({ default: m.Kioscos })));
 const WholesaleOrder = lazy(() => import("./components/WholesaleOrder.jsx").then(m => ({ default: m.WholesaleOrder })));
 const PriceListScreen = lazy(() => import("./components/wholesale/PriceListScreen.jsx").then(m => ({ default: m.PriceListScreen })));
+const PricingPolicyScreen = lazy(() => import("./components/wholesale/PricingPolicyScreen.jsx").then(m => ({ default: m.PricingPolicyScreen })));
 // Mini CRM de Prospect Intelligence: Prospectos absorbe Pipeline (pestaña
 // Embudo) y ProspectMap (pestaña Zonas) — ambos se importan estáticos adentro.
 const Prospectos = lazy(() => import("./components/Prospectos.jsx").then(m => ({ default: m.Prospectos })));
@@ -233,6 +234,8 @@ const NAV_ITEMS = [
   { key: "kioscos", label: "Kioscos", icon: "🏪", group: "mayorista" },
   { key: "wholesaleOrder", label: "Pedido mayorista", icon: "🧾", group: "mayorista" },
   { key: "priceList", label: "Lista de precios", icon: "🏷️", group: "mayorista" },
+  // Pricing Engine: la política comercial es DATOS (RN-19), esta es su pantalla.
+  { key: "pricingPolicy", label: "Política comercial", icon: "🎛️", group: "mayorista" },
   // Mini CRM de Prospect Intelligence (spec docs/PROSPECT_CRM_SPEC.md):
   // UNA sola puerta — absorbe los ex-ítems "Pipeline" y "Prospección"
   // (sus keys viven como alias de deep-link en renderPage).
@@ -525,6 +528,16 @@ export default function App() {
     return () => window.removeEventListener("izn:concurrent-edit", handler);
   }, []);
 
+  // Aviso FX fuera de banda (Pricing Engine): dolarapi devolvió un valor que
+  // se mueve más que la banda de sanidad contra el último conocido. No se
+  // aplica solo — este toast pide confirmación explícita (botón Aplicar).
+  const [fxOutOfBandToast, setFxOutOfBandToast] = useState(null);
+  useEffect(() => {
+    const handler = (e) => setFxOutOfBandToast(e.detail || null);
+    window.addEventListener("izn:fx-fuera-de-banda", handler);
+    return () => window.removeEventListener("izn:fx-fuera-de-banda", handler);
+  }, []);
+
   // Body scroll lock cuando sidebar mobile está abierto
   useEffect(() => {
     if (isMobile && menuOpen) {
@@ -557,6 +570,7 @@ export default function App() {
     supplierLists, setSupplierLists,
     prospects, setProspects, visits, setVisits, routes, setRoutes,
     discoverySuppressed, setDiscoverySuppressed, discoveryResults, discoveryJobs,
+    pricingPolicy, setPricingPolicy,
     syncStatus, backupStatus, logStock, logPrice,
   } = sync;
 
@@ -828,6 +842,7 @@ export default function App() {
       case "kioscos": return <Kioscos clients={clients} setClients={setClients} sales={activeSales} products={activeProducts} fichaInicial={fichaFor("kiosco")} onFichaAbierta={limpiarFicha} />;
       case "wholesaleOrder": return <WholesaleOrder clients={clients} products={products} setProducts={setProducts} sales={activeSales} setSales={setSales} logStock={logStock} />;
       case "priceList": return <PriceListScreen products={activeProducts} />;
+      case "pricingPolicy": return <PricingPolicyScreen pricingPolicy={pricingPolicy} setPricingPolicy={setPricingPolicy} logAudit={logAudit} />;
       case "prospectos":
       // Alias de deep-links/⌘K (ex-pantallas absorbidas por el módulo):
       case "pipeline":
@@ -853,6 +868,7 @@ export default function App() {
         priceLog={priceLog} clients={clients} partnerWithdrawals={partnerWithdrawals}
         monthlyClosures={monthlyClosures} exchangeRate={exchangeRate}
         prospects={prospects} visits={visits} routes={routes} discoverySuppressed={discoverySuppressed} auditLog={auditLog}
+        pricingPolicy={pricingPolicy} setPricingPolicy={setPricingPolicy}
         setProspects={setProspects} setVisits={setVisits} setRoutes={setRoutes} setDiscoverySuppressed={setDiscoverySuppressed} setAuditLog={sync.setAuditLog}
         setProducts={setProducts} setSales={setSales} setPurchases={setPurchases} setExpenses={setExpenses}
         setWithdrawals={setWithdrawals} setCashMovements={setCashMovements} setClients={setClients}
@@ -1346,6 +1362,37 @@ export default function App() {
             </div>
           </div>
           <button onClick={() => setWriteErrorToast(null)} style={{
+            background: "transparent", border: "none", color: "#FFFFFF",
+            fontSize: 18, cursor: "pointer", padding: 0, lineHeight: 1,
+          }}>×</button>
+        </div>
+      )}
+
+      {fxOutOfBandToast && (
+        <div style={{
+          position: "fixed", top: 70, left: "50%", transform: "translateX(-50%)",
+          zIndex: 2002, maxWidth: "92vw",
+          background: "#1F5DB8", color: "#FFFFFF",
+          padding: "12px 18px", borderRadius: 10,
+          boxShadow: "0 8px 24px rgba(31,93,184,0.35)",
+          fontSize: 13, fontWeight: 600, fontFamily: "inherit",
+          display: "flex", alignItems: "center", gap: 10,
+        }}>
+          <span style={{ fontSize: 18 }}>💵</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 700 }}>
+              Salto del dólar: ${Math.round(fxOutOfBandToast.actual).toLocaleString("es-AR")} → ${Math.round(fxOutOfBandToast.nuevo).toLocaleString("es-AR")}
+            </div>
+            <div style={{ fontSize: 11, opacity: 0.9, marginTop: 2 }}>
+              Se movió más del {Math.round((fxOutOfBandToast.banda || 0.1) * 100)}% — no se aplicó solo. Confirmá para usar el valor nuevo.
+            </div>
+          </div>
+          <button onClick={() => { setExchangeRate(fxOutOfBandToast.nuevo); setFxOutOfBandToast(null); }} style={{
+            background: "#FFFFFF", border: "none", color: "#1F5DB8",
+            fontSize: 12, fontWeight: 700, cursor: "pointer",
+            padding: "8px 14px", borderRadius: 8, minHeight: 36, flexShrink: 0,
+          }}>Aplicar</button>
+          <button onClick={() => setFxOutOfBandToast(null)} style={{
             background: "transparent", border: "none", color: "#FFFFFF",
             fontSize: 18, cursor: "pointer", padding: 0, lineHeight: 1,
           }}>×</button>
