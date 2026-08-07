@@ -19,6 +19,36 @@ export const ETAPAS_OPERATIVAS = [
   { key: "cliente",            etiqueta: "Cliente",            icono: "🏪" },
 ];
 
+// --- Fases comerciales (2026-08-07) -----------------------------------------
+// Las 7 etapas operativas son la VERDAD del trabajo, pero como columnas de un
+// tablero no narran nada: siete columnas angostas son una pared, no un embudo.
+// Estas 4 fases son una PROYECCIÓN para el Embudo — agrupan etapas sin
+// reemplazarlas (cada card sigue mostrando su etapa real). Decisión de Gustavo
+// tras usar el tablero prospectando.
+//
+// El agrupamiento sigue el flujo comercial real:
+//   Entrada     → todavía no decidiste si vale la pena
+//   Contactando → estás tratando de llegar (por teléfono o yendo)
+//   En juego    → ya hubo contacto real, se está negociando
+//   Clientes    → cerrado (sale del CRM hacia Kioscos)
+export const FASES_COMERCIALES = [
+  { key: "entrada",     etiqueta: "Entrada",     icono: "🔍", etapas: ["por_analizar"] },
+  { key: "contactando", etiqueta: "Contactando", icono: "💬", etapas: ["para_contactar", "para_visitar", "esperando_respuesta"] },
+  { key: "en_juego",    etiqueta: "En juego",    icono: "🤝", etapas: ["visitado", "negociacion"] },
+  { key: "clientes",    etiqueta: "Clientes",    icono: "🏪", etapas: ["cliente"] },
+];
+
+const FASE_DE_ETAPA = Object.fromEntries(
+  FASES_COMERCIALES.flatMap(f => f.etapas.map(e => [e, f.key])));
+
+// faseDeEtapa(etapaKey) → key de FASES_COMERCIALES. Una etapa desconocida cae
+// en "entrada": es lo menos dañino (queda a la vista para que alguien decida),
+// y además es imposible salvo que se agregue una etapa sin mapearla acá — cosa
+// que el test de cobertura total impide.
+export function faseDeEtapa(etapaKey) {
+  return FASE_DE_ETAPA[etapaKey] || "entrada";
+}
+
 // Días sin respuesta tras un mensaje para marcar el sub-estado "reintentar".
 export const DIAS_REINTENTO = 3;
 

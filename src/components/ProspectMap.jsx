@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useResponsive } from "../App.jsx";
 import { Card, StatCard } from "./UI.jsx";
 import { T } from "../theme.js";
@@ -10,7 +10,15 @@ import { productsByZone } from "../wholesaleIntelligence.js";
 // manual, lo accionable es: dónde tenés mayoristas activos y dónde solo hay
 // prospectos (zonas a cerrar) o nada (zonas a atacar). Alta de prospectos = Pipeline.
 
-export function ProspectMap({ prospects = [], clients = [], sales = [], products = [] }) {
+// 2026-08-07: la zona deja de ser solo un contador. Tocarla despliega los
+// negocios que tiene adentro, y desde ahí se entra a la ficha completa —
+// prospecto o kiosco, lo mismo. Antes esta pantalla era un callejón sin salida:
+// te decía "Munro tiene 4 prospectos" y no había forma de llegar a ninguno.
+export function ProspectMap({
+  prospects = [], clients = [], sales = [], products = [],
+  onOpenFicha, onOpenKiosco,
+}) {
+  const [abierta, setAbierta] = useState(null);   // zona desplegada
   const { isMobile } = useResponsive();
 
   const zones = useMemo(() => zonesCoverage({ clients, prospects }), [clients, prospects]);
@@ -19,6 +27,16 @@ export function ProspectMap({ prospects = [], clients = [], sales = [], products
   // el Panel porque ESTA es la pantalla zona-céntrica: al decidir qué zona
   // atacar, saber qué pega en las vecinas arma la oferta de entrada.
   const ventasPorZona = useMemo(() => productsByZone(clients, sales, products, 3), [clients, sales, products]);
+  // Los negocios de una zona, en el mismo orden que el embudo: primero lo
+  // cerrado, después lo que falta trabajar.
+  const norm = (z) => (z || "").trim() || "Sin zona";
+  const negociosDe = (zona) => [
+    ...clients.filter(c => c && !c.isDeleted && c.type === "mayorista" && norm(c.zone) === zona)
+      .map(c => ({ tipo: "kiosco", id: c.id, nombre: c.businessName || c.name })),
+    ...prospects.filter(p => p && !p.isDeleted && !p.convertedClientId && norm(p.zone) === zona)
+      .map(p => ({ tipo: "prospecto", id: p.id, nombre: p.businessName })),
+  ];
+
   const totalActivos = zones.reduce((s, z) => s + z.activos, 0);
   const totalProspectos = zones.reduce((s, z) => s + z.prospectos, 0);
 
@@ -53,7 +71,7 @@ export function ProspectMap({ prospects = [], clients = [], sales = [], products
       {/* Cobertura por zona */}
       {zones.length === 0 ? (
         <Card><div style={{ textAlign: "center", color: T.textMuted, padding: isMobile ? "32px 16px" : 48 }}>
-          Todavía no hay clientes ni prospectos con zona cargada. Agregá prospectos desde <b>Pipeline</b>.
+          Todavía no hay clientes ni prospectos con zona cargada. Buscá negocios desde <b>☀️ Hoy → 🔎 Descubrir</b>.
         </div></Card>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
@@ -61,18 +79,42 @@ export function ProspectMap({ prospects = [], clients = [], sales = [], products
             const cubierta = z.activos > 0;
             return (
               <Card key={z.zone} style={{ borderLeft: `4px solid ${cubierta ? T.green : T.amber}` }}>
-                <div style={{ fontWeight: 800, color: T.text, fontSize: 15, marginBottom: 8 }}>{z.zone}</div>
-                <div style={{ display: "flex", gap: 16 }}>
-                  <div>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: T.green }}>{z.activos}</div>
-                    <div style={{ fontSize: 11, color: T.textMuted }}>mayoristas</div>
+                <div onClick={() => setAbierta(a => a === z.zone ? null : z.zone)}
+                  title="Ver los negocios de la zona"
+                  style={{ cursor: "pointer" }}>
+                  <div style={{ fontWeight: 800, color: T.text, fontSize: 15, marginBottom: 8, display: "flex", justifyContent: "space-between", gap: 8 }}>
+                    <span style={{ minWidth: 0 }}>{z.zone}</span>
+                    <span style={{ color: T.textFaint, fontWeight: 400, flexShrink: 0 }}>{abierta === z.zone ? "▾" : "›"}</span>
                   </div>
-                  <div>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: T.amber }}>{z.prospectos}</div>
-                    <div style={{ fontSize: 11, color: T.textMuted }}>prospectos</div>
+                  <div style={{ display: "flex", gap: 16 }}>
+                    <div>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: T.green }}>{z.activos}</div>
+                      <div style={{ fontSize: 11, color: T.textMuted }}>mayoristas</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 20, fontWeight: 800, color: T.amber }}>{z.prospectos}</div>
+                      <div style={{ fontSize: 11, color: T.textMuted }}>prospectos</div>
+                    </div>
                   </div>
+                  {!cubierta && <div style={{ marginTop: 8, fontSize: 12, color: T.amber, fontWeight: 600 }}>⚡ Zona a cerrar</div>}
                 </div>
-                {!cubierta && <div style={{ marginTop: 8, fontSize: 12, color: T.amber, fontWeight: 600 }}>⚡ Zona a cerrar</div>}
+                {abierta === z.zone && (
+                  <div style={{ marginTop: 10, borderTop: `1px solid ${T.borderSoft}`, paddingTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
+                    {negociosDe(z.zone).map(n => (
+                      <div key={`${n.tipo}-${n.id}`}
+                        onClick={() => (n.tipo === "kiosco" ? onOpenKiosco : onOpenFicha)?.(n.id)}
+                        title="Abrir ficha"
+                        style={{ display: "flex", alignItems: "baseline", gap: 6, cursor: "pointer", padding: "6px 4px", minHeight: 32 }}>
+                        <span style={{ flexShrink: 0 }}>{n.tipo === "kiosco" ? "🏪" : "🎯"}</span>
+                        <span style={{ fontSize: 12, color: T.text, fontWeight: 600, flex: 1, minWidth: 0 }}>{n.nombre}</span>
+                        <span style={{ fontSize: 10, color: T.textFaint, flexShrink: 0 }}>ficha ›</span>
+                      </div>
+                    ))}
+                    {negociosDe(z.zone).length === 0 && (
+                      <div style={{ fontSize: 11, color: T.textFaint, padding: 4 }}>Sin negocios cargados en esta zona.</div>
+                    )}
+                  </div>
+                )}
               </Card>
             );
           })}
@@ -103,7 +145,6 @@ export function ProspectMap({ prospects = [], clients = [], sales = [], products
 
       <p style={{ fontSize: 12, color: T.textFaint, marginTop: 16 }}>
         El mapa geográfico con pins llega junto con la búsqueda automática (Google Places), diferida.
-        Por ahora la prospección es manual desde <b>Pipeline</b>.
       </p>
     </div>
   );

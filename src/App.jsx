@@ -310,6 +310,18 @@ export default function App() {
   // ---- UI state ----
   // Arranca en el home del modo activo (Panel mayorista o Dashboard).
   const [page, setPage] = useState(() => MODE_HOME[loadSettings().businessMode] || MODE_HOME.minorista);
+  // Ficha pedida desde OTRA pantalla (⌘K, Embudo, Zonas...). Regla del módulo:
+  // siempre tiene que ser fácil entrar a la ficha completa de un negocio, esté
+  // donde esté el usuario. `{tipo, id}` — el destino la abre y la limpia.
+  const [fichaPedida, setFichaPedida] = useState(null);
+  const abrirFicha = useCallback((tipo, id) => {
+    if (!id) return;
+    setFichaPedida({ tipo, id });
+    setPage(tipo === "kiosco" ? "kioscos" : "prospectos");
+    setGlobalSearch(""); setShowGlobalResults(false);
+  }, []);
+  const fichaFor = (tipo) => (fichaPedida?.tipo === tipo ? fichaPedida.id : null);
+  const limpiarFicha = useCallback(() => setFichaPedida(null), []);
   const [presenceList, setPresenceList] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
@@ -574,6 +586,21 @@ export default function App() {
     (clients || []).filter(c => `${c.name} ${c.phone} ${c.instagram}`.toLowerCase().includes(q)).slice(0, 3)
       .forEach(c => results.push({ type: "client", icon: "👥", label: c.name, sub: c.phone || c.instagram || "", page: "clients" }));
 
+    // Kioscos y prospectos: buscarlos por nombre/zona/teléfono y caer DIRECTO en
+    // su ficha (no en la pantalla). La regla del módulo es que la ficha esté
+    // siempre a un paso, y ⌘K es el "cualquier lugar" más literal que hay.
+    (clients || []).filter(c => c && !c.isDeleted && c.type === "mayorista" &&
+      `${c.businessName || ""} ${c.name || ""} ${c.zone || ""} ${c.phone || ""}`.toLowerCase().includes(q)).slice(0, 3)
+      .forEach(c => results.push({ type: "kiosco", icon: "🏪", label: c.businessName || c.name,
+        sub: [c.zone, c.wholesaleTier ? `tier ${String(c.wholesaleTier).toUpperCase()}` : ""].filter(Boolean).join(" · "),
+        page: "kioscos", ficha: { tipo: "kiosco", id: c.id } }));
+
+    (prospects || []).filter(p => p && !p.isDeleted && !p.convertedClientId &&
+      `${p.businessName || ""} ${p.zone || ""} ${p.phone || ""} ${p.contactName || ""}`.toLowerCase().includes(q)).slice(0, 4)
+      .forEach(p => results.push({ type: "prospect", icon: "🎯", label: p.businessName,
+        sub: [p.zone || "sin zona", p.phone || "sin teléfono"].join(" · "),
+        page: "prospectos", ficha: { tipo: "prospecto", id: p.id } }));
+
     purchases.filter(p => !p.isDeleted && (p.supplier || "").toLowerCase().includes(q)).slice(0, 3)
       .forEach(p => results.push({ type: "purchase", icon: "🚚", label: `Pedido - ${p.supplier}`, sub: `${formatDate(p.date)} · ${p.status}`, page: "procurement" }));
 
@@ -581,7 +608,7 @@ export default function App() {
       .forEach(e => results.push({ type: "expense", icon: "💸", label: `${e.category}`, sub: `${formatDate(e.date)} · ${formatMoney(e.amountARS)}`, page: "expenses" }));
 
     return results;
-  }, [globalSearch, products, sales, clients, purchases, expenses]);
+  }, [globalSearch, products, sales, clients, purchases, expenses, prospects]);
 
   // ---- Filtered data (excluding soft-deleted) ----
   const activeProducts = useMemo(() => products.filter(p => !p.isDeleted), [products]);
@@ -798,7 +825,7 @@ export default function App() {
       case "sales": return <Sales sales={sales} setSales={setSales} products={products} setProducts={setProducts} logStock={logStock} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} clients={clients} setClients={setClients} cashMovements={cashMovements} setCashMovements={setCashMovements} monthlyClosures={monthlyClosures} coupons={coupons} setCoupons={setCoupons} auditLog={auditLog} />;
       case "procurement": return <Procurement products={products} setProducts={setProducts} purchases={purchases} setPurchases={setPurchases} sales={activeSales} exchangeRate={exchangeRate} logStock={logStock} currentUser={currentUser} logAudit={logAudit} monthlyClosures={monthlyClosures} supplierProfiles={supplierProfiles} setSupplierProfiles={setSupplierProfiles} supplierAliases={supplierAliases} setSupplierAliases={setSupplierAliases} supplierLists={supplierLists} setSupplierLists={setSupplierLists} />;
       case "clients": return <Clients clients={clients} setClients={setClients} sales={activeSales} products={activeProducts} withdrawals={activeWithdrawals} />;
-      case "kioscos": return <Kioscos clients={clients} setClients={setClients} sales={activeSales} products={activeProducts} />;
+      case "kioscos": return <Kioscos clients={clients} setClients={setClients} sales={activeSales} products={activeProducts} fichaInicial={fichaFor("kiosco")} onFichaAbierta={limpiarFicha} />;
       case "wholesaleOrder": return <WholesaleOrder clients={clients} products={products} setProducts={setProducts} sales={activeSales} setSales={setSales} logStock={logStock} />;
       case "priceList": return <PriceListScreen products={activeProducts} />;
       case "prospectos":
@@ -807,7 +834,7 @@ export default function App() {
       case "prospectMap": {
         const tabInicial = effectivePage === "pipeline" ? "embudo"
           : effectivePage === "prospectMap" ? "zonas" : "hoy";
-        return <Prospectos tabInicial={tabInicial} prospects={prospects} setProspects={setProspects} clients={clients} setClients={setClients} visits={visits} setVisits={setVisits} products={activeProducts} sales={activeSales} auditLog={auditLog} discoverySuppressed={discoverySuppressed} setDiscoverySuppressed={setDiscoverySuppressed} discoveryJobs={discoveryJobs} onCreateDiscoveryJob={createDiscoveryJob} onCancelDiscoveryJob={deleteDiscoveryJob} />;
+        return <Prospectos tabInicial={tabInicial} prospects={prospects} setProspects={setProspects} clients={clients} setClients={setClients} visits={visits} setVisits={setVisits} products={activeProducts} sales={activeSales} auditLog={auditLog} discoverySuppressed={discoverySuppressed} setDiscoverySuppressed={setDiscoverySuppressed} discoveryJobs={discoveryJobs} onCreateDiscoveryJob={createDiscoveryJob} onCancelDiscoveryJob={deleteDiscoveryJob} fichaInicial={fichaFor("prospecto")} onFichaAbierta={limpiarFicha} onOpenKiosco={(id) => abrirFicha("kiosco", id)} />;
       }
       case "routes": return <Routes routes={routes} setRoutes={setRoutes} clients={clients} sales={activeSales} setSales={setSales} />;
       case "cuentasCorrientes": return <CuentasCorrientes clients={clients} sales={activeSales} setSales={setSales} />;
@@ -891,7 +918,7 @@ export default function App() {
                 <input value={globalSearch} onChange={e => { setGlobalSearch(e.target.value); setShowGlobalResults(true); }}
                   onFocus={() => setShowGlobalResults(true)}
                   placeholder="Buscar..."
-                  aria-label="Búsqueda global de productos, ventas y clientes"
+                  aria-label="Búsqueda global de productos, ventas, clientes, kioscos y prospectos"
                   style={{ padding: "7px 14px 7px 32px", background: "#F8F2E7", border: "1px solid #E5DAC2", borderRadius: 8, color: "#1E2B4A", fontSize: 13, width: 180, outline: "none" }} />
                 <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 13, color: "#9AA2B3", pointerEvents: "none" }}>🔍</span>
                 {showGlobalResults && globalResults.length > 0 && (
@@ -901,7 +928,10 @@ export default function App() {
                     boxShadow: "0 12px 32px rgba(0,0,0,0.1)", zIndex: 200
                   }}>
                     {globalResults.map((r, i) => (
-                      <div key={i} onClick={() => { setPage(r.page); setGlobalSearch(""); setShowGlobalResults(false); }}
+                      <div key={i} onClick={() => {
+                        if (r.ficha) { abrirFicha(r.ficha.tipo, r.ficha.id); return; }
+                        setPage(r.page); setGlobalSearch(""); setShowGlobalResults(false);
+                      }}
                         style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", cursor: "pointer",
                           borderBottom: i < globalResults.length - 1 ? "1px solid #E5DAC2" : "none" }}
                         onMouseEnter={e => e.currentTarget.style.background = "#F8F2E7"}

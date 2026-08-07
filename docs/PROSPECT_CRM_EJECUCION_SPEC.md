@@ -181,6 +181,27 @@ volumen — p. ej. > 30 pendientes — para que el caso simple siga simple):
   borrar), que no son trabajo comercial.
 - Sin duplicación Hoy↔Embudo: mismas etapas, dos proyecciones (colas vs tablero).
 
+## 6.bis Fricciones ANOTADAS — esperando que el uso las confirme
+
+Criterio de Gustavo (2026-08-07): **las próximas decisiones salen del uso real,
+no de adelantarse a problemas que todavía no aparecieron.** Lo de acá abajo son
+candidatos detectados por auditoría, NO un roadmap: no se implementa nada hasta
+que la fricción se sienta prospectando.
+
+- **Rutas y Cuentas corrientes muestran kioscos sin acceso a su ficha.** Es el
+  mismo callejón sin salida que se cerró en Zonas y en ⌘K, y la solución ya
+  está construida (`abrirFicha(tipo, id)` en App + `fichaInicial` en el
+  destino): serían dos líneas por pantalla. No se hizo porque nadie se topó con
+  eso todavía.
+- **Escala de la cola 🔍 con cientos de prospectos** — detalle completo en §6
+  (sesión acotada → lotes por búsqueda/zona → descarte masivo con memoria;
+  nunca pre-filtro automático). Se enciende cuando el volumen moleste, no antes.
+- **Qué pasa DESPUÉS de cada acción.** Hoy el sistema avisa a dónde fue el
+  prospecto, pero no te lleva a lo siguiente. Si el objetivo es "casi no tener
+  que pensar qué hacer después", probablemente ahí esté la próxima mejora
+  grande — pero hay que ver cómo se siente encadenar acciones de verdad antes
+  de diseñarla.
+
 ## 7. Fases
 
 F1 dominio de etapas ✅ → F2 auto-ingesta + enmienda contrato ✅ → F3 Hoy como

@@ -13,7 +13,7 @@
 // Consumo del engine: SOLO la fachada (buildProspectRanking) — regla intacta.
 // Los keys históricos "pipeline"/"prospectMap" entran por tabInicial (alias de
 // deep-links/⌘K — sin lockout, como la regla de modos).
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { uid, formatDate } from "../helpers.js";
 import { useResponsive } from "../App.jsx";
 import { Btn, MiniBtn, Toast, useToast } from "./UI.jsx";
@@ -47,10 +47,10 @@ export function Prospectos({
   products = [], sales = [], auditLog = [],
   discoverySuppressed = [], setDiscoverySuppressed,
   discoveryJobs = [], onCreateDiscoveryJob, onCancelDiscoveryJob,
-  tabInicial = "hoy",
+  tabInicial = "hoy", fichaInicial = null, onFichaAbierta, onOpenKiosco,
 }) {
   const { isMobile } = useResponsive();
-  const { logAudit, currentUser, exchangeRate } = useAppContext();
+  const { logAudit, currentUser } = useAppContext();
   const [tab, setTab] = useState(TABS.some(t => t.key === tabInicial) ? tabInicial : "hoy");
   const [suppModal, setSuppModal] = useState(false);
   const [buscando, setBuscando] = useState(false);
@@ -62,6 +62,13 @@ export function Prospectos({
   const [fichaId, setFichaId] = useState(null);       // la Ficha: el expediente permanente
   const [colaSel, setColaSel] = useState(null);       // cola elegida a mano (null = la que propone el sistema)
   const [toast, showToast] = useToast();
+
+  // Ficha pedida desde otra pantalla (⌘K, Zonas): se abre sola al llegar.
+  useEffect(() => {
+    if (!fichaInicial) return;
+    setFichaId(fichaInicial);
+    onFichaAbierta?.();
+  }, [fichaInicial]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const activeProspects = useMemo(() => prospects.filter(p => p && !p.isDeleted), [prospects]);
   const now = () => new Date().toISOString();
@@ -271,6 +278,10 @@ export function Prospectos({
           <EmbudoOperativo
             prospects={prospects} clients={clients} visits={visits}
             ranking={ranking} onOpenFicha={setFichaId} onNuevo={() => setAltaOpen(true)}
+            onOpenKiosco={onOpenKiosco}
+            acciones={acciones}
+            onVisita={(p) => setVisitFor({ id: p.id, type: "prospect", name: p.businessName })}
+            onPresentar={(p) => setPresTarget(p)}
           />
         </div>
       )}
@@ -278,7 +289,8 @@ export function Prospectos({
       {/* ---- Zonas ---- */}
       {tab === "zonas" && (
         <div key="zonas" style={{ animation: "fadeIn 180ms ease-out" }}>
-          <ProspectMap prospects={activeProspects} clients={clients} sales={sales} products={products} />
+          <ProspectMap prospects={activeProspects} clients={clients} sales={sales} products={products}
+            onOpenFicha={setFichaId} onOpenKiosco={onOpenKiosco} />
         </div>
       )}
 
@@ -310,9 +322,7 @@ export function Prospectos({
       )}
       {/* Presentar registra el hecho al mandar: de ahí sale la etapa ⏳ */}
       <PresentationMessageModal open={!!presTarget} onClose={() => setPresTarget(null)}
-        target={presTarget} defaultTier="C"
-        products={products} exchangeRate={exchangeRate}
-        onEnviado={(p) => acciones.mensajeEnviado(p)} />
+        target={presTarget} onEnviado={(p) => acciones.mensajeEnviado(p)} />
       <Toast message={toast} />
     </div>
   );

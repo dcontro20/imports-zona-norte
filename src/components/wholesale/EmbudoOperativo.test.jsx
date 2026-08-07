@@ -1,10 +1,11 @@
-// Test de integración UI ↔ Prospect Engine, ahora sobre el EMBUDO OPERATIVO
-// (ciclo v2 F4 — reemplazó al kanban de Pipeline, que ordenaba por las 3
-// etapas del engine y ya no coincidía con la etapa que el sistema deriva).
+// Test de integración UI ↔ Prospect Engine sobre el EMBUDO. Desde el rediseño
+// del 2026-08-07 el tablero son 4 FASES COMERCIALES (Entrada → Contactando →
+// En juego → Clientes) y las cards traen su acción primaria: siete columnas
+// angostas y sin acciones no se sostuvieron en el uso real.
 // NO testea reglas de negocio (viven en las libs puras): testea que la UI
-// CONSUME bien — columnas por etapa operativa, orden por `posicion`, chip de
-// prioridad + aviso de poca información, y que el tablero es panorámico
-// (tocar lleva a la Ficha; el trabajo no se duplica acá).
+// CONSUME bien — la fase correcta por etapa derivada, orden por `posicion`,
+// chip de prioridad, la etapa real visible en la card, y que la ficha se abre
+// desde cualquier card (también la de un kiosco ya cerrado).
 //
 // Los tests del diagnóstico y de la calificación en la visita se conservan
 // enteros: al retirarse Pipeline montan directamente los componentes que los
@@ -77,27 +78,52 @@ const renderEmbudo = (props = {}) => render(
   </AppContext.Provider>,
 );
 
-// La columna de una etapa operativa (el div que contiene ese header).
+// La columna de una FASE (el div que contiene ese header).
 const columna = (etiqueta) => screen.getByText(etiqueta, { exact: false }).closest("div").parentElement;
 
-describe("Embudo operativo — columnas por etapa DERIVADA", () => {
-  it("cada prospecto cae en la columna de su etapa operativa, no en la del campo viejo", () => {
+describe("Embudo operativo — 4 fases comerciales (rediseño 2026-08-07)", () => {
+  it("el tablero son las 4 FASES, no las 7 etapas", () => {
     renderEmbudo();
-    // Los tres traen pipelineStage "contactado" (legacy). La etapa real la
-    // deciden los hechos: estrella y flojo tienen visita ⇒ Visitado; pelado no
-    // tiene teléfono ni visita ⇒ Para visitar.
-    const visitado = within(columna("📋 Visitado"));
-    expect(visitado.getAllByText(/^Kiosco /).map(n => n.textContent.replace(" ›", "")))
-      .toStrictEqual(["Kiosco Estrella", "Kiosco Flojo"]);
-    expect(within(columna("🚶 Para visitar")).getByText(/Kiosco Pelado/)).toBeTruthy();
+    for (const f of ["🔍 Entrada", "💬 Contactando", "🤝 En juego", "🏪 Clientes"]) {
+      expect(screen.getByText(f)).toBeTruthy();
+    }
+    // Las etapas operativas ya no son columnas.
+    expect(screen.queryByText("🚶 Para visitar", { selector: "span" })).toBeTruthy(); // sí, como chip de card
+    expect(screen.queryByText("⏳ Esperando respuesta")).toBeNull();
   });
 
-  it("dentro de la columna ordena por el ranking, no por orden de carga", () => {
+  it("cada prospecto cae en la FASE de su etapa derivada, no en la del campo viejo", () => {
+    renderEmbudo();
+    // Los tres traen pipelineStage "contactado" (legacy). La etapa real la
+    // deciden los hechos: estrella y flojo tienen visita ⇒ Visitado ⇒ En juego;
+    // pelado no tiene teléfono ni visita ⇒ Para visitar ⇒ Contactando.
+    const enJuego = within(columna("🤝 En juego"));
+    expect(enJuego.getAllByText(/^Kiosco /).map(n => n.textContent.replace(" ›", "")))
+      .toStrictEqual(["Kiosco Estrella", "Kiosco Flojo"]);
+    expect(within(columna("💬 Contactando")).getByText(/Kiosco Pelado/)).toBeTruthy();
+  });
+
+  it("agrupar en fases NO pierde la etapa: cada card la muestra", () => {
+    renderEmbudo();
+    // nombre → fila del encabezado → cuerpo clickeable de la card
+    const card = screen.getByText(/Kiosco Pelado/).closest("div").parentElement.parentElement;
+    expect(card.textContent).toContain("Para visitar");
+  });
+
+  it("dentro de la fase ordena por el ranking, no por orden de carga", () => {
     renderEmbudo();
     // flojo se carga PRIMERO y estrella último; el engine los da vuelta.
-    const nombres = within(columna("📋 Visitado"))
+    const nombres = within(columna("🤝 En juego"))
       .getAllByText(/^Kiosco /).map(n => n.textContent.replace(" ›", ""));
     expect(nombres[0]).toBe("Kiosco Estrella");
+  });
+
+  it("las cards traen su ACCIÓN PRIMARIA (se puede trabajar desde el tablero)", () => {
+    const acciones = { negociar: vi.fn(), convertir: vi.fn(), analizar: vi.fn() };
+    renderEmbudo({ acciones });
+    // "visitado" ⇒ primaria = 🤝 Negociando (la misma que propone la cola)
+    fireEvent.click(within(columna("🤝 En juego")).getAllByText("🤝 Negociando")[0]);
+    expect(acciones.negociar).toHaveBeenCalledWith(expect.objectContaining({ id: "p-estrella" }));
   });
 
   it("cada prospecto muestra su chip de prioridad", () => {
@@ -107,29 +133,26 @@ describe("Embudo operativo — columnas por etapa DERIVADA", () => {
     expect(screen.getAllByText(/^(Muy alta|Alta|Media|Baja|Sin datos)$/).length).toBe(3);
   });
 
-  it("el aviso de poca información viaja en el chip del prospecto correcto", () => {
+  it("el prospecto sin calificar sigue apareciendo, con su chip propio", () => {
     renderEmbudo();
-    const chips = screen.getAllByText(/^(Muy alta|Alta|Media|Baja|Sin datos)$/);
-    expect(chips.length).toBe(3);
-    // el pelado (confianza < 0.60) es el único sin calificar
-    expect(within(columna("🚶 Para visitar")).getByText(/Kiosco Pelado/)).toBeTruthy();
+    // el pelado (confianza < 0.60) es el único sin calificar, y no se esconde
+    expect(within(columna("💬 Contactando")).getByText(/Kiosco Pelado/)).toBeTruthy();
   });
 
-  it("la columna 🏪 Cliente muestra los mayoristas, sin chip ni ranking", () => {
+  it("la fase 🏪 Clientes muestra los mayoristas, sin chip ni ranking", () => {
     renderEmbudo();
-    const col = within(columna("🏪 Cliente"));
-    const card = col.getByText("Maxi Munro").closest("div").parentElement;
+    const card = within(columna("🏪 Clientes")).getByText("Maxi Munro").closest("div");
     expect(card.textContent).not.toMatch(/Muy alta|Sin datos|poca información/);
   });
 
-  it("es panorámico: tocar una card lleva a la Ficha (el trabajo no se duplica acá)", () => {
-    const onOpenFicha = vi.fn();
-    renderEmbudo({ onOpenFicha });
+  it("tocar cualquier card abre la ficha — también la de un kiosco ya cerrado", () => {
+    const onOpenFicha = vi.fn(), onOpenKiosco = vi.fn();
+    renderEmbudo({ onOpenFicha, onOpenKiosco });
     fireEvent.click(screen.getByText(/Kiosco Estrella/));
     expect(onOpenFicha).toHaveBeenCalledWith("p-estrella");
-    // Los mayoristas ya salieron del CRM: no abren ficha.
+    // El cerrado ya salió del CRM: su ficha vive en Kioscos, pero se llega igual.
     fireEvent.click(screen.getByText("Maxi Munro"));
-    expect(onOpenFicha).toHaveBeenCalledTimes(1);
+    expect(onOpenKiosco).toHaveBeenCalledWith("c1");
   });
 
   it("resume el embudo en una línea: en juego vs cerrados", () => {
