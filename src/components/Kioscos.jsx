@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { uid, formatMoney, formatDate } from "../helpers.js";
 import { useResponsive } from "../App.jsx";
 import { Card, Btn, Modal, Input, Select, StatCard, MiniBtn, downloadCSV } from "./UI.jsx";
@@ -36,7 +36,7 @@ const emptyForm = {
   creditEnabled: false, creditLimitARS: "",
 };
 
-export function Kioscos({ clients = [], setClients, sales = [], products = [] }) {
+export function Kioscos({ clients = [], setClients, sales = [], products = [] , fichaInicial = null, onFichaAbierta }) {
   const { isMobile } = useResponsive();
   const { exchangeRate, logAudit, currentUser } = useAppContext();
 
@@ -118,6 +118,15 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] })
     setForm({ ...emptyForm, ...c, businessType: c.businessType || "", wholesaleTier: c.wholesaleTier || "", pipelineStage: c.pipelineStage || "activo", creditEnabled: !!c.creditEnabled, creditLimitARS: c.creditLimitARS || "" });
     setEditing(c.id); setConverting(false); setErr(""); setModal(true);
   };
+  // Ficha pedida desde otra pantalla (⌘K, Embudo → fase Clientes): se abre
+  // sola al llegar. Regla del módulo: la ficha completa a un tap desde donde sea.
+  useEffect(() => {
+    if (!fichaInicial) return;
+    const c = clients.find(x => x?.id === fichaInicial && !x.isDeleted);
+    if (c) openEdit(c);
+    onFichaAbierta?.();
+  }, [fichaInicial]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const openConvert = (c) => {
     setForm({ ...emptyForm, ...c, businessName: c.businessName || c.name || "", businessType: c.businessType || "", wholesaleTier: "", pipelineStage: "activo" });
     setEditing(c.id); setConverting(true); setErr(""); setModal(true);

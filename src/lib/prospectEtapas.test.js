@@ -5,6 +5,7 @@ import { describe, it, expect } from "vitest";
 import {
   ETAPAS_OPERATIVAS, DIAS_REINTENTO,
   etapaOperativa, subEstadoEspera, etapaEngine, conEtapaLegacy, conteoPorEtapa,
+  FASES_COMERCIALES, faseDeEtapa,
 } from "./prospectEtapas.js";
 
 const base = { id: "p1", businessName: "Kiosco X" };
@@ -122,5 +123,34 @@ describe("conteoPorEtapa — la barra de colas", () => {
     expect(conteo.negociacion).toBe(1);
     expect(conteo.cliente).toBe(1);
     expect(vencidos).toBe(1);
+  });
+});
+
+// --- Fases comerciales del Embudo (2026-08-07) ---
+describe("FASES_COMERCIALES — la proyección del Embudo", () => {
+  it("cubre las 7 etapas operativas, sin huecos ni repeticiones", () => {
+    const cubiertas = FASES_COMERCIALES.flatMap(f => f.etapas);
+    expect([...cubiertas].sort()).toEqual(ETAPAS_OPERATIVAS.map(e => e.key).sort());
+    expect(new Set(cubiertas).size).toBe(cubiertas.length);
+  });
+
+  it("agrupa según el flujo comercial real", () => {
+    expect(faseDeEtapa("por_analizar")).toBe("entrada");
+    // Contactando = todas las formas de intentar llegar
+    expect(faseDeEtapa("para_contactar")).toBe("contactando");
+    expect(faseDeEtapa("para_visitar")).toBe("contactando");
+    expect(faseDeEtapa("esperando_respuesta")).toBe("contactando");
+    // En juego = ya hubo contacto real
+    expect(faseDeEtapa("visitado")).toBe("en_juego");
+    expect(faseDeEtapa("negociacion")).toBe("en_juego");
+    expect(faseDeEtapa("cliente")).toBe("clientes");
+  });
+
+  it("el orden de las fases ES el embudo, de más ancho a más angosto", () => {
+    expect(FASES_COMERCIALES.map(f => f.key)).toEqual(["entrada", "contactando", "en_juego", "clientes"]);
+  });
+
+  it("una etapa desconocida no desaparece del tablero", () => {
+    expect(faseDeEtapa("lo_que_sea")).toBe("entrada");
   });
 });
