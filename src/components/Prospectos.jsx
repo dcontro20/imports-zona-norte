@@ -50,7 +50,7 @@ export function Prospectos({
   tabInicial = "hoy",
 }) {
   const { isMobile } = useResponsive();
-  const { logAudit, currentUser, exchangeRate } = useAppContext();
+  const { logAudit, currentUser } = useAppContext();
   const [tab, setTab] = useState(TABS.some(t => t.key === tabInicial) ? tabInicial : "hoy");
   const [suppModal, setSuppModal] = useState(false);
   const [buscando, setBuscando] = useState(false);
@@ -310,9 +310,7 @@ export function Prospectos({
       )}
       {/* Presentar registra el hecho al mandar: de ahí sale la etapa ⏳ */}
       <PresentationMessageModal open={!!presTarget} onClose={() => setPresTarget(null)}
-        target={presTarget} defaultTier="C"
-        products={products} exchangeRate={exchangeRate}
-        onEnviado={(p) => acciones.mensajeEnviado(p)} />
+        target={presTarget} onEnviado={(p) => acciones.mensajeEnviado(p)} />
       <Toast message={toast} />
     </div>
   );

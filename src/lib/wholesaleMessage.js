@@ -36,39 +36,23 @@ export function cobranzaMessage(client, sales, now = Date.now()) {
   return lines.join("\n");
 }
 
-// Mensaje de PRESENTACIÓN para el primer contacto con un kiosco (Bloque 2 —
-// front de ventas). `target` puede ser un prospecto ({businessName,
-// contactName, zone}) o un cliente mayorista. `tier` = la lista que le vas a
-// ofrecer. Incluye 2-3 precios de gancho REALES del tier (solo productos con
-// lista de tier cargada Y stock) — si no hay ninguno, el mensaje sale sin
-// precios (invita a pedir la lista). Mismo tono que el resto: natural, cálido,
-// editable antes de mandar.
-export function presentationMessage(target, { tier = "C", products = [], exchangeRate = 0, maxProducts = 3 } = {}) {
-  const t = String(tier || "C").toUpperCase();
-  const contact = target?.contactName || "";
-  const biz = target?.businessName || target?.name || "";
-  const rate = Number(exchangeRate) || 0;
-
-  const conPrecio = (products || [])
-    .filter(p => p && !p.isDeleted && (Number(p.stock) || 0) > 0 && hasTierPrice(p, t))
-    .sort((a, b) => (Number(b.stock) || 0) - (Number(a.stock) || 0))
-    .slice(0, maxProducts);
-
-  const lines = [];
-  lines.push(`Hola${contact ? ` ${contact}` : ""}! 👋 Soy Diego, de *Imports Zona Norte*.`);
-  lines.push("");
-  lines.push(`Distribuimos vapes importados (Elfbar, Lost Mary, Geek Bar y más) a kioscos${target?.zone ? ` de ${target.zone}` : " de la zona"}, con precio mayorista y entrega en el local.`);
-  if (conPrecio.length > 0 && rate > 0) {
-    lines.push("");
-    lines.push("Para que tengas una referencia de precios:");
-    conPrecio.forEach(p => {
-      const ars = Math.round(resolveTierPrice(p, t) * rate);
-      lines.push(`• ${p.brand} ${p.model} ${p.flavor}: ${money(ars)}`);
-    });
-  }
-  lines.push("");
-  lines.push("Si te interesa te paso la lista completa de precios y coordinamos una entrega sin compromiso. 🙌");
-  return lines.join("\n");
+// Mensaje de PRIMER CONTACTO. Decisión de Gustavo (2026-08-07, tras prospectar
+// de verdad): **un solo texto para todos los kioscos, sin tier y sin precios**.
+// El primer mensaje no vende — solo confirma que del otro lado hay quien
+// atiende el local. Mandar precios antes de saber con quién estás hablando
+// quemaba el contacto. Los mensajes de seguimiento (ahí sí, según cómo avance
+// la charla) se definen después.
+//
+// La lista de precios NO se perdió: vive en su propia pantalla (priceListText /
+// priceListItems, 🏷️ Lista de precios), que es donde se comparte cuando
+// corresponde.
+export function presentationMessage(target, { remitente = "" } = {}) {
+  const quien = String(remitente || "").trim();
+  const biz = String(target?.businessName || target?.name || "").trim();
+  const saludo = `Hola, ¿cómo estás?${quien ? ` Mi nombre es ${quien}.` : ""}`;
+  // Sin nombre del negocio no se inventa la pregunta: quedaría "¿Me comunico
+  // con ?" y el mensaje se manda tal cual sale.
+  return biz ? `${saludo} ¿Me comunico con ${biz}?` : saludo;
 }
 
 // ---------------------------------------------------------------------------

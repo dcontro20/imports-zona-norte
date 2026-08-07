@@ -26,34 +26,43 @@ describe("cobranzaMessage", () => {
   });
 });
 
-describe("presentationMessage (Bloque 2 — front de ventas)", () => {
-  const products = [
-    { id: "p1", brand: "Elfbar", model: "TE", flavor: "Sandía", stock: 10, priceUSD: 25, priceByChannel: { mayorista_c: 18 } },
-    { id: "p2", brand: "Lost Mary", model: "BM", flavor: "Cherry", stock: 5, priceUSD: 20, priceByChannel: { mayorista_c: 15 } },
-    { id: "p3", brand: "Geek", model: "P", flavor: "Mango", stock: 0, priceUSD: 22, priceByChannel: { mayorista_c: 16 } }, // sin stock
-    { id: "p4", brand: "Nikbar", model: "X", flavor: "Uva", stock: 8, priceUSD: 19 }, // sin lista de tier
-  ];
-  it("saluda al contacto, menciona la zona y muestra precios del tier (solo con stock + lista)", () => {
+describe("presentationMessage — primer contacto (2026-08-07: uno solo para todos)", () => {
+  it("es EXACTAMENTE el texto acordado, con el nombre del kiosco", () => {
+    const msg = presentationMessage({ businessName: "Kiosco Mario" }, { remitente: "Gustavo" });
+    expect(msg).toBe("Hola, ¿cómo estás? Mi nombre es Gustavo. ¿Me comunico con Kiosco Mario?");
+  });
+
+  it("el remitente es quien escribe: el mismo texto sale firmado por Diego", () => {
+    const msg = presentationMessage({ businessName: "Kiosco Mario" }, { remitente: "Diego" });
+    expect(msg).toBe("Hola, ¿cómo estás? Mi nombre es Diego. ¿Me comunico con Kiosco Mario?");
+  });
+
+  // Lo que este cambio SACÓ: nada de tier, precios, marcas ni zona. El primer
+  // mensaje no vende — solo confirma con quién estás hablando.
+  it("no lleva precios, tier, marcas ni zona", () => {
     const msg = presentationMessage(
-      { businessName: "Kiosco Mario", contactName: "Mario", zone: "Tigre" },
-      { tier: "C", products, exchangeRate: 1000 }
+      { businessName: "Kiosco Mario", contactName: "Mario", zone: "Tigre", wholesaleTier: "A" },
+      { remitente: "Gustavo" },
     );
-    expect(msg).toContain("Hola Mario!");
-    expect(msg).toContain("de Tigre");
-    expect(msg).toContain("Elfbar TE Sandía: $18.000");
-    expect(msg).toContain("Lost Mary BM Cherry: $15.000");
-    expect(msg).not.toContain("Mango");   // sin stock
-    expect(msg).not.toContain("Nikbar");  // sin lista de tier
+    expect(msg).not.toMatch(/\$|precio|lista|Elfbar|Lost Mary|mayorista|Tigre|Imports/i);
+    expect(msg.split("\n")).toHaveLength(1);
   });
-  it("sin productos con tier o sin rate → mensaje sin bloque de precios, igual usable", () => {
-    const msg = presentationMessage({ businessName: "Kiosco X" }, { tier: "A", products, exchangeRate: 1000 });
-    expect(msg).not.toContain("referencia de precios");
-    expect(msg).toContain("Imports Zona Norte");
-    expect(msg).toContain("lista completa");
+
+  it("el mismo texto para cualquier kiosco: solo cambia el nombre", () => {
+    const a = presentationMessage({ businessName: "Kiosco A", wholesaleTier: "A" }, { remitente: "Gustavo" });
+    const b = presentationMessage({ businessName: "Kiosco B", wholesaleTier: "C" }, { remitente: "Gustavo" });
+    expect(a.replace("Kiosco A", "X")).toBe(b.replace("Kiosco B", "X"));
   });
-  it("target mínimo (sin contacto/zona) no rompe", () => {
-    const msg = presentationMessage({}, { tier: "B" });
-    expect(msg.startsWith("Hola!")).toBe(true);
+
+  it("un cliente mayorista usa `name` si no tiene businessName", () => {
+    expect(presentationMessage({ name: "Maxi Munro" }, { remitente: "Gustavo" }))
+      .toContain("¿Me comunico con Maxi Munro?");
+  });
+
+  it("sin nombre del negocio NO inventa la pregunta; sin remitente no firma", () => {
+    expect(presentationMessage({}, { remitente: "Gustavo" })).toBe("Hola, ¿cómo estás? Mi nombre es Gustavo.");
+    expect(presentationMessage({ businessName: "Kiosco X" })).toBe("Hola, ¿cómo estás? ¿Me comunico con Kiosco X?");
+    expect(presentationMessage()).toBe("Hola, ¿cómo estás?");
   });
 });
 

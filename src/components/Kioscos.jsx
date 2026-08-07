@@ -424,10 +424,9 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] })
         </div>
       </Modal>
 
-      {/* Bloque 2 — mensaje de presentación B2B (primer contacto) */}
+      {/* Mensaje de primer contacto (mismo texto para todos — sin tier) */}
       <PresentationMessageModal open={!!presTarget} onClose={() => setPresTarget(null)}
-        target={presTarget} defaultTier={presTarget?.wholesaleTier || "C"}
-        products={products} exchangeRate={exchangeRate} />
+        target={presTarget} />
     </div>
   );
 }
