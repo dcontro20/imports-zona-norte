@@ -1,6 +1,6 @@
 # 📐 Estructura del sistema — snapshot automático
 
-> Actualizado: **2026-08-06** · Generado por `scripts/generate-structure-doc.mjs`
+> Actualizado: **2026-08-07** · Generado por `scripts/generate-structure-doc.mjs`
 > (cron nocturno). **No editar a mano** — los cambios se sobrescriben.
 > Para la guía humana de cómo está organizado todo, ver `MAPA_DEL_SISTEMA.md`.
 > Para decisiones y contexto, ver `CLAUDE.md` + `docs/SESSION_*.md`.
@@ -9,14 +9,14 @@
 
 | Capa | Archivos | Líneas (aprox.) |
 |---|---:|---:|
-| Componentes (pantallas + sub-piezas) | 79 | 28.744 |
+| Componentes (pantallas + sub-piezas) | 80 | 28.869 |
 | Módulos puros (cerebro de cálculos) | 20 | 2.634 |
-| Utilidades (`src/lib/`) | 60 | 6.348 |
-| Tests | 84 | — |
+| Utilidades (`src/lib/`) | 62 | 6.456 |
+| Tests | 87 | — |
 | Scripts | 14 | — |
 | Endpoints serverless | 2 | — |
 | Workflows GitHub Actions | 5 | — |
-| Docs (.md) | 56 | — |
+| Docs (.md) | 58 | — |
 
 ---
 
@@ -46,12 +46,11 @@ Cada archivo `.jsx` es una pantalla o módulo visible en la nav. La columna
 | Offers.jsx | 1398 | — |
 | OnboardingTour.jsx | 123 | Onboarding tour mínimo. Se muestra UNA SOLA VEZ por device (localStorage flag). Sirve para explicarle a Diego (o a un usuario nuevo |
 | Partners.jsx | 629 | — |
-| Pipeline.jsx | 161 | — |
 | PriceLog.jsx | 620 | -- PRICE MANAGEMENT -- |
 | Procurement.jsx | 142 | Hub unificado de Abastecimiento — un solo punto de entrada para todo el ciclo de compra: Resumen (centro de comando) + Pedidos + Proveedores |
 | Products.jsx | 837 | — |
 | ProspectMap.jsx | 94 | Mapa de prospección — VISTA POR ZONA (cobertura). El mapa geográfico con pins llega junto con Google Places (2.5, diferido). Por ahora, para |
-| Prospectos.jsx | 336 | Prospectos.jsx — el mini CRM de Prospect Intelligence (spec CONGELADO: docs/PROSPECT_CRM_SPEC.md). Una sola puerta para todo el ciclo del |
+| Prospectos.jsx | 256 | Prospectos.jsx — la estación de trabajo de ventas (ciclo v2, spec CONGELADO docs/PROSPECT_CRM_EJECUCION_SPEC.md). Una sola puerta para todo  |
 | PublicCatalog.jsx | 218 | Vista pública del catálogo. Renderiza un snapshot decodificado del hash de la URL. NO requiere autenticación ni Firebase. NO tiene navegació |
 | Purchases.jsx | 1067 | — |
 | QuickSale.jsx | 334 | ============================================ QUICK SALE — Mobile-optimized one-tap sale |
@@ -63,7 +62,7 @@ Cada archivo `.jsx` es una pantalla o módulo visible en la nav. La columna
 | StockLog.jsx | 85 | -- STOCK LOG -- |
 | SupplierMonitor.jsx | 206 | SupplierMonitor — módulo principal de gestión de proveedores. 3 tabs: |
 | Trash.jsx | 378 | — |
-| UI.jsx | 377 | Mobile-first: altura mínima 44px en todo lo tocable (Apple HIG). padding: 12px vertical + 14px horizontal + fontSize: 14 ≈ 44px. |
+| UI.jsx | 400 | Mobile-first: altura mínima 44px en todo lo tocable (Apple HIG). padding: 12px vertical + 14px horizontal + fontSize: 14 ≈ 44px. |
 | WhatsApp.jsx | 172 | — |
 | WholesaleOrder.jsx | 327 | Pedido MAYORISTA: elegís un cliente mayorista → precios de su tier + margen en vivo por línea + total, valida mínimo, y genera un `sale` con |
 | Withdrawals.jsx | 1610 | -- MERMAS: Consumo propio, Garantías, Canjes -- Ventana de detección de duplicados (5 min) |
@@ -130,19 +129,21 @@ Cada archivo `.jsx` es una pantalla o módulo visible en la nav. La columna
 | SupplierProfileModal.jsx | 145 | — |
 | processHelpers.js | 91 | src/components/supplier/processHelpers.js Helpers compartidos entre las tabs del módulo de Proveedores. |
 
-### `src/components/wholesale/` (9 archivos)
+### `src/components/wholesale/` (11 archivos)
 
 | Archivo | Líneas | Qué hace |
 |---|---|---|
-| DiscoveryReview.jsx | 205 | DiscoveryReview.jsx — revisión humana de descubiertos (contrato §4/§6/§7). Regla de consumo: esta UI usa SOLO discoveryImport.js (revisar/pu |
-| PresentationMessageModal.jsx | 45 | Modal compartido (Pipeline + Kioscos) para el mensaje de PRESENTACIÓN B2B (Bloque 2 — front de ventas): primer contacto con un kiosco. Elegí |
+| ColasProspectos.jsx | 259 | ColasProspectos.jsx — la pantalla ☀️ Hoy del sistema de ejecución comercial (ciclo v2 F3, spec docs/PROSPECT_CRM_EJECUCION_SPEC.md §6): el s |
+| DiscoveryReview.jsx | 108 | DiscoveryReview.jsx — la superficie del discovery en la app: nueva búsqueda, estado de las búsquedas en curso y descartados con memoria (con |
+| EmbudoOperativo.jsx | 106 | EmbudoOperativo.jsx — la pestaña 🎯 Embudo del sistema de ejecución comercial (ciclo v2 F4, spec §6): tablero por las 7 etapas operativas. R |
+| PresentationMessageModal.jsx | 61 | Modal compartido (Prospectos + Pipeline + Kioscos) para el mensaje de PRESENTACIÓN B2B: primer contacto con un kiosco. Elegís el tier a ofre |
 | PriceListScreen.jsx | 82 | 🏷️ Lista de precios (Bloque 2.2 — front de ventas). Herramienta de venta para usar PARADO EN EL MOSTRADOR con el kiosquero enfrente: |
-| ProspectDiagnosisModal.jsx | 98 | Ficha de diagnóstico de un prospecto. RENDER PURO de lo que la fachada del Prospect Engine ya dejó listo (item.diagnostico / item.scoreResul |
-| ProspectFicha.jsx | 139 | ProspectFicha.jsx — la FICHA del prospecto: el centro operativo del mini CRM (spec docs/PROSPECT_CRM_SPEC.md §Ficha, F3). No es un detalle d |
+| ProspectDiagnosisModal.jsx | 90 | Ficha de diagnóstico de un prospecto. RENDER PURO de lo que la fachada del Prospect Engine ya dejó listo (item.diagnostico / item.scoreResul |
+| ProspectFicha.jsx | 155 | ProspectFicha.jsx — la FICHA del prospecto: el EXPEDIENTE PERMANENTE, y el centro operativo del módulo. Se abre desde cualquier vista (colas |
 | ProspectFormModal.jsx | 65 | ProspectFormModal.jsx — alta/edición de prospecto. Extraído de Pipeline en F2 del mini CRM (spec docs/PROSPECT_CRM_SPEC.md) para usarlo tamb |
 | ProspectMapsLine.jsx | 21 | ProspectMapsLine.jsx — el renglón de datos de Google Maps en las cards del CRM (micro-iteración post-cierre aprobada por Gustavo 2026-08-01) |
 | VisitModal.jsx | 79 | VisitModal.jsx — registro de visita + calificación rápida (Prospect Engine). Extraído de Pipeline en F2 del mini CRM (spec docs/PROSPECT_CRM |
-| prospectActions.js | 31 | prospectActions.js — las acciones de gestión del prospecto (avanzar etapa / convertir a mayorista / borrar) como ÚNICA fuente: las usan el k |
+| prospectActions.js | 82 | prospectActions.js — las acciones de gestión del prospecto como ÚNICA fuente: las usan las colas de ☀️ Hoy y la Ficha. Si divergieran, dos |
 
 ## 🧠 Módulos puros — el "cerebro" de cálculos (`src/`)
 
@@ -205,8 +206,10 @@ producto/cliente, métricas, sync. Sin pantalla → testeable.
 | offerCalendar.js | 68 | src/lib/offerCalendar.js Plan semanal sugerido de ofertas: qué audiencia y qué tipo de mensaje |
 | offerHistory.js | 115 | src/lib/offerHistory.js Historial de ofertas mandadas + tracking de conversión. |
 | offers.js | 319 | src/lib/offers.js Generador de mensajes de oferta para WhatsApp. Funciones PURAS que arman |
-| prospectActividad.js | 38 | prospectActividad.js — la sección Actividad de la Ficha (spec §Ficha.5, docs/PROSPECT_CRM_SPEC.md) como LISTA DE EVENTOS TIPADOS: |
+| prospectActividad.js | 54 | prospectActividad.js — la sección Actividad de la Ficha (spec §Ficha.5, docs/PROSPECT_CRM_SPEC.md) como LISTA DE EVENTOS TIPADOS: |
 | prospectDiagnosis.js | 115 | prospectDiagnosis.js — número → LENGUAJE. Port de la mecánica de prospect_crm/diagnosis.py de Atlas (la palabra lidera, el número respalda, |
+| prospectEtapas.js | 68 | prospectEtapas.js — el dominio de ETAPAS OPERATIVAS del sistema de ejecución comercial (spec CONGELADO: docs/PROSPECT_CRM_EJECUCION_SPEC.md, |
+| prospectHechos.js | 24 | prospectHechos.js — los HECHOS que las pantallas capturan con un tap (spec CONGELADO docs/PROSPECT_CRM_EJECUCION_SPEC.md §2, F3 del ciclo v2 |
 | prospectRanking.js | 38 | prospectRanking.js — LA FACHADA del Prospect Engine para la UI. Este es el ÚNICO módulo del engine que la capa de React debe importar. |
 | prospectRubric.js | 61 | prospectRubric.js — la rúbrica de Imports para el Prospect Engine, como DATOS. Versión izn-v1 · BORRADOR del diseño §7 (PROSPECT_ENGINE_DESI |
 | prospectScoring.js | 126 | prospectScoring.js — MOTOR genérico de evaluación de prospectos. Port fiel del núcleo puro de Atlas Prospect Intelligence (score.py + scorer |
@@ -277,17 +280,18 @@ producto/cliente, métricas, sync. Sin pantalla → testeable.
 
 ## 🧪 Tests
 
-Tests detectados: **84**. Para correrlos: `npm test`.
+Tests detectados: **87**. Para correrlos: `npm test`.
 
 - `src/App.test.jsx`
 - `src/calcs.test.js`
 - `src/clientIntelligence.test.js`
 - `src/collaboration.test.js`
-- `src/components/Pipeline.test.jsx`
 - `src/components/Prospectos.test.jsx`
 - `src/components/UI.test.jsx`
 - `src/components/purchases/purchaseHelpers.test.js`
 - `src/components/wholesale/DiscoveryReview.test.jsx`
+- `src/components/wholesale/EmbudoOperativo.test.jsx`
+- `src/components/wholesale/prospectActions.test.js`
 - `src/executiveMetrics.test.js`
 - `src/finance.test.js`
 - `src/lib/arrayMerge.test.js`
@@ -328,6 +332,8 @@ Tests detectados: **84**. Para correrlos: `npm test`.
 - `src/lib/operationsCap7.test.js`
 - `src/lib/prospectActividad.test.js`
 - `src/lib/prospectDiagnosis.test.js`
+- `src/lib/prospectEtapas.test.js`
+- `src/lib/prospectHechos.test.js`
 - `src/lib/prospectRanking.test.js`
 - `src/lib/prospectRubric.test.js`
 - `src/lib/prospectScoring.test.js`
@@ -384,6 +390,7 @@ Tests detectados: **84**. Para correrlos: `npm test`.
 - `docs/GUIA_MAYORISTA.md`
 - `docs/INTEGRACION_PROSPECT_ENGINE.md`
 - `docs/IZN_Backup_Hardening_Resumen.md`
+- `docs/IZN_CRM_Ejecucion_Resumen.md`
 - `docs/IZN_Discovery_Engine_Resumen.md`
 - `docs/IZN_Fix_Borrar_Mayorista_Resumen.md`
 - `docs/IZN_Front_Ventas_Resumen.md`
@@ -399,6 +406,7 @@ Tests detectados: **84**. Para correrlos: `npm test`.
 - `docs/PLAN_MAYORISTA.md`
 - `docs/PLAN_MEJORAS_MAYORISTA.md`
 - `docs/PLAN_S14_S22.md`
+- `docs/PROSPECT_CRM_EJECUCION_SPEC.md`
 - `docs/PROSPECT_CRM_SPEC.md`
 - `docs/PROSPECT_ENGINE_ARQUITECTURA.md`
 - `docs/PROSPECT_ENGINE_CONTRATO.md`
