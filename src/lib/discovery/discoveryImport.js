@@ -12,6 +12,12 @@
 // Regla heredada: sin identidad suficiente (web o nombre+dirección) no se
 // puede suprimir — un bloqueo que no puede matchear es un hueco silencioso.
 
+// AUTO-INGESTA (F2 del ciclo v2 — docs/PROSPECT_CRM_EJECUCION_SPEC.md §5):
+// desde este ciclo la app NO pide revisión previa: ingiere el staging al
+// llegar y los descubiertos nacen en la etapa operativa `por_analizar`. El
+// dedup de acá es el MISMO (revisarDescubiertos); lo que cambia es quién
+// decide: antes un modal, ahora la etapa. El compromiso que reemplaza al §4
+// viejo del contrato Discovery: **nada se CONTACTA sin análisis humano**.
 import { clavesDe } from "./identity.js";
 
 // Teléfono → clave de identidad. Normalización AR pragmática: solo dígitos,
@@ -122,6 +128,83 @@ export function identidadesExistentes({ prospects = [], clients = [], staging = 
 // id/fechas los inyecta el llamador (uid()/now() viven en la app).
 export function altaDesdeDescubierto(p, { id, at } = {}) {
   return { id, ...p, foundAt: at, lastContactAt: at };
+}
+
+// --- Identidad determinística del alta automática (spec v2 §5) ---
+// Sin revisión humana de por medio, el id NO puede ser un uid() al azar: dos
+// clientes abiertos ingiriendo el mismo staging tienen que producir el MISMO
+// prospecto para que el merge S14.3 lo absorba en vez de duplicarlo.
+
+// djb2 (Bernstein), 32 bits sin signo, en base36. Hash de identidad, no
+// criptográfico: solo necesita ser estable y del mismo largo siempre.
+export function hashDjb2(texto) {
+  const s = String(texto ?? "");
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
+  return h.toString(36);
+}
+
+// idDeterministico(descubierto) → "dsc_<placeId>" · "dsc_nd_<hash de la clave
+// nd>" si no hay placeId · "" si el negocio no tiene NINGUNA de las dos (no se
+// puede derivar identidad: el llamador cae a uid(), y esa alta no es
+// idempotente — el mismo caso que ya no se puede suprimir, por la misma razón).
+export function idDeterministico(p = {}) {
+  const pid = String(p.placeId || "").trim();
+  if (pid) return "dsc_" + pid;
+  const nd = [...clavesDe(p.web, p.businessName || p.nombre, p.address || p.direccion)]
+    .find(k => k.startsWith("nd:"));
+  return nd ? "dsc_nd_" + hashDjb2(nd) : "";
+}
+
+// Descubierto → prospecto que ENTRA SOLO. Mismo alta que la confirmada, con
+// el hecho `ingresoAutomatico` que la etapa lee: sin `analizadoAt`, la
+// derivación lo deja en `por_analizar` (prospectEtapas.js §3).
+export function altaAutomatica(p, { id, at } = {}) {
+  return { ...altaDesdeDescubierto(p, { id, at }), ingresoAutomatico: true };
+}
+
+// ingestarDescubiertos({ resultado, prospects, clients, suprimidos, at, nuevoId })
+//   → { altas, duplicados, suprimidos, revisados }
+// El reemplazo puro del modal de revisión: mismo dedup, sin humano en el medio.
+// `nuevoId` (uid() de la app) solo se usa para los descubiertos sin identidad
+// derivable — el resto llega con id determinístico.
+export function ingestarDescubiertos({
+  resultado, prospects = [], clients = [], suprimidos = [], at = "", nuevoId = () => "",
+} = {}) {
+  const revision = revisarDescubiertos({
+    prospectos: resultado?.prospectos || [], prospects, clients, suprimidos,
+  });
+  const altas = [];
+  for (const item of revision.items) {
+    if (item.estado !== "importable") continue;
+    altas.push(altaAutomatica(item.prospecto, { id: idDeterministico(item.prospecto) || nuevoId(), at }));
+  }
+  return {
+    altas,
+    duplicados: revision.duplicados,
+    suprimidos: revision.suprimidos,
+    revisados: revision.items.length,
+  };
+}
+
+// ingestarLote({ resultados, ... }) → { altas, resumenes }
+// Varias búsquedas terminadas que llegan en el MISMO tick: el state todavía no
+// se actualizó entre una y otra, así que las altas se acumulan y cada
+// resultado dedup-ea contra las anteriores. Sin esto, el mismo negocio
+// descubierto por dos búsquedas entraría dos veces.
+export function ingestarLote({
+  resultados = [], prospects = [], clients = [], suprimidos = [], at = "", nuevoId = () => "",
+} = {}) {
+  let altas = [];
+  const resumenes = [];
+  for (const resultado of resultados) {
+    const r = ingestarDescubiertos({
+      resultado, prospects: [...prospects, ...altas], clients, suprimidos, at, nuevoId,
+    });
+    altas = altas.concat(r.altas);
+    resumenes.push({ resultado, ...r });
+  }
+  return { altas, resumenes };
 }
 
 // Descartado → entrada de supresión (§7). Lanza si la identidad no alcanza

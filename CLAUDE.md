@@ -336,9 +336,69 @@ A partir del 14/04/2026, GitHub está sincronizado y es la fuente de verdad del 
 
 ---
 
+## Estado del proyecto al 06/08/2026
+
+### ✅ PROSPECTOS v2 — SISTEMA DE EJECUCIÓN COMERCIAL: CICLO CERRADO (branch `feature/crm-ejecucion`)
+
+Prospectos dejó de ser un CRM tradicional con Discovery pegado al costado y
+pasó a ser un **sistema de ejecución comercial**: el sistema organiza el
+trabajo y propone la siguiente acción; el usuario ejecuta o descarta. Ciclo
+completo F1–F5 con gate aprobado por Gustavo en cada fase. **1337 tests**
+(1336 verdes). Resumen autocontenido: `docs/IZN_CRM_Ejecucion_Resumen.md` ·
+Spec con las decisiones de cada gate: `docs/PROSPECT_CRM_EJECUCION_SPEC.md`.
+
+**La gramática del módulo** (validada por Gustavo al cerrar F4): ☀️ Hoy = qué
+tengo que hacer ahora · 🎯 Embudo = dónde está parado todo · 📇 Ficha = dónde
+ejecuto el trabajo.
+
+- **La etapa se DERIVA, jamás se setea** (`src/lib/prospectEtapas.js`, tabla de
+  7 etapas CONGELADA en F1). Los hechos la producen
+  (`src/lib/prospectHechos.js`: analizado / mensaje enviado / respondió / no
+  responde / negociación — **ninguna función escribe una etapa**, hay test que
+  lo verifica). Se retiró la acción `avanzar`: mover una etapa sin que hubiera
+  pasado nada era la mentira que este ciclo eliminó. Cero migración.
+- **Los descubiertos entran solos** (F2): la app ingiere el staging al llegar,
+  con **ids determinísticos** (`dsc_<placeId>` · `dsc_nd_<hash djb2>`) para que
+  dos clientes abiertos no dupliquen. Adiós modal de revisión. **El contrato
+  del Discovery quedó ENMENDADO en su §4** (bloque explícito en
+  `docs/DISCOVERY_ENGINE_CONTRATO.md`): el compromiso ya no es "nada entra sin
+  confirmación" sino **"nada se CONTACTA sin análisis humano"**, y lo hace
+  cumplir el código. Worker, staging, dedup, supresión y rules: INTACTOS.
+- **☀️ Hoy = colas de acción** (`ColasProspectos.jsx`): una sola cola activa,
+  las vacías no se muestran, arranca en la primera con trabajo. **La cola 🔍 es
+  un DECK de análisis** — un negocio por vez con su expediente y la pregunta
+  *¿Vale la pena trabajarlo?*; es el único momento del flujo con decisión
+  comercial y se siente distinto a propósito. Saltear NO registra nada.
+- **🎯 Embudo panorámico** (`EmbudoOperativo.jsx`): 7 columnas por etapa
+  derivada, **cards sin botones** (tocar → Ficha). Con acciones en Hoy y en el
+  Embudo serían dos escritorios para el mismo trabajo.
+- **📇 Ficha**: expediente permanente + acción primaria de la etapa arriba.
+  Ficha y cola leen la MISMA fuente (`accionesDeEtapa`): no pueden divergir.
+- **Reglas nuevas que conviene no romper**: copiar ≠ enviar (presentar registra
+  el hecho al mandar por WhatsApp o con confirmación explícita) · un mensaje
+  nuevo limpia el `noRespondeAt` · descartar RECUERDA y rehabilitar lo deshace
+  entero · borrar es Papelera, es otra cosa · **ordenar es asistir, descartar
+  es decidir** (ningún pre-filtro automático: la rúbrica sigue congelada).
+- **Retirados**: `Pipeline.jsx` (kanban por las 3 etapas del engine), el
+  wrapper `ProspectDiagnosisModal` y `avanzar`. Cobertura conservada entera.
+- **Anotado y NO implementado**: la escala de la cola 🔍 con cientos de
+  prospectos (sesión acotada → lotes → descarte masivo con memoria; nunca
+  pre-filtro automático). Detalle en el spec §6.
+- **Criterios permanentes de Gustavo para este módulo**: "Por analizar" es una
+  etapa de ANÁLISIS, no una lista de novedades · el sistema nunca debe volverse
+  ruidoso (pocas colas muy claras; siempre saber cuál es la siguiente acción).
+
+**Pendientes operativos heredados** (sin bloqueo, ajenos al ciclo): LaunchAgent
+del worker de discovery (credencial→`.credentials/` + plist; sin eso las
+búsquedas quedan en cola salvo `node scripts/discovery/worker.mjs` manual) ·
+validación operativa B3 (leer `appData/backupStatus` vs baseline 397).
+
+**Falla de test conocida y AJENA**: `src/lib/dailyPlan.test.js > weekKey` —
+pre-existente al ciclo (verificado: falla igual en HEAD limpio). No se tocó.
+
 ## Estado del proyecto al 31/07/2026
 
-### 🎯 PROSPECTOS — mini CRM de Prospect Intelligence COMPLETO (branch `feature/prospect-crm`, SIN mergear)
+### 🎯 PROSPECTOS — mini CRM de Prospect Intelligence COMPLETO (mergeado como PR #5)
 
 **Bloque CERRADO 2026-07-31** (sobre `feature/discovery-engine`; **rebasar a
 main cuando mergee el PR #4** → PR propio). Visión de Gustavo: NO "una

@@ -429,3 +429,35 @@ export const FormRow = ({ children, style }) => {
     }}>{children}</div>
   );
 };
+
+// ---- Toast: confirmación transitoria ----------------------------------------
+// El patrón ya vivía copiado en varias pantallas (WholesaleOrder, Routes,
+// Products...). Se comparte acá desde el ciclo v2, donde pasó a ser
+// estructural: en un sistema que DERIVA la etapa de los hechos, cada acción
+// reubica al prospecto sin que se vea. El toast es lo que cierra ese lazo —
+// dice qué pasó y a dónde fue. Es transitorio a propósito: no compite con la
+// cola activa (criterio: el módulo nunca debe volverse ruidoso).
+export function useToast(ms = 2800) {
+  const [toast, setToast] = useState("");
+  const timer = useRef(null);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const showToast = (mensaje) => {
+    setToast(mensaje);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setToast(""), ms);
+  };
+  return [toast, showToast];
+}
+
+export function Toast({ message }) {
+  if (!message) return null;
+  return (
+    <div style={{
+      position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
+      background: "#1E2B4A", color: "#fff", padding: "12px 20px", borderRadius: 10,
+      fontSize: 14, fontWeight: 600, zIndex: 300, boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
+      maxWidth: "calc(100vw - 32px)", boxSizing: "border-box", textAlign: "center",
+      animation: "fadeIn 180ms ease-out",
+    }}>{message}</div>
+  );
+}

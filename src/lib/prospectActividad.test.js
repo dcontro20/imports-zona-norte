@@ -40,3 +40,40 @@ describe("actividadDeProspecto — eventos tipados", () => {
     }
   });
 });
+
+// --- Ciclo v2: los hechos como eventos de la Actividad (F3) ---
+describe("hechos del ciclo v2 — la Actividad crece por builders, no por pantalla", () => {
+  const prospect = {
+    id: "p-1", businessName: "Kiosco Golden",
+    analizadoAt: "2026-08-01T10:00:00Z", analizadoPor: "Diego",
+    mensajeEnviadoAt: "2026-08-02T10:00:00Z", mensajeEnviadoPor: "Gustavo",
+    noRespondeAt: "2026-08-05T10:00:00Z",
+    respondioAt: "2026-08-06T10:00:00Z",
+  };
+
+  it("cada hecho registrado aparece como evento tipado, con su autoría", () => {
+    const ev = actividadDeProspecto({ prospect, prospectId: "p-1", visits: [], auditLog: [] });
+    const porTipo = Object.fromEntries(ev.map(e => [e.tipo, e]));
+    expect(porTipo.analizado.por).toBe("Diego");
+    expect(porTipo.mensaje_enviado.por).toBe("Gustavo");
+    expect(porTipo.sin_respuesta).toBeTruthy();
+    expect(porTipo.respuesta).toBeTruthy();
+    // Orden DESC: lo último que pasó, primero.
+    expect(ev[0].tipo).toBe("respuesta");
+  });
+
+  it("los hechos NO registrados no se inventan", () => {
+    const ev = actividadDeProspecto({ prospect: { id: "p-1" }, prospectId: "p-1", visits: [], auditLog: [] });
+    expect(ev).toEqual([]);
+  });
+
+  it("sin `prospect` sigue andando como en v1 (visitas + auditLog)", () => {
+    const ev = actividadDeProspecto({
+      prospectId: "p-1", visits: [], auditLog: [
+        { id: "a1", entityId: "p-1", action: "create", timestamp: "2026-08-01T09:00:00Z", user: "Diego", description: "Alta" },
+      ],
+    });
+    expect(ev).toHaveLength(1);
+    expect(ev[0].tipo).toBe("audit_create");
+  });
+});

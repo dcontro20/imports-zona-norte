@@ -10,7 +10,8 @@ valida el port, igual que con el Prospect Engine. Ningún código de Atlas corre
 en producción de Imports. Al aprobarse el gate, este documento se CONGELA.
 
 Lo que NO cambió de v1: la topología aprobada (Opción B — cola de jobs en
-Firestore + worker en la Mac + staging + revisión de Diego), los shapes de
+Firestore + worker en la Mac + staging + revisión de Diego — la revisión pasó
+a ser la etapa `por_analizar` por la enmienda del §4), los shapes de
 `discoveryJobs` y `discoveryResults`, el dedup del import y los compromisos de
 escritura. B1 sigue resuelto como prerequisito.
 
@@ -99,9 +100,39 @@ worker jamás escribe `appData`** — el merge transaccional (S14.3) es de la ap
 }
 ```
 
-La app lee staging, muestra el modal de revisión (F2) y lo que Diego confirma
-entra por `setProspects` → `smartSave` → merge S14.3 — el camino del alta
-manual. Nada entra al Pipeline sin confirmación humana.
+La app lee staging y lo ingiere; las altas entran por `setProspects` →
+`smartSave` → merge S14.3 — el camino del alta manual.
+
+> ### ⚠️ ENMIENDA (2026-08-06 · ciclo v2 F2 · aprobada por Gustavo)
+>
+> **Lo que decía:** *"la app muestra el modal de revisión (F2) y lo que Diego
+> confirma entra… Nada entra al Pipeline sin confirmación humana."*
+>
+> **Lo que rige ahora:** la app **ingiere el staging al llegar** — sin modal.
+> Los descubiertos entran solos como prospectos en la etapa operativa
+> `por_analizar` (`ingresoAutomatico: true`, sin `analizadoAt`) y el análisis
+> humano dejó de ser un modal para ser una **etapa del trabajo**.
+>
+> **El compromiso que reemplaza al viejo:** *nada se **CONTACTA** sin análisis
+> humano.* Un prospecto en `por_analizar` no se propone para trabajar en la
+> pantalla Hoy ni admite acción de contacto; sale de ahí con el tap "✓
+> Trabajar" (o se descarta).
+>
+> **Lo que NO cambió:** el worker (idéntico, sigue sin tocar `appData`), el
+> shape del staging, el dedup (§6 — las MISMAS funciones puras, ahora dentro
+> de `ingestarDescubiertos()`), la supresión con memoria (§7) y las reglas
+> (§8). El filtro de rubro sigue siendo humano: se ejerce al analizar en vez
+> de al importar.
+>
+> **Nuevo por la enmienda:** ids **determinísticos** — `dsc_<placeId>`, o
+> `dsc_nd_<hash djb2 de la clave nd>` sin placeId. Sin humano que confirme, el
+> id no puede ser aleatorio: dos clientes abiertos ingiriendo el mismo staging
+> tienen que producir el mismo prospecto para que el merge S14.3 lo absorba.
+> Un descubierto sin placeId **y** sin nombre+dirección no tiene identidad
+> derivable: recibe `uid()` y su ingesta no es idempotente (el mismo caso que
+> ya no se puede suprimir, por la misma razón).
+>
+> Origen: `docs/PROSPECT_CRM_EJECUCION_SPEC.md` §5.
 
 ## 5. Mapping RawBusiness → prospecto IZN (`mapProspect.js`)
 
@@ -125,7 +156,7 @@ La categorización de Maps es inconsistente (la corrida real trajo "Kiosco",
 "Quiosco", "Heladería", "Comercio" y "Tienda de golosinas" para la misma
 búsqueda), así que **ningún código filtra, matchea ni deduplica por categoría —
 ni ahora ni en F2/F3**. La búsqueda se basa en el término que ingresa Diego; el
-filtro de rubro es humano, en el modal de revisión.
+filtro de rubro es humano — desde la enmienda del §4, al analizar.
 
 `id` y `createdAt` los pone el import de la app al confirmar Diego. La señales
 del engine leen `zone`/`phone`/`source`/`calificacion` — un descubierto entra
@@ -142,8 +173,8 @@ Contra `activeProspects` **y** `activeClients`. Claves, en orden de fuerza:
 3. Nombre+dirección vía `clavesDe` (mismo módulo que el runner — si dos partes
    calcularan claves distinto, el dedup se parte).
 
-Duplicado ⇒ se reporta con motivo en el modal, no se importa. La decisión final
-es de Diego.
+Duplicado ⇒ no se importa (con la enmienda del §4 tampoco se ofrece: la
+ingesta lo saltea y lo deja contado en el resumen del `logAudit`).
 
 ## 7. Supresión y rehabilitación (aprobado 2026-07-30)
 
@@ -151,8 +182,11 @@ El equivalente IZN del ledger P5 de Atlas: **descartar recuerda**.
 
 - Nueva key de `appData`: **`discoverySuppressed`** — entra a `DATA_KEYS` con
   su autosave (el test de paridad B1 lo exige solo). La escribe SOLO la app.
-- Al descartar un descubierto en el modal de revisión, se registra su
-  identidad: `{ id, nombre, direccion, web, claves, motivo, at, by }`.
+- Al descartar un descubierto se registra su identidad:
+  `{ id, nombre, direccion, web, claves, motivo, at, by }`. Desde la enmienda
+  del §4 el descarte ya no ocurre en un modal previo sino sobre el prospecto
+  ya ingerido (`prospectActions.descartar`: suprime la identidad **y**
+  soft-borra el prospecto).
 - El worker la LEE (junto con las identidades de prospectos/clientes) y pasa
   las entradas a `discoverRun` como `suprimidos`: un descartado no vuelve a
   aparecer en ninguna búsqueda futura.
@@ -169,7 +203,7 @@ El equivalente IZN del ledger P5 de Atlas: **descartar recuerda**.
 - `discoveryResults`: read solo Diego; escribe SOLO el worker vía Admin SDK
   (service account — precedente `api/send-daily-push.js`). **Precisión
   aprobada en el gate F2:** la app puede además BORRAR el doc ya consumido en
-  la revisión — es el ciclo de vida del staging, no una escritura de
+  la ingesta — es el ciclo de vida del staging, no una escritura de
   contenido. Rules: `create`/`update` denegados; `read`/`delete` owner.
 
 ## 9. Compromisos verificables
