@@ -1,6 +1,6 @@
 # 📐 Estructura del sistema — snapshot automático
 
-> Actualizado: **2026-08-07** · Generado por `scripts/generate-structure-doc.mjs`
+> Actualizado: **2026-08-08** · Generado por `scripts/generate-structure-doc.mjs`
 > (cron nocturno). **No editar a mano** — los cambios se sobrescriben.
 > Para la guía humana de cómo está organizado todo, ver `MAPA_DEL_SISTEMA.md`.
 > Para decisiones y contexto, ver `CLAUDE.md` + `docs/SESSION_*.md`.
@@ -9,10 +9,10 @@
 
 | Capa | Archivos | Líneas (aprox.) |
 |---|---:|---:|
-| Componentes (pantallas + sub-piezas) | 80 | 28.869 |
+| Componentes (pantallas + sub-piezas) | 80 | 28.954 |
 | Módulos puros (cerebro de cálculos) | 20 | 2.634 |
-| Utilidades (`src/lib/`) | 62 | 6.456 |
-| Tests | 87 | — |
+| Utilidades (`src/lib/`) | 62 | 6.448 |
+| Tests | 88 | — |
 | Scripts | 14 | — |
 | Endpoints serverless | 2 | — |
 | Workflows GitHub Actions | 5 | — |
@@ -41,7 +41,7 @@ Cada archivo `.jsx` es una pantalla o módulo visible en la nav. La columna
 | Expenses.jsx | 467 | Category colors |
 | Export.jsx | 430 | URL de la carpeta de Drive donde van los backups automáticos |
 | Finance.jsx | 219 | — |
-| Kioscos.jsx | 399 | Pantalla de clientes MAYORISTAS (type="mayorista"). El label "Kioscos" se mantiene porque la mayoría lo son, pero el modelo/filtro es por ty |
+| Kioscos.jsx | 404 | Pantalla de clientes MAYORISTAS (type="mayorista"). El label "Kioscos" se mantiene porque la mayoría lo son, pero el modelo/filtro es por ty |
 | Logo.jsx | 94 | Logo de Imports Zona Norte — SVG inline. Replica el diseño del logo oficial: escudo con vape estilizado sobre un |
 | Offers.jsx | 1398 | — |
 | OnboardingTour.jsx | 123 | Onboarding tour mínimo. Se muestra UNA SOLA VEZ por device (localStorage flag). Sirve para explicarle a Diego (o a un usuario nuevo |
@@ -49,8 +49,8 @@ Cada archivo `.jsx` es una pantalla o módulo visible en la nav. La columna
 | PriceLog.jsx | 620 | -- PRICE MANAGEMENT -- |
 | Procurement.jsx | 142 | Hub unificado de Abastecimiento — un solo punto de entrada para todo el ciclo de compra: Resumen (centro de comando) + Pedidos + Proveedores |
 | Products.jsx | 837 | — |
-| ProspectMap.jsx | 94 | Mapa de prospección — VISTA POR ZONA (cobertura). El mapa geográfico con pins llega junto con Google Places (2.5, diferido). Por ahora, para |
-| Prospectos.jsx | 256 | Prospectos.jsx — la estación de trabajo de ventas (ciclo v2, spec CONGELADO docs/PROSPECT_CRM_EJECUCION_SPEC.md). Una sola puerta para todo  |
+| ProspectMap.jsx | 128 | Mapa de prospección — VISTA POR ZONA (cobertura). El mapa geográfico con pins llega junto con Google Places (2.5, diferido). Por ahora, para |
+| Prospectos.jsx | 264 | Prospectos.jsx — la estación de trabajo de ventas (ciclo v2, spec CONGELADO docs/PROSPECT_CRM_EJECUCION_SPEC.md). Una sola puerta para todo  |
 | PublicCatalog.jsx | 218 | Vista pública del catálogo. Renderiza un snapshot decodificado del hash de la URL. NO requiere autenticación ni Firebase. NO tiene navegació |
 | Purchases.jsx | 1067 | — |
 | QuickSale.jsx | 334 | ============================================ QUICK SALE — Mobile-optimized one-tap sale |
@@ -135,8 +135,8 @@ Cada archivo `.jsx` es una pantalla o módulo visible en la nav. La columna
 |---|---|---|
 | ColasProspectos.jsx | 259 | ColasProspectos.jsx — la pantalla ☀️ Hoy del sistema de ejecución comercial (ciclo v2 F3, spec docs/PROSPECT_CRM_EJECUCION_SPEC.md §6): el s |
 | DiscoveryReview.jsx | 108 | DiscoveryReview.jsx — la superficie del discovery en la app: nueva búsqueda, estado de las búsquedas en curso y descartados con memoria (con |
-| EmbudoOperativo.jsx | 106 | EmbudoOperativo.jsx — la pestaña 🎯 Embudo del sistema de ejecución comercial (ciclo v2 F4, spec §6): tablero por las 7 etapas operativas. R |
-| PresentationMessageModal.jsx | 61 | Modal compartido (Prospectos + Pipeline + Kioscos) para el mensaje de PRESENTACIÓN B2B: primer contacto con un kiosco. Elegís el tier a ofre |
+| EmbudoOperativo.jsx | 153 | EmbudoOperativo.jsx — la pestaña 🎯 Embudo: dónde está parado todo. Rediseño 2026-08-07, después de prospectar de verdad. La versión anterio |
+| PresentationMessageModal.jsx | 52 | Modal compartido (Prospectos + Kioscos) para el mensaje de PRIMER CONTACTO. Preview EDITABLE → mandar por WhatsApp o copiar. Pensado para el |
 | PriceListScreen.jsx | 82 | 🏷️ Lista de precios (Bloque 2.2 — front de ventas). Herramienta de venta para usar PARADO EN EL MOSTRADOR con el kiosquero enfrente: |
 | ProspectDiagnosisModal.jsx | 90 | Ficha de diagnóstico de un prospecto. RENDER PURO de lo que la fachada del Prospect Engine ya dejó listo (item.diagnostico / item.scoreResul |
 | ProspectFicha.jsx | 155 | ProspectFicha.jsx — la FICHA del prospecto: el EXPEDIENTE PERMANENTE, y el centro operativo del módulo. Se abre desde cualquier vista (colas |
@@ -208,7 +208,7 @@ producto/cliente, métricas, sync. Sin pantalla → testeable.
 | offers.js | 319 | src/lib/offers.js Generador de mensajes de oferta para WhatsApp. Funciones PURAS que arman |
 | prospectActividad.js | 54 | prospectActividad.js — la sección Actividad de la Ficha (spec §Ficha.5, docs/PROSPECT_CRM_SPEC.md) como LISTA DE EVENTOS TIPADOS: |
 | prospectDiagnosis.js | 115 | prospectDiagnosis.js — número → LENGUAJE. Port de la mecánica de prospect_crm/diagnosis.py de Atlas (la palabra lidera, el número respalda, |
-| prospectEtapas.js | 68 | prospectEtapas.js — el dominio de ETAPAS OPERATIVAS del sistema de ejecución comercial (spec CONGELADO: docs/PROSPECT_CRM_EJECUCION_SPEC.md, |
+| prospectEtapas.js | 79 | prospectEtapas.js — el dominio de ETAPAS OPERATIVAS del sistema de ejecución comercial (spec CONGELADO: docs/PROSPECT_CRM_EJECUCION_SPEC.md, |
 | prospectHechos.js | 24 | prospectHechos.js — los HECHOS que las pantallas capturan con un tap (spec CONGELADO docs/PROSPECT_CRM_EJECUCION_SPEC.md §2, F3 del ciclo v2 |
 | prospectRanking.js | 38 | prospectRanking.js — LA FACHADA del Prospect Engine para la UI. Este es el ÚNICO módulo del engine que la capa de React debe importar. |
 | prospectRubric.js | 61 | prospectRubric.js — la rúbrica de Imports para el Prospect Engine, como DATOS. Versión izn-v1 · BORRADOR del diseño §7 (PROSPECT_ENGINE_DESI |
@@ -238,7 +238,7 @@ producto/cliente, métricas, sync. Sin pantalla → testeable.
 | whatIfSimulator.js | 95 | src/lib/whatIfSimulator.js Simulador what-if para tomar decisiones financieras informadas: |
 | whatsappMessage.js | 115 | src/lib/whatsappMessage.js Generadores del mensaje de stock para WhatsApp. Funciones PURAS extraídas |
 | wholesaleExport.js | 53 | src/lib/wholesaleExport.js Export a CSV de clientes mayoristas, prospectos y rutas. Funciones PURAS |
-| wholesaleMessage.js | 87 | src/lib/wholesaleMessage.js Generadores de mensajes B2B (mayorista): COBRANZA y PRESENTACIÓN. |
+| wholesaleMessage.js | 68 | src/lib/wholesaleMessage.js Generadores de mensajes B2B (mayorista): COBRANZA y PRESENTACIÓN. |
 
 ## ☁️ Backend — corre fuera del navegador
 
@@ -280,12 +280,13 @@ producto/cliente, métricas, sync. Sin pantalla → testeable.
 
 ## 🧪 Tests
 
-Tests detectados: **87**. Para correrlos: `npm test`.
+Tests detectados: **88**. Para correrlos: `npm test`.
 
 - `src/App.test.jsx`
 - `src/calcs.test.js`
 - `src/clientIntelligence.test.js`
 - `src/collaboration.test.js`
+- `src/components/ProspectMap.test.jsx`
 - `src/components/Prospectos.test.jsx`
 - `src/components/UI.test.jsx`
 - `src/components/purchases/purchaseHelpers.test.js`
