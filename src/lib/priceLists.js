@@ -53,7 +53,7 @@ export function listaVigente(listas) {
 //   productosMotor: salida del adaptador (pricingAdapter.productosParaMotor)
 //   politica: política completa vigente al publicar (queda congelada adentro)
 //   base: lista vigente anterior (opcional) — activa la estabilidad §5.17
-export function construirSnapshot({ productosMotor, politica, version, fecha, autor = "", base = null }) {
+export function construirSnapshot({ productosMotor, politica, version, fecha, autor = "", base = null, fx = 0 }) {
   const umbral = Number(politica?.umbralRecalculoPct) || 0;
   const aplicaEstabilidad = base && !politicaMotorCambio(base.politica, politica);
   const filasBase = aplicaEstabilidad ? new Map(base.filas.map((f) => [f.id, f])) : new Map();
@@ -115,6 +115,9 @@ export function construirSnapshot({ productosMotor, politica, version, fecha, au
     version,
     publishedAt: fecha,
     publishedBy: autor,
+    // FX de referencia al publicar (regla d, gate F4): contra esto se detecta
+    // la divergencia del presupuesto — "el cliente vio la lista a $X".
+    fxAlPublicar: Number(fx) > 0 ? Number(fx) : null,
     politica: JSON.parse(JSON.stringify(politica)), // congelada (RN-12)
     filas,
     sinCosto: lista.sinCosto,

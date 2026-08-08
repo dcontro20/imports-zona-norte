@@ -91,6 +91,7 @@ const Kioscos = lazy(() => import("./components/Kioscos.jsx").then(m => ({ defau
 const WholesaleOrder = lazy(() => import("./components/WholesaleOrder.jsx").then(m => ({ default: m.WholesaleOrder })));
 const PriceListScreen = lazy(() => import("./components/wholesale/PriceListScreen.jsx").then(m => ({ default: m.PriceListScreen })));
 const PricingPolicyScreen = lazy(() => import("./components/wholesale/PricingPolicyScreen.jsx").then(m => ({ default: m.PricingPolicyScreen })));
+const Cotizador = lazy(() => import("./components/wholesale/Cotizador.jsx").then(m => ({ default: m.Cotizador })));
 // Mini CRM de Prospect Intelligence: Prospectos absorbe Pipeline (pestaña
 // Embudo) y ProspectMap (pestaña Zonas) — ambos se importan estáticos adentro.
 const Prospectos = lazy(() => import("./components/Prospectos.jsx").then(m => ({ default: m.Prospectos })));
@@ -232,6 +233,9 @@ const NAV_ITEMS = [
   // Mayorista (pivote a kioscos)
   { key: "dashMayorista", label: "Panel mayorista", icon: "📊", group: "mayorista" },
   { key: "kioscos", label: "Kioscos", icon: "🏪", group: "mayorista" },
+  // F5: el COTIZADOR emite presupuestos (contra la lista publicada); "Pedido
+  // mayorista" registra la VENTA real al armar. Dos momentos, dos pantallas.
+  { key: "cotizador", label: "Cotizador", icon: "🧮", group: "mayorista" },
   { key: "wholesaleOrder", label: "Pedido mayorista", icon: "🧾", group: "mayorista" },
   { key: "priceList", label: "Lista de precios", icon: "🏷️", group: "mayorista" },
   // Pricing Engine: la política comercial es DATOS (RN-19), esta es su pantalla.
@@ -572,6 +576,7 @@ export default function App() {
     discoverySuppressed, setDiscoverySuppressed, discoveryResults, discoveryJobs,
     pricingPolicy, setPricingPolicy,
     priceLists, setPriceLists,
+    quotes, setQuotes,
     syncStatus, backupStatus, logStock, logPrice,
   } = sync;
 
@@ -841,8 +846,9 @@ export default function App() {
       case "procurement": return <Procurement products={products} setProducts={setProducts} purchases={purchases} setPurchases={setPurchases} sales={activeSales} exchangeRate={exchangeRate} logStock={logStock} currentUser={currentUser} logAudit={logAudit} monthlyClosures={monthlyClosures} supplierProfiles={supplierProfiles} setSupplierProfiles={setSupplierProfiles} supplierAliases={supplierAliases} setSupplierAliases={setSupplierAliases} supplierLists={supplierLists} setSupplierLists={setSupplierLists} />;
       case "clients": return <Clients clients={clients} setClients={setClients} sales={activeSales} products={activeProducts} withdrawals={activeWithdrawals} />;
       case "kioscos": return <Kioscos clients={clients} setClients={setClients} sales={activeSales} products={activeProducts} fichaInicial={fichaFor("kiosco")} onFichaAbierta={limpiarFicha} />;
-      case "wholesaleOrder": return <WholesaleOrder clients={clients} products={products} setProducts={setProducts} sales={activeSales} setSales={setSales} logStock={logStock} />;
+      case "wholesaleOrder": return <WholesaleOrder clients={clients} products={products} setProducts={setProducts} sales={activeSales} setSales={setSales} logStock={logStock} priceLists={priceLists} pricingPolicy={pricingPolicy} />;
       case "priceList": return <PriceListScreen products={activeProducts} priceLists={priceLists} setPriceLists={setPriceLists} pricingPolicy={pricingPolicy} logAudit={logAudit} />;
+      case "cotizador": return <Cotizador clients={clients} products={activeProducts} quotes={quotes} setQuotes={setQuotes} priceLists={priceLists} pricingPolicy={pricingPolicy} logAudit={logAudit} />;
       case "pricingPolicy": return <PricingPolicyScreen pricingPolicy={pricingPolicy} setPricingPolicy={setPricingPolicy} logAudit={logAudit} />;
       case "prospectos":
       // Alias de deep-links/⌘K (ex-pantallas absorbidas por el módulo):
@@ -871,6 +877,7 @@ export default function App() {
         prospects={prospects} visits={visits} routes={routes} discoverySuppressed={discoverySuppressed} auditLog={auditLog}
         pricingPolicy={pricingPolicy} setPricingPolicy={setPricingPolicy}
         priceLists={priceLists} setPriceLists={setPriceLists}
+        quotes={quotes} setQuotes={setQuotes}
         setProspects={setProspects} setVisits={setVisits} setRoutes={setRoutes} setDiscoverySuppressed={setDiscoverySuppressed} setAuditLog={sync.setAuditLog}
         setProducts={setProducts} setSales={setSales} setPurchases={setPurchases} setExpenses={setExpenses}
         setWithdrawals={setWithdrawals} setCashMovements={setCashMovements} setClients={setClients}

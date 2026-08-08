@@ -52,6 +52,7 @@ export function PriceListScreen({
       fecha: new Date().toISOString(),
       autor: currentUser?.name || "",
       base: vigente,
+      fx: exchangeRate, // referencia para la divergencia del cotizador (regla d)
     });
     const gate = puedePublicar(snapshot);
     if (!gate.ok) { setMotivosBloqueo(gate.motivos); return; } // RN-05: exige decisión humana

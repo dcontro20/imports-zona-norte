@@ -116,6 +116,8 @@ const COLLECTIONS = [
   // listas publicadas (snapshots inmutables — perderlas rompe la trazabilidad
   // de qué versión respondió cada cotización, RN-11/12).
   "pricingPolicy", "priceLists",
+  // F5: presupuestos emitidos — trazabilidad de qué se cotizó y por qué no cerró.
+  "quotes",
 ];
 
 const BACKUP_DIR = join(PROJECT_ROOT, "backups");
