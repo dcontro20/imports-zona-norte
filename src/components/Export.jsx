@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { formatMoney, formatDate } from "../helpers.js";
+import { normalizarPolitica } from "../lib/pricingPolicy.js";
 import { Card, Btn, Badge } from "./UI.jsx";
 import { useResponsive } from "../App.jsx";
 
@@ -15,9 +16,13 @@ export const ExportData = ({
   // entra también: la Actividad de la Ficha se compone de él (sin auditLog,
   // un restore deja las Fichas sin historial).
   prospects = [], visits = [], routes = [], discoverySuppressed = [], auditLog = [],
+  // Pricing Engine: la política comercial es un OBJETO (no colección-array);
+  // priceLists son los snapshots inmutables de listas publicadas.
+  pricingPolicy = null, priceLists = [], quotes = [],
   setProducts, setSales, setPurchases, setExpenses, setWithdrawals, setCashMovements,
   setClients, setPartnerWithdrawals, setMonthlyClosures, setStockLog, setPriceLog,
   setProspects, setVisits, setRoutes, setDiscoverySuppressed, setAuditLog,
+  setPricingPolicy, setPriceLists, setQuotes,
   logAudit, currentUser,
 }) => {
   const { isMobile } = useResponsive();
@@ -72,6 +77,10 @@ export const ExportData = ({
     if (Array.isArray(d.routes) && setRoutes) setRoutes(d.routes);
     if (Array.isArray(d.discoverySuppressed) && setDiscoverySuppressed) setDiscoverySuppressed(d.discoverySuppressed);
     if (Array.isArray(d.auditLog) && setAuditLog) setAuditLog(d.auditLog);
+    // pricingPolicy es objeto: normalizarPolitica completa campos de esquemas viejos
+    if (d.pricingPolicy && typeof d.pricingPolicy === "object" && setPricingPolicy) setPricingPolicy(normalizarPolitica(d.pricingPolicy));
+    if (Array.isArray(d.priceLists) && setPriceLists) setPriceLists(d.priceLists);
+    if (Array.isArray(d.quotes) && setQuotes) setQuotes(d.quotes);
     if (logAudit) {
       logAudit("restore", "backup", "full", `Restore completo desde ${restorePreview.filename}`);
     }
@@ -131,6 +140,8 @@ export const ExportData = ({
           routes: (routes || []).length,
           discoverySuppressed: (discoverySuppressed || []).length,
           auditLog: (auditLog || []).length,
+          priceLists: (priceLists || []).length,
+          quotes: (quotes || []).length,
         }
       },
       products,
@@ -149,6 +160,9 @@ export const ExportData = ({
       routes: routes || [],
       discoverySuppressed: discoverySuppressed || [],
       auditLog: auditLog || [],
+      pricingPolicy: pricingPolicy || null,
+      priceLists: priceLists || [],
+      quotes: quotes || [],
       exchangeRate
     };
     const dateStr = new Date().toISOString().slice(0, 10);

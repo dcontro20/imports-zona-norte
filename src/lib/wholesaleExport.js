@@ -17,12 +17,12 @@ export function toCSV(headers, rows) {
 
 // CSV de clientes mayoristas (type="mayorista", no borrados).
 export function kioscosToCSV(clients = []) {
-  const headers = ["Comercio", "Responsable", "Tipo", "Tier", "Zona", "Dirección", "Teléfono", "Contacto", "Estado", "Crédito", "Límite ARS"];
+  const headers = ["Comercio", "Responsable", "Tipo", "Zona", "Dirección", "Teléfono", "Contacto", "Estado", "Crédito", "Límite ARS"];
   const rows = (clients || [])
     .filter(c => c && !c.isDeleted && c.type === "mayorista")
     .sort((a, b) => (a.businessName || a.name || "").localeCompare(b.businessName || b.name || ""))
     .map(c => [
-      c.businessName || "", c.name || "", c.businessType || "", c.wholesaleTier || "",
+      c.businessName || "", c.name || "", c.businessType || "",
       c.zone || "", c.address || "", c.phone || "", c.contactName || "",
       c.pipelineStage || "", c.creditEnabled ? "sí" : "no", c.creditEnabled ? (c.creditLimitARS || 0) : "",
     ]);

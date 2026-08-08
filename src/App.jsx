@@ -90,6 +90,8 @@ const Clients = lazy(() => import("./components/Clients.jsx").then(m => ({ defau
 const Kioscos = lazy(() => import("./components/Kioscos.jsx").then(m => ({ default: m.Kioscos })));
 const WholesaleOrder = lazy(() => import("./components/WholesaleOrder.jsx").then(m => ({ default: m.WholesaleOrder })));
 const PriceListScreen = lazy(() => import("./components/wholesale/PriceListScreen.jsx").then(m => ({ default: m.PriceListScreen })));
+const PricingPolicyScreen = lazy(() => import("./components/wholesale/PricingPolicyScreen.jsx").then(m => ({ default: m.PricingPolicyScreen })));
+const Cotizador = lazy(() => import("./components/wholesale/Cotizador.jsx").then(m => ({ default: m.Cotizador })));
 // Mini CRM de Prospect Intelligence: Prospectos absorbe Pipeline (pestaña
 // Embudo) y ProspectMap (pestaña Zonas) — ambos se importan estáticos adentro.
 const Prospectos = lazy(() => import("./components/Prospectos.jsx").then(m => ({ default: m.Prospectos })));
@@ -231,8 +233,13 @@ const NAV_ITEMS = [
   // Mayorista (pivote a kioscos)
   { key: "dashMayorista", label: "Panel mayorista", icon: "📊", group: "mayorista" },
   { key: "kioscos", label: "Kioscos", icon: "🏪", group: "mayorista" },
+  // F5: el COTIZADOR emite presupuestos (contra la lista publicada); "Pedido
+  // mayorista" registra la VENTA real al armar. Dos momentos, dos pantallas.
+  { key: "cotizador", label: "Cotizador", icon: "🧮", group: "mayorista" },
   { key: "wholesaleOrder", label: "Pedido mayorista", icon: "🧾", group: "mayorista" },
   { key: "priceList", label: "Lista de precios", icon: "🏷️", group: "mayorista" },
+  // Pricing Engine: la política comercial es DATOS (RN-19), esta es su pantalla.
+  { key: "pricingPolicy", label: "Política comercial", icon: "🎛️", group: "mayorista" },
   // Mini CRM de Prospect Intelligence (spec docs/PROSPECT_CRM_SPEC.md):
   // UNA sola puerta — absorbe los ex-ítems "Pipeline" y "Prospección"
   // (sus keys viven como alias de deep-link en renderPage).
@@ -525,6 +532,25 @@ export default function App() {
     return () => window.removeEventListener("izn:concurrent-edit", handler);
   }, []);
 
+  // Navegación por evento (F6): permite a una pantalla mandar a otra sin
+  // acoplar setPage por props (ej: Cotizador → "Armar pedido" → Pedido
+  // mayorista pre-cargado vía localStorage izn:armarQuote).
+  useEffect(() => {
+    const handler = (e) => { if (e.detail?.page) setPage(e.detail.page); };
+    window.addEventListener("izn:navigate", handler);
+    return () => window.removeEventListener("izn:navigate", handler);
+  }, []);
+
+  // Aviso FX fuera de banda (Pricing Engine): dolarapi devolvió un valor que
+  // se mueve más que la banda de sanidad contra el último conocido. No se
+  // aplica solo — este toast pide confirmación explícita (botón Aplicar).
+  const [fxOutOfBandToast, setFxOutOfBandToast] = useState(null);
+  useEffect(() => {
+    const handler = (e) => setFxOutOfBandToast(e.detail || null);
+    window.addEventListener("izn:fx-fuera-de-banda", handler);
+    return () => window.removeEventListener("izn:fx-fuera-de-banda", handler);
+  }, []);
+
   // Body scroll lock cuando sidebar mobile está abierto
   useEffect(() => {
     if (isMobile && menuOpen) {
@@ -557,6 +583,9 @@ export default function App() {
     supplierLists, setSupplierLists,
     prospects, setProspects, visits, setVisits, routes, setRoutes,
     discoverySuppressed, setDiscoverySuppressed, discoveryResults, discoveryJobs,
+    pricingPolicy, setPricingPolicy,
+    priceLists, setPriceLists,
+    quotes, setQuotes,
     syncStatus, backupStatus, logStock, logPrice,
   } = sync;
 
@@ -592,7 +621,7 @@ export default function App() {
     (clients || []).filter(c => c && !c.isDeleted && c.type === "mayorista" &&
       `${c.businessName || ""} ${c.name || ""} ${c.zone || ""} ${c.phone || ""}`.toLowerCase().includes(q)).slice(0, 3)
       .forEach(c => results.push({ type: "kiosco", icon: "🏪", label: c.businessName || c.name,
-        sub: [c.zone, c.wholesaleTier ? `tier ${String(c.wholesaleTier).toUpperCase()}` : ""].filter(Boolean).join(" · "),
+        sub: c.zone || "",
         page: "kioscos", ficha: { tipo: "kiosco", id: c.id } }));
 
     (prospects || []).filter(p => p && !p.isDeleted && !p.convertedClientId &&
@@ -821,13 +850,15 @@ export default function App() {
   const renderPage = () => {
     switch (effectivePage) {
       case "dashboard": return <Dashboard products={activeProducts} sales={activeSales} purchases={activePurchases} expenses={activeExpenses} withdrawals={activeWithdrawals} clients={clients} cashMovements={activeCashMovements} partnerWithdrawals={activePartnerWithdrawals} auditLog={auditLog} backupStatus={backupStatus} onNavigate={setPage} />;
-      case "products": return <Products products={products} setProducts={setProducts} priceLog={priceLog} sales={activeSales} />;
+      case "products": return <Products products={products} setProducts={setProducts} priceLog={priceLog} sales={activeSales} purchases={activePurchases} pricingPolicy={pricingPolicy} />;
       case "sales": return <Sales sales={sales} setSales={setSales} products={products} setProducts={setProducts} logStock={logStock} exchangeRate={exchangeRate} currentUser={currentUser} logAudit={logAudit} clients={clients} setClients={setClients} cashMovements={cashMovements} setCashMovements={setCashMovements} monthlyClosures={monthlyClosures} coupons={coupons} setCoupons={setCoupons} auditLog={auditLog} />;
       case "procurement": return <Procurement products={products} setProducts={setProducts} purchases={purchases} setPurchases={setPurchases} sales={activeSales} exchangeRate={exchangeRate} logStock={logStock} currentUser={currentUser} logAudit={logAudit} monthlyClosures={monthlyClosures} supplierProfiles={supplierProfiles} setSupplierProfiles={setSupplierProfiles} supplierAliases={supplierAliases} setSupplierAliases={setSupplierAliases} supplierLists={supplierLists} setSupplierLists={setSupplierLists} />;
       case "clients": return <Clients clients={clients} setClients={setClients} sales={activeSales} products={activeProducts} withdrawals={activeWithdrawals} />;
       case "kioscos": return <Kioscos clients={clients} setClients={setClients} sales={activeSales} products={activeProducts} fichaInicial={fichaFor("kiosco")} onFichaAbierta={limpiarFicha} />;
-      case "wholesaleOrder": return <WholesaleOrder clients={clients} products={products} setProducts={setProducts} sales={activeSales} setSales={setSales} logStock={logStock} />;
-      case "priceList": return <PriceListScreen products={activeProducts} />;
+      case "wholesaleOrder": return <WholesaleOrder clients={clients} products={products} setProducts={setProducts} sales={activeSales} setSales={setSales} logStock={logStock} priceLists={priceLists} pricingPolicy={pricingPolicy} quotes={quotes} setQuotes={setQuotes} />;
+      case "priceList": return <PriceListScreen products={activeProducts} priceLists={priceLists} setPriceLists={setPriceLists} pricingPolicy={pricingPolicy} logAudit={logAudit} />;
+      case "cotizador": return <Cotizador clients={clients} products={activeProducts} quotes={quotes} setQuotes={setQuotes} priceLists={priceLists} pricingPolicy={pricingPolicy} logAudit={logAudit} />;
+      case "pricingPolicy": return <PricingPolicyScreen pricingPolicy={pricingPolicy} setPricingPolicy={setPricingPolicy} logAudit={logAudit} />;
       case "prospectos":
       // Alias de deep-links/⌘K (ex-pantallas absorbidas por el módulo):
       case "pipeline":
@@ -853,6 +884,9 @@ export default function App() {
         priceLog={priceLog} clients={clients} partnerWithdrawals={partnerWithdrawals}
         monthlyClosures={monthlyClosures} exchangeRate={exchangeRate}
         prospects={prospects} visits={visits} routes={routes} discoverySuppressed={discoverySuppressed} auditLog={auditLog}
+        pricingPolicy={pricingPolicy} setPricingPolicy={setPricingPolicy}
+        priceLists={priceLists} setPriceLists={setPriceLists}
+        quotes={quotes} setQuotes={setQuotes}
         setProspects={setProspects} setVisits={setVisits} setRoutes={setRoutes} setDiscoverySuppressed={setDiscoverySuppressed} setAuditLog={sync.setAuditLog}
         setProducts={setProducts} setSales={setSales} setPurchases={setPurchases} setExpenses={setExpenses}
         setWithdrawals={setWithdrawals} setCashMovements={setCashMovements} setClients={setClients}
@@ -1346,6 +1380,37 @@ export default function App() {
             </div>
           </div>
           <button onClick={() => setWriteErrorToast(null)} style={{
+            background: "transparent", border: "none", color: "#FFFFFF",
+            fontSize: 18, cursor: "pointer", padding: 0, lineHeight: 1,
+          }}>×</button>
+        </div>
+      )}
+
+      {fxOutOfBandToast && (
+        <div style={{
+          position: "fixed", top: 70, left: "50%", transform: "translateX(-50%)",
+          zIndex: 2002, maxWidth: "92vw",
+          background: "#1F5DB8", color: "#FFFFFF",
+          padding: "12px 18px", borderRadius: 10,
+          boxShadow: "0 8px 24px rgba(31,93,184,0.35)",
+          fontSize: 13, fontWeight: 600, fontFamily: "inherit",
+          display: "flex", alignItems: "center", gap: 10,
+        }}>
+          <span style={{ fontSize: 18 }}>💵</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 700 }}>
+              Salto del dólar: ${Math.round(fxOutOfBandToast.actual).toLocaleString("es-AR")} → ${Math.round(fxOutOfBandToast.nuevo).toLocaleString("es-AR")}
+            </div>
+            <div style={{ fontSize: 11, opacity: 0.9, marginTop: 2 }}>
+              Se movió más del {Math.round((fxOutOfBandToast.banda || 0.1) * 100)}% — no se aplicó solo. Confirmá para usar el valor nuevo.
+            </div>
+          </div>
+          <button onClick={() => { setExchangeRate(fxOutOfBandToast.nuevo); setFxOutOfBandToast(null); }} style={{
+            background: "#FFFFFF", border: "none", color: "#1F5DB8",
+            fontSize: 12, fontWeight: 700, cursor: "pointer",
+            padding: "8px 14px", borderRadius: 8, minHeight: 36, flexShrink: 0,
+          }}>Aplicar</button>
+          <button onClick={() => setFxOutOfBandToast(null)} style={{
             background: "transparent", border: "none", color: "#FFFFFF",
             fontSize: 18, cursor: "pointer", padding: 0, lineHeight: 1,
           }}>×</button>

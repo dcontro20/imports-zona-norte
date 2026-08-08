@@ -30,9 +30,9 @@ export const CLIENT_TYPES = ["minorista", "mayorista"];
 // Opcional, default null. La mayoría serán kioscos pero no es obligatorio.
 export const BUSINESS_TYPES = ["kiosco", "maxikiosco", "drugueria", "distribuidor", "almacen", "otro"];
 
-// Tier mayorista por volumen de compra. Cada tier tiene su lista de precios
-// (vive en product.priceByChannel.mayorista_a/b/c). null = sin asignar.
-export const WHOLESALE_TIERS = ["A", "B", "C"];
+// (F6 Pricing Engine: WHOLESALE_TIERS se RETIRÓ — el precio mayorista lo
+// determina el volumen del pedido contra la lista publicada, nunca una
+// categoría del cliente. La política descarta precios por cliente.)
 
 // Embudo comercial completo (client type=mayorista).
 export const PIPELINE_STAGES = ["prospecto", "contactado", "visitado", "primera_compra", "activo", "en_pausa"];

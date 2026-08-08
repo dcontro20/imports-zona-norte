@@ -1,29 +1,48 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { uid, formatMoney } from "../helpers.js";
 import { useResponsive } from "../App.jsx";
 import { Card, Btn, Select, Modal, Input } from "./UI.jsx";
 import { T } from "../theme.js";
 import { useAppContext } from "../AppContext.js";
-import { resolveTierPrice, hasTierPrice, volumeDiscount, applyPct, orderMargin, validateOrderMinimum } from "../wholesale.js";
+import { orderMargin } from "../wholesale.js";
 import { creditStatus } from "../lib/creditAccount.js";
+import { listaVigente, precioEnLista } from "../lib/priceLists.js";
+import { marcarGanado, presupuestoVencido } from "../lib/cotizador.js";
 
-// Pedido MAYORISTA: elegís un cliente mayorista → precios de su tier + margen en
-// vivo por línea + total, valida mínimo, y genera un `sale` con saleType=mayorista
-// y channel=Mayorista. Descuenta stock. Cobranza/entrega = fases 3/4
-// (el pedido nace con fulfillmentStatus="pendiente").
+// Pedido MAYORISTA (F5: conectado al motor): elegís un cliente → los precios
+// salen de la LISTA PUBLICADA al escalón del total de unidades (RN-06/07,
+// RN-12 — jamás se recalcula en vivo ni se edita un precio: RN-16). Las
+// unidades cuentan a nivel SABOR hacia el total (mezcla libre, RN-07).
+// Valida los mínimos de la política (RN-08, bloqueantes) y genera un `sale`
+// saleType=mayorista / channel=Mayorista. Descuenta stock por sabor.
+// Cobranza/entrega = rutas/CC (el pedido nace fulfillmentStatus="pendiente").
 
 const prodLabel = (p) => `${p.brand} ${p.model} - ${p.flavor}`;
 const costOf = (p) => (Number(p?.avgCostUSDT) > 0 ? Number(p.avgCostUSDT) : Number(p?.costUSDT) > 0 ? Number(p.costUSDT) : 0);
 
-export function WholesaleOrder({ clients = [], products = [], setProducts, sales = [], setSales, logStock }) {
+export function WholesaleOrder({ clients = [], products = [], setProducts, sales = [], setSales, logStock, priceLists = [], pricingPolicy = null, quotes = [], setQuotes }) {
   const { isMobile } = useResponsive();
   const { exchangeRate, logAudit, currentUser } = useAppContext();
-  const rate = Number(exchangeRate) || 1;
+  // FX del día + buffer de la política de la LISTA (la misma conversión de la
+  // lista compartida y del presupuesto — nada diverge). Sin FX válido: 0 y el
+  // registro se bloquea (nunca un número inventado).
+  const lista = useMemo(() => listaVigente(priceLists), [priceLists]);
+  const buffer = Number(lista?.politica?.bufferFxPct) || 0;
+  const rate = Number(exchangeRate) > 0 ? Number(exchangeRate) * (1 + buffer) : 0;
 
   const [clientId, setClientId] = useState("");
-  const [applyVolume, setApplyVolume] = useState(false);
   const [search, setSearch] = useState("");
-  const [lines, setLines] = useState([]); // [{ productId, qty, unitPriceUSD }]
+  const [lines, setLines] = useState([]); // [{ productId, qty }] — el precio se DERIVA de la lista, jamás se guarda ni edita
+  // "Armar pedido" desde el Cotizador (ajuste 1 del gate F5): el presupuesto
+  // llega por handoff (localStorage) — checklist de modelos pre-cargada, el
+  // vendedor solo elige sabores, y el saleId se linkea solo al registrar.
+  const [armandoQuote, setArmandoQuote] = useState(() => {
+    try {
+      const id = localStorage.getItem("izn:armarQuote");
+      if (id) localStorage.removeItem("izn:armarQuote");
+      return id ? (quotes.find(q => q.id === id) || null) : null;
+    } catch { return null; }
+  });
   const [toast, setToast] = useState("");
   const [orderNote, setOrderNote] = useState(""); // Tanda F: nota libre del pedido (viaja a la hoja de ruta)
   const [historyOpen, setHistoryOpen] = useState(false); // Tanda F: duplicar pedido histórico
@@ -33,7 +52,23 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
     [clients]
   );
   const client = mayoristas.find(c => c.id === clientId) || null;
-  const tier = client?.wholesaleTier || null;
+
+  // Al llegar armando un presupuesto: preseleccionar su cliente (si tiene).
+  useEffect(() => {
+    if (armandoQuote?.clienteId) setClientId(armandoQuote.clienteId);
+  }, []); // eslint-disable-line
+
+  // Progreso del armado: unidades ya cargadas por modelo del presupuesto.
+  const cargadoPorModelo = useMemo(() => {
+    const m = new Map();
+    for (const l of lines) {
+      const p = products.find(x => x.id === l.productId);
+      if (!p) continue;
+      const clave = `${p.brand}|${p.model}`;
+      m.set(clave, (m.get(clave) || 0) + (Number(l.qty) || 0));
+    }
+    return m;
+  }, [lines, products]);
 
   const inStock = useMemo(
     () => products.filter(p => p && !p.isDeleted && (Number(p.stock) || 0) > 0),
@@ -46,33 +81,79 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
   }, [inStock, search]);
 
   const totalUnits = lines.reduce((s, l) => s + (Number(l.qty) || 0), 0);
-  const vol = applyVolume ? volumeDiscount(totalUnits) : { pct: 0, label: "—" };
 
-  // Líneas resueltas con producto + precio final (tier + volumen opcional).
+  // Escalón por TOTAL de unidades (RN-06), desde la propia lista. Debajo del
+  // mínimo se precia provisional al primer escalón (marcado — el registro
+  // igual se bloquea por RN-08).
+  const escalones = lista?.filas[0]?.precios || [];
+  const escalon = escalones.find(e => totalUnits >= e.desde && (e.hasta == null || totalUnits <= e.hasta)) || null;
+  const unidadesParaPrecio = Math.max(totalUnits, escalones[0]?.desde || 1);
+
+  // Precio unitario del sabor = precio de su MODELO en la lista publicada al
+  // escalón vigente (RN-07: todas las líneas al mismo escalón).
+  const priceOf = (product) => {
+    if (!lista || !product) return null;
+    return precioEnLista(lista, `${product.brand}|${product.model}`, unidadesParaPrecio);
+  };
+
   const resolvedLines = useMemo(() => lines.map(l => {
     const product = products.find(p => p.id === l.productId);
-    const baseUSD = Number(l.unitPriceUSD) || 0;
-    const finalUSD = vol.pct > 0 ? applyPct(baseUSD, vol.pct) : baseUSD;
-    return { ...l, product, unitPriceUSD: finalUSD, baseUSD };
-  }), [lines, products, vol.pct]);
+    const p = priceOf(product);
+    return { ...l, product, enLista: !!p, unitPriceUSD: p?.precio || 0 };
+  }), [lines, products, lista, unidadesParaPrecio]); // eslint-disable-line
 
   const margin = useMemo(() => orderMargin({ lines: resolvedLines }), [resolvedLines]);
-  const totalARS = Math.round(margin.totalRevenueUSD * rate);
-  const minCheck = tier ? validateOrderMinimum({ tier, totalUnits, totalARS }) : { ok: true, reasons: [] };
+  const totalUSD = resolvedLines.reduce((s, l) => s + l.unitPriceUSD * (Number(l.qty) || 0), 0);
+  const totalARS = Math.round(totalUSD * rate);
+
+  // RN-08 + RN-18 + RN-12 — bloqueos del registro.
+  const minimo = pricingPolicy?.pedidoMinimo || {};
+  const motivosBloqueo = [];
+  if (!lista) motivosBloqueo.push("No hay lista de precios publicada (publicala en 🏷️ Lista de precios).");
+  if (!(rate > 0)) motivosBloqueo.push("Sin cotización del dólar válida — esperá dolarapi o cargala en Caja.");
+  if (totalUnits > 0 && Number(minimo.unidades) > 0 && totalUnits < Number(minimo.unidades)) {
+    motivosBloqueo.push(`No llega al mínimo de ${minimo.unidades} unidades (tiene ${totalUnits}).`);
+  }
+  if (totalUSD > 0 && Number(minimo.ticketUSD) > 0 && totalUSD < Number(minimo.ticketUSD)) {
+    motivosBloqueo.push(`No llega al ticket mínimo de USD ${minimo.ticketUSD} (tiene USD ${Math.round(totalUSD)}).`);
+  }
+  resolvedLines.filter(l => !l.enLista).forEach(l => {
+    motivosBloqueo.push(`"${l.product ? prodLabel(l.product) : l.productId}" no está en la lista vigente (¿sin costo? RN-18).`);
+  });
+  const minCheck = { ok: motivosBloqueo.length === 0, reasons: motivosBloqueo };
+
+  // Nudge de frontera PARA EL VENDEDOR (RN-09 / regla f): ahorro concreto
+  // sobre las unidades ya cargadas si alcanza el siguiente escalón.
+  const nudge = useMemo(() => {
+    if (!lista || totalUnits <= 0) return null;
+    const umbral = Number(pricingPolicy?.nudgeUmbralPct) || 0.1;
+    const siguiente = escalones.find(e => e.desde > totalUnits);
+    if (!siguiente || (siguiente.desde - totalUnits) / siguiente.desde >= umbral) return null;
+    const ahorroUSD = resolvedLines.reduce((s, l) => {
+      if (!l.enLista || !l.product) return s;
+      const pSig = precioEnLista(lista, `${l.product.brand}|${l.product.model}`, siguiente.desde);
+      return s + (pSig ? (l.unitPriceUSD - pSig.precio) * (Number(l.qty) || 0) : 0);
+    }, 0);
+    return { faltan: siguiente.desde - totalUnits, desde: siguiente.desde, ahorroUSD };
+  }, [lista, totalUnits, resolvedLines, escalones, pricingPolicy]);
+
   const credit = client ? creditStatus(client, sales) : null;
   const excedeCredito = credit?.enabled && totalARS > credit.availableARS;
 
   const addProduct = (p) => {
     setSearch("");
+    if (!priceOf(p)) {
+      setToast(`⛔ ${prodLabel(p)} no está en la lista vigente (sin costo — RN-18)`);
+      setTimeout(() => setToast(""), 3500);
+      return;
+    }
     setLines(prev => {
       const existing = prev.find(l => l.productId === p.id);
       if (existing) return prev.map(l => l.productId === p.id ? { ...l, qty: (Number(l.qty) || 0) + 1 } : l);
-      const unit = resolveTierPrice(p, tier); // precio USD del tier
-      return [...prev, { productId: p.id, qty: 1, unitPriceUSD: unit }];
+      return [...prev, { productId: p.id, qty: 1 }];
     });
   };
   const setQty = (id, qty) => setLines(prev => prev.map(l => l.productId === id ? { ...l, qty: Math.max(0, Number(qty) || 0) } : l).filter(l => l.qty > 0));
-  const setPrice = (id, val) => setLines(prev => prev.map(l => l.productId === id ? { ...l, unitPriceUSD: val === "" ? 0 : Number(val) } : l));
   const removeLine = (id) => setLines(prev => prev.filter(l => l.productId !== id));
 
   // 1.6 — repetir último pedido mayorista del cliente.
@@ -91,16 +172,16 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
       .sort((a, b) => new Date(b.date) - new Date(a.date));
   }, [sales, client]);
 
-  // Clona las líneas de un pedido con los precios de tier DE HOY (no copia
-  // precios viejos). Productos borrados se omiten. Base de "repetir último"
-  // y de "duplicar histórico" (Tanda F).
+  // Clona las cantidades de un pedido; los precios se DERIVAN de la lista
+  // vigente al escalón de HOY (jamás se copian precios viejos). Productos
+  // borrados se omiten. Base de "repetir último" y "duplicar histórico".
   const loadFromSale = (sale, label) => {
     if (!sale) return;
     const newLines = (sale.items || [])
       .map(it => {
         const p = products.find(pr => pr.id === it.productId && !pr.isDeleted);
         if (!p) return null;
-        return { productId: p.id, qty: Number(it.qty) || 1, unitPriceUSD: resolveTierPrice(p, tier) };
+        return { productId: p.id, qty: Number(it.qty) || 1 };
       })
       .filter(Boolean);
     setLines(newLines);
@@ -141,8 +222,9 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
       total: totalARS,
       subtotal: totalARS,
       payments: [], // contra entrega / crédito → fases 3/4
-      volumeDiscountPct: vol.pct || 0,
-      exchangeRate: rate,
+      exchangeRate: rate, // FX efectivo (día + buffer) con el que se registró
+      listVersion: lista?.version || "", // trazabilidad RN-11/12
+      ...(escalon ? { escalonDesde: escalon.desde } : {}),
       createdBy: currentUser?.name || "",
       ...(orderNote.trim() ? { orderNote: orderNote.trim() } : {}),
     };
@@ -154,6 +236,27 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
     });
     setSales(prev => [saleData, ...prev]);
     logAudit?.("create", "sale", saleId, `Pedido mayorista: ${client.businessName || client.name} · ${totalUnits}u · ${formatMoney(totalARS)}`);
+
+    // Cierre del lazo con la tasa de cierre (§9, ajuste 1 del gate F5):
+    if (armandoQuote && setQuotes) {
+      // Armado desde el presupuesto → GANADO con saleId linkeado, solo.
+      setQuotes(prev => prev.map(x => x.id === armandoQuote.id ? marcarGanado(x, { saleId, fecha: saleData.date }) : x));
+      logAudit?.("update", "quote", armandoQuote.id, "Presupuesto GANADO (pedido armado desde el Cotizador)");
+      setArmandoQuote(null);
+    } else if (setQuotes) {
+      // Red inversa: el vendedor entró por acá pero el cliente tiene un
+      // presupuesto abierto con totales parecidos — preguntar antes de dejar
+      // el dato huérfano (vencidos incluidos: compró tarde también es ganado).
+      const candidato = (quotes || []).find(q =>
+        q.estado === "emitido" && q.clienteId === client.id && q.totalUnidades > 0 &&
+        Math.abs(q.totalUnidades - totalUnits) / q.totalUnidades <= 0.2);
+      if (candidato && window.confirm(
+        `Este cliente tiene un presupuesto abierto de ${candidato.totalUnidades}u (${formatMoney(candidato.totalARS)}${presupuestoVencido(candidato) ? ", vencido" : ""}). ¿Este pedido lo cierra? Aceptar lo marca GANADO y lo linkea.`
+      )) {
+        setQuotes(prev => prev.map(x => x.id === candidato.id ? marcarGanado(x, { saleId, fecha: saleData.date }) : x));
+        logAudit?.("update", "quote", candidato.id, "Presupuesto GANADO (linkeado desde pedido mayorista)");
+      }
+    }
 
     setLines([]);
     setOrderNote("");
@@ -175,26 +278,26 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
         </div></Card>
       ) : (
         <>
-          {/* Cliente + tier */}
+          {/* Cliente (F5: sin tiers — el precio lo determina el volumen del pedido) */}
           <Card style={{ marginBottom: 14 }}>
             <div style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
               <div style={{ flex: "1 1 240px", minWidth: 0 }}>
                 <Select label="Cliente mayorista" value={clientId}
-                  options={mayoristas.map(c => ({ value: c.id, label: `${c.businessName || c.name}${c.wholesaleTier ? ` (Tier ${c.wholesaleTier})` : ""}` }))}
+                  options={mayoristas.map(c => ({ value: c.id, label: c.businessName || c.name }))}
                   onChange={e => { setClientId(e.target.value); setLines([]); }} />
               </div>
               {client && (
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
                   <span style={{ background: T.primarySoft, color: T.primary, borderRadius: 8, padding: "8px 12px", fontSize: 13, fontWeight: 700 }}>
-                    Tier {tier || "—"}
+                    Lista {lista?.version || "—"}{escalon ? ` · escalón ${escalon.desde}${escalon.hasta != null ? `–${escalon.hasta}` : "+"}` : ""}
                   </span>
                   {lastOrder && <Btn variant="secondary" onClick={repeatLast}>🔁 Repetir último pedido</Btn>}
                   {clientOrders.length > 1 && <Btn variant="secondary" onClick={() => setHistoryOpen(true)}>🗂 Duplicar un pedido…</Btn>}
                 </div>
               )}
             </div>
-            {client && !tier && (
-              <div style={{ color: T.red, fontSize: 13 }}>⚠️ Este cliente no tiene tier asignado — los precios caen al minorista. Asignale un tier en Kioscos.</div>
+            {!lista && (
+              <div style={{ color: T.red, fontSize: 13 }}>⛔ No hay lista de precios publicada — publicala en <b>🏷️ Lista de precios</b> para poder registrar pedidos.</div>
             )}
             {client && credit && (
               <div style={{ marginTop: 10, fontSize: 12 }}>
@@ -214,6 +317,43 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
               </div>
             )}
           </Card>
+
+          {/* Checklist del presupuesto en armado (ajuste 1 gate F5) */}
+          {armandoQuote && (
+            <Card style={{ marginBottom: 14, border: `1px solid ${T.primary}66`, background: `${T.primary}08` }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+                <div style={{ fontWeight: 700, color: T.primary, fontSize: 13 }}>
+                  🧾 Armando presupuesto: {armandoQuote.clienteNombre || "sin cliente"} · {armandoQuote.totalUnidades}u · {formatMoney(armandoQuote.totalARS)}
+                </div>
+                <button onClick={() => setArmandoQuote(null)} style={{
+                  border: "none", background: "transparent", color: T.textMuted, cursor: "pointer", fontSize: 14,
+                }}>✕ cancelar armado</button>
+              </div>
+              <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 6 }}>
+                Elegí los sabores de cada modelo con el buscador — al registrar, el presupuesto queda GANADO y linkeado solo.
+              </div>
+              {armandoQuote.lineas.map(l => {
+                const cargado = cargadoPorModelo.get(l.modeloId) || 0;
+                const completo = cargado >= l.qty;
+                return (
+                  <div key={l.modeloId} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0", flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 13, color: completo ? T.green : T.text, fontWeight: 600, flex: 1, minWidth: 140 }}>
+                      {completo ? "✅" : "⬜"} {l.qty}× {l.modelo}
+                      {l.nota && <span style={{ fontSize: 11, color: T.textMuted, fontWeight: 400 }}> ({l.nota})</span>}
+                    </span>
+                    <span style={{ fontSize: 11, color: completo ? T.green : T.textMuted, flexShrink: 0 }}>
+                      {cargado}/{l.qty}
+                    </span>
+                    <button onClick={() => setSearch(l.modelo)} style={{
+                      border: `1px solid ${T.border}`, background: T.card, color: T.textSub,
+                      borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 700,
+                      padding: "4px 10px", minHeight: isMobile ? 36 : 26, fontFamily: "inherit", flexShrink: 0,
+                    }}>🔍 sabores</button>
+                  </div>
+                );
+              })}
+            </Card>
+          )}
 
           {client && (
             <>
@@ -236,7 +376,7 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
                       }}>
                         <span style={{ minWidth: 0, fontWeight: 600 }}>{prodLabel(p)}</span>
                         <span style={{ color: T.textMuted, flexShrink: 0, fontSize: isMobile ? 11 : 13 }}>
-                          {hasTierPrice(p, tier) ? `Tier ${tier}: ${resolveTierPrice(p, tier)} USD` : `base ${p.priceUSD} USD`} · stock {p.stock}
+                          {(() => { const pr = priceOf(p); return pr ? `USD ${pr.precio} al escalón` : "⛔ fuera de lista"; })()} · stock {p.stock}
                         </span>
                       </button>
                     ))}
@@ -247,12 +387,8 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
               {/* Líneas del pedido */}
               {resolvedLines.length > 0 && (
                 <Card style={{ marginBottom: 14 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
-                    <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: T.textSub, cursor: "pointer" }}>
-                      <input type="checkbox" checked={applyVolume} onChange={e => setApplyVolume(e.target.checked)} />
-                      Aplicar descuento por volumen {vol.pct > 0 ? `(${vol.label} → -${vol.pct}%)` : "(opcional)"}
-                    </label>
-                  </div>
+                  {/* F5: sin descuento por volumen aparte — el volumen ES el
+                      escalón de la lista (5.2/5.3). Sin precio editable (RN-16). */}
                   <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                     {resolvedLines.map(l => {
                       const line = margin.perLine.find(x => x.product?.id === l.productId);
@@ -276,10 +412,8 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
                             <input type="number" min="0" value={l.qty} onChange={e => setQty(l.productId, e.target.value)}
                               aria-label="Cantidad"
                               style={{ flex: "0 0 72px", minWidth: 0, padding: "8px", minHeight: 44, borderRadius: 8, border: `1px solid ${T.border}`, textAlign: "center", fontSize: 16, background: T.card, color: T.text, boxSizing: "border-box" }} />
-                            <input type="number" step="0.01" value={l.baseUSD} onChange={e => setPrice(l.productId, e.target.value)}
-                              title="Precio unitario USD (editable)" aria-label="Precio unitario USD"
-                              style={{ flex: "0 0 90px", minWidth: 0, padding: "8px", minHeight: 44, borderRadius: 8, border: `1px solid ${T.border}`, textAlign: "right", fontSize: 16, background: T.card, color: T.text, boxSizing: "border-box" }} />
-                            <div style={{ flex: 1, minWidth: 0, textAlign: "right", fontSize: 14, fontWeight: 700, color: T.textSub, overflowWrap: "anywhere" }}>{formatMoney(Math.round(l.unitPriceUSD * l.qty * rate))}</div>
+                            <div style={{ flex: "0 0 90px", textAlign: "right", fontSize: 13, color: T.textMuted }}>USD {l.unitPriceUSD}</div>
+                            <div style={{ flex: 1, minWidth: 0, textAlign: "right", fontSize: 14, fontWeight: 700, color: T.textSub, overflowWrap: "anywhere" }}>{rate > 0 ? formatMoney(Math.round(l.unitPriceUSD * l.qty * rate)) : "—"}</div>
                           </div>
                         </div>
                       );
@@ -291,10 +425,8 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
                           </div>
                           <input type="number" min="0" value={l.qty} onChange={e => setQty(l.productId, e.target.value)}
                             style={{ width: 64, padding: "8px", borderRadius: 8, border: `1px solid ${T.border}`, textAlign: "center", fontSize: 14, background: T.card, color: T.text }} />
-                          <input type="number" step="0.01" value={l.baseUSD} onChange={e => setPrice(l.productId, e.target.value)}
-                            title="Precio unitario USD (editable)"
-                            style={{ width: 84, padding: "8px", borderRadius: 8, border: `1px solid ${T.border}`, textAlign: "right", fontSize: 14, background: T.card, color: T.text }} />
-                          <div style={{ width: 90, textAlign: "right", fontSize: 13, color: T.textSub }}>{formatMoney(Math.round(l.unitPriceUSD * l.qty * rate))}</div>
+                          <div style={{ width: 84, textAlign: "right", fontSize: 13, color: T.textMuted }}>USD {l.unitPriceUSD}</div>
+                          <div style={{ width: 90, textAlign: "right", fontSize: 13, color: T.textSub }}>{rate > 0 ? formatMoney(Math.round(l.unitPriceUSD * l.qty * rate)) : "—"}</div>
                           <button onClick={() => removeLine(l.productId)} aria-label="Quitar producto" style={{ border: "none", background: "transparent", color: T.red, cursor: "pointer", fontSize: 16, width: 32, height: 32, borderRadius: 6 }}>✕</button>
                         </div>
                       );
@@ -312,7 +444,18 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
                     <Totals label="Margen" value={`${margin.marginPct}%`} color={marginColor} />
                     <Totals label="Ganancia" value={`${Math.round(margin.totalMarginUSD * rate).toLocaleString("es-AR")} ARS`} color={marginColor} />
                   </div>
-                  {!minCheck.ok && <div style={{ color: T.red, fontSize: 13, marginBottom: 10 }}>⚠️ {minCheck.reasons[0]}</div>}
+                  {nudge && (
+                    <div style={{
+                      marginBottom: 10, padding: "8px 10px", borderRadius: 8,
+                      background: `${T.green}12`, border: `1px solid ${T.green}55`,
+                      fontSize: 12, color: T.green, fontWeight: 700,
+                    }}>
+                      🎯 A {nudge.faltan} unidad{nudge.faltan !== 1 ? "es" : ""} del escalón {nudge.desde} — el cliente ahorra {rate > 0 ? formatMoney(Math.round(nudge.ahorroUSD * rate)) : `USD ${nudge.ahorroUSD}`} sobre lo ya cargado.
+                    </div>
+                  )}
+                  {!minCheck.ok && minCheck.reasons.map((r, i) => (
+                    <div key={i} style={{ color: T.red, fontSize: 13, marginBottom: 6 }}>⛔ {r}</div>
+                  ))}
                   {/* Tanda F: nota libre — aparece en la hoja de ruta, que es
                       donde sirve (ej: "entregar después de las 18h"). */}
                   <Input label="Nota para la entrega (opcional)" value={orderNote}
@@ -331,7 +474,7 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
       {/* Tanda F: duplicar cualquier pedido histórico del cliente */}
       <Modal open={historyOpen} onClose={() => setHistoryOpen(false)} title={`Duplicar pedido — ${client?.businessName || client?.name || ""}`}>
         <div style={{ fontSize: 12, color: T.textMuted, marginBottom: 10 }}>
-          Se cargan las mismas cantidades con los precios de tier de HOY (no los de aquel día).
+          Se cargan las mismas cantidades con los precios de la lista vigente de HOY (no los de aquel día).
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {clientOrders.map(o => {

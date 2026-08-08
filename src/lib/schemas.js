@@ -104,7 +104,6 @@ export const ClientSchema = z.object({
   contactName: strOpt,
   contactPhone: strOpt,
   openingHours: strOpt,
-  wholesaleTier: z.enum(["A", "B", "C"]).optional().nullable(),
   pipelineStage: z.enum(["prospecto", "contactado", "visitado", "primera_compra", "activo", "en_pausa"]).optional().nullable(),
   source: strOpt,
   creditEnabled: boolOpt,   // cuenta corriente: default off (paga contra entrega)

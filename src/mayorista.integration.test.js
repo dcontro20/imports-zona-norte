@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 // Módulos puros del pivote
-import { resolveTierPrice, orderMargin } from "./wholesale.js";
+import { orderMargin } from "./wholesale.js";
+import { construirSnapshot, precioEnLista } from "./lib/priceLists.js";
+import { DEFAULT_PRICING_POLICY } from "./lib/pricingPolicy.js";
 import { PROSPECT_STAGES_ORDER } from "./prospecting.js";
 import { pendingWholesaleOrders } from "./routes.js";
 import { saleOutstanding, clientOutstanding, creditStatus, allocatePayment } from "./lib/creditAccount.js";
@@ -28,30 +30,34 @@ describe("D.1 — flujo pedido → ruta → cobro (stock + fulfillment + caja)",
   it("recorre todo el flujo con los números exactos", () => {
     // --- Setup ---
     let products = [{ id: "p1", brand: "Elfbar", model: "BC", flavor: "Sandía", priceUSD: 12, costUSDT: 6, stock: 100, priceByChannel: { mayorista_a: 10 } }];
-    const client = { id: "c1", type: "mayorista", wholesaleTier: "A", businessName: "Kiosco A" };
+    const client = { id: "c1", type: "mayorista", businessName: "Kiosco A" };
     let sales = [];
     let routes = [];
 
-    // --- 1. WholesaleOrder: generar pedido (replica confirm()) ---
-    const tier = client.wholesaleTier;
+    // --- 1. WholesaleOrder (F5): precio desde la LISTA PUBLICADA al escalón ---
+    const lista = construirSnapshot({
+      productosMotor: [{ id: "Elfbar|BC", marca: "Elfbar", modelo: "BC", costo: 6, productIds: ["p1"], sabores: 1 }],
+      politica: DEFAULT_PRICING_POLICY, version: "v2026-08", fecha: nowISO(),
+    });
     const p1 = products[0];
-    const unitUSD = resolveTierPrice(p1, tier);            // precio de tier A
-    expect(unitUSD).toBe(10);                              // NO el base (12)
-    const qty = 5;
+    const qty = 25; // escalón 20-49 (≥ mínimo RN-08)
+    const unitUSD = precioEnLista(lista, "Elfbar|BC", qty).precio;
+    expect(unitUSD).toBe(9.5); // costo real 6×1.13=6.78 → /0.72 → redondeo ↑ 0.50
     const margin = orderMargin({ lines: [{ product: p1, qty, unitPriceUSD: unitUSD }] });
-    const totalARS = Math.round(margin.totalRevenueUSD * RATE); // 10*5*1000
-    expect(totalARS).toBe(50000);
+    const totalARS = Math.round(margin.totalRevenueUSD * RATE); // 9.5*25*1000
+    expect(totalARS).toBe(237500);
     const saleId = "s1";
     const sale = {
       id: saleId, date: nowISO(), saleType: "mayorista", channel: "Mayorista",
       fulfillmentStatus: "pendiente", clientId: client.id, clientName: client.businessName,
       currency: "ARS", total: totalARS, payments: [], exchangeRate: RATE,
+      listVersion: lista.version, escalonDesde: 20,
       items: [{ productId: "p1", qty, priceUSD: unitUSD, priceARS: Math.round(unitUSD * RATE), costUSDTAtSale: 6 }],
     };
     sales = [sale, ...sales];
     // descuento de stock (replica setProducts)
     products = products.map(p => p.id === "p1" ? { ...p, stock: p.stock - qty } : p);
-    expect(products[0].stock).toBe(95);                   // 100 - 5
+    expect(products[0].stock).toBe(75);                   // 100 - 25
 
     // --- 2. Routes: meter en ruta (replica createRoute) ---
     const routeId = "r1";
@@ -72,8 +78,8 @@ describe("D.1 — flujo pedido → ruta → cobro (stock + fulfillment + caja)",
 
     // --- 5. Cobrar (replica confirmCobro) ---
     const outstanding = saleOutstanding(sales.find(s => s.id === "s1"));
-    expect(outstanding).toBe(50000);
-    const payment = { method: "Mercado Pago", mpAccount: "MP Diego", amount: 50000, date: nowISO() };
+    expect(outstanding).toBe(237500);
+    const payment = { method: "Mercado Pago", mpAccount: "MP Diego", amount: 237500, date: nowISO() };
     sales = sales.map(s => s.id === "s1"
       ? { ...s, payments: [...s.payments, payment], fulfillmentStatus: saleOutstanding(s) - payment.amount <= 0 ? "cobrado" : "entregado" }
       : s);
@@ -83,7 +89,7 @@ describe("D.1 — flujo pedido → ruta → cobro (stock + fulfillment + caja)",
     expect(saleOutstanding(finalSale)).toBe(0);
 
     // --- 6. Puente con la caja: mpDiego subió 50000, mpGustavo intacto ---
-    expect(calcAccountBalance("mpDiego", cashCtx(sales, { mpDiego: 0 }))).toBe(50000);
+    expect(calcAccountBalance("mpDiego", cashCtx(sales, { mpDiego: 0 }))).toBe(237500);
     expect(calcAccountBalance("mpGustavo", cashCtx(sales, { mpGustavo: 0 }))).toBe(0);
   });
 });
@@ -105,7 +111,7 @@ describe("D.2 — flujo prospecto → conversión → cliente mayorista", () => 
     const newId = "c1";
     const newClient = {
       id: newId, type: "mayorista", name: p.contactName || p.businessName, businessName: p.businessName,
-      businessType: null, wholesaleTier: null, zone: p.zone, pipelineStage: "primera_compra",
+      businessType: null, zone: p.zone, pipelineStage: "primera_compra",
       tier: "regular", balance: 0, createdAt: nowISO(),
     };
     clients = [newClient, ...clients];
@@ -113,7 +119,6 @@ describe("D.2 — flujo prospecto → conversión → cliente mayorista", () => 
 
     // verificaciones
     expect(newClient.type).toBe("mayorista");
-    expect(newClient.wholesaleTier).toBeNull();                    // el tier lo asigna Diego después
     const prospectAfter = prospects.find(x => x.id === "pr1");
     expect(prospectAfter.isDeleted).toBe(true);
     expect(prospectAfter.convertedClientId).toBe("c1");
