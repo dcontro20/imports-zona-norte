@@ -21,6 +21,7 @@ export const DEFAULT_PRICING_POLICY = {
   ],
   redondeo: { multiplo: 0.5, direccion: "arriba" }, // §5.8 (RN-03)
   margenMinimo: 0.15,               // piso duro bloqueante (§5.10, RN-05)
+  margenAlerta: 0.2,                // aviso temprano de erosión de margen (alerta, no bloqueo)
   validaciones: {
     conflictoCanal: { activa: true, umbral: 0.85 }, // §5.11 (RN-14)
     margenCliente: { activa: true, umbral: 0.3 },   // §5.12 (RN-15)
@@ -85,6 +86,10 @@ export function validarPolitica(politica) {
   });
   const margenMinimo = Number(politica?.margenMinimo);
   if (!(margenMinimo >= 0 && margenMinimo < 1)) errores.push("El margen mínimo tiene que estar entre 0% y 100%.");
+  const margenAlerta = Number(politica?.margenAlerta) || 0;
+  if (margenAlerta > 0 && margenAlerta < margenMinimo) {
+    errores.push("La alerta de margen tiene que ser mayor o igual al piso (si no, nunca avisa antes de bloquear).");
+  }
   if (!(Number(politica?.redondeo?.multiplo) > 0)) errores.push("El múltiplo de redondeo tiene que ser mayor que 0.");
   if (!(Number(politica?.pedidoMinimo?.unidades) >= 0)) errores.push("El mínimo de unidades no puede ser negativo.");
   if (!(Number(politica?.pedidoMinimo?.ticketUSD) >= 0)) errores.push("El mínimo de ticket no puede ser negativo.");

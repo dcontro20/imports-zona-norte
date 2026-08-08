@@ -571,6 +571,7 @@ export default function App() {
     prospects, setProspects, visits, setVisits, routes, setRoutes,
     discoverySuppressed, setDiscoverySuppressed, discoveryResults, discoveryJobs,
     pricingPolicy, setPricingPolicy,
+    priceLists, setPriceLists,
     syncStatus, backupStatus, logStock, logPrice,
   } = sync;
 
@@ -869,6 +870,7 @@ export default function App() {
         monthlyClosures={monthlyClosures} exchangeRate={exchangeRate}
         prospects={prospects} visits={visits} routes={routes} discoverySuppressed={discoverySuppressed} auditLog={auditLog}
         pricingPolicy={pricingPolicy} setPricingPolicy={setPricingPolicy}
+        priceLists={priceLists} setPriceLists={setPriceLists}
         setProspects={setProspects} setVisits={setVisits} setRoutes={setRoutes} setDiscoverySuppressed={setDiscoverySuppressed} setAuditLog={sync.setAuditLog}
         setProducts={setProducts} setSales={setSales} setPurchases={setPurchases} setExpenses={setExpenses}
         setWithdrawals={setWithdrawals} setCashMovements={setCashMovements} setClients={setClients}

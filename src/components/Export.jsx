@@ -16,12 +16,13 @@ export const ExportData = ({
   // entra también: la Actividad de la Ficha se compone de él (sin auditLog,
   // un restore deja las Fichas sin historial).
   prospects = [], visits = [], routes = [], discoverySuppressed = [], auditLog = [],
-  // Pricing Engine: la política comercial es un OBJETO (no colección-array).
-  pricingPolicy = null,
+  // Pricing Engine: la política comercial es un OBJETO (no colección-array);
+  // priceLists son los snapshots inmutables de listas publicadas.
+  pricingPolicy = null, priceLists = [],
   setProducts, setSales, setPurchases, setExpenses, setWithdrawals, setCashMovements,
   setClients, setPartnerWithdrawals, setMonthlyClosures, setStockLog, setPriceLog,
   setProspects, setVisits, setRoutes, setDiscoverySuppressed, setAuditLog,
-  setPricingPolicy,
+  setPricingPolicy, setPriceLists,
   logAudit, currentUser,
 }) => {
   const { isMobile } = useResponsive();
@@ -78,6 +79,7 @@ export const ExportData = ({
     if (Array.isArray(d.auditLog) && setAuditLog) setAuditLog(d.auditLog);
     // pricingPolicy es objeto: normalizarPolitica completa campos de esquemas viejos
     if (d.pricingPolicy && typeof d.pricingPolicy === "object" && setPricingPolicy) setPricingPolicy(normalizarPolitica(d.pricingPolicy));
+    if (Array.isArray(d.priceLists) && setPriceLists) setPriceLists(d.priceLists);
     if (logAudit) {
       logAudit("restore", "backup", "full", `Restore completo desde ${restorePreview.filename}`);
     }
@@ -137,6 +139,7 @@ export const ExportData = ({
           routes: (routes || []).length,
           discoverySuppressed: (discoverySuppressed || []).length,
           auditLog: (auditLog || []).length,
+          priceLists: (priceLists || []).length,
         }
       },
       products,
@@ -156,6 +159,7 @@ export const ExportData = ({
       discoverySuppressed: discoverySuppressed || [],
       auditLog: auditLog || [],
       pricingPolicy: pricingPolicy || null,
+      priceLists: priceLists || [],
       exchangeRate
     };
     const dateStr = new Date().toISOString().slice(0, 10);

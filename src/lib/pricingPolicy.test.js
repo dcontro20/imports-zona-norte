@@ -22,6 +22,7 @@ describe("DEFAULT_PRICING_POLICY — v2026-08 aprobada", () => {
     expect(DEFAULT_PRICING_POLICY.costoAdicionalPct).toBe(0.13);
     expect(DEFAULT_PRICING_POLICY.escalones.map((e) => e.margen)).toEqual([0.28, 0.24, 0.21, 0.18]);
     expect(DEFAULT_PRICING_POLICY.margenMinimo).toBe(0.15);
+    expect(DEFAULT_PRICING_POLICY.margenAlerta).toBe(0.2);
     expect(DEFAULT_PRICING_POLICY.pedidoMinimo).toEqual({ unidades: 20, ticketUSD: 220 });
     expect(DEFAULT_PRICING_POLICY.bufferFxPct).toBe(0.03);
     expect(DEFAULT_PRICING_POLICY.vigenciaHoras).toBe(48);
@@ -79,6 +80,11 @@ describe("validarPolitica — consistencia de una política editada", () => {
   it("márgenes fuera de rango y múltiplo inválido", () => {
     expect(validarPolitica(conEscalones([{ desde: 20, hasta: null, margen: 1.2 }]))).not.toEqual([]);
     expect(validarPolitica({ ...DEFAULT_PRICING_POLICY, redondeo: { multiplo: 0 } })).not.toEqual([]);
+  });
+  it("la alerta de margen no puede quedar debajo del piso (nunca avisaría antes de bloquear)", () => {
+    const errores = validarPolitica({ ...DEFAULT_PRICING_POLICY, margenAlerta: 0.1 });
+    expect(errores.some((e) => e.includes("alerta de margen"))).toBe(true);
+    expect(validarPolitica({ ...DEFAULT_PRICING_POLICY, margenAlerta: 0 })).toEqual([]); // apagada es válida
   });
 });
 

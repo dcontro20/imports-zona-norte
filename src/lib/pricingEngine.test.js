@@ -127,6 +127,41 @@ describe("RN-05 — piso de margen bloqueante", () => {
   });
 });
 
+describe("margenAlerta — aviso temprano de erosión (alerta, no bloqueo)", () => {
+  const politica = {
+    costoAdicionalPct: 0,
+    escalones: [
+      { desde: 10, hasta: 99, margen: 0.3 },
+      { desde: 100, hasta: null, margen: 0.18 },
+    ],
+    redondeo: { multiplo: 0.5, direccion: "arriba" },
+    margenMinimo: 0.15,
+    margenAlerta: 0.2,
+  };
+  it("margen entre piso y alerta ⇒ alerta con el escalón señalado, sin bloquear", () => {
+    // costo 10.5 → escalón 2: 10.5/0.82 = 12.80 → 13 → margen real 19,2%:
+    // arriba del piso (15%), debajo de la alerta (20%).
+    const calc = calcularProducto({ id: "x", costo: 10.5 }, politica);
+    const alerta = calc.alertas.find((a) => a.regla === "margenAlerta");
+    expect(alerta).toMatchObject({ desde: 100, umbral: 0.2 });
+    expect(alerta.margenReal).toBeCloseTo((13 - 10.5) / 13, 10);
+    expect(calc.publicable).toBe(true); // alerta ≠ bloqueo
+    expect(calc.bloqueantes).toEqual([]);
+  });
+  it("debajo del piso es bloqueante, NO alerta duplicada", () => {
+    const dura = { ...politica, escalones: [{ desde: 10, hasta: null, margen: 0.1 }] };
+    const calc = calcularProducto({ id: "x", costo: 10 }, dura);
+    expect(calc.bloqueantes).toHaveLength(1);
+    expect(calc.alertas.filter((a) => a.regla === "margenAlerta")).toEqual([]);
+  });
+  it("apagada (0 o ausente) no emite nada", () => {
+    const sin = { ...politica, margenAlerta: 0 };
+    expect(calcularProducto({ id: "x", costo: 10.5 }, sin).alertas).toEqual([]);
+    const { margenAlerta, ...ausente } = politica;
+    expect(calcularProducto({ id: "x", costo: 10.5 }, ausente).alertas).toEqual([]);
+  });
+});
+
 describe("RN-18 — producto sin costo no se calcula ni publica", () => {
   it("sin costo, costo 0 o negativo ⇒ sinCosto", () => {
     expect(tieneCosto({ costo: 5 })).toBe(true);

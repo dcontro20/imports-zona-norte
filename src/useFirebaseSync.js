@@ -58,6 +58,7 @@ const DATA_KEYS = [
   { key: "routes", default: [] },           // mayorista: rutas de reparto
   { key: "discoverySuppressed", default: [] }, // discovery: descartados con memoria (P5 IZN, contrato §7)
   { key: "pricingPolicy", default: DEFAULT_PRICING_POLICY }, // política comercial del Pricing Engine (RN-19) — objeto, no array
+  { key: "priceLists", default: [] }, // listas publicadas: snapshots INMUTABLES append-only (RN-12) — nadie edita ni borra
 ];
 
 export function useFirebaseSync() {
@@ -87,6 +88,7 @@ export function useFirebaseSync() {
   const [visits, setVisits] = useState(() => loadData("visits", []));
   const [discoverySuppressed, setDiscoverySuppressed] = useState(() => loadData("discoverySuppressed", []));
   const [pricingPolicy, setPricingPolicy] = useState(() => loadData("pricingPolicy", DEFAULT_PRICING_POLICY));
+  const [priceLists, setPriceLists] = useState(() => loadData("priceLists", []));
   // Staging del discovery (colección discoveryResults, FUERA de appData):
   // solo lectura — lo escribe el worker vía Admin SDK, la app lo consume.
   const [discoveryResults, setDiscoveryResults] = useState([]);
@@ -155,6 +157,7 @@ export function useFirebaseSync() {
     prospects: setProspects, visits: setVisits, routes: setRoutes,
     discoverySuppressed: setDiscoverySuppressed,
     pricingPolicy: setPricingPolicy,
+    priceLists: setPriceLists,
   }).current;
 
   // ---- Subscribe to Firestore ONLY when authenticated ----
@@ -354,6 +357,7 @@ export function useFirebaseSync() {
   useEffect(() => smartSave("routes", routes), [routes]); // eslint-disable-line
   useEffect(() => smartSave("discoverySuppressed", discoverySuppressed), [discoverySuppressed]); // eslint-disable-line
   useEffect(() => smartSave("pricingPolicy", pricingPolicy), [pricingPolicy]); // eslint-disable-line
+  useEffect(() => smartSave("priceLists", priceLists), [priceLists]); // eslint-disable-line
   useEffect(() => smartSave("exchangeRate", exchangeRate), [exchangeRate]); // eslint-disable-line
 
   // ---- Auto-fetch dolar blue ----
@@ -426,6 +430,7 @@ export function useFirebaseSync() {
     prospects, setProspects, visits, setVisits, routes, setRoutes,
     discoverySuppressed, setDiscoverySuppressed, discoveryResults, discoveryJobs,
     pricingPolicy, setPricingPolicy,
+    priceLists, setPriceLists,
     dataReady, syncStatus, fromFirestore,
     backupStatus,
     logStock, logPrice,

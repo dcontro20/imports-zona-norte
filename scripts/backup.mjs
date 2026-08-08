@@ -112,8 +112,10 @@ const COLLECTIONS = [
   // B3 (ciclo de resiliencia 2026-08-01): las colecciones del CRM de
   // prospección — desde el Discovery Engine acá vive data de negocio real.
   "prospects", "visits", "routes", "discoverySuppressed",
-  // Pricing Engine (2026-08-07): política comercial (objeto, no array).
-  "pricingPolicy",
+  // Pricing Engine (2026-08-07): política comercial (objeto, no array) +
+  // listas publicadas (snapshots inmutables — perderlas rompe la trazabilidad
+  // de qué versión respondió cada cotización, RN-11/12).
+  "pricingPolicy", "priceLists",
 ];
 
 const BACKUP_DIR = join(PROJECT_ROOT, "backups");

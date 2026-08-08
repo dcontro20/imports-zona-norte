@@ -38,6 +38,9 @@
 //   metricaEscalon,      // "unidades" — nombre explícito de la métrica del total
 //   redondeo,            // { multiplo, direccion: "arriba" | "abajo" }
 //   margenMinimo,        // ej. 0.15 — piso duro, bloqueante (universal)
+//   margenAlerta?,       // ej. 0.20 — aviso temprano, NO bloquea (0/ausente = apagado).
+//                        //   El piso es bloqueante y por eso tardío: cuando salta ya se
+//                        //   perdió margen. La alerta da margen de reacción antes.
 //   validaciones: {      // opcionales: desactivadas o sin dato ⇒ no corren, no rompen
 //     conflictoCanal: { activa, umbral },  // alerta si p(escalón 1) > umbral × precioReferencia
 //     margenCliente:  { activa, umbral },  // alerta si margen del cliente < umbral
@@ -123,6 +126,7 @@ export function validarProducto(producto, precios, politica) {
   const alertas = [];
 
   const piso = Number(politica?.margenMinimo) || 0;
+  const margenAlerta = Number(politica?.margenAlerta) || 0;
   for (const esc of precios) {
     if (esc.margenReal < piso - EPS) {
       bloqueantes.push({
@@ -130,6 +134,15 @@ export function validarProducto(producto, precios, politica) {
         desde: esc.desde,
         margenReal: esc.margenReal,
         minimo: piso,
+      });
+    } else if (margenAlerta > 0 && esc.margenReal < margenAlerta - EPS) {
+      // Aviso temprano de erosión de margen: por encima del piso (si no, ya es
+      // bloqueante) pero debajo del umbral de alerta. No bloquea.
+      alertas.push({
+        regla: "margenAlerta",
+        desde: esc.desde,
+        margenReal: esc.margenReal,
+        umbral: margenAlerta,
       });
     }
   }
