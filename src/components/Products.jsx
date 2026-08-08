@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { uid, formatMoney } from "../helpers.js";
+import { uid, formatMoney, formatDate } from "../helpers.js";
 import { Modal, Card, Btn, Input, Select, Table, Badge, SearchBar, useBodyScrollLock } from "./UI.jsx";
 import { BRANDS, BRAND_COLORS } from "../constants.js";
 import { useResponsive } from "../App.jsx";
@@ -12,6 +12,8 @@ import {
   classifyLifecycle,
 } from "../productIntelligence.js";
 import { calcMarginGuard } from "../pricing.js";
+import { productosParaMotor } from "../lib/pricingAdapter.js";
+import { ultimoCostoCompra, driftCostoFicha } from "../lib/costoCompras.js";
 
 // -- PRODUCTS / STOCK --
 
@@ -94,7 +96,7 @@ const ProductBadges = ({ product, stat, margin, lc, expiryBadge, isMobile }) => 
 };
 
 
-export const Products = ({ products, setProducts, priceLog = [], sales = [] }) => {
+export const Products = ({ products, setProducts, priceLog = [], sales = [], purchases = [], pricingPolicy = null }) => {
   const { exchangeRate, logStock, logPrice, currentUser, logAudit } = useAppContext();
   const { isMobile } = useResponsive();
   const [search, setSearch] = useState("");
@@ -110,6 +112,10 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
   const [form, setForm] = useState({ brand: "", model: "", flavor: "", puffs: "", priceUSD: "", priceARS: "", costUSDT: "", stock: 0, expiryDate: "", tags: [], photoUrl: "", priceByChannel: {} });
   const [tagFilter, setTagFilter] = useState("");
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
+  // Pricing Engine F3 — editor masivo de costos por modelo (el costo alimenta
+  // la lista mayorista; cargarlo sabor por sabor invita al error de carga).
+  const [costosModal, setCostosModal] = useState(false);
+  const [costosDraft, setCostosDraft] = useState({});
   const [lightboxUrl, setLightboxUrl] = useState("");
   // Lock del scroll de fondo mientras el lightbox está abierto (iOS)
   useBodyScrollLock(!!lightboxUrl);
@@ -162,6 +168,52 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
     products.forEach(p => (p.tags || []).forEach(t => set.add(t)));
     return Array.from(set).sort();
   }, [products]);
+
+  // Pricing Engine F3 — vista por MODELO para el costo (el motor precia por
+  // marca+modelo) + inconsistencias VISIBLES: sabores del mismo modelo con
+  // costos distintos suelen ser error de carga, no situación legítima. El
+  // adaptador usa el más alto mientras tanto (protege margen), pero el
+  // operador lo tiene que ver para corregirlo.
+  const { productosMotor: modelosCosto, inconsistencias } = useMemo(
+    () => productosParaMotor(products),
+    [products]
+  );
+  const inconsistenciasCosto = inconsistencias.filter(i => i.tipo === "costo");
+
+  const abrirCostosModal = () => {
+    const draft = {};
+    const inconsistentes = new Set(inconsistenciasCosto.map(i => i.id));
+    modelosCosto.forEach(m => {
+      draft[m.id] = inconsistentes.has(m.id) ? "" : (m.costo > 0 ? m.costo : "");
+    });
+    setCostosDraft(draft);
+    setCostosModal(true);
+  };
+
+  const guardarCostosPorModelo = () => {
+    // Cambios calculados ANTES del setState (nada de side effects en el updater).
+    const nuevosPorClave = {};
+    for (const [clave, val] of Object.entries(costosDraft)) {
+      const n = Number(val);
+      if (val !== "" && n > 0) nuevosPorClave[clave] = n;
+    }
+    const cambiados = products.filter(p => {
+      if (p.isDeleted) return false;
+      const nuevo = nuevosPorClave[`${p.brand}|${p.model}`];
+      return nuevo != null && Number(p.costUSDT) !== nuevo;
+    });
+    if (cambiados.length > 0) {
+      setProducts(prev => prev.map(p => {
+        if (p.isDeleted) return p;
+        const nuevo = nuevosPorClave[`${p.brand}|${p.model}`];
+        return nuevo != null && Number(p.costUSDT) !== nuevo ? { ...p, costUSDT: nuevo } : p;
+      }));
+      if (logAudit) logAudit("update", "product", "costos-masivo", `Actualizó costos por modelo (${cambiados.length} sabores)`);
+    }
+    setCostosModal(false);
+    setToast(cambiados.length > 0 ? `✓ Costo actualizado en ${cambiados.length} sabor${cambiados.length !== 1 ? "es" : ""}` : "Sin cambios");
+    setTimeout(() => setToast(""), 2600);
+  };
 
   // S15 — Inteligencia de producto: stats por producto en una pasada.
   // Los badges slow/dead se quitaron por feedback de UX (poco accionables
@@ -262,11 +314,36 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
             <>
               <Btn variant="secondary" onClick={startQuickEdit} style={{ padding: isMobile ? "10px 12px" : "10px 14px", minHeight: 44, flex: isMobile ? 1 : "0 0 auto", fontSize: isMobile ? 12 : 13 }}>⚡ {isMobile ? "Rápida" : "Edición rápida"}</Btn>
               <Btn variant="secondary" onClick={() => setBulkImportOpen(true)} style={{ padding: isMobile ? "10px 12px" : "10px 14px", minHeight: 44, flex: isMobile ? 1 : "0 0 auto", fontSize: isMobile ? 12 : 13 }}>📥 {isMobile ? "CSV" : "Importar CSV"}</Btn>
+              <Btn variant="secondary" onClick={abrirCostosModal} style={{ padding: isMobile ? "10px 12px" : "10px 14px", minHeight: 44, flex: isMobile ? 1 : "0 0 auto", fontSize: isMobile ? 12 : 13 }}>💲 {isMobile ? "Costos" : "Costos por modelo"}</Btn>
               <Btn onClick={openNew} style={{ minHeight: 44, flex: isMobile ? 1 : "0 0 auto" }}>+ Nuevo</Btn>
             </>
           )}
         </div>
       </div>
+
+      {/* Pricing Engine F3 — inconsistencias de costo VISIBLES (pedido de
+          Gustavo en gate F2): en general es error de carga; mientras tanto la
+          lista mayorista usa el costo más alto del modelo. */}
+      {inconsistenciasCosto.length > 0 && (
+        <div style={{
+          marginBottom: 14, padding: "10px 14px", borderRadius: 10,
+          background: `${T.amber}12`, border: `1px solid ${T.amber}55`,
+          display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+        }}>
+          <div style={{ flex: 1, minWidth: 220, fontSize: 12, color: T.amber }}>
+            <strong>⚠️ Costos distintos entre sabores del mismo modelo</strong> — suele ser
+            error de carga; la lista mayorista usa el más alto mientras tanto:
+            <div style={{ marginTop: 4, color: "#6B7794" }}>
+              {inconsistenciasCosto.map(i => (
+                <div key={i.id}>• {i.id.replace("|", " ")}: ${i.valores.join(" / $")}</div>
+              ))}
+            </div>
+          </div>
+          <Btn variant="secondary" onClick={abrirCostosModal} style={{ minHeight: 40, color: T.amber, flexShrink: 0 }}>
+            Corregir
+          </Btn>
+        </div>
+      )}
 
       {/* Filters — scroll horizontal en mobile */}
       <div style={{
@@ -546,13 +623,53 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
             <Input label="Precio venta ARS" type="number" value={form.priceARS} onChange={e => setForm(f => ({ ...f, priceARS: e.target.value }))} />
           </div>
         </div>
-        {/* S15.3 — Costo USDT (importación Paraguay). Necesario para calcular margen real. */}
+        {/* Pricing Engine F3 — el costo es EL dato de entrada del motor: de acá
+            deriva la lista mayorista completa (decisión #3: costo de REPOSICIÓN,
+            cargado en la ficha; Compras es referencia, no fuente). */}
         <Input
-          label="Costo USDT (lo que pagás en Paraguay — para cálculo de margen)"
+          label="Costo proveedor USD (reposición — de acá deriva la lista mayorista)"
           type="number"
           value={form.costUSDT}
           onChange={e => setForm(f => ({ ...f, costUSDT: e.target.value }))}
-          placeholder="ej: 5.50"
+          placeholder="ej: 8.50"
+        />
+        {/* Referencia del último lote en Compras + warning de drift (riesgo §9:
+            costo desactualizado). No pisa la ficha sola: botón "Usar" explícito. */}
+        {editing && (() => {
+          const ref = ultimoCostoCompra(editing, purchases);
+          if (!ref) return null;
+          const drift = driftCostoFicha(form.costUSDT, ref.costo, pricingPolicy?.umbralRecalculoPct ?? 0.03);
+          const alerta = drift?.fueraDeUmbral;
+          return (
+            <div style={{
+              marginTop: -6, marginBottom: 12, padding: "8px 12px", borderRadius: 8,
+              background: alerta ? `${T.amber}15` : "#FBF7EE",
+              border: `1px solid ${alerta ? T.amber + "55" : "#EFE5CE"}`,
+              fontSize: 12, color: alerta ? T.amber : "#6B7794",
+              display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
+            }}>
+              <span style={{ flex: 1, minWidth: 180 }}>
+                🧾 Último lote en Compras: <strong>${ref.costo}</strong> ({formatDate(ref.fecha)})
+                {alerta && <> — difiere <strong>{(drift.pct * 100).toFixed(1)}%</strong> de la ficha: el costo de reposición puede estar viejo</>}
+              </span>
+              {Number(form.costUSDT) !== ref.costo && (
+                <button onClick={() => setForm(f => ({ ...f, costUSDT: ref.costo }))} style={{
+                  border: `1px solid ${T.amber}`, background: "transparent", color: T.amber,
+                  borderRadius: 6, cursor: "pointer", fontWeight: 700, padding: "4px 10px",
+                  fontSize: 11, minHeight: isMobile ? 36 : 24, fontFamily: "inherit", flexShrink: 0,
+                }}>Usar</button>
+              )}
+            </div>
+          );
+        })()}
+        {/* Precio de calle observado: NO participa del cálculo — solo alimenta la
+            validación de margen del kiosco de la lista mayorista (RN-15). */}
+        <Input
+          label="Precio de calle observado ARS (opcional — solo valida la lista, no la calcula)"
+          type="number"
+          value={form.streetPriceARS || ""}
+          onChange={e => setForm(f => ({ ...f, streetPriceARS: e.target.value === "" ? undefined : Number(e.target.value) }))}
+          placeholder="ej: 38000 (lo que cobra el kiosco al público)"
         />
         {/* Margen preview en vivo + S16.4 calculadora margin guard */}
         {form.priceUSD > 0 && form.costUSDT > 0 && (() => {
@@ -631,41 +748,11 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
             Vacío = usa precio default. Sirve para cargar fee de MercadoLibre o descuento presencial.
           </p>
         </details>
-        <details style={{ marginBottom: 12 }}>
-          <summary style={{ cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#1E2B4A", padding: "6px 0" }}>
-            🏪 Precios mayorista por tier (A/B/C, en USD)
-          </summary>
-          <div style={{ paddingTop: 8, paddingLeft: 12, borderLeft: "2px solid #E5DAC2", display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr", gap: 10 }}>
-            {["a", "b", "c"].map(tier => {
-              const key = `mayorista_${tier}`;
-              const price = Number(form.priceByChannel?.[key]) || 0;
-              const cost = Number(form.costUSDT) || 0;
-              const marginPct = price > 0 && cost > 0 ? Math.round(((price - cost) / price) * 100) : null;
-              const marginColor = marginPct == null ? "#6B7794" : marginPct >= 30 ? T.green : marginPct >= 20 ? T.amber : T.red;
-              return (
-                <div key={key} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                  <label style={{ fontSize: 11, color: "#6B7794", fontWeight: 700 }}>Tier {tier.toUpperCase()}</label>
-                  <input
-                    type="number" step="0.01"
-                    placeholder={`USD (default: ${form.priceUSD || "—"})`}
-                    value={form.priceByChannel?.[key] || ""}
-                    onChange={e => {
-                      const val = e.target.value;
-                      setForm(f => ({ ...f, priceByChannel: { ...(f.priceByChannel || {}), [key]: val === "" ? undefined : Number(val) } }));
-                    }}
-                    style={{ width: "100%", padding: isMobile ? "8px 10px" : "6px 8px", borderRadius: 6, minHeight: isMobile ? 44 : "auto", border: "1px solid #E5DAC2", fontSize: isMobile ? 16 : 13, fontFamily: "inherit", textAlign: "right", boxSizing: "border-box" }}
-                  />
-                  <span style={{ fontSize: 11, fontWeight: 700, color: marginColor, textAlign: "right" }}>
-                    {marginPct == null ? "margen —" : `margen ${marginPct}%`}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-          <p style={{ fontSize: 11, color: "#6B7794", marginTop: 6, paddingLeft: 12 }}>
-            Lista propia por tier (no es "% sobre minorista"). El margen se calcula con el costo real. Verde ≥30%, ámbar ≥20%, rojo &lt;20%.
-          </p>
-        </details>
+        {/* Pricing Engine F3 (RN-16): el editor de precios mayoristas por tier
+            A/B/C se RETIRÓ. El precio mayorista ya no es un dato de entrada:
+            lo deriva el motor desde el costo (pantalla 🎛️ Política comercial +
+            🏷️ Lista de precios). Los priceByChannel.mayorista_* viejos quedan
+            inertes en la data hasta la limpieza de F6. */}
         <Input
           label="Tags (separados por coma — ej: premium, puff alto, discontinuado)"
           placeholder="premium, puff alto"
@@ -739,6 +826,52 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [] }) =
           onClose={() => setBulkImportOpen(false)}
         />
       )}
+
+      {/* Pricing Engine F3 — costos por modelo: un solo costo por marca+modelo,
+          aplicado a todos sus sabores. La vía rápida para mantener el costo de
+          reposición al día (y corregir inconsistencias de carga). */}
+      <Modal open={costosModal} onClose={() => setCostosModal(false)} title="💲 Costos por modelo (USD)">
+        <p style={{ fontSize: 12, color: "#6B7794", marginTop: 0 }}>
+          El costo se aplica a todos los sabores del modelo. De este dato deriva
+          la lista mayorista — mantenerlo como costo de REPOSICIÓN (lo que pagarías hoy).
+        </p>
+        {(() => {
+          const inconsistentes = new Set(inconsistenciasCosto.map(i => i.id));
+          return modelosCosto.map(m => (
+            <div key={m.id} style={{
+              display: "flex", alignItems: "center", gap: 10, padding: "7px 0",
+              borderBottom: "1px solid #EFE5CE",
+            }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "#1E2B4A" }}>
+                  {m.marca} {m.modelo}
+                </div>
+                <div style={{ fontSize: 11, color: inconsistentes.has(m.id) ? T.amber : "#9AA2B3" }}>
+                  {m.sabores} sabor{m.sabores !== 1 ? "es" : ""}
+                  {inconsistentes.has(m.id) && " · ⚠️ costos mezclados — unificar"}
+                  {!inconsistentes.has(m.id) && !(m.costo > 0) && " · sin costo: no entra a la lista (RN-18)"}
+                </div>
+              </div>
+              <input
+                type="number" step="0.25" min="0"
+                placeholder={inconsistentes.has(m.id) ? "mezclados" : "—"}
+                value={costosDraft[m.id] ?? ""}
+                onChange={e => setCostosDraft(d => ({ ...d, [m.id]: e.target.value }))}
+                style={{
+                  width: 96, padding: isMobile ? "10px 10px" : "7px 9px", borderRadius: 8,
+                  minHeight: isMobile ? 44 : 34, textAlign: "right", boxSizing: "border-box",
+                  border: `1px solid ${inconsistentes.has(m.id) ? T.amber : "#E5DAC2"}`,
+                  fontSize: isMobile ? 16 : 13, fontFamily: "inherit",
+                }}
+              />
+            </div>
+          ));
+        })()}
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 16 }}>
+          <Btn variant="secondary" onClick={() => setCostosModal(false)}>Cancelar</Btn>
+          <Btn onClick={guardarCostosPorModelo}>Guardar costos</Btn>
+        </div>
+      </Modal>
 
       {lightboxUrl && (
         <div
