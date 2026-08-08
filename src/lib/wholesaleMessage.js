@@ -105,3 +105,76 @@ export function priceListText(products = [], { tier = "C", exchangeRate = 0, now
   lines.push("📦 Todo con stock a hoy. Hacé tu pedido y coordinamos la entrega. 🙌");
   return lines.join("\n");
 }
+
+// ---------------------------------------------------------------------------
+// LISTA MAYORISTA POR ESCALONES (Pricing Engine F4)
+// ---------------------------------------------------------------------------
+// Reemplaza al texto por tier: la lista compartida manda TODOS los escalones,
+// no uno solo. Definición comercial de Gustavo (gate F3→F4): la grilla
+// completa hace visible el incentivo de volumen antes de que el cliente pida
+// presupuesto — mandar un escalón suelto tenía sentido con tiers por cliente;
+// con escalones por volumen esconde justamente lo que los justifica. Y la
+// mezcla libre va ESCRITA en el mensaje, no implícita en la grilla: es EL
+// diferencial del negocio.
+
+// Filas de la lista VIGENTE que tienen stock hoy, agrupadas por marca.
+// El stock se suma por marca+modelo desde los productos VIVOS (no desde los
+// productIds del snapshot: un sabor agregado después de publicar cuenta).
+// Devuelve [{ marca, items: [filas del snapshot] }].
+export function listaEscalonesItems(lista, products = []) {
+  const stockPorModelo = new Map();
+  for (const p of products || []) {
+    if (!p || p.isDeleted) continue;
+    const clave = `${p.brand}|${p.model}`;
+    stockPorModelo.set(clave, (stockPorModelo.get(clave) || 0) + (Number(p.stock) || 0));
+  }
+  const porMarca = {};
+  for (const fila of lista?.filas || []) {
+    if ((stockPorModelo.get(fila.id) || 0) <= 0) continue;
+    (porMarca[fila.marca] = porMarca[fila.marca] || []).push(fila);
+  }
+  return Object.keys(porMarca).sort((a, b) => a.localeCompare(b)).map(marca => ({
+    marca,
+    items: porMarca[marca].slice().sort((a, b) => a.modelo.localeCompare(b.modelo)),
+  }));
+}
+
+// Texto compartible de la lista publicada, en pesos.
+// Reglas: TODOS los escalones por modelo · mezcla libre escrita arriba ·
+// versión + fecha + disclaimer del dólar (reglas de Diego, 2026-07-24) ·
+// sin ninguna mención de tier/cliente. La conversión a pesos usa el FX del
+// día + buffer de la política CONGELADA en la lista (la misma conversión que
+// usará el cotizador: lista y presupuesto no divergen).
+export function listaEscalonesText(lista, { products = [], exchangeRate = 0, now = new Date() } = {}) {
+  const grupos = listaEscalonesItems(lista, products);
+  if (!lista || grupos.length === 0) return "";
+  const buffer = Number(lista.politica?.bufferFxPct) || 0;
+  const rate = (Number(exchangeRate) || 0) * (1 + buffer);
+  if (!(rate > 0)) return "";
+  const fecha = now.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
+  const rango = (e) => (e.hasta == null ? `${e.desde}+` : `${e.desde}-${e.hasta}`);
+  // Los rangos salen del snapshot (arreglo, cantidad libre — jamás se asume 4).
+  const escalones = grupos[0].items[0].precios;
+
+  const lines = [];
+  lines.push("🏷️ *LISTA MAYORISTA — Imports Zona Norte*");
+  lines.push(`📅 Lista ${lista.version} · ${fecha}`);
+  lines.push("");
+  lines.push("💡 *El precio por unidad depende del TOTAL de unidades del pedido.* Mezclá modelos y sabores como quieras — lo que cuenta es el total.");
+  lines.push(`Unidades: ${escalones.map(rango).join("  ·  ")}`);
+  grupos.forEach(g => {
+    lines.push("");
+    lines.push(`*${g.marca.toUpperCase()}*`);
+    g.items.forEach(f => {
+      lines.push(`• ${f.modelo}: ${f.precios.map(e => money(e.precio * rate)).join(" · ")}`);
+    });
+  });
+  lines.push("");
+  const minimo = lista.politica?.pedidoMinimo;
+  if (Number(minimo?.unidades) > 0) {
+    const ticket = Number(minimo.ticketUSD) > 0 ? ` (ticket mínimo ${money(minimo.ticketUSD * rate)})` : "";
+    lines.push(`📦 Pedido mínimo: ${minimo.unidades} unidades${ticket}.`);
+  }
+  lines.push(`💵 Precios en pesos al dólar del ${fecha} — pueden ajustarse si el dólar se mueve.`);
+  return lines.join("\n");
+}

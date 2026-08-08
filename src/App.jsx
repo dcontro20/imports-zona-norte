@@ -842,7 +842,7 @@ export default function App() {
       case "clients": return <Clients clients={clients} setClients={setClients} sales={activeSales} products={activeProducts} withdrawals={activeWithdrawals} />;
       case "kioscos": return <Kioscos clients={clients} setClients={setClients} sales={activeSales} products={activeProducts} fichaInicial={fichaFor("kiosco")} onFichaAbierta={limpiarFicha} />;
       case "wholesaleOrder": return <WholesaleOrder clients={clients} products={products} setProducts={setProducts} sales={activeSales} setSales={setSales} logStock={logStock} />;
-      case "priceList": return <PriceListScreen products={activeProducts} />;
+      case "priceList": return <PriceListScreen products={activeProducts} priceLists={priceLists} setPriceLists={setPriceLists} pricingPolicy={pricingPolicy} logAudit={logAudit} />;
       case "pricingPolicy": return <PricingPolicyScreen pricingPolicy={pricingPolicy} setPricingPolicy={setPricingPolicy} logAudit={logAudit} />;
       case "prospectos":
       // Alias de deep-links/⌘K (ex-pantallas absorbidas por el módulo):
