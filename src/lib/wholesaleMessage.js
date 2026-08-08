@@ -5,7 +5,6 @@
 // texto y lo pega en WhatsApp.
 
 import { clientOutstanding, clientMayoristaSales, saleOutstanding, oldestUnpaidDays } from "./creditAccount.js";
-import { resolveTierPrice, hasTierPrice } from "../wholesale.js";
 
 const money = (n) => `$${Math.round(Number(n) || 0).toLocaleString("es-AR")}`;
 
@@ -43,9 +42,8 @@ export function cobranzaMessage(client, sales, now = Date.now()) {
 // quemaba el contacto. Los mensajes de seguimiento (ahí sí, según cómo avance
 // la charla) se definen después.
 //
-// La lista de precios NO se perdió: vive en su propia pantalla (priceListText /
-// priceListItems, 🏷️ Lista de precios), que es donde se comparte cuando
-// corresponde.
+// La lista de precios NO se perdió: vive en su propia pantalla (🏷️ Lista de
+// precios → listaEscalonesText), que es donde se comparte cuando corresponde.
 export function presentationMessage(target, { remitente = "" } = {}) {
   const quien = String(remitente || "").trim();
   const biz = String(target?.businessName || target?.name || "").trim();
@@ -55,56 +53,8 @@ export function presentationMessage(target, { remitente = "" } = {}) {
   return biz ? `${saludo} ¿Me comunico con ${biz}?` : saludo;
 }
 
-// ---------------------------------------------------------------------------
-// LISTA DE PRECIOS COMPARTIBLE (Bloque 2.2 — front de ventas)
-// ---------------------------------------------------------------------------
-
-// Items de la lista para un tier: solo productos con stock Y lista de tier
-// cargada, agrupados por marca (orden alfabético, y por modelo+sabor adentro).
-// Devuelve [{ brand, items: [{ id, label, priceARS }] }]. Base compartida de
-// la pantalla y del texto de WhatsApp.
-export function priceListItems(products = [], tier = "C", exchangeRate = 0) {
-  const t = String(tier || "C").toUpperCase();
-  const rate = Number(exchangeRate) || 0;
-  const byBrand = {};
-  (products || [])
-    .filter(p => p && !p.isDeleted && (Number(p.stock) || 0) > 0 && hasTierPrice(p, t))
-    .forEach(p => {
-      const brand = (p.brand || "Otros").trim() || "Otros";
-      byBrand[brand] = byBrand[brand] || [];
-      byBrand[brand].push({
-        id: p.id,
-        label: `${p.model || ""} ${p.flavor || ""}`.trim() || p.brand,
-        priceARS: Math.round(resolveTierPrice(p, t) * rate),
-      });
-    });
-  return Object.keys(byBrand).sort((a, b) => a.localeCompare(b)).map(brand => ({
-    brand,
-    items: byBrand[brand].sort((a, b) => a.label.localeCompare(b.label)),
-  }));
-}
-
-// Texto compartible de la lista COMPLETA. Decisiones de Diego (2026-07-24):
-// - NO menciona el tier (las listas se reenvían entre comercios; "Tier B"
-//   abre la pregunta de por qué no A). El tier es info interna de la pantalla.
-// - Fecha + disclaimer del dólar (estándar del rubro — cubre listas viejas).
-// - Completa: todos los productos con stock y precio de tier, por marca.
-export function priceListText(products = [], { tier = "C", exchangeRate = 0, now = new Date() } = {}) {
-  const groups = priceListItems(products, tier, exchangeRate);
-  if (groups.length === 0) return "";
-  const fecha = now.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
-  const lines = [];
-  lines.push("🛒 *LISTA DE PRECIOS — Imports Zona Norte*");
-  lines.push(`📅 Precios al ${fecha} · sujetos a variación del dólar`);
-  groups.forEach(g => {
-    lines.push("");
-    lines.push(`*${g.brand.toUpperCase()}*`);
-    g.items.forEach(it => lines.push(`• ${it.label} — ${money(it.priceARS)}`));
-  });
-  lines.push("");
-  lines.push("📦 Todo con stock a hoy. Hacé tu pedido y coordinamos la entrega. 🙌");
-  return lines.join("\n");
-}
+// (F6: los generadores por tier priceListItems/priceListText se retiraron —
+// la lista compartible sale de la LISTA PUBLICADA, abajo.)
 
 // ---------------------------------------------------------------------------
 // LISTA MAYORISTA POR ESCALONES (Pricing Engine F4)

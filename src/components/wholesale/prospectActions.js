@@ -27,7 +27,7 @@ export function makeProspectActions({
       const newClient = {
         id, type: "mayorista",
         name: p.contactName || p.businessName || "Mayorista",
-        businessName: p.businessName || "", businessType: null, wholesaleTier: null,
+        businessName: p.businessName || "", businessType: null,
         zone: p.zone || "", address: p.address || "", phone: p.phone || "", contactName: p.contactName || "",
         source: p.source || "manual", pipelineStage: "primera_compra",
         tier: "regular", balance: 0, notes: p.notes || "",

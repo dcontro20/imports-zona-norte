@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { uid, formatMoney } from "../helpers.js";
 import { useResponsive } from "../App.jsx";
 import { Card, Btn, Select, Modal, Input } from "./UI.jsx";
@@ -7,6 +7,7 @@ import { useAppContext } from "../AppContext.js";
 import { orderMargin } from "../wholesale.js";
 import { creditStatus } from "../lib/creditAccount.js";
 import { listaVigente, precioEnLista } from "../lib/priceLists.js";
+import { marcarGanado, presupuestoVencido } from "../lib/cotizador.js";
 
 // Pedido MAYORISTA (F5: conectado al motor): elegís un cliente → los precios
 // salen de la LISTA PUBLICADA al escalón del total de unidades (RN-06/07,
@@ -19,7 +20,7 @@ import { listaVigente, precioEnLista } from "../lib/priceLists.js";
 const prodLabel = (p) => `${p.brand} ${p.model} - ${p.flavor}`;
 const costOf = (p) => (Number(p?.avgCostUSDT) > 0 ? Number(p.avgCostUSDT) : Number(p?.costUSDT) > 0 ? Number(p.costUSDT) : 0);
 
-export function WholesaleOrder({ clients = [], products = [], setProducts, sales = [], setSales, logStock, priceLists = [], pricingPolicy = null }) {
+export function WholesaleOrder({ clients = [], products = [], setProducts, sales = [], setSales, logStock, priceLists = [], pricingPolicy = null, quotes = [], setQuotes }) {
   const { isMobile } = useResponsive();
   const { exchangeRate, logAudit, currentUser } = useAppContext();
   // FX del día + buffer de la política de la LISTA (la misma conversión de la
@@ -32,6 +33,16 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
   const [clientId, setClientId] = useState("");
   const [search, setSearch] = useState("");
   const [lines, setLines] = useState([]); // [{ productId, qty }] — el precio se DERIVA de la lista, jamás se guarda ni edita
+  // "Armar pedido" desde el Cotizador (ajuste 1 del gate F5): el presupuesto
+  // llega por handoff (localStorage) — checklist de modelos pre-cargada, el
+  // vendedor solo elige sabores, y el saleId se linkea solo al registrar.
+  const [armandoQuote, setArmandoQuote] = useState(() => {
+    try {
+      const id = localStorage.getItem("izn:armarQuote");
+      if (id) localStorage.removeItem("izn:armarQuote");
+      return id ? (quotes.find(q => q.id === id) || null) : null;
+    } catch { return null; }
+  });
   const [toast, setToast] = useState("");
   const [orderNote, setOrderNote] = useState(""); // Tanda F: nota libre del pedido (viaja a la hoja de ruta)
   const [historyOpen, setHistoryOpen] = useState(false); // Tanda F: duplicar pedido histórico
@@ -41,6 +52,23 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
     [clients]
   );
   const client = mayoristas.find(c => c.id === clientId) || null;
+
+  // Al llegar armando un presupuesto: preseleccionar su cliente (si tiene).
+  useEffect(() => {
+    if (armandoQuote?.clienteId) setClientId(armandoQuote.clienteId);
+  }, []); // eslint-disable-line
+
+  // Progreso del armado: unidades ya cargadas por modelo del presupuesto.
+  const cargadoPorModelo = useMemo(() => {
+    const m = new Map();
+    for (const l of lines) {
+      const p = products.find(x => x.id === l.productId);
+      if (!p) continue;
+      const clave = `${p.brand}|${p.model}`;
+      m.set(clave, (m.get(clave) || 0) + (Number(l.qty) || 0));
+    }
+    return m;
+  }, [lines, products]);
 
   const inStock = useMemo(
     () => products.filter(p => p && !p.isDeleted && (Number(p.stock) || 0) > 0),
@@ -209,6 +237,27 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
     setSales(prev => [saleData, ...prev]);
     logAudit?.("create", "sale", saleId, `Pedido mayorista: ${client.businessName || client.name} · ${totalUnits}u · ${formatMoney(totalARS)}`);
 
+    // Cierre del lazo con la tasa de cierre (§9, ajuste 1 del gate F5):
+    if (armandoQuote && setQuotes) {
+      // Armado desde el presupuesto → GANADO con saleId linkeado, solo.
+      setQuotes(prev => prev.map(x => x.id === armandoQuote.id ? marcarGanado(x, { saleId, fecha: saleData.date }) : x));
+      logAudit?.("update", "quote", armandoQuote.id, "Presupuesto GANADO (pedido armado desde el Cotizador)");
+      setArmandoQuote(null);
+    } else if (setQuotes) {
+      // Red inversa: el vendedor entró por acá pero el cliente tiene un
+      // presupuesto abierto con totales parecidos — preguntar antes de dejar
+      // el dato huérfano (vencidos incluidos: compró tarde también es ganado).
+      const candidato = (quotes || []).find(q =>
+        q.estado === "emitido" && q.clienteId === client.id && q.totalUnidades > 0 &&
+        Math.abs(q.totalUnidades - totalUnits) / q.totalUnidades <= 0.2);
+      if (candidato && window.confirm(
+        `Este cliente tiene un presupuesto abierto de ${candidato.totalUnidades}u (${formatMoney(candidato.totalARS)}${presupuestoVencido(candidato) ? ", vencido" : ""}). ¿Este pedido lo cierra? Aceptar lo marca GANADO y lo linkea.`
+      )) {
+        setQuotes(prev => prev.map(x => x.id === candidato.id ? marcarGanado(x, { saleId, fecha: saleData.date }) : x));
+        logAudit?.("update", "quote", candidato.id, "Presupuesto GANADO (linkeado desde pedido mayorista)");
+      }
+    }
+
     setLines([]);
     setOrderNote("");
     setToast(`✅ Pedido registrado: ${totalUnits}u · ${formatMoney(totalARS)}`);
@@ -268,6 +317,43 @@ export function WholesaleOrder({ clients = [], products = [], setProducts, sales
               </div>
             )}
           </Card>
+
+          {/* Checklist del presupuesto en armado (ajuste 1 gate F5) */}
+          {armandoQuote && (
+            <Card style={{ marginBottom: 14, border: `1px solid ${T.primary}66`, background: `${T.primary}08` }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+                <div style={{ fontWeight: 700, color: T.primary, fontSize: 13 }}>
+                  🧾 Armando presupuesto: {armandoQuote.clienteNombre || "sin cliente"} · {armandoQuote.totalUnidades}u · {formatMoney(armandoQuote.totalARS)}
+                </div>
+                <button onClick={() => setArmandoQuote(null)} style={{
+                  border: "none", background: "transparent", color: T.textMuted, cursor: "pointer", fontSize: 14,
+                }}>✕ cancelar armado</button>
+              </div>
+              <div style={{ fontSize: 11, color: T.textMuted, marginBottom: 6 }}>
+                Elegí los sabores de cada modelo con el buscador — al registrar, el presupuesto queda GANADO y linkeado solo.
+              </div>
+              {armandoQuote.lineas.map(l => {
+                const cargado = cargadoPorModelo.get(l.modeloId) || 0;
+                const completo = cargado >= l.qty;
+                return (
+                  <div key={l.modeloId} style={{ display: "flex", alignItems: "center", gap: 8, padding: "5px 0", flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 13, color: completo ? T.green : T.text, fontWeight: 600, flex: 1, minWidth: 140 }}>
+                      {completo ? "✅" : "⬜"} {l.qty}× {l.modelo}
+                      {l.nota && <span style={{ fontSize: 11, color: T.textMuted, fontWeight: 400 }}> ({l.nota})</span>}
+                    </span>
+                    <span style={{ fontSize: 11, color: completo ? T.green : T.textMuted, flexShrink: 0 }}>
+                      {cargado}/{l.qty}
+                    </span>
+                    <button onClick={() => setSearch(l.modelo)} style={{
+                      border: `1px solid ${T.border}`, background: T.card, color: T.textSub,
+                      borderRadius: 6, cursor: "pointer", fontSize: 11, fontWeight: 700,
+                      padding: "4px 10px", minHeight: isMobile ? 36 : 26, fontFamily: "inherit", flexShrink: 0,
+                    }}>🔍 sabores</button>
+                  </div>
+                );
+              })}
+            </Card>
+          )}
 
           {client && (
             <>

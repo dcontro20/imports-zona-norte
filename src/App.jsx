@@ -532,6 +532,15 @@ export default function App() {
     return () => window.removeEventListener("izn:concurrent-edit", handler);
   }, []);
 
+  // Navegación por evento (F6): permite a una pantalla mandar a otra sin
+  // acoplar setPage por props (ej: Cotizador → "Armar pedido" → Pedido
+  // mayorista pre-cargado vía localStorage izn:armarQuote).
+  useEffect(() => {
+    const handler = (e) => { if (e.detail?.page) setPage(e.detail.page); };
+    window.addEventListener("izn:navigate", handler);
+    return () => window.removeEventListener("izn:navigate", handler);
+  }, []);
+
   // Aviso FX fuera de banda (Pricing Engine): dolarapi devolvió un valor que
   // se mueve más que la banda de sanidad contra el último conocido. No se
   // aplica solo — este toast pide confirmación explícita (botón Aplicar).
@@ -612,7 +621,7 @@ export default function App() {
     (clients || []).filter(c => c && !c.isDeleted && c.type === "mayorista" &&
       `${c.businessName || ""} ${c.name || ""} ${c.zone || ""} ${c.phone || ""}`.toLowerCase().includes(q)).slice(0, 3)
       .forEach(c => results.push({ type: "kiosco", icon: "🏪", label: c.businessName || c.name,
-        sub: [c.zone, c.wholesaleTier ? `tier ${String(c.wholesaleTier).toUpperCase()}` : ""].filter(Boolean).join(" · "),
+        sub: c.zone || "",
         page: "kioscos", ficha: { tipo: "kiosco", id: c.id } }));
 
     (prospects || []).filter(p => p && !p.isDeleted && !p.convertedClientId &&
@@ -846,7 +855,7 @@ export default function App() {
       case "procurement": return <Procurement products={products} setProducts={setProducts} purchases={purchases} setPurchases={setPurchases} sales={activeSales} exchangeRate={exchangeRate} logStock={logStock} currentUser={currentUser} logAudit={logAudit} monthlyClosures={monthlyClosures} supplierProfiles={supplierProfiles} setSupplierProfiles={setSupplierProfiles} supplierAliases={supplierAliases} setSupplierAliases={setSupplierAliases} supplierLists={supplierLists} setSupplierLists={setSupplierLists} />;
       case "clients": return <Clients clients={clients} setClients={setClients} sales={activeSales} products={activeProducts} withdrawals={activeWithdrawals} />;
       case "kioscos": return <Kioscos clients={clients} setClients={setClients} sales={activeSales} products={activeProducts} fichaInicial={fichaFor("kiosco")} onFichaAbierta={limpiarFicha} />;
-      case "wholesaleOrder": return <WholesaleOrder clients={clients} products={products} setProducts={setProducts} sales={activeSales} setSales={setSales} logStock={logStock} priceLists={priceLists} pricingPolicy={pricingPolicy} />;
+      case "wholesaleOrder": return <WholesaleOrder clients={clients} products={products} setProducts={setProducts} sales={activeSales} setSales={setSales} logStock={logStock} priceLists={priceLists} pricingPolicy={pricingPolicy} quotes={quotes} setQuotes={setQuotes} />;
       case "priceList": return <PriceListScreen products={activeProducts} priceLists={priceLists} setPriceLists={setPriceLists} pricingPolicy={pricingPolicy} logAudit={logAudit} />;
       case "cotizador": return <Cotizador clients={clients} products={activeProducts} quotes={quotes} setQuotes={setQuotes} priceLists={priceLists} pricingPolicy={pricingPolicy} logAudit={logAudit} />;
       case "pricingPolicy": return <PricingPolicyScreen pricingPolicy={pricingPolicy} setPricingPolicy={setPricingPolicy} logAudit={logAudit} />;

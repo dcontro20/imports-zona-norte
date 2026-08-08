@@ -12,7 +12,7 @@ describe("toCSV", () => {
 
 describe("kioscosToCSV", () => {
   const clients = [
-    { id: "c1", type: "mayorista", businessName: "Kiosco B", name: "Beto", businessType: "kiosco", wholesaleTier: "A", zone: "Palermo", phone: "11", creditEnabled: true, creditLimitARS: 50000, pipelineStage: "activo" },
+    { id: "c1", type: "mayorista", businessName: "Kiosco B", name: "Beto", businessType: "kiosco", zone: "Palermo", phone: "11", creditEnabled: true, creditLimitARS: 50000, pipelineStage: "activo" },
     { id: "c2", type: "mayorista", businessName: "Almacén A", name: "Ana", creditEnabled: false },
     { id: "c3", type: "minorista", name: "Retail" }, // excluido
     { id: "c4", type: "mayorista", name: "Borrado", isDeleted: true }, // excluido

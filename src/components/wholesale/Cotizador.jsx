@@ -26,7 +26,7 @@ import { listaVigente } from "../../lib/priceLists.js";
 import {
   parseLineaRapida, buscarModelos, agregarLinea, cotizar,
   resolverFx, divergenciaFxConLista, emitirPresupuesto, presupuestoTexto,
-  presupuestoVencido, marcarGanado, marcarPerdido, MOTIVOS_NO_CIERRE,
+  presupuestoVencido, marcarPerdido, MOTIVOS_NO_CIERRE,
 } from "../../lib/cotizador.js";
 
 const MAX_SUGERENCIAS = 6;
@@ -42,6 +42,10 @@ export function Cotizador({
   const [selIdx, setSelIdx] = useState(0);
   const [lineas, setLineas] = useState([]);
   const [clienteId, setClienteId] = useState("");
+  // Etiqueta libre cuando NO hay cliente cargado (ajuste 2 del gate F5): un
+  // prospecto que pregunta precios es el caso de captación, pero cinco
+  // presupuestos "sin cliente" en la lista no dicen a quién seguir.
+  const [etiqueta, setEtiqueta] = useState("");
   const [fxFuente, setFxFuente] = useState("sistema");
   const [fxManual, setFxManual] = useState("");
   const [fxMep, setFxMep] = useState(0);
@@ -128,11 +132,12 @@ export function Cotizador({
   };
 
   // ---- Emitir ----
+  const sinDestinatario = !clienteId && !etiqueta.trim();
   const emitir = () => {
     setFxError("");
-    if (!cotizacion.ok) return;
+    if (!cotizacion.ok || sinDestinatario) return;
     if (!fxResuelto.ok) { setFxError(fxResuelto.motivo); return; }
-    const cliente = mayoristas.find(c => c.id === clienteId) || null;
+    const cliente = mayoristas.find(c => c.id === clienteId) || { id: null, businessName: etiqueta.trim() };
     const quote = emitirPresupuesto({
       id: uid(),
       cotizacion, lista, politica: pricingPolicy,
@@ -147,17 +152,22 @@ export function Cotizador({
     if (logAudit) logAudit("create", "quote", quote.id, `Emitió presupuesto ${quote.totalUnidades}u · ${formatMoney(quote.totalARS)} · lista ${quote.listVersion}`);
     setLineas([]);
     setTexto("");
+    setEtiqueta("");
     inputRef.current?.focus();
     showToast("✅ Presupuesto emitido y copiado — pegalo en WhatsApp");
   };
 
+  // Ajuste 1 del gate F5: "Armar pedido" abre Pedido mayorista PRE-CARGADO
+  // con las líneas del presupuesto (a nivel modelo) — el vendedor solo elige
+  // sabores, y el saleId se linkea solo al registrar. Elimina la doble carga
+  // que perdería la tasa de cierre.
+  const armarPedido = (q) => {
+    try { localStorage.setItem("izn:armarQuote", q.id); } catch {}
+    window.dispatchEvent(new CustomEvent("izn:navigate", { detail: { page: "wholesaleOrder" } }));
+  };
+
   const copiarQuote = (q) => {
     navigator.clipboard?.writeText(presupuestoTexto(q)).then(() => showToast("📋 Copiado")).catch(() => {});
-  };
-  const ganar = (q) => {
-    setQuotes(prev => prev.map(x => (x.id === q.id ? marcarGanado(x, { fecha: new Date().toISOString() }) : x)));
-    if (logAudit) logAudit("update", "quote", q.id, "Presupuesto GANADO");
-    showToast("✅ Ganado — cargá el pedido real en Pedido mayorista al armarlo");
   };
   const perder = (q, motivo) => {
     setQuotes(prev => prev.map(x => (x.id === q.id ? marcarPerdido(x, { motivo, fecha: new Date().toISOString() }) : x)));
@@ -340,14 +350,28 @@ export function Cotizador({
             )}
           </Card>
 
-          {/* Cliente (opcional) */}
+          {/* Cliente O etiqueta — siempre un destinatario identificable */}
           <Card style={{ marginBottom: 12 }}>
             <Select
-              label="Cliente (opcional — puede ser un prospecto todavía)"
+              label="Cliente (puede ser un prospecto todavía)"
               value={clienteId}
               onChange={e => setClienteId(e.target.value)}
               options={mayoristas.map(c => ({ value: c.id, label: c.businessName || c.name }))}
             />
+            {!clienteId && (
+              <input
+                value={etiqueta}
+                onChange={e => setEtiqueta(e.target.value)}
+                placeholder="Sin cliente cargado: nombre o teléfono de referencia (obligatorio)"
+                style={{
+                  width: "100%", boxSizing: "border-box",
+                  padding: isMobile ? "11px 12px" : "9px 12px", minHeight: isMobile ? 44 : 38,
+                  background: T.bg, border: `1px solid ${sinDestinatario ? T.amber : T.border}`,
+                  borderRadius: 10, color: T.text, fontSize: isMobile ? 16 : 14,
+                  outline: "none", fontFamily: "inherit",
+                }}
+              />
+            )}
           </Card>
         </div>
 
@@ -400,10 +424,15 @@ export function Cotizador({
               </div>
             )}
 
+            {sinDestinatario && cotizacion.totalUnidades > 0 && (
+              <div style={{ marginTop: 8, fontSize: 11, color: T.amber, fontWeight: 600 }}>
+                ✍️ Poné el cliente o una referencia (nombre/teléfono) — sin eso no se sabe a quién seguir.
+              </div>
+            )}
             <Btn
               onClick={emitir}
-              disabled={!cotizacion.ok || !fxResuelto.ok}
-              style={{ width: "100%", marginTop: 12, opacity: !cotizacion.ok || !fxResuelto.ok ? 0.5 : 1 }}
+              disabled={!cotizacion.ok || !fxResuelto.ok || sinDestinatario}
+              style={{ width: "100%", marginTop: 12, opacity: !cotizacion.ok || !fxResuelto.ok || sinDestinatario ? 0.5 : 1 }}
             >
               🧾 Emitir presupuesto (copia el texto)
             </Btn>
@@ -432,10 +461,10 @@ export function Cotizador({
                 </div>
               </div>
               {estadoChip(q)}
-              {q.estado === "emitido" && (
+              {q.estado === "emitido" && !presupuestoVencido(q) && (
                 <div style={{ display: "flex", gap: 6, flexShrink: 0, alignItems: "center", flexWrap: "wrap" }}>
                   <MiniBtn color={T.textMuted} onClick={() => copiarQuote(q)}>📋</MiniBtn>
-                  <MiniBtn color={T.green} onClick={() => ganar(q)}>✅ Ganado</MiniBtn>
+                  <MiniBtn color={T.primary} onClick={() => armarPedido(q)}>🧾 Armar pedido</MiniBtn>
                   {motivoAbierto === q.id ? (
                     MOTIVOS_NO_CIERRE.map(m => (
                       <MiniBtn key={m.id} color={T.red} onClick={() => perder(q, m.id)}>{m.label}</MiniBtn>
@@ -444,6 +473,21 @@ export function Cotizador({
                     <MiniBtn color={T.red} onClick={() => setMotivoAbierto(q.id)}>❌ Perdido</MiniBtn>
                   )}
                 </div>
+              )}
+              {/* Ajuste 3 del gate F5: un vencido sin resolver ensucia el
+                  denominador de la tasa de cierre — al vencer pide desenlace
+                  directo ("no respondió" es el caso típico). */}
+              {q.estado === "emitido" && presupuestoVencido(q) && (
+                <div style={{ display: "flex", gap: 6, flexShrink: 0, alignItems: "center", flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 11, color: T.amber, fontWeight: 700 }}>venció — ¿qué pasó?</span>
+                  <MiniBtn color={T.green} onClick={() => armarPedido(q)}>🧾 Compró — armar pedido</MiniBtn>
+                  {MOTIVOS_NO_CIERRE.map(m => (
+                    <MiniBtn key={m.id} color={T.red} onClick={() => perder(q, m.id)}>{m.label}</MiniBtn>
+                  ))}
+                </div>
+              )}
+              {q.estado === "ganado" && !q.saleId && (
+                <MiniBtn color={T.primary} onClick={() => armarPedido(q)} style={{ flexShrink: 0 }}>🧾 Armar pedido</MiniBtn>
               )}
             </div>
           ))}

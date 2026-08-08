@@ -3,7 +3,7 @@ import { uid, formatMoney, formatDate } from "../helpers.js";
 import { useResponsive } from "../App.jsx";
 import { Card, Btn, Modal, Input, Select, StatCard, MiniBtn, downloadCSV } from "./UI.jsx";
 import { T } from "../theme.js";
-import { BUSINESS_TYPES, WHOLESALE_TIERS, PIPELINE_STAGES } from "../constants.js";
+import { BUSINESS_TYPES, PIPELINE_STAGES } from "../constants.js";
 import { buildClientStats, classifyClient, predictNextPurchase } from "../clientIntelligence.js";
 import { expectedRepurchase } from "../wholesaleIntelligence.js";
 import { PresentationMessageModal } from "./wholesale/PresentationMessageModal.jsx";
@@ -23,14 +23,8 @@ const SEG_STYLE = {
   sin_compras: { label: "Sin compras", color: T.textMuted, bg: T.borderSoft },
 };
 
-const TIER_STYLE = {
-  A: { color: T.green, bg: T.greenBg },
-  B: { color: T.blue, bg: T.blueBg },
-  C: { color: T.amber, bg: T.amberBg },
-};
-
 const emptyForm = {
-  name: "", businessName: "", businessType: "", wholesaleTier: "",
+  name: "", businessName: "", businessType: "",
   zone: "", address: "", phone: "", contactName: "", contactPhone: "",
   cuit: "", openingHours: "", pipelineStage: "activo", notes: "",
   creditEnabled: false, creditLimitARS: "",
@@ -42,7 +36,6 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] , 
 
   const [search, setSearch] = useState("");
   const [fBusiness, setFBusiness] = useState("");
-  const [fTier, setFTier] = useState("");
   const [fStage, setFStage] = useState("");
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);   // client.id | null
@@ -51,7 +44,6 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] , 
   const [err, setErr] = useState("");
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState({}); // { id: true }
-  const [bulkTier, setBulkTier] = useState("");
   const [bulkZone, setBulkZone] = useState("");
   const [presTarget, setPresTarget] = useState(null); // Bloque 2: mensaje de presentación
 
@@ -103,7 +95,6 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] , 
     const q = search.trim().toLowerCase();
     return mayoristas.filter(c => {
       if (fBusiness && c.businessType !== fBusiness) return false;
-      if (fTier && c.wholesaleTier !== fTier) return false;
       if (fStage && c.pipelineStage !== fStage) return false;
       if (q) {
         const hay = `${c.name || ""} ${c.businessName || ""} ${c.zone || ""} ${c.phone || ""}`.toLowerCase();
@@ -111,11 +102,11 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] , 
       }
       return true;
     }).sort((a, b) => (b.businessName || b.name || "").localeCompare(a.businessName || a.name || "") * -1);
-  }, [mayoristas, search, fBusiness, fTier, fStage]);
+  }, [mayoristas, search, fBusiness, fStage]);
 
   const openNew = () => { setForm(emptyForm); setEditing(null); setConverting(false); setErr(""); setModal(true); };
   const openEdit = (c) => {
-    setForm({ ...emptyForm, ...c, businessType: c.businessType || "", wholesaleTier: c.wholesaleTier || "", pipelineStage: c.pipelineStage || "activo", creditEnabled: !!c.creditEnabled, creditLimitARS: c.creditLimitARS || "" });
+    setForm({ ...emptyForm, ...c, businessType: c.businessType || "", pipelineStage: c.pipelineStage || "activo", creditEnabled: !!c.creditEnabled, creditLimitARS: c.creditLimitARS || "" });
     setEditing(c.id); setConverting(false); setErr(""); setModal(true);
   };
   // Ficha pedida desde otra pantalla (⌘K, Embudo → fase Clientes): se abre
@@ -128,19 +119,17 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] , 
   }, [fichaInicial]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openConvert = (c) => {
-    setForm({ ...emptyForm, ...c, businessName: c.businessName || c.name || "", businessType: c.businessType || "", wholesaleTier: "", pipelineStage: "activo" });
+    setForm({ ...emptyForm, ...c, businessName: c.businessName || c.name || "", businessType: c.businessType || "", pipelineStage: "activo" });
     setEditing(c.id); setConverting(true); setErr(""); setModal(true);
   };
 
   const save = () => {
     if (!form.name.trim()) { setErr("El nombre es obligatorio"); return; }
-    if (!form.wholesaleTier) { setErr("Elegí el tier mayorista (A/B/C)"); return; }
     const now = new Date().toISOString();
     const base = {
       name: form.name.trim(),
       businessName: form.businessName.trim(),
       businessType: form.businessType || null,
-      wholesaleTier: form.wholesaleTier,
       zone: form.zone.trim(),
       address: form.address.trim(),
       phone: form.phone.trim(),
@@ -163,11 +152,11 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] , 
         return next;
       }));
       logAudit?.(converting ? "convert" : "update", "client", editing,
-        converting ? `Convertido a mayorista: ${base.name} (tier ${base.wholesaleTier})` : `Mayorista editado: ${base.name}`);
+        converting ? `Convertido a mayorista: ${base.name}` : `Mayorista editado: ${base.name}`);
     } else {
       const id = uid();
       setClients(prev => [{ id, tier: "regular", balance: 0, createdAt: now, createdBy: currentUser?.name || "Sistema", ...base }, ...prev]);
-      logAudit?.("create", "client", id, `Mayorista nuevo: ${base.name} (tier ${base.wholesaleTier})`);
+      logAudit?.("create", "client", id, `Mayorista nuevo: ${base.name}`);
     }
     setModal(false);
   };
@@ -187,13 +176,7 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] , 
 
   const selectedIds = Object.keys(selected).filter(id => selected[id]);
   const toggleSelect = (id) => setSelected(s => ({ ...s, [id]: !s[id] }));
-  const exitSelect = () => { setSelectMode(false); setSelected({}); setBulkTier(""); setBulkZone(""); };
-  const applyBulkTier = () => {
-    if (!bulkTier || selectedIds.length === 0) return;
-    setClients(prev => prev.map(c => selected[c.id] ? { ...c, wholesaleTier: bulkTier } : c));
-    logAudit?.("bulk", "client", "", `Tier ${bulkTier} a ${selectedIds.length} mayoristas`);
-    exitSelect();
-  };
+  const exitSelect = () => { setSelectMode(false); setSelected({}); setBulkZone(""); };
   const applyBulkZone = () => {
     if (!bulkZone.trim() || selectedIds.length === 0) return;
     setClients(prev => prev.map(c => selected[c.id] ? { ...c, zone: bulkZone.trim() } : c));
@@ -220,13 +203,6 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] , 
         <Card style={{ marginBottom: 12, background: T.primarySoft, border: `1px solid ${T.border}` }}>
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             <span style={{ fontWeight: 800, color: T.primary }}>{selectedIds.length} seleccionado{selectedIds.length === 1 ? "" : "s"}</span>
-            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              <select value={bulkTier} onChange={e => setBulkTier(e.target.value)} style={selStyle(isMobile)}>
-                <option value="">Tier…</option>
-                {WHOLESALE_TIERS.map(t => <option key={t} value={t}>Tier {t}</option>)}
-              </select>
-              <Btn variant="secondary" onClick={applyBulkTier}>Aplicar tier</Btn>
-            </div>
             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
               <input value={bulkZone} onChange={e => setBulkZone(e.target.value)} placeholder="Zona…"
                 style={{ padding: isMobile ? "10px 12px" : "9px 12px", minHeight: isMobile ? 44 : 38, fontSize: isMobile ? 16 : 13, background: T.card, border: `1px solid ${T.border}`, borderRadius: 10, color: T.text, outline: "none", width: 120, boxSizing: "border-box" }} />
@@ -299,10 +275,6 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] , 
           <option value="">Todo comercio</option>
           {BUSINESS_TYPES.map(b => <option key={b} value={b}>{b}</option>)}
         </select>
-        <select value={fTier} onChange={e => setFTier(e.target.value)} style={selStyle(isMobile)}>
-          <option value="">Todo tier</option>
-          {WHOLESALE_TIERS.map(t => <option key={t} value={t}>Tier {t}</option>)}
-        </select>
         <select value={fStage} onChange={e => setFStage(e.target.value)} style={selStyle(isMobile)}>
           <option value="">Todo estado</option>
           {PIPELINE_STAGES.map(s => <option key={s} value={s}>{s}</option>)}
@@ -322,7 +294,6 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] , 
             const st = statsById[c.id];
             const seg = st ? classifyClient(st) : "sin_compras";
             const segS = SEG_STYLE[seg] || SEG_STYLE.sin_compras;
-            const tierS = TIER_STYLE[c.wholesaleTier] || { color: T.textMuted, bg: T.borderSoft };
             const pred = st ? predictNextPurchase(st) : null;
             const owed = clientOutstanding(c, sales); // adeudado B2B real (deriva de ventas, no de balance)
             return (
@@ -342,9 +313,6 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] , 
                         {c.businessType ? `${c.businessType} · ` : ""}{c.zone || "sin zona"}
                       </div>
                     </div>
-                    <span style={{ flexShrink: 0, background: tierS.bg, color: tierS.color, borderRadius: 6, padding: "2px 8px", fontSize: 12, fontWeight: 800 }}>
-                      Tier {c.wholesaleTier || "—"}
-                    </span>
                   </div>
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
                     <span style={{ background: segS.bg, color: segS.color, borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>{segS.label}</span>
@@ -379,14 +347,9 @@ export function Kioscos({ clients = [], setClients, sales = [], products = [] , 
         </div>}
         <Input label="Nombre / responsable *" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
         <Input label="Nombre del comercio" value={form.businessName} onChange={e => setForm(f => ({ ...f, businessName: e.target.value }))} />
-        <div style={{ display: "flex", gap: 10, flexDirection: isMobile ? "column" : "row" }}>
-          <div style={{ flex: 1 }}>
-            <Select label="Tipo de comercio" options={BUSINESS_TYPES} value={form.businessType} onChange={e => setForm(f => ({ ...f, businessType: e.target.value }))} />
-          </div>
-          <div style={{ flex: 1 }}>
-            <Select label="Tier mayorista *" options={WHOLESALE_TIERS.map(t => ({ value: t, label: `Tier ${t}` }))} value={form.wholesaleTier} onChange={e => setForm(f => ({ ...f, wholesaleTier: e.target.value }))} />
-          </div>
-        </div>
+        {/* F6: el tier mayorista se RETIRÓ — el precio lo determina el volumen
+            del pedido (escalones de la lista), nunca la categoría del cliente. */}
+        <Select label="Tipo de comercio" options={BUSINESS_TYPES} value={form.businessType} onChange={e => setForm(f => ({ ...f, businessType: e.target.value }))} />
         <div style={{ display: "flex", gap: 10, flexDirection: isMobile ? "column" : "row" }}>
           <div style={{ flex: 1 }}><Input label="Zona / barrio" value={form.zone} onChange={e => setForm(f => ({ ...f, zone: e.target.value }))} /></div>
           <div style={{ flex: 1 }}>

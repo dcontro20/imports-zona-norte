@@ -185,7 +185,7 @@ function CardCliente({ c, onOpenKiosco }) {
         <span style={{ color: T.textFaint, fontWeight: 400 }}>{" ›"}</span>
       </div>
       <div style={{ fontSize: 11, color: T.textMuted, marginTop: 2 }}>
-        {c.zone || "sin zona"}{c.wholesaleTier ? ` · tier ${String(c.wholesaleTier).toUpperCase()}` : ""}
+        {c.zone || "sin zona"}
       </div>
     </div>
   );

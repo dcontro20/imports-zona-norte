@@ -336,6 +336,64 @@ A partir del 14/04/2026, GitHub está sincronizado y es la fuente de verdad del 
 
 ---
 
+## Estado del proyecto al 08/08/2026
+
+### 💰 PRICING ENGINE — ciclo COMPLETO F0–F6 (branch `feature/mensaje-primer-contacto`)
+
+Reemplazo total de la carga manual de precios por tier por un **motor de
+pricing derivado de costos**. Sesión 07–08/08 dirigida por Gustavo con gate
+por fase. **El motor calcula; el usuario configura — nadie escribe precios
+(RN-16), en ningún lado.** Docs del encargo versionados:
+`docs/brief-implementacion-claude-code.md` + doc estratégico (RN-01..19) +
+`docs/addendum-portabilidad-modulo.md`. Resumen autocontenido:
+`docs/IZN_Pricing_Engine_Resumen.md` · Journal:
+`docs/SESSION_2026-08-07_pricing_engine.md`. ~1480 tests.
+
+- **Núcleo PORTABLE** (`src/lib/pricingEngine.js` + `cotizador.js`): cero
+  imports del proyecto, sin moneda ni rubro; escalones = ARREGLO
+  `[{desde,hasta,margen}]` (jamás p1..p4). Golden test reproduce
+  `docs/pricing_fixture_v2026-08.csv` **byte a byte**; el regenerador
+  (`scripts/generar-fixture-pricing.mjs`) aborta si el motor no reproduce la
+  grilla aprobada del doc §6 — el ancla es el documento, no el motor.
+- **Adaptador** (`src/lib/pricingAdapter.js`): sabores→modelos para el
+  precio; el cotizador cuenta unidades a NIVEL SABOR hacia el escalón
+  (RN-07, mezcla libre). Costos mezclados en un modelo: usa el MÁXIMO y lo
+  hace VISIBLE (banner en Stock + editor 💲 Costos por modelo).
+- **Datos nuevos en appData** (sync+backup+export+restore vía invariantes
+  B1/B3): `pricingPolicy` (todos los parámetros, RN-19 — pantalla 🎛️
+  Política comercial), `priceLists` (snapshots INMUTABLES append-only,
+  RN-12, con `fxAlPublicar` y estabilidad §5.17: el umbral de recálculo se
+  mide contra el costo de REFERENCIA que originó los precios, nunca contra
+  la republicación anterior — anti erosión silenciosa), `quotes`
+  (presupuestos con FX congelado 48hs y MOTIVO DE NO-CIERRE
+  precio/stock/no_respondió — la métrica §9).
+- **Pantallas**: 🏷️ Lista de precios muestra el SNAPSHOT publicado (publicar
+  con RN-05 bloqueante + drift RN-13; WhatsApp con TODOS los escalones +
+  mezcla libre ESCRITA + vigencia 48hs — misma promesa que el presupuesto) ·
+  🧮 Cotizador (carga rápida spec Gustavo: un input, "10 ice king", Enter,
+  mismo modelo SUMA, 5 líneas <30s sin mouse; nudge PARA EL VENDEDOR con
+  ahorro concreto; margen interno que jamás viaja; FX por fuentes — manual
+  REGISTRADO con banda 10% bloqueante; "Armar pedido" pre-carga el Pedido
+  mayorista y linkea saleId solo; vencidos piden desenlace) · 🧾 Pedido
+  mayorista precia desde la lista al escalón (sin precio editable, sin
+  descuento por volumen aparte — el volumen ES el escalón).
+- **Números inventados ELIMINADOS**: seed 1415 de exchangeRate y `|| 1` del
+  rate. Sin FX válido: se muestra USD, se avisa, no se registra. Banda de
+  sanidad del fetch de dolarapi (salto >10% → toast con confirmación).
+- **RETIRADO ENTERO el sistema de tiers A/B/C** (decisión confirmada tras la
+  tabla de impacto `docs/impacto-lista-v2026-08.md`: NUNCA se usó — 0
+  pedidos, 0 precios de tier): `wholesaleTier` (Kioscos entero, CSV, schema,
+  búsqueda, Embudo, conversión), `WHOLESALE_TIERS`, resolveTierPrice/mínimos
+  por tier/volumeDiscount, generadores de lista por tier, aliases
+  `mayorista_*`. `wholesale.js` quedó reducido a `orderMargin`.
+- **Decisiones de política vivas**: mínimos 20u/USD **200** (bajado de 220:
+  20× del producto de entrada = 210 tiene que pasar) · buffer FX 3% adentro
+  de lista Y presupuesto (misma conversión, no divergen) · CC queda inactiva
+  por default y la deuda puntual NO altera el precio.
+- **Anotado v1.1 (NO construir sin pedido)**: buffer reportado SEPARADO del
+  margen · parser de pedidos pegados (si se hace: borrador revisable, NUNCA
+  commitea solo) · bandas de precio (esperan rotación por SKU).
+
 ## Estado del proyecto al 06/08/2026
 
 ### ✅ PROSPECTOS v2 — SISTEMA DE EJECUCIÓN COMERCIAL: CICLO CERRADO (branch `feature/crm-ejecucion`)
