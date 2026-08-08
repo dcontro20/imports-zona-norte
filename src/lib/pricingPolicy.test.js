@@ -23,7 +23,9 @@ describe("DEFAULT_PRICING_POLICY — v2026-08 aprobada", () => {
     expect(DEFAULT_PRICING_POLICY.escalones.map((e) => e.margen)).toEqual([0.28, 0.24, 0.21, 0.18]);
     expect(DEFAULT_PRICING_POLICY.margenMinimo).toBe(0.15);
     expect(DEFAULT_PRICING_POLICY.margenAlerta).toBe(0.2);
-    expect(DEFAULT_PRICING_POLICY.pedidoMinimo).toEqual({ unidades: 20, ticketUSD: 220 });
+    // 200, no 220: 20× del producto de entrada (MO 20K) = USD 210 tiene que
+    // pasar — "comprás desde 20 unidades" sin asteriscos (gate F4).
+    expect(DEFAULT_PRICING_POLICY.pedidoMinimo).toEqual({ unidades: 20, ticketUSD: 200 });
     expect(DEFAULT_PRICING_POLICY.bufferFxPct).toBe(0.03);
     expect(DEFAULT_PRICING_POLICY.vigenciaHoras).toBe(48);
     expect(DEFAULT_PRICING_POLICY.recargoPlazo).toEqual({ pct: 0.03, dias: 7 });

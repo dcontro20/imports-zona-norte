@@ -175,6 +175,10 @@ export function listaEscalonesText(lista, { products = [], exchangeRate = 0, now
     const ticket = Number(minimo.ticketUSD) > 0 ? ` (ticket mínimo ${money(minimo.ticketUSD * rate)})` : "";
     lines.push(`📦 Pedido mínimo: ${minimo.unidades} unidades${ticket}.`);
   }
-  lines.push(`💵 Precios en pesos al dólar del ${fecha} — pueden ajustarse si el dólar se mueve.`);
+  // Misma promesa que el presupuesto (48 hs por default, de la política
+  // congelada): la versión vaga ("si el dólar se mueve") es la que el
+  // cliente guarda en el teléfono — alineadas las dos (gate F4).
+  const vigencia = Number(lista.politica?.vigenciaHoras) || 48;
+  lines.push(`💵 Precios en pesos al dólar del ${fecha} — válidos por ${vigencia} hs.`);
   return lines.join("\n");
 }

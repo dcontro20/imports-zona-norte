@@ -28,7 +28,12 @@ export const DEFAULT_PRICING_POLICY = {
   },
 
   // ---- Cotización / presupuesto (integración de este negocio) ----
-  pedidoMinimo: { unidades: 20, ticketUSD: 220 },   // §5.1 (RN-08)
+  // §5.1 (RN-08). Ticket 220→200 (decisión de Gustavo, gate F4): con 220, el
+  // pedido de prueba del producto de entrada (20× MO 20K = USD 210) quedaba
+  // rechazado — justo el que el mínimo bajo quiere fomentar. "Comprás desde
+  // 20 unidades" tiene que ser verdad sin asteriscos. A 200 no se activa
+  // nunca con el catálogo actual pero queda como red. Sigue BLOQUEANTE.
+  pedidoMinimo: { unidades: 20, ticketUSD: 200 },
   nudgeUmbralPct: 0.1,              // RN-09: a menos del 10% del siguiente escalón, avisar
   bufferFxPct: 0.03,                // §5.14 (RN-10): FX del día + buffer
   vigenciaHoras: 48,                // §5.14 (RN-11): vencimiento del presupuesto en pesos

@@ -92,6 +92,43 @@ precio de tier cargado, 2 kioscos (uno es "Kiosco prueba", el otro sin tier).
 - Brief corregido (React+Vite, no Next.js) y los 3 docs + xlsx-fixture
   versionados en `docs/`.
 
+## Cierres del gate F4 (2026-08-07, aplicados)
+
+- **FX sin fallback inventado**: el seed hardcodeado 1415 de `exchangeRate` se
+  eliminó (ahora 0 = "sin cotización"). Sin FX válido el sistema muestra USD y
+  avisa — no convierte ni deja copiar la lista.
+- **Ticket mínimo 220→200 USD**: con 220, 20× del producto de entrada (MO 20K
+  = USD 210) quedaba rechazado. "Comprás desde 20 unidades" sin asteriscos.
+  Sigue bloqueante (cambió el valor, no RN-08).
+- **Disclaimers alineados**: lista y presupuesto prometen lo MISMO — "válidos
+  por 48 hs" (de `vigenciaHoras`), no la versión vaga.
+
+## Diseño de moneda para F5 (definido por Gustavo en gate F4)
+
+Todo en USD interno (ya es así); al convertir se ELIGE la cotización:
+(a) default = dolarapi blue venta + buffer, como hoy · (b) fuentes
+CONFIGURADAS en la política (blue/MEP/...), no número libre — un FX editable a
+mano es la puerta trasera para editar precios (RN-16): bajar la cotización
+"para ayudar" a un cliente es un descuento no registrado · (c) si se habilita
+valor manual: queda REGISTRADO en el presupuesto (valor, fuente, quién) y
+aplica la banda de sanidad del 10% · (d) aviso de divergencia si el FX del
+presupuesto difiere del FX con que se compartió la lista vigente más que el
+umbral ("el cliente vio la lista a $X") · (e) el FX del presupuesto emitido se
+CONGELA por las 48 hs, sea cual sea la fuente.
+
+**Flujo real de F5**: el presupuesto lo armamos NOSOTROS (no hay
+autoservicio): lista completa → cliente responde texto libre por WhatsApp →
+se carga en el sistema → presupuesto de vuelta. Consecuencia (f): el nudge de
+frontera es PARA EL VENDEDOR, visible en pantalla mientras carga ("estás a 3
+unidades del 50-99, el cliente ahorra $X") — como argumento en la
+conversación; en el texto final además, pero nunca solo ahí.
+
+## Anotado para métricas v1.1 (NO implementar ahora)
+
+- El buffer del 3% se reporta SEPARADO del margen: es colchón de riesgo
+  cambiario, no rentabilidad — si el dólar no se mueve queda como utilidad
+  extra; si salta, se consume.
+
 ## Próximos pasos (esperan gate)
 
 - **F2** listas versionadas e inmutables (`priceLists`, RN-12/13).

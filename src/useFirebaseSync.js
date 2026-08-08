@@ -74,7 +74,14 @@ export function useFirebaseSync() {
   const [priceLog, setPriceLog] = useState(() => loadData("priceLog", []));
   const [monthlyClosures, setMonthlyClosures] = useState(() => loadData("monthlyClosures", []));
   const [partnerWithdrawals, setPartnerWithdrawals] = useState(() => loadData("partnerWithdrawals", []));
-  const [exchangeRate, setExchangeRate] = useState(() => loadData("exchangeRate", 1415));
+  // Sin fallback inventado (cierre pre-F5 del Pricing Engine): 0 = "sin
+  // cotización válida". Antes el seed era 1415 hardcodeado — una lista
+  // compartida con un dólar viejo a la mitad del real no la detecta nadie
+  // hasta que un cliente la acepta. Con 0, las pantallas de pricing muestran
+  // USD y avisan (no convierten), y el resto del sistema ya tolera 0 vía
+  // safeRate (S14). El valor real llega de localStorage cacheado, Firestore
+  // o dolarapi a los segundos.
+  const [exchangeRate, setExchangeRate] = useState(() => loadData("exchangeRate", 0));
   // Read-only: lo escribe scripts/backup.mjs tras cada upload exitoso a Drive.
   // La app solo lo lee (alerta de backup viejo en Dashboard) — nunca lo escribe.
   const [backupStatus, setBackupStatus] = useState(() => loadData("backupStatus", null));

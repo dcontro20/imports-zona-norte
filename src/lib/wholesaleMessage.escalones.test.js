@@ -55,11 +55,13 @@ describe("listaEscalonesText — el mensaje compartible", () => {
     expect(txt).toContain("Mezclá modelos y sabores como quieras");
   });
 
-  it("versión + fecha + disclaimer del dólar + mínimo de la política congelada", () => {
+  it("versión + fecha + disclaimer alineado con el presupuesto + mínimo de la política congelada", () => {
     expect(txt).toContain("Lista v2026-08 · 07/08/2026");
-    expect(txt).toContain("pueden ajustarse si el dólar se mueve");
+    // La MISMA promesa que el presupuesto (48 hs), no la versión vaga.
+    expect(txt).toContain("válidos por 48 hs");
+    expect(txt).not.toContain("si el dólar se mueve");
     expect(txt).toContain("Pedido mínimo: 20 unidades");
-    expect(txt).toContain("$226.600"); // ticket 220 USD × 1030
+    expect(txt).toContain("$206.000"); // ticket 200 USD × 1030
   });
 
   it("sin tiers, sin datos internos (costos/márgenes no viajan)", () => {

@@ -113,8 +113,22 @@ export function PriceListScreen({
             </span>
           )}
         </div>
-        <Btn onClick={copy} disabled={!vigente}>{copied ? "✅ Copiado" : "📋 Copiar para WhatsApp"}</Btn>
+        <Btn onClick={copy} disabled={!vigente || !(rate > 0)}>{copied ? "✅ Copiado" : "📋 Copiar para WhatsApp"}</Btn>
       </div>
+
+      {/* Sin FX válido NO se convierte ni se comparte: se muestra USD y se
+          avisa — un número inventado no lo detecta nadie hasta que un cliente
+          lo acepta (cierre pre-F5). */}
+      {!(Number(exchangeRate) > 0) && (
+        <Card style={{ marginBottom: 12, border: `1px solid ${T.red}66`, background: `${T.red}0D` }}>
+          <div style={{ fontSize: 13, color: T.red, fontWeight: 600 }}>
+            ⛔ Sin cotización del dólar válida — la lista se muestra en USD y no se puede copiar.
+          </div>
+          <div style={{ fontSize: 11, color: T.textMuted, marginTop: 4 }}>
+            Esperá la cotización automática o cargala a mano en 💰 Caja.
+          </div>
+        </Card>
+      )}
 
       {/* Estado de publicación */}
       <Card style={{
