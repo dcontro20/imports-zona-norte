@@ -1,6 +1,6 @@
 # 📐 Estructura del sistema — snapshot automático
 
-> Actualizado: **2026-08-08** · Generado por `scripts/generate-structure-doc.mjs`
+> Actualizado: **2026-08-09** · Generado por `scripts/generate-structure-doc.mjs`
 > (cron nocturno). **No editar a mano** — los cambios se sobrescriben.
 > Para la guía humana de cómo está organizado todo, ver `MAPA_DEL_SISTEMA.md`.
 > Para decisiones y contexto, ver `CLAUDE.md` + `docs/SESSION_*.md`.
@@ -9,14 +9,14 @@
 
 | Capa | Archivos | Líneas (aprox.) |
 |---|---:|---:|
-| Componentes (pantallas + sub-piezas) | 80 | 28.954 |
-| Módulos puros (cerebro de cálculos) | 20 | 2.634 |
-| Utilidades (`src/lib/`) | 62 | 6.448 |
-| Tests | 88 | — |
-| Scripts | 14 | — |
+| Componentes (pantallas + sub-piezas) | 82 | 29.974 |
+| Módulos puros (cerebro de cálculos) | 20 | 2.609 |
+| Utilidades (`src/lib/`) | 68 | 7.114 |
+| Tests | 96 | — |
+| Scripts | 16 | — |
 | Endpoints serverless | 2 | — |
 | Workflows GitHub Actions | 5 | — |
-| Docs (.md) | 58 | — |
+| Docs (.md) | 65 | — |
 
 ---
 
@@ -39,16 +39,16 @@ Cada archivo `.jsx` es una pantalla o módulo visible en la nav. La columna
 | DashboardMayorista.jsx | 114 | — |
 | ExchangeMonitor.jsx | 592 | — |
 | Expenses.jsx | 467 | Category colors |
-| Export.jsx | 430 | URL de la carpeta de Drive donde van los backups automáticos |
+| Export.jsx | 441 | URL de la carpeta de Drive donde van los backups automáticos |
 | Finance.jsx | 219 | — |
-| Kioscos.jsx | 404 | Pantalla de clientes MAYORISTAS (type="mayorista"). El label "Kioscos" se mantiene porque la mayoría lo son, pero el modelo/filtro es por ty |
+| Kioscos.jsx | 368 | Pantalla de clientes MAYORISTAS (type="mayorista"). El label "Kioscos" se mantiene porque la mayoría lo son, pero el modelo/filtro es por ty |
 | Logo.jsx | 94 | Logo de Imports Zona Norte — SVG inline. Replica el diseño del logo oficial: escudo con vape estilizado sobre un |
 | Offers.jsx | 1398 | — |
 | OnboardingTour.jsx | 123 | Onboarding tour mínimo. Se muestra UNA SOLA VEZ por device (localStorage flag). Sirve para explicarle a Diego (o a un usuario nuevo |
 | Partners.jsx | 629 | — |
 | PriceLog.jsx | 620 | -- PRICE MANAGEMENT -- |
 | Procurement.jsx | 142 | Hub unificado de Abastecimiento — un solo punto de entrada para todo el ciclo de compra: Resumen (centro de comando) + Pedidos + Proveedores |
-| Products.jsx | 837 | — |
+| Products.jsx | 957 | — |
 | ProspectMap.jsx | 128 | Mapa de prospección — VISTA POR ZONA (cobertura). El mapa geográfico con pins llega junto con Google Places (2.5, diferido). Por ahora, para |
 | Prospectos.jsx | 264 | Prospectos.jsx — la estación de trabajo de ventas (ciclo v2, spec CONGELADO docs/PROSPECT_CRM_EJECUCION_SPEC.md). Una sola puerta para todo  |
 | PublicCatalog.jsx | 218 | Vista pública del catálogo. Renderiza un snapshot decodificado del hash de la URL. NO requiere autenticación ni Firebase. NO tiene navegació |
@@ -64,7 +64,7 @@ Cada archivo `.jsx` es una pantalla o módulo visible en la nav. La columna
 | Trash.jsx | 378 | — |
 | UI.jsx | 400 | Mobile-first: altura mínima 44px en todo lo tocable (Apple HIG). padding: 12px vertical + 14px horizontal + fontSize: 14 ≈ 44px. |
 | WhatsApp.jsx | 172 | — |
-| WholesaleOrder.jsx | 327 | Pedido MAYORISTA: elegís un cliente mayorista → precios de su tier + margen en vivo por línea + total, valida mínimo, y genera un `sale` con |
+| WholesaleOrder.jsx | 438 | Pedido MAYORISTA (F5: conectado al motor): elegís un cliente → los precios salen de la LISTA PUBLICADA al escalón del total de unidades (RN- |
 | Withdrawals.jsx | 1610 | -- MERMAS: Consumo propio, Garantías, Canjes -- Ventana de detección de duplicados (5 min) |
 
 ## 📂 Componentes — sub-carpetas
@@ -129,15 +129,17 @@ Cada archivo `.jsx` es una pantalla o módulo visible en la nav. La columna
 | SupplierProfileModal.jsx | 145 | — |
 | processHelpers.js | 91 | src/components/supplier/processHelpers.js Helpers compartidos entre las tabs del módulo de Proveedores. |
 
-### `src/components/wholesale/` (11 archivos)
+### `src/components/wholesale/` (13 archivos)
 
 | Archivo | Líneas | Qué hace |
 |---|---|---|
 | ColasProspectos.jsx | 259 | ColasProspectos.jsx — la pantalla ☀️ Hoy del sistema de ejecución comercial (ciclo v2 F3, spec docs/PROSPECT_CRM_EJECUCION_SPEC.md §6): el s |
+| Cotizador.jsx | 442 | Cotizador.jsx — 🧮 presupuestos mayoristas (Pricing Engine F5). El flujo real: la lista completa ya está en el teléfono del cliente → el |
 | DiscoveryReview.jsx | 108 | DiscoveryReview.jsx — la superficie del discovery en la app: nueva búsqueda, estado de las búsquedas en curso y descartados con memoria (con |
 | EmbudoOperativo.jsx | 153 | EmbudoOperativo.jsx — la pestaña 🎯 Embudo: dónde está parado todo. Rediseño 2026-08-07, después de prospectar de verdad. La versión anterio |
 | PresentationMessageModal.jsx | 52 | Modal compartido (Prospectos + Kioscos) para el mensaje de PRIMER CONTACTO. Preview EDITABLE → mandar por WhatsApp o copiar. Pensado para el |
-| PriceListScreen.jsx | 82 | 🏷️ Lista de precios (Bloque 2.2 — front de ventas). Herramienta de venta para usar PARADO EN EL MOSTRADOR con el kiosquero enfrente: |
+| PriceListScreen.jsx | 209 | — |
+| PricingPolicyScreen.jsx | 245 | PricingPolicyScreen.jsx — ⚙️ Política comercial del Pricing Engine. Acá el operador CONFIGURA (RN-19: ningún número de la política vive en e |
 | ProspectDiagnosisModal.jsx | 90 | Ficha de diagnóstico de un prospecto. RENDER PURO de lo que la fachada del Prospect Engine ya dejó listo (item.diagnostico / item.scoreResul |
 | ProspectFicha.jsx | 155 | ProspectFicha.jsx — la FICHA del prospecto: el EXPEDIENTE PERMANENTE, y el centro operativo del módulo. Se abre desde cualquier vista (colas |
 | ProspectFormModal.jsx | 65 | ProspectFormModal.jsx — alta/edición de prospecto. Extraído de Pipeline en F2 del mini CRM (spec docs/PROSPECT_CRM_SPEC.md) para usarlo tamb |
@@ -161,15 +163,15 @@ producto/cliente, métricas, sync. Sin pantalla → testeable.
 | finance.js | 222 | src/finance.js Motor financiero PURO. Funciones de costeo real, COGS devengado, valuación |
 | firebase.js | 189 | — |
 | helpers.js | 38 | — |
-| pricing.js | 313 | src/pricing.js Funciones PURAS de pricing y promos. Sin state. Reciben datos por |
+| pricing.js | 307 | src/pricing.js Funciones PURAS de pricing y promos. Sin state. Reciben datos por |
 | productIntelligence.js | 467 | src/productIntelligence.js Funciones PURAS de inteligencia de producto. |
 | prospecting.js | 91 | src/prospecting.js Lógica PURA de captación mayorista: embudo (pipeline), priorización de |
 | routes.js | 91 | src/routes.js Lógica PURA de rutas de reparto mayorista. Nivel BÁSICO (acordado): agrupar |
 | settings.js | 48 | Settings configurables por el usuario. Persisten en localStorage. Si en el futuro queremos sync entre devices, se migra a Firestore key. |
 | theme.js | 49 | Paleta inspirada en el logo de Imports Zona Norte: navy profundo + cream cálido. El navy se usa como primary y para texto. El cream da una a |
-| useFirebaseSync.js | 300 | safeSetItem — escribe a localStorage manejando QuotaExceededError. Si el storage llena (típicamente 5-10MB en mobile/Safari), el setItem |
+| useFirebaseSync.js | 336 | safeSetItem — escribe a localStorage manejando QuotaExceededError. Si el storage llena (típicamente 5-10MB en mobile/Safari), el setItem |
 | useSettings.js | 11 | Hook para consumir settings configurables. Re-renderiza cuando se emiten cambios (event "izn:settings-changed"). |
-| wholesale.js | 92 | src/wholesale.js Motor de pricing MAYORISTA (pivote a venta mayorista). Funciones PURAS. |
+| wholesale.js | 37 | src/wholesale.js Margen del pedido MAYORISTA. Funciones PURAS. |
 | wholesaleIntelligence.js | 133 | src/wholesaleIntelligence.js Inteligencia B2B (mayorista). Funciones PURAS. Opera sobre clientes |
 | wholesaleMigration.js | 27 | src/wholesaleMigration.js Migración idempotente al modelo mayorista (pivote a venta mayorista). |
 
@@ -183,6 +185,8 @@ producto/cliente, métricas, sync. Sin pantalla → testeable.
 | clientInsights.js | 57 | src/lib/clientInsights.js Inteligencia del cliente para mostrar en el momento de la venta. |
 | clientMessage.js | 43 | clientMessage.js — genera un mensaje PERSONALIZADO para un cliente puntual, basado en su historial real: sus sabores favoritos que están EN  |
 | clientSegments.js | 109 | src/lib/clientSegments.js Clasifica clientes en segmentos para personalizar mensajes y priorización. |
+| costoCompras.js | 24 | costoCompras.js — referencia del costo desde el módulo Compras. Puro. Decisión #3 del Pricing Engine (cerrada en gate): la FICHA es la fuent |
+| cotizador.js | 240 | cotizador.js — COTIZACIÓN Y PRESUPUESTOS del Pricing Engine (F5). Puro. El flujo real (definido por Gustavo en gate F4): el presupuesto lo a |
 | creditAccount.js | 56 | src/lib/creditAccount.js Cuenta corriente B2B (mayorista). COMPLETA pero se ACTIVA por cliente con |
 | dailyPlan.js | 105 | src/lib/dailyPlan.js "Plan de hoy" — el corazón del hábito diario de mensajes. |
 | dashboardAction.js | 46 | src/lib/dashboardAction.js "Acción del día" — la próxima jugada concreta para vender más. |
@@ -206,6 +210,10 @@ producto/cliente, métricas, sync. Sin pantalla → testeable.
 | offerCalendar.js | 68 | src/lib/offerCalendar.js Plan semanal sugerido de ofertas: qué audiencia y qué tipo de mensaje |
 | offerHistory.js | 115 | src/lib/offerHistory.js Historial de ofertas mandadas + tracking de conversión. |
 | offers.js | 319 | src/lib/offers.js Generador de mensajes de oferta para WhatsApp. Funciones PURAS que arman |
+| priceLists.js | 122 | priceLists.js — LISTAS DE PRECIOS VERSIONADAS E INMUTABLES (RN-12, RN-13). Una lista publicada es un SNAPSHOT: congela la política, los cost |
+| pricingAdapter.js | 35 | pricingAdapter.js — ADAPTADOR entre el modelo de productos de IZN y el contrato del motor (docs/addendum-portabilidad-modulo.md, capa 2). |
+| pricingEngine.js | 150 | pricingEngine.js — NÚCLEO PORTABLE del Pricing Engine. Funciones PURAS. Contrato (docs/addendum-portabilidad-modulo.md): el motor no sabe qu |
+| pricingPolicy.js | 84 | pricingPolicy.js — POLÍTICA COMERCIAL como datos (capa de integración). Acá vive lo que el negocio configura y el código jamás fija (RN-19): |
 | prospectActividad.js | 54 | prospectActividad.js — la sección Actividad de la Ficha (spec §Ficha.5, docs/PROSPECT_CRM_SPEC.md) como LISTA DE EVENTOS TIPADOS: |
 | prospectDiagnosis.js | 115 | prospectDiagnosis.js — número → LENGUAJE. Port de la mecánica de prospect_crm/diagnosis.py de Atlas (la palabra lidera, el número respalda, |
 | prospectEtapas.js | 79 | prospectEtapas.js — el dominio de ETAPAS OPERATIVAS del sistema de ejecución comercial (spec CONGELADO: docs/PROSPECT_CRM_EJECUCION_SPEC.md, |
@@ -225,7 +233,7 @@ producto/cliente, métricas, sync. Sin pantalla → testeable.
 | rmaWorkflow.js | 92 | src/lib/rmaWorkflow.js Workflow simple de RMA (Return Merchandise Authorization) / garantías. |
 | routeSheet.js | 33 | src/lib/routeSheet.js Genera la HOJA DE RUTA en texto plano — imprimible y compartible (WhatsApp / |
 | saleReceipt.js | 139 | src/lib/saleReceipt.js Genera un recibo PDF profesional de una venta, con el branding de |
-| schemas.js | 165 | src/lib/schemas.js Schemas Zod para validar datos antes de escribir a Firestore o de procesar |
+| schemas.js | 164 | src/lib/schemas.js Schemas Zod para validar datos antes de escribir a Firestore o de procesar |
 | shippingCalc.js | 59 | src/lib/shippingCalc.js Calculadora simple de costo de envío por zona. Diego puede customizar |
 | skuProfitability.js | 94 | src/lib/skuProfitability.js Rentabilidad REAL por SKU = no es solo el margen unitario, es cuánto |
 | smartOffers.js | 441 | src/lib/smartOffers.js Motor de "Ideas de venta": analiza estadísticas y genera ofertas concretas |
@@ -238,7 +246,7 @@ producto/cliente, métricas, sync. Sin pantalla → testeable.
 | whatIfSimulator.js | 95 | src/lib/whatIfSimulator.js Simulador what-if para tomar decisiones financieras informadas: |
 | whatsappMessage.js | 115 | src/lib/whatsappMessage.js Generadores del mensaje de stock para WhatsApp. Funciones PURAS extraídas |
 | wholesaleExport.js | 53 | src/lib/wholesaleExport.js Export a CSV de clientes mayoristas, prospectos y rutas. Funciones PURAS |
-| wholesaleMessage.js | 68 | src/lib/wholesaleMessage.js Generadores de mensajes B2B (mayorista): COBRANZA y PRESENTACIÓN. |
+| wholesaleMessage.js | 80 | src/lib/wholesaleMessage.js Generadores de mensajes B2B (mayorista): COBRANZA y PRESENTACIÓN. |
 
 ## ☁️ Backend — corre fuera del navegador
 
@@ -274,13 +282,15 @@ producto/cliente, métricas, sync. Sin pantalla → testeable.
 | create-users.mjs | One-time script to create Firebase Auth users Run: node scripts/create-users.mjs |
 | dark-theme-swap-pass2.mjs | — |
 | dark-theme-swap.mjs | — |
+| generar-fixture-pricing.mjs | generar-fixture-pricing.mjs — regenera docs/pricing_fixture_v2026-08.csv desde el motor (src/lib/pricingEngine.js) y lo VERIFICA contra la g |
 | generate-structure-doc.mjs | — |
+| impacto-lista-v2026-08.mjs | impacto-lista-v2026-08.mjs — TABLA DE IMPACTO POR CLIENTE (solo lectura). Insumo para la decisión abierta #1 del brief del Pricing Engine (t |
 | light-theme-restore.mjs | — |
 | migrate-remove-gustavo.mjs | — |
 
 ## 🧪 Tests
 
-Tests detectados: **88**. Para correrlos: `npm test`.
+Tests detectados: **96**. Para correrlos: `npm test`.
 
 - `src/App.test.jsx`
 - `src/calcs.test.js`
@@ -303,6 +313,8 @@ Tests detectados: **88**. Para correrlos: `npm test`.
 - `src/lib/clientInsights.test.js`
 - `src/lib/clientMessage.test.js`
 - `src/lib/clientSegments.test.js`
+- `src/lib/costoCompras.test.js`
+- `src/lib/cotizador.test.js`
 - `src/lib/creditAccount.edge.test.js`
 - `src/lib/creditAccount.test.js`
 - `src/lib/dailyPlan.test.js`
@@ -331,6 +343,11 @@ Tests detectados: **88**. Para correrlos: `npm test`.
 - `src/lib/offerHistory.test.js`
 - `src/lib/offers.test.js`
 - `src/lib/operationsCap7.test.js`
+- `src/lib/priceLists.test.js`
+- `src/lib/pricingAdapter.test.js`
+- `src/lib/pricingEngine.golden.test.js`
+- `src/lib/pricingEngine.test.js`
+- `src/lib/pricingPolicy.test.js`
 - `src/lib/prospectActividad.test.js`
 - `src/lib/prospectDiagnosis.test.js`
 - `src/lib/prospectEtapas.test.js`
@@ -356,6 +373,7 @@ Tests detectados: **88**. Para correrlos: `npm test`.
 - `src/lib/whatIfSimulator.test.js`
 - `src/lib/whatsappMessage.test.js`
 - `src/lib/wholesaleExport.test.js`
+- `src/lib/wholesaleMessage.escalones.test.js`
 - `src/lib/wholesaleMessage.test.js`
 - `src/mayorista.integration.test.js`
 - `src/pricing.test.js`
@@ -397,6 +415,8 @@ Tests detectados: **88**. Para correrlos: `npm test`.
 - `docs/IZN_Front_Ventas_Resumen.md`
 - `docs/IZN_Merge_Mayorista_Resumen.md`
 - `docs/IZN_Mobile_Hardening_Resumen.md`
+- `docs/IZN_Pricing_Engine_F0_F1_Resumen.md`
+- `docs/IZN_Pricing_Engine_Resumen.md`
 - `docs/IZN_Prospect_CRM_Resumen.md`
 - `docs/IZN_Prospect_Engine_Resumen.md`
 - `docs/IZN_Tanda_E_Docs_Resumen.md`
@@ -438,4 +458,9 @@ Tests detectados: **88**. Para correrlos: `npm test`.
 - `docs/SESSION_2026-07-30_discovery_engine.md`
 - `docs/SESSION_2026-07-31_prospect_crm.md`
 - `docs/SESSION_2026-08-01_b3_backup.md`
+- `docs/SESSION_2026-08-07_pricing_engine.md`
 - `docs/TEST_ENV_SETUP.md`
+- `docs/addendum-portabilidad-modulo.md`
+- `docs/brief-implementacion-claude-code.md`
+- `docs/documento-estrategico-comercial-v1.md`
+- `docs/impacto-lista-v2026-08.md`
