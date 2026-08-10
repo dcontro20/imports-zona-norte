@@ -224,6 +224,24 @@ const Dato = ({ icono, children }) => (
 // ---------------------------------------------------------------------------
 export function ColaLista({ cola, items = [], visits = [], acciones, onFicha, onVisita, onPresentar, prioridadColor }) {
   const { isMobile } = useResponsive();
+  // Filtro WhatsApp de la cola 💬 (handoff 2026-08-10, Cambio 4): el dato
+  // tieneWhatsApp se construye con el uso (true/false lo marca la confirmación
+  // del modal; null = nunca se intentó). Los 🚫 confirmados sin WhatsApp se
+  // OCULTAN por defecto — siguen existiendo (visita, llamada) pero no ocupan
+  // la cola de escribir. Los chips solo aparecen cuando distinguen algo:
+  // mientras todo es "por verificar" serían ruido puro (criterio 2).
+  const [filtroWa, setFiltroWa] = useState("todos"); // todos | con_wa | por_verificar
+  const [verSinWa, setVerSinWa] = useState(false);
+  const esContactar = cola.key === "para_contactar";
+  const grupoWa = (p) => p.tieneWhatsApp === true ? "si" : p.tieneWhatsApp === false ? "no" : "nd";
+  const nSinWa = esContactar ? items.filter(it => grupoWa(it.prospect) === "no").length : 0;
+  const nConWa = esContactar ? items.filter(it => grupoWa(it.prospect) === "si").length : 0;
+  const conDatoWa = esContactar && (nSinWa > 0 || nConWa > 0);
+  const visibles = !conDatoWa ? items
+    : filtroWa === "con_wa" ? items.filter(it => grupoWa(it.prospect) === "si")
+    : filtroWa === "por_verificar" ? items.filter(it => grupoWa(it.prospect) === "nd")
+    : verSinWa ? items : items.filter(it => grupoWa(it.prospect) !== "no");
+
   if (!items.length) {
     return (
       <div style={{ fontSize: 13, color: T.textFaint, background: T.bg, border: `1px solid ${T.borderSoft}`, borderRadius: 12, padding: isMobile ? "24px 16px" : 28, textAlign: "center" }}>
@@ -235,8 +253,44 @@ export function ColaLista({ cola, items = [], visits = [], acciones, onFicha, on
   // Repetirlo sería el tipo de ruido que la pantalla tiene que evitar.
   return (
     <div>
+      {conDatoWa && (
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {[
+              { key: "todos", label: "Todos" },
+              { key: "con_wa", label: `✓ Con WhatsApp (${nConWa})` },
+              { key: "por_verificar", label: `Por verificar (${items.length - nConWa - nSinWa})` },
+            ].map(f => {
+              const sel = filtroWa === f.key;
+              return (
+                <button key={f.key} onClick={() => setFiltroWa(f.key)} style={{
+                  padding: isMobile ? "8px 12px" : "6px 12px", minHeight: 36,
+                  borderRadius: 999, fontSize: 12, cursor: "pointer", fontFamily: "inherit",
+                  background: sel ? T.primarySoft : T.card,
+                  color: sel ? T.primary : T.textMuted,
+                  border: `1px solid ${sel ? T.primary : T.border}`,
+                  fontWeight: sel ? 800 : 600,
+                }}>
+                  {f.label}
+                </button>
+              );
+            })}
+          </div>
+          {/* Los 🚫 no desaparecen: están plegados. Una línea los recupera. */}
+          {filtroWa === "todos" && nSinWa > 0 && (
+            <button onClick={() => setVerSinWa(v => !v)} style={{ ...linkBtn, marginTop: 4 }}>
+              🚫 {nSinWa} sin WhatsApp {verSinWa ? "a la vista — ocultar" : "— mostrar igual"}
+            </button>
+          )}
+        </div>
+      )}
+      {visibles.length === 0 && (
+        <div style={{ fontSize: 13, color: T.textFaint, background: T.bg, border: `1px solid ${T.borderSoft}`, borderRadius: 12, padding: isMobile ? "24px 16px" : 28, textAlign: "center" }}>
+          Nada con este filtro.
+        </div>
+      )}
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {items.map(it => {
+        {visibles.map(it => {
           const p = it.prospect;
           const espera = cola.key === "esperando_respuesta" ? subEstadoEspera(p) : "";
           return (
@@ -253,6 +307,9 @@ export function ColaLista({ cola, items = [], visits = [], acciones, onFicha, on
                 </div>
                 <span style={{ flexShrink: 0, display: "flex", gap: 4, alignItems: "center" }}>
                   {espera === "reintentar" && <Badge color={T.red}>reintentar</Badge>}
+                  {/* Solo los 🚫 se marcan: el dato ganado que explica por qué
+                      esta card estaba plegada. ✓/null no gritan nada. */}
+                  {esContactar && p.tieneWhatsApp === false && <Badge color={T.red}>🚫 sin WhatsApp</Badge>}
                   <Badge color={prioridadColor?.(it) ?? T.textFaint}>{it.chip?.etiqueta}</Badge>
                 </span>
               </div>

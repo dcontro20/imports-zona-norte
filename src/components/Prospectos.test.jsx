@@ -268,6 +268,46 @@ describe("Prospectos — presentar deja rastro (el gap que cerró F3)", () => {
   });
 });
 
+describe("Prospectos — filtro WhatsApp en la cola 💬 (handoff 2026-08-10, F4)", () => {
+  // Tres prospectos en 💬 con el dato en sus tres estados. tieneWhatsApp lo
+  // marca la confirmación del modal (F3); acá se testea que la cola lo CONSUME.
+  const conWa = { ...conTelefono, id: "p-wa-si", businessName: "Kiosco ConWa", tieneWhatsApp: true, phone: "11-4444-0011" };
+  const sinWa = { ...conTelefono, id: "p-wa-no", businessName: "Kiosco SinWa", tieneWhatsApp: false, phone: "11-4444-0012" };
+  const dudoso = { ...conTelefono, id: "p-wa-nd", businessName: "Kiosco Dudoso", phone: "11-4444-0013" };
+  const TRES = [conWa, sinWa, dudoso];
+
+  it("los 🚫 confirmados se ocultan por defecto; una línea los recupera", () => {
+    montar({ prospects: TRES, visits: [] });
+    irA("Contactar");
+    expect(screen.getByText(/Kiosco ConWa/)).toBeTruthy();
+    expect(screen.getByText(/Kiosco Dudoso/)).toBeTruthy();
+    expect(screen.queryByText(/Kiosco SinWa/)).toBeNull(); // plegado, no borrado
+    fireEvent.click(screen.getByText(/1 sin WhatsApp — mostrar igual/));
+    expect(screen.getByText(/Kiosco SinWa/)).toBeTruthy();
+    expect(screen.getByText("🚫 sin WhatsApp")).toBeTruthy(); // marcado al verse
+  });
+
+  it("'Con WhatsApp' muestra solo los confirmados; 'Por verificar' solo los null", () => {
+    montar({ prospects: TRES, visits: [] });
+    irA("Contactar");
+    fireEvent.click(screen.getByText("✓ Con WhatsApp (1)"));
+    expect(screen.getByText(/Kiosco ConWa/)).toBeTruthy();
+    expect(screen.queryByText(/Kiosco Dudoso/)).toBeNull();
+    fireEvent.click(screen.getByText("Por verificar (1)"));
+    expect(screen.getByText(/Kiosco Dudoso/)).toBeTruthy();
+    expect(screen.queryByText(/Kiosco ConWa/)).toBeNull();
+  });
+
+  it("sin dato ganado no hay chips: mientras todo es 'por verificar' serían ruido", () => {
+    montar({ prospects: [dudoso, { ...dudoso, id: "p-wa-nd2", businessName: "Kiosco Incógnita" }], visits: [] });
+    irA("Contactar");
+    expect(screen.getByText(/Kiosco Dudoso/)).toBeTruthy();
+    expect(screen.getByText(/Kiosco Incógnita/)).toBeTruthy();
+    expect(screen.queryByText(/Con WhatsApp/)).toBeNull();
+    expect(screen.queryByText(/Por verificar/)).toBeNull();
+  });
+});
+
 describe("Prospectos — Ficha: el expediente permanente", () => {
   const abrirFicha = (props = {}) => {
     const m = montar(props);
