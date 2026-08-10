@@ -336,6 +336,53 @@ A partir del 14/04/2026, GitHub está sincronizado y es la fuente de verdad del 
 
 ---
 
+## Estado del proyecto al 10/08/2026
+
+### 💬 FLUJO DE CONTACTO POR WHATSAPP — COMPLETO F1–F5 (branch `feature/mensaje-primer-contacto`)
+
+Bloque cerrado sobre un handoff con decisiones tomadas, dirigido por Gustavo
+con gate por fase. Resumen: `docs/IZN_WhatsApp_Contacto_Resumen.md` · Journal:
+`docs/SESSION_2026-08-10_whatsapp_contacto.md`. **1497 tests verdes** (+59;
+la falla de dailyPlan sigue siendo la conocida y ajena). Commits `c88e1da` →
+`1acc341` + docs.
+
+- **CONTRATO (no reabrir): abrir WhatsApp NO registra contacto.** El modal de
+  Presentación abre el chat con el 549 normalizado y el texto cargado (a un
+  Enter: **wa.me en mobile / web.whatsapp.com en desktop**) y al volver
+  pregunta *¿Enviaste el mensaje?* — 🟢 Sí → `mensajeEnviadoAt` (⇒ ⏳ derivada)
+  + `tieneWhatsApp: true` · 🔴 No → NADA · 🚫 no está en WhatsApp →
+  `tieneWhatsApp: false` sin contacto. Cerrar el modal en la pregunta = No.
+  WhatsApp no permite disparar el envío por URL (no buscar cómo). Cloud API
+  descartada para frío (quema el número; queda para clientes con opt-in).
+- **`src/lib/whatsappPhone.js`** (puro): `normalizarWhatsApp` con **regla
+  estructural del 15** — se elimina SOLO en números de 12 dígitos (área+15+
+  abonado; posición según el área), jamás por posición a secas; final = 10
+  dígitos con forma de área AR (`11`|`2xx/3xx`); indeterminable → null. La
+  matriz de 28 formatos reales en tests es el contrato. NO confundir con
+  `normalizarTelefono()` de discovery (identidad/dedup — intacta).
+  `buildWaUrl` decide wa.me/web por isMobile.
+- **`src/lib/whatsappMigration.js`**: estampa `telefonoWa`/`telefonoInvalido`
+  al arranque — idempotente, re-derivante si `phone` cambió; la auto-ingesta
+  estampa a los nuevos (nivel App.jsx, discovery intacto). **Sin teléfono ≠
+  inválido** (es la cola 🚶). Base real al 10/08: 45 prospectos → 24 válidos,
+  0 inválidos, 21 sin teléfono. `derivarTelefonoWa` exportada: el modal
+  deriva EN VIVO (el persistido manda en listas/filtros).
+- **`tieneWhatsApp` es DATO, no hecho de etapa**: `marcarWhatsApp` vive en
+  prospectActions (no en prospectHechos), no mueve colas. Etapas y hechos
+  intactos al byte. "Ya lo mandé" tras copiar NO marca tieneWhatsApp (pudo
+  ir por IG). Kioscos usa el modal sin `onEnviado`: sin cambios.
+- **Filtro cola 💬**: los 🚫 confirmados se pliegan por defecto (línea de
+  recuperación + badge); chips Todos / ✓ Con WhatsApp / Por verificar SOLO
+  cuando distinguen algo (mientras todo es null no hay chips — criterio "el
+  sistema nunca se vuelve ruidoso"). El conteo de la barra sigue siendo el
+  de la ETAPA; el filtro es de vista.
+- **Higiene anotada (NO tocar sin pedido, decisión de Gustavo)**: iCloud
+  desalojó el binario de rolldown de `node_modules` a mitad de sesión
+  (Desktop está en iCloud Drive con "Optimizar almacenamiento") — se
+  reinstaló el paquete puntual; puede repetirse con cualquier binario:
+  excluir node_modules de iCloud o mover el repo. `~/.npm` sigue root-owned
+  (cache alternativo `--cache "$TMPDIR/npm-cache"` como workaround).
+
 ## Estado del proyecto al 08/08/2026
 
 ### 💰 PRICING ENGINE — ciclo COMPLETO F0–F6 (branch `feature/mensaje-primer-contacto`)
