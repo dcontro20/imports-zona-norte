@@ -178,6 +178,8 @@ export function Prospectos({
     if (hecho === "convertido") return showToast(`🏪 ${nombre} ya es mayorista — seguí en Kioscos`);
     if (hecho === "descartado") return showToast(`✗ ${nombre} descartado — no vuelve a aparecer`);
     if (hecho === "descartado_sin_memoria") return showToast(`✗ ${nombre} descartado (sin datos para recordarlo)`);
+    // 🚫 no mueve de cola (no es un hecho de etapa): el toast cuenta el dato.
+    if (hecho === "sin_whatsapp") return showToast(`🚫 ${nombre}: el número no está en WhatsApp`);
     const destino = ETAPAS_OPERATIVAS.find(e => e.key === etapaOperativa(p, { visits }));
     if (destino) showToast(`${nombre} → ${destino.icono} ${destino.etiqueta}`);
   };
@@ -320,9 +322,11 @@ export function Prospectos({
           acciones={acciones}
         />
       )}
-      {/* Presentar registra el hecho al mandar: de ahí sale la etapa ⏳ */}
+      {/* Presentar registra el hecho SOLO con confirmación humana (abrir
+          WhatsApp no cuenta): de "Sí, mensaje enviado" sale la etapa ⏳ */}
       <PresentationMessageModal open={!!presTarget} onClose={() => setPresTarget(null)}
-        target={presTarget} onEnviado={(p) => acciones.mensajeEnviado(p)} />
+        target={presTarget} onEnviado={(p) => acciones.mensajeEnviado(p)}
+        onMarcarWhatsApp={(p, tiene) => acciones.marcarWhatsApp(p, tiene)} />
       <Toast message={toast} />
     </div>
   );

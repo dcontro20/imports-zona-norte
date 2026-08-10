@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense, Component, Fragment } from "react";
 import { uid, formatMoney, formatDate } from "./helpers.js";
 import { migrateToWholesaleModel } from "./wholesaleMigration.js";
+import { migrarTelefonosWa } from "./lib/whatsappMigration.js";
 import { ingestarLote } from "./lib/discovery/discoveryImport.js";
 import { useSettings } from "./useSettings.js";
 import { saveSettings, loadSettings } from "./settings.js";
@@ -668,6 +669,21 @@ export default function App() {
     }
   }, [syncStatus]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ---- Migración teléfonos WhatsApp (handoff 2026-08-10, idempotente) ----
+  // Estampa telefonoWa/telefonoInvalido derivados de `phone`. Re-derivante:
+  // si un phone se editó en otra sesión, esta corrida lo corrige. Solo
+  // escribe si algo cambió (misma disciplina que la migración mayorista).
+  const waMigrationDone = useRef(false);
+  useEffect(() => {
+    if (syncStatus !== "online" || waMigrationDone.current) return;
+    waMigrationDone.current = true;
+    const { prospects: migProspects, didChange, counts } = migrarTelefonosWa(prospects);
+    if (didChange) {
+      setProspects(migProspects);
+      console.log(`[migrate] teléfonos WhatsApp: ${counts.cambiados} prospectos estampados (${counts.validos} válidos, ${counts.invalidos} inválidos, ${counts.sinTelefono} sin teléfono)`);
+    }
+  }, [syncStatus]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ---- Auto-ingesta del discovery (ciclo v2 F2 — spec §5) ----
   // "Los descubiertos entran solos": el staging que escribe el worker se
   // ingiere ACÁ (nivel app, no en la pantalla) para que entren aunque Diego
@@ -692,7 +708,10 @@ export default function App() {
       // o un re-envío del worker no duplican.
       setProspects(prev => {
         const vistos = new Set(prev.map(p => p?.id));
-        const nuevos = altas.filter(n => !vistos.has(n.id));
+        // Los nuevos entran ya estampados (telefonoWa/telefonoInvalido): la
+        // migración del arranque ya corrió y no los vería hasta la próxima
+        // carga. Nivel app, no dominio discovery — el contrato queda intacto.
+        const nuevos = migrarTelefonosWa(altas.filter(n => !vistos.has(n.id))).prospects;
         return nuevos.length ? [...nuevos, ...prev] : prev;
       });
     }

@@ -237,17 +237,25 @@ describe("Prospectos — colas de ejecución: misma gramática, acción primaria
 });
 
 describe("Prospectos — presentar deja rastro (el gap que cerró F3)", () => {
-  it("mandar por WhatsApp registra mensajeEnviadoAt y limpia el 'no responde'", () => {
+  it("abrir WhatsApp NO registra nada; el hecho lo registra la confirmación 🟢 (handoff 2026-08-10)", () => {
     const openSpy = vi.spyOn(window, "open").mockImplementation(() => {});
     const { setProspects } = montar();
     irA("Contactar");
     fireEvent.click(screen.getByText("💬 Presentar"));
     fireEvent.click(screen.getByText("💬 Mandar por WhatsApp"));
-    expect(openSpy).toHaveBeenCalledWith(expect.stringContaining("wa.me/1144440001"), "_blank", "noopener");
-    const lista = setProspects.mock.calls[0][0]([{ ...conTelefono, noRespondeAt: hace(2) }]);
+    // Link nuevo: número normalizado 549 + WhatsApp Web (desktop en jsdom).
+    expect(openSpy).toHaveBeenCalledWith(
+      expect.stringContaining("web.whatsapp.com/send?phone=5491144440001"), "_blank", "noopener");
+    // Abrir no registró NADA: la pregunta decide.
+    expect(setProspects).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText("🟢 Sí, mensaje enviado"));
+    // Dos updates (tieneWhatsApp + hecho): se aplican en cadena sobre la lista.
+    const lista = setProspects.mock.calls.reduce(
+      (acc, c) => c[0](acc), [{ ...conTelefono, noRespondeAt: hace(2) }]);
     expect(lista[0].mensajeEnviadoAt).toBeTruthy();
     expect(lista[0].mensajeEnviadoPor).toBe("Diego");
     expect(lista[0].noRespondeAt).toBe("");
+    expect(lista[0].tieneWhatsApp).toBe(true); // si lo mandó, el número existe
     openSpy.mockRestore();
   });
 
@@ -257,6 +265,46 @@ describe("Prospectos — presentar deja rastro (el gap que cerró F3)", () => {
     fireEvent.click(screen.getByText("💬 Presentar"));
     expect(screen.queryByText("✅ Ya lo mandé")).toBeNull();
     expect(setProspects).not.toHaveBeenCalled();
+  });
+});
+
+describe("Prospectos — filtro WhatsApp en la cola 💬 (handoff 2026-08-10, F4)", () => {
+  // Tres prospectos en 💬 con el dato en sus tres estados. tieneWhatsApp lo
+  // marca la confirmación del modal (F3); acá se testea que la cola lo CONSUME.
+  const conWa = { ...conTelefono, id: "p-wa-si", businessName: "Kiosco ConWa", tieneWhatsApp: true, phone: "11-4444-0011" };
+  const sinWa = { ...conTelefono, id: "p-wa-no", businessName: "Kiosco SinWa", tieneWhatsApp: false, phone: "11-4444-0012" };
+  const dudoso = { ...conTelefono, id: "p-wa-nd", businessName: "Kiosco Dudoso", phone: "11-4444-0013" };
+  const TRES = [conWa, sinWa, dudoso];
+
+  it("los 🚫 confirmados se ocultan por defecto; una línea los recupera", () => {
+    montar({ prospects: TRES, visits: [] });
+    irA("Contactar");
+    expect(screen.getByText(/Kiosco ConWa/)).toBeTruthy();
+    expect(screen.getByText(/Kiosco Dudoso/)).toBeTruthy();
+    expect(screen.queryByText(/Kiosco SinWa/)).toBeNull(); // plegado, no borrado
+    fireEvent.click(screen.getByText(/1 sin WhatsApp — mostrar igual/));
+    expect(screen.getByText(/Kiosco SinWa/)).toBeTruthy();
+    expect(screen.getByText("🚫 sin WhatsApp")).toBeTruthy(); // marcado al verse
+  });
+
+  it("'Con WhatsApp' muestra solo los confirmados; 'Por verificar' solo los null", () => {
+    montar({ prospects: TRES, visits: [] });
+    irA("Contactar");
+    fireEvent.click(screen.getByText("✓ Con WhatsApp (1)"));
+    expect(screen.getByText(/Kiosco ConWa/)).toBeTruthy();
+    expect(screen.queryByText(/Kiosco Dudoso/)).toBeNull();
+    fireEvent.click(screen.getByText("Por verificar (1)"));
+    expect(screen.getByText(/Kiosco Dudoso/)).toBeTruthy();
+    expect(screen.queryByText(/Kiosco ConWa/)).toBeNull();
+  });
+
+  it("sin dato ganado no hay chips: mientras todo es 'por verificar' serían ruido", () => {
+    montar({ prospects: [dudoso, { ...dudoso, id: "p-wa-nd2", businessName: "Kiosco Incógnita" }], visits: [] });
+    irA("Contactar");
+    expect(screen.getByText(/Kiosco Dudoso/)).toBeTruthy();
+    expect(screen.getByText(/Kiosco Incógnita/)).toBeTruthy();
+    expect(screen.queryByText(/Con WhatsApp/)).toBeNull();
+    expect(screen.queryByText(/Por verificar/)).toBeNull();
   });
 });
 
