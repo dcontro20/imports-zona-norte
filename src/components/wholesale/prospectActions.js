@@ -74,6 +74,20 @@ export function makeProspectActions({
       logAudit?.("noreply", "prospect", p.id, `No responde: ${p.businessName}`);
       onHecho?.(actualizado, "no_responde");
     },
+    // tieneWhatsApp NO es un hecho de etapa: es un DATO del prospecto que se
+    // construye con el uso (handoff 2026-08-10, Cambio 4 — no hay forma
+    // legítima de consultarlo de antemano). No mueve colas, por eso vive acá
+    // y no en prospectHechos. true acompaña al "Sí, mensaje enviado" (si lo
+    // mandó, el número existe); false viene de WhatsApp Web diciendo que el
+    // número no está — y NO registra contacto: el prospecto queda donde está.
+    marcarWhatsApp(p, tiene) {
+      setProspects(prev => prev.map(x => x.id === p.id ? { ...x, tieneWhatsApp: !!tiene } : x));
+      logAudit?.("whatsapp", "prospect", p.id,
+        (tiene ? "WhatsApp confirmado: " : "El número no está en WhatsApp: ") + p.businessName);
+      // Solo el false avisa: el true llega junto al hecho "mensaje enviado",
+      // que ya cuenta su propia historia (el pase a ⏳).
+      if (!tiene) onHecho?.({ ...p, tieneWhatsApp: false }, "sin_whatsapp");
+    },
     negociar(p) {
       const at = now();
       setProspects(prev => prev.map(x => x.id === p.id ? marcarNegociacion(x, { at }) : x));

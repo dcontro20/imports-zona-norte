@@ -57,3 +57,34 @@ describe("descartar — el 'no me sirve' que RECUERDA", () => {
     expect(estado.suprimidos).toHaveLength(0);
   });
 });
+
+describe("marcarWhatsApp — dato del prospecto, no hecho de etapa (handoff 2026-08-10)", () => {
+  it("true estampa tieneWhatsApp sin tocar hechos ni etapas (no mueve de cola)", () => {
+    const { acciones, estado } = correr(prospecto());
+    const onHecho = vi.fn();
+    const conHecho = correr(prospecto(), { onHecho });
+    conHecho.acciones.marcarWhatsApp(prospecto(), true);
+
+    const p = conHecho.estado.prospects[0];
+    expect(p.tieneWhatsApp).toBe(true);
+    expect(p.mensajeEnviadoAt).toBeUndefined(); // NO registra contacto
+    expect(onHecho).not.toHaveBeenCalled();     // el true no avisa: lo cuenta "mensaje enviado"
+    expect(conHecho.estado.logAudit).toHaveBeenCalledWith(
+      "whatsapp", "prospect", "p-1", expect.stringContaining("confirmado"));
+    void acciones; void estado;
+  });
+
+  it("false estampa tieneWhatsApp=false, avisa 'sin_whatsapp' y NO registra contacto", () => {
+    const onHecho = vi.fn();
+    const { acciones, estado } = correr(prospecto(), { onHecho });
+    acciones.marcarWhatsApp(prospecto(), false);
+
+    const p = estado.prospects[0];
+    expect(p.tieneWhatsApp).toBe(false);
+    expect(p.mensajeEnviadoAt).toBeUndefined();
+    expect(p.isDeleted).toBeUndefined(); // sigue existiendo, queda en su cola
+    expect(onHecho).toHaveBeenCalledWith(expect.objectContaining({ tieneWhatsApp: false }), "sin_whatsapp");
+    expect(estado.logAudit).toHaveBeenCalledWith(
+      "whatsapp", "prospect", "p-1", expect.stringContaining("no está en WhatsApp"));
+  });
+});

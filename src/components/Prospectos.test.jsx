@@ -237,17 +237,25 @@ describe("Prospectos — colas de ejecución: misma gramática, acción primaria
 });
 
 describe("Prospectos — presentar deja rastro (el gap que cerró F3)", () => {
-  it("mandar por WhatsApp registra mensajeEnviadoAt y limpia el 'no responde'", () => {
+  it("abrir WhatsApp NO registra nada; el hecho lo registra la confirmación 🟢 (handoff 2026-08-10)", () => {
     const openSpy = vi.spyOn(window, "open").mockImplementation(() => {});
     const { setProspects } = montar();
     irA("Contactar");
     fireEvent.click(screen.getByText("💬 Presentar"));
     fireEvent.click(screen.getByText("💬 Mandar por WhatsApp"));
-    expect(openSpy).toHaveBeenCalledWith(expect.stringContaining("wa.me/1144440001"), "_blank", "noopener");
-    const lista = setProspects.mock.calls[0][0]([{ ...conTelefono, noRespondeAt: hace(2) }]);
+    // Link nuevo: número normalizado 549 + WhatsApp Web (desktop en jsdom).
+    expect(openSpy).toHaveBeenCalledWith(
+      expect.stringContaining("web.whatsapp.com/send?phone=5491144440001"), "_blank", "noopener");
+    // Abrir no registró NADA: la pregunta decide.
+    expect(setProspects).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText("🟢 Sí, mensaje enviado"));
+    // Dos updates (tieneWhatsApp + hecho): se aplican en cadena sobre la lista.
+    const lista = setProspects.mock.calls.reduce(
+      (acc, c) => c[0](acc), [{ ...conTelefono, noRespondeAt: hace(2) }]);
     expect(lista[0].mensajeEnviadoAt).toBeTruthy();
     expect(lista[0].mensajeEnviadoPor).toBe("Diego");
     expect(lista[0].noRespondeAt).toBe("");
+    expect(lista[0].tieneWhatsApp).toBe(true); // si lo mandó, el número existe
     openSpy.mockRestore();
   });
 
