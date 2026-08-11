@@ -78,33 +78,54 @@ export function etapaOperativa(prospect, { visits = [] } = {}) {
   // 1. Convertido ⇒ cliente (fuera del trabajo de captación).
   if (tiene(p.convertedClientId)) return "cliente";
 
-  // 2. Negociación: movida explícita o respuesta positiva.
+  // 2. Negociación: movida explícita, respuesta positiva, o llamada cuyo
+  // desenlace fue "interesado" (gate G1). llamadaResultado guarda el ÚLTIMO
+  // desenlace: una llamada posterior con otro resultado lo pisa — la realidad
+  // más nueva manda. respondioAt / negociacionAt la fijan permanente.
   if (fecha(p.negociacionAt) || fecha(p.respondioAt)) return "negociacion";
+  if (fecha(p.llamadaAt) && p.llamadaResultado === "interesado") return "negociacion";
 
-  // 3/4. Entre visita y mensaje decide el hecho MÁS RECIENTE (visitó → no
-  // estaba → le escribió = está esperando; le escribió → lo visitó = visitado).
+  // 3/4. Entre visita, mensaje y llamada-con-desenlace decide el hecho MÁS
+  // RECIENTE (visitó → no estaba → le escribió = esperando; llamó y pidieron
+  // visita → fue = visitado). La llamada solo entra con desenlace que deriva:
+  // "visita" → 🚶 · "seguimiento" → ⏳. "No atendió" (sin resultado) NO entra:
+  // registra el intento, no mueve de cola.
+  // Desempate a fecha igual: visita > mensaje > llamada (conserva el
+  // comportamiento previo `visita >= mensaje`).
   const visita = ultimaVisita(visits, p.id);
   const mensaje = fecha(p.mensajeEnviadoAt);
-  if (visita && mensaje) return visita >= mensaje ? "visitado" : "esperando_respuesta";
-  if (visita) return "visitado";
-  if (mensaje) return "esperando_respuesta";
+  const llamada = (p.llamadaResultado === "visita" || p.llamadaResultado === "seguimiento")
+    ? fecha(p.llamadaAt) : "";
+  const candidatos = [
+    [visita, "visitado"],
+    [mensaje, "esperando_respuesta"],
+    [llamada, p.llamadaResultado === "visita" ? "para_visitar" : "esperando_respuesta"],
+  ];
+  let mejor = null;
+  for (const [f, etapa] of candidatos) if (f && (!mejor || f > mejor[0])) mejor = [f, etapa];
+  if (mejor) return mejor[1];
 
-  // 5/6. Analizado ⇒ el teléfono decide la cola (regla automática del spec);
-  // auto-ingresado sin análisis ⇒ por analizar.
+  // 5/6. Analizado ⇒ el teléfono UTILIZABLE decide (regla automática del spec
+  // + gate G1: teléfono inválido = sin teléfono — si el número no sirve para
+  // contactar, el plan es ir). Auto-ingresado sin análisis ⇒ por analizar.
   const analizado = fecha(p.analizadoAt) || !p.ingresoAutomatico;
   if (!analizado) return "por_analizar";
-  return tiene(p.phone) ? "para_contactar" : "para_visitar";
+  return tiene(p.phone) && !p.telefonoInvalido ? "para_contactar" : "para_visitar";
 }
 
-// Sub-estado de la espera (spec §1): "reintentar" si el mensaje quedó sin
-// respuesta hace más de DIAS_REINTENTO, o si se marcó 🔴 No responde.
+// Sub-estado de la espera (spec §1): "reintentar" si el último TOQUE quedó
+// sin respuesta hace más de DIAS_REINTENTO, o si se marcó 🔴 No responde.
+// El toque es el mensaje enviado o la llamada con desenlace "seguimiento"
+// (gate G1: el timer cuenta desde la llamada) — el más reciente de los dos.
 // Solo aplica en esperando_respuesta; en el resto devuelve "".
 export function subEstadoEspera(prospect, { now = Date.now() } = {}) {
   const p = prospect || {};
   const mensaje = fecha(p.mensajeEnviadoAt);
-  if (!mensaje) return "";
+  const llamada = p.llamadaResultado === "seguimiento" ? fecha(p.llamadaAt) : "";
+  const toque = llamada > mensaje ? llamada : mensaje;
+  if (!toque) return "";
   if (fecha(p.noRespondeAt)) return "reintentar";
-  const dias = (now - new Date(mensaje).getTime()) / 86400000;
+  const dias = (now - new Date(toque).getTime()) / 86400000;
   return dias > DIAS_REINTENTO ? "reintentar" : "";
 }
 
@@ -143,6 +164,36 @@ export function conteoPorEtapa(prospects, { visits = [], now = Date.now() } = {}
     const etapa = etapaOperativa(p, { visits });
     conteo[etapa] += 1;
     if (etapa === "esperando_respuesta" && subEstadoEspera(p, { now }) === "reintentar") vencidos += 1;
+  }
+  return { conteo, vencidos };
+}
+
+// --- Cola 🚫 Sin WhatsApp (gate G1, 2026-08-10) -----------------------------
+// PROYECCIÓN DE VISTA, no etapa: un prospecto con teléfono cuyo número se
+// confirmó fuera de WhatsApp (tieneWhatsApp === false — dato que construye la
+// confirmación del modal de presentación) sigue siendo etapa `para_contactar`
+// para el Embudo, el engine y las métricas; pero su cola de TRABAJO es otra:
+// el canal que queda es la llamada. ☀️ Hoy y la Ficha leen colaOperativa; el
+// Embudo sigue leyendo etapaOperativa. La tabla de 7 etapas no cambia.
+export const COLA_SIN_WHATSAPP = { key: "sin_whatsapp", etiqueta: "Sin WhatsApp", icono: "🚫" };
+
+export function colaOperativa(prospect, { visits = [] } = {}) {
+  const p = prospect || {};
+  const etapa = etapaOperativa(p, { visits });
+  return etapa === "para_contactar" && p.tieneWhatsApp === false ? "sin_whatsapp" : etapa;
+}
+
+// Conteos por COLA (proyección) para la barra de ☀️ Hoy: como conteoPorEtapa
+// pero con sin_whatsapp separado de para_contactar.
+export function conteoPorCola(prospects, { visits = [], now = Date.now() } = {}) {
+  const conteo = Object.fromEntries(
+    [...ETAPAS_OPERATIVAS.map(e => [e.key, 0]), [COLA_SIN_WHATSAPP.key, 0]]);
+  let vencidos = 0;
+  for (const p of prospects || []) {
+    if (!p || p.isDeleted) continue;
+    const cola = colaOperativa(p, { visits });
+    conteo[cola] += 1;
+    if (cola === "esperando_respuesta" && subEstadoEspera(p, { now }) === "reintentar") vencidos += 1;
   }
   return { conteo, vencidos };
 }

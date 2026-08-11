@@ -77,3 +77,17 @@ describe("hechos del ciclo v2 — la Actividad crece por builders, no por pantal
     expect(ev[0].tipo).toBe("audit_create");
   });
 });
+
+// --- Gate G1 (2026-08-10): la llamada titula su desenlace ---
+describe("llamada en la Actividad (G1) — el intento también es actividad", () => {
+  const conLlamada = (resultado) => actividadDeProspecto({
+    prospect: { id: "p1", llamadaAt: "2026-08-10T15:00:00Z", llamadaPor: "Gustavo", llamadaResultado: resultado },
+  });
+
+  it("cada desenlace cuenta su historia", () => {
+    expect(conLlamada("interesado")[0]).toMatchObject({ tipo: "llamada", icono: "📞", titulo: "Llamada — quedó interesado", por: "Gustavo" });
+    expect(conLlamada("visita")[0].titulo).toBe("Llamada — quiere visita");
+    expect(conLlamada("seguimiento")[0].titulo).toBe("Llamada — pidió seguimiento");
+    expect(conLlamada("")[0].titulo).toBe("Llamada — no atendió");
+  });
+});

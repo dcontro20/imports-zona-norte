@@ -90,3 +90,42 @@ describe("respuesta y negociación", () => {
     expect(etapaOperativa(p)).toBe("negociacion");
   });
 });
+
+// --- Gate G1 (2026-08-10): la llamada con desenlace ---
+import { marcarLlamada, LLAMADA_RESULTADOS } from "./prospectHechos.js";
+
+describe("marcarLlamada — un hecho con su desenlace (G1)", () => {
+  const AT = "2026-08-10T15:00:00Z";
+  const p = { ...descubierto, phone: "011 5555-1234", analizadoAt: "2026-08-08" };
+
+  it("estampa solo los campos que declara y jamás una etapa", () => {
+    const r = marcarLlamada({ ...p }, { at: AT, por: "Gustavo", resultado: "seguimiento" });
+    expect(r.llamadaAt).toBe(AT);
+    expect(r.llamadaPor).toBe("Gustavo");
+    expect(r.llamadaResultado).toBe("seguimiento");
+    expect(r.etapa).toBeUndefined();
+    expect(r.pipelineStage).toBeUndefined();
+    const nuevos = Object.keys(r).filter(k => !(k in p) && r[k] !== "");
+    expect(nuevos).toEqual(CAMPOS_HECHO.llamada);
+  });
+
+  it("resultado desconocido degrada a '' (no atendió): jamás un desenlace inventado", () => {
+    expect(marcarLlamada({ ...p }, { at: AT, resultado: "loQueSea" }).llamadaResultado).toBe("");
+    expect(LLAMADA_RESULTADOS).toContain("");
+  });
+
+  it("hablar limpia el 🔴 (la espera se reabre); el intento fallido NO lo limpia", () => {
+    const con = { ...p, noRespondeAt: "2026-08-09" };
+    expect(marcarLlamada(con, { at: AT, resultado: "seguimiento" }).noRespondeAt).toBe("");
+    expect(marcarLlamada(con, { at: AT, resultado: "interesado" }).noRespondeAt).toBe("");
+    expect(marcarLlamada(con, { at: AT, resultado: "" }).noRespondeAt).toBe("2026-08-09");
+  });
+
+  it("una llamada nueva pisa a la anterior (el desenlace es el último)", () => {
+    const primera = marcarLlamada({ ...p }, { at: "2026-08-01", resultado: "interesado" });
+    const segunda = marcarLlamada(primera, { at: AT, por: "Diego", resultado: "visita" });
+    expect(segunda.llamadaAt).toBe(AT);
+    expect(segunda.llamadaResultado).toBe("visita");
+    expect(segunda.llamadaPor).toBe("Diego");
+  });
+});
