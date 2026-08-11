@@ -7,6 +7,7 @@ import { useSettings } from "./useSettings.js";
 import { saveSettings, loadSettings } from "./settings.js";
 import { scheduleDailyNotifications, cancelScheduled, hasPermission } from "./lib/notifications.js";
 import { useFirebaseSync } from "./useFirebaseSync.js";
+import { normalizarPolitica } from "./lib/pricingPolicy.js";
 import { AppContext } from "./AppContext.js";
 import { loginWithEmail, logout, onAuthChange, getUserProfile, updatePresence, subscribePresence, deleteDiscoveryResult, createDiscoveryJob, deleteDiscoveryJob } from "./firebase.js";
 import { isPresenceActive, formatRelative } from "./collaboration.js";
@@ -584,11 +585,19 @@ export default function App() {
     supplierLists, setSupplierLists,
     prospects, setProspects, visits, setVisits, routes, setRoutes,
     discoverySuppressed, setDiscoverySuppressed, discoveryResults, discoveryJobs,
-    pricingPolicy, setPricingPolicy,
+    pricingPolicy: pricingPolicyRaw, setPricingPolicy,
     priceLists, setPriceLists,
     quotes, setQuotes,
     syncStatus, backupStatus, logStock, logPrice,
   } = sync;
+
+  // La política puede venir de un esquema viejo: del caché de localStorage o
+  // de un appData/pricingPolicy escrito por una versión anterior. Se normaliza
+  // UNA vez acá, antes de repartirla — si no, un campo agregado después llega
+  // `undefined` y APAGA su función en silencio (la alerta de margen es el
+  // caso: sin margenAlertaPuntos no salta nunca, y "no hay badges" se lee
+  // igual que "está bien calibrada").
+  const pricingPolicy = useMemo(() => normalizarPolitica(pricingPolicyRaw), [pricingPolicyRaw]);
 
   // ---- Audit log helper (needs currentUser) ----
   const logAudit = useCallback((action, entityType, entityId, description, details = {}) => {

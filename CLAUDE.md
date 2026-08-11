@@ -489,10 +489,24 @@ por fase. **El motor calcula; el usuario configura — nadie escribe precios
   versión si no cambia nada (en prod había 12 versiones casi idénticas) ·
   atajo 💲 Editar costos con vuelta · los modelos sin costo (RN-18) y con
   costos mezclados se nombran.
-- **Pendiente de aplicar**: `scripts/migrate-v250-colores.mjs` unifica
-  V250 Black/Gold/Pink (mismo equipo, mismo costo, 55 registros) en un modelo
-  `V250` con el color plegado al sabor — dry-run limpio, falta `--apply` con
-  la app cerrada + republicar.
+- **Migración APLICADA (11/08)**: `scripts/migrate-v250-colores.mjs --apply`
+  unificó V250 Black/Gold/Pink (mismo equipo, mismo costo, 3 renglones
+  idénticos) en el modelo `V250` con el color plegado al sabor — **55
+  registros**, sin tocar ids/stock/costos. Respaldos en `backups/`
+  (`IZN_appData_pre_v250_*` + `products_pre_v250_*`). **Falta republicar**:
+  el catálogo va de 16 a 14 modelos y ningún otro precio se mueve.
+- **La política se NORMALIZA en App.jsx antes de repartirla** (bug encontrado
+  al verificar la alerta): `appData/pricingPolicy` no existe todavía, así que
+  sale del caché de localStorage con esquema viejo — cruda, `margenAlertaPuntos`
+  llegaba `undefined` y la alerta quedaba APAGADA en silencio ("no hay badges"
+  se lee igual que "está calibrada"). `normalizarPolitica` además ignora
+  valores `null`/`undefined` (sobreviven a JSON y pisaban el default). Lo
+  sostiene `src/lib/pricingPolicy.wiring.test.js` (invariante sobre el fuente,
+  estilo B1/B3). **Verificado contra prod: 0 de 16 badges "margen bajo", con
+  el peor caso a −1,26 pts de un umbral de 2 — activa y con colchón.**
+- **Anotado v1.1**: redondeo de USD 0,25 para SKUs baratos si entran más
+  productos de costo bajo (el múltiplo de 0,50 pesa más en % y el anti-colapso
+  empuja el margen; Pulse X cierra 200+ en 16,7%). Trade-off aceptado hoy.
 - **Anotado v1.1 (NO construir sin pedido)**: buffer reportado SEPARADO del
   margen · parser de pedidos pegados (si se hace: borrador revisable, NUNCA
   commitea solo) · bandas de precio (esperan rotación por SKU).

@@ -59,7 +59,11 @@ export function normalizarPolitica(raw) {
   // (relativo al objetivo de cada escalón). Se descarta al normalizar para que
   // no quede un campo inerte confundiendo en exports y backups.
   const { margenAlerta: _retirado, ...limpio } = raw;
-  raw = limpio;
+  // Un campo presente pero vacío (null/undefined) tiene que CAER al default,
+  // no pisarlo: el spread copia las claves aunque valgan undefined, y `null`
+  // sobrevive a JSON — así un `margenAlertaPuntos: null` guardado apagaría la
+  // alerta en silencio.
+  raw = Object.fromEntries(Object.entries(limpio).filter(([, v]) => v != null));
   return {
     ...base,
     ...raw,
