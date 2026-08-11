@@ -283,3 +283,29 @@ describe("Calificación rápida en la visita", () => {
     expect(within(modal).getByText("Resultado")).toBeTruthy();
   });
 });
+
+// --- Gate G2 (2026-08-10): la proyección 🚫 converge también en el Embudo ---
+describe("Embudo — prospecto 🚫 sin WhatsApp (G2)", () => {
+  it("queda en Contactando (la etapa no cambió) pero su primaria es 📞 Llamar", () => {
+    const sinWa = {
+      id: "p-sinwa", businessName: "Kiosco SinWa", zone: "Munro",
+      phone: "11-4444-0012", tieneWhatsApp: false, analizadoAt: "2026-08-08",
+    };
+    const ps = [sinWa];
+    render(
+      <AppContext.Provider value={CTX}>
+        <EmbudoOperativo prospects={ps} clients={[]} visits={[]}
+          ranking={rankingDe(ps, [], [], [])} onOpenFicha={vi.fn()} onNuevo={vi.fn()}
+          acciones={{}} onPresentar={vi.fn()} />
+      </AppContext.Provider>,
+    );
+    // Sigue en la fase de su etapa (para_contactar → Contactando): el Embudo
+    // es panorámica por etapas, la cola 🚫 es cosa de Hoy.
+    const contactando = within(columna("💬 Contactando"));
+    expect(contactando.getByText(/Kiosco SinWa/)).toBeTruthy();
+    // Pero la acción primaria converge con Hoy y la Ficha (misma fuente):
+    // llamar, no presentar.
+    expect(contactando.getByText("📞 Llamar")).toBeTruthy();
+    expect(contactando.queryByText("💬 Presentar")).toBeNull();
+  });
+});

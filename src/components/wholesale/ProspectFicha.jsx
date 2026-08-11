@@ -15,14 +15,17 @@ import { Btn, Modal, MiniBtn, Badge } from "../UI.jsx";
 import { T } from "../../theme.js";
 import { CALIFICACION_CAMPOS } from "../../lib/prospectRanking.js";
 import { actividadDeProspecto } from "../../lib/prospectActividad.js";
-import { ETAPAS_OPERATIVAS, etapaOperativa, subEstadoEspera } from "../../lib/prospectEtapas.js";
+import { ETAPAS_OPERATIVAS, COLA_SIN_WHATSAPP, colaOperativa, subEstadoEspera } from "../../lib/prospectEtapas.js";
 import { accionesDeEtapa } from "./ColasProspectos.jsx";
 import { DiagnosisContent } from "./ProspectDiagnosisModal.jsx";
 
 // La etapa que se muestra es la OPERATIVA (ciclo v2): la misma que decide en
 // qué cola vive el prospecto. Mostrar la del engine (prospecto/contactado/
 // visitado) haría que la Ficha y la pantalla Hoy digan cosas distintas.
-const ETAPA_OP = Object.fromEntries(ETAPAS_OPERATIVAS.map(e => [e.key, e]));
+// Incluye la proyección 🚫 (G2): la Ficha muestra la COLA donde el prospecto
+// vive en Hoy — si dijera 💬 mientras la card está en 🚫, contarían historias
+// distintas sobre el mismo prospecto.
+const ETAPA_OP = Object.fromEntries([...ETAPAS_OPERATIVAS, COLA_SIN_WHATSAPP].map(e => [e.key, e]));
 
 const Seccion = ({ titulo, children }) => (
   <div style={{ marginBottom: 16 }}>
@@ -52,7 +55,7 @@ export function ProspectFicha({
   );
   if (!item || !p) return <Modal open={false} onClose={onClose} title="" />;
 
-  const etapa = etapaOperativa(p, { visits });
+  const etapa = colaOperativa(p, { visits });
   const etapaInfo = ETAPA_OP[etapa];
   const reintentar = etapa === "esperando_respuesta" && subEstadoEspera(p) === "reintentar";
   const accionesEtapa = accionesDeEtapa(etapa, p, { espera: reintentar ? "reintentar" : "" });

@@ -31,7 +31,7 @@ import { makeProspectActions } from "./wholesale/prospectActions.js";
 import {
   DiscoverySuppressedModal, DiscoverySearchModal, DiscoveryJobsStatus,
 } from "./wholesale/DiscoveryReview.jsx";
-import { ETAPAS_OPERATIVAS, etapaOperativa, conteoPorEtapa, subEstadoEspera, conEtapaLegacy } from "../lib/prospectEtapas.js";
+import { ETAPAS_OPERATIVAS, COLA_SIN_WHATSAPP, colaOperativa, conteoPorCola, subEstadoEspera, conEtapaLegacy } from "../lib/prospectEtapas.js";
 import { clavesDeRegistro } from "../lib/discovery/discoveryImport.js";
 import { BarraColas, DeckAnalisis, ColaLista, COLAS, PRIORIDAD_COLOR } from "./wholesale/ColasProspectos.jsx";
 
@@ -85,18 +85,19 @@ export function Prospectos({
     () => buildProspectRanking({ prospects: prospectsParaEngine, visits, clients, sales, products }),
     [prospectsParaEngine, visits, clients, sales, products],
   );
+  // Conteo por COLA (G2): la barra separa 🚫 de 💬; el Embudo sigue por etapa.
   const { conteo, vencidos } = useMemo(
-    () => conteoPorEtapa(prospects, { visits }), [prospects, visits],
+    () => conteoPorCola(prospects, { visits }), [prospects, visits],
   );
-  // Un prospecto vive en UNA cola. El orden dentro de la cola es el del
-  // ranking del engine (ya viene ordenado en ranking.items).
+  // Un prospecto vive en UNA cola (la PROYECCIÓN: colaOperativa — G2). El
+  // orden dentro de la cola es el del ranking del engine (ranking.items).
   const porCola = useMemo(() => {
     const mapa = Object.fromEntries(COLAS.map(c => [c.key, []]));
     for (const it of ranking.items) {
       const p = it.prospect;
       if (!p || p.isDeleted || p.convertedClientId) continue;
-      const etapa = etapaOperativa(p, { visits });
-      if (mapa[etapa]) mapa[etapa].push(it);
+      const cola = colaOperativa(p, { visits });
+      if (mapa[cola]) mapa[cola].push(it);
     }
     // Dentro de la espera, lo vencido primero: es lo único que pide acción.
     mapa.esperando_respuesta.sort((a, b) =>
@@ -178,9 +179,11 @@ export function Prospectos({
     if (hecho === "convertido") return showToast(`🏪 ${nombre} ya es mayorista — seguí en Kioscos`);
     if (hecho === "descartado") return showToast(`✗ ${nombre} descartado — no vuelve a aparecer`);
     if (hecho === "descartado_sin_memoria") return showToast(`✗ ${nombre} descartado (sin datos para recordarlo)`);
-    // 🚫 no mueve de cola (no es un hecho de etapa): el toast cuenta el dato.
-    if (hecho === "sin_whatsapp") return showToast(`🚫 ${nombre}: el número no está en WhatsApp`);
-    const destino = ETAPAS_OPERATIVAS.find(e => e.key === etapaOperativa(p, { visits }));
+    // 🚫 SÍ mueve de cola desde G2 (proyección): el toast cuenta el destino.
+    if (hecho === "sin_whatsapp") return showToast(`🚫 ${nombre}: sin WhatsApp — pasa a la cola de llamadas`);
+    // El destino que se anuncia es la COLA (lo que el usuario ve en Hoy), no
+    // la etapa interna — para un 🚫 divergirían.
+    const destino = [...ETAPAS_OPERATIVAS, COLA_SIN_WHATSAPP].find(e => e.key === colaOperativa(p, { visits }));
     if (destino) showToast(`${nombre} → ${destino.icono} ${destino.etiqueta}`);
   };
   const acciones = makeProspectActions({
