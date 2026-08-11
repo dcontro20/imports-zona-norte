@@ -94,6 +94,16 @@ describe("Golden — Lista v2026-08 (fixture completo)", () => {
     expect(ajustados).toEqual(["Ignite V150 Pro @200"]);
   });
 
+  it("con la política v2026-08, NINGÚN SKU alerta por margen (la alerta no puede ser ruido)", () => {
+    // El bug de calibración que motivó el cambio: con umbral absoluto al 20%,
+    // el escalón 200+ (objetivo 18%) hacía alertar a todo el catálogo. Una
+    // alerta que salta siempre entrena a ignorarla.
+    const conAlerta = { ...POLITICA, margenAlertaPuntos: 0.02 };
+    const lista = generarLista(productos, conAlerta);
+    const alertados = lista.filas.filter((f) => f.alertas.some((a) => a.regla === "margenAlerta"));
+    expect(alertados.map((f) => f.id)).toEqual([]);
+  });
+
   it("márgenes reales dentro de los rangos citados en el doc §6", () => {
     const lista = generarLista(productos, POLITICA);
     const primeros = lista.filas.map((f) => f.precios[0].margenReal);

@@ -9,6 +9,8 @@ import {
   driftContraVigente,
   politicaMotorCambio,
   precioEnLista,
+  compararSnapshots,
+  alertasDeHoy,
 } from "./priceLists.js";
 import { DEFAULT_PRICING_POLICY } from "./pricingPolicy.js";
 
@@ -273,5 +275,111 @@ describe("precioEnLista — la cotización lee la lista, jamás recalcula (RN-12
   it("debajo del mínimo o producto inexistente ⇒ null", () => {
     expect(precioEnLista(lista, "Elfbar|TE 30K", 10)).toBeNull();
     expect(precioEnLista(lista, "No|Existe", 50)).toBeNull();
+  });
+});
+
+describe("compararSnapshots — qué cambia antes de publicar", () => {
+  const base = snapshotBase();
+
+  it("sin lista vigente: todo entra y hay algo que publicar", () => {
+    const cmp = compararSnapshots(null, base);
+    expect(cmp.hayCambios).toBe(true);
+    expect(cmp.entran.map((f) => f.id)).toEqual(["Elfbar|TE 30K", "Ignite|V250"]);
+    expect(cmp.cambios).toEqual([]);
+  });
+
+  it("mismos costos y misma política ⇒ NO hay cambios (no se genera versión)", () => {
+    const candidato = snapshotBase({ version: "v2026-08.2", fecha: "2026-08-08T12:00:00.000Z", base });
+    const cmp = compararSnapshots(base, candidato);
+    expect(cmp.hayCambios).toBe(false);
+    expect(cmp.cambios).toEqual([]);
+    expect(cmp.entran).toEqual([]);
+    expect(cmp.salen).toEqual([]);
+  });
+
+  it("un costo que se movió de verdad aparece con precios antes/después y delta", () => {
+    const candidato = construirSnapshot({
+      productosMotor: productos({ "Elfbar|TE 30K": 9.5, "Ignite|V250": 10 }),
+      politica: POLITICA, version: "v2026-08.2", fecha: "2026-08-08T12:00:00.000Z", base,
+    });
+    const cmp = compararSnapshots(base, candidato);
+    expect(cmp.hayCambios).toBe(true);
+    expect(cmp.cambios).toHaveLength(1);
+    expect(cmp.cambios[0]).toMatchObject({
+      id: "Elfbar|TE 30K",
+      antes: [13.5, 13, 12.5, 12],
+      ahora: [15, 14.5, 14, 13.5],
+    });
+    expect(cmp.cambios[0].deltaPct).toBeCloseTo((15 - 13.5) / 13.5, 10);
+  });
+
+  it("modelos que entran y que salen del catálogo", () => {
+    const candidato = construirSnapshot({
+      productosMotor: productos({ "Elfbar|TE 30K": 8.5, "Nikbar|Ice Baby": 9 }),
+      politica: POLITICA, version: "v2026-08.2", fecha: "2026-08-08T12:00:00.000Z", base,
+    });
+    const cmp = compararSnapshots(base, candidato);
+    expect(cmp.entran.map((f) => f.id)).toEqual(["Nikbar|Ice Baby"]);
+    expect(cmp.salen.map((f) => f.id)).toEqual(["Ignite|V250"]);
+  });
+
+  it("la política sola cambia ⇒ hay algo que publicar aunque ningún precio se mueva", () => {
+    // Ej: vigencia del presupuesto — viaja congelada en el snapshot y se
+    // declara en la lista compartida.
+    const otra = { ...POLITICA, vigenciaHoras: 72 };
+    const candidato = construirSnapshot({
+      productosMotor: productos({ "Elfbar|TE 30K": 8.5, "Ignite|V250": 10 }),
+      politica: otra, version: "v2026-08.2", fecha: "2026-08-08T12:00:00.000Z", base,
+    });
+    const cmp = compararSnapshots(base, candidato);
+    expect(cmp.cambios).toEqual([]);
+    expect(cmp.politicaCambio).toBe(true);
+    expect(cmp.hayCambios).toBe(true);
+  });
+});
+
+describe("alertasDeHoy — los precios son inmutables, las alertas son una lente", () => {
+  // Caso real: V150 Pro es el SKU con anti-colapso de la lista v2026-08 (su
+  // escalón 200+ arranca ya 0,2 pts debajo del objetivo). Al absorber una
+  // suba de costo del 3% (estabilidad §5.17) queda 2,6 pts debajo — sigue
+  // arriba del piso, así que NO bloquea, pero es exactamente la erosión que
+  // la alerta tiene que ver venir antes de que el piso la frene.
+  const conV150 = (costo) => [{ id: "Ignite|V150 Pro", marca: "Ignite", modelo: "V150 Pro", costo, productIds: ["x"], sabores: 1 }];
+  const base = construirSnapshot({
+    productosMotor: conV150(8), politica: { ...POLITICA, margenAlertaPuntos: 0.03 },
+    version: "v2026-08", fecha: "2026-08-07T12:00:00.000Z",
+  });
+  const erosionada = construirSnapshot({
+    productosMotor: conV150(8.24), politica: { ...POLITICA, margenAlertaPuntos: 0.03 },
+    version: "v2026-08.2", fecha: "2026-08-08T12:00:00.000Z", base,
+  });
+
+  it("el snapshot conserva precios (§5.17) y el margen real cae contra el objetivo", () => {
+    const fila = erosionada.filas[0];
+    expect(fila.estabilizada).toBe(true);
+    expect(fila.precios.map((e) => e.precio)).toEqual([13, 12, 11.5, 11]);
+    const ultimo = fila.precios[fila.precios.length - 1];
+    expect(ultimo.margenReal).toBeCloseTo(0.1535, 4); // arriba del piso 15%
+    expect(fila.alertas).toEqual([]); // con tolerancia 3 pts no alertaba al publicar
+  });
+
+  it("bajar la tolerancia HOY muestra la erosión sin tocar el snapshot publicado", () => {
+    const lente = alertasDeHoy(erosionada, conV150(8.24), POLITICA); // 2 pts
+    const alertas = lente.get("Ignite|V150 Pro").alertas;
+    expect(alertas).toEqual([
+      expect.objectContaining({ regla: "margenAlerta", desde: 200, objetivo: 0.18 }),
+    ]);
+    // El snapshot sigue intacto: los precios son inmutables, la alerta es lente.
+    expect(erosionada.filas[0].alertas).toEqual([]);
+  });
+
+  it("la lista sana no alerta con la política de hoy (la alerta no es ruido)", () => {
+    const lente = alertasDeHoy(base, conV150(8), POLITICA);
+    expect(lente.get("Ignite|V150 Pro").alertas).toEqual([]);
+  });
+
+  it("un producto que ya no está en el catálogo no rompe la lente", () => {
+    const lente = alertasDeHoy(base, [], POLITICA);
+    expect(lente.get("Ignite|V150 Pro").bloqueantes).toEqual([]);
   });
 });

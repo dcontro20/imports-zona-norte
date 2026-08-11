@@ -475,6 +475,24 @@ por fase. **El motor calcula; el usuario configura — nadie escribe precios
   20× del producto de entrada = 210 tiene que pasar) · buffer FX 3% adentro
   de lista Y presupuesto (misma conversión, no divergen) · CC queda inactiva
   por default y la deuda puntual NO altera el precio.
+- **Ajustes tras la primera prueba real (08/08)**: la alerta de margen es
+  RELATIVA (`margenAlertaPuntos`, 2 pts debajo del objetivo de CADA escalón) —
+  el umbral absoluto hacía saltar "margen bajo" en todo el catálogo porque el
+  200+ apunta a 18% por diseño, y con 17% seguía saltando Pulse X (16,7% por
+  anti-colapso); además el relativo sobrevive a la migración 26/23/20/17 del
+  §9. Las alertas son una LENTE evaluada con la política de HOY (los precios
+  publicados siguen inmutables) · mensaje de WhatsApp en **ARS y USD** con
+  selector (el USD no necesita cotización) · el ticket mínimo en pesos NO se
+  comunica (asusta y nunca aplica): el mínimo va en positivo, "Comprás desde
+  20 unidades — mezclá modelos y sabores como quieras", y sigue bloqueando en
+  el cotizador · **Publicar muestra qué cambia** contra la vigente y NO genera
+  versión si no cambia nada (en prod había 12 versiones casi idénticas) ·
+  atajo 💲 Editar costos con vuelta · los modelos sin costo (RN-18) y con
+  costos mezclados se nombran.
+- **Pendiente de aplicar**: `scripts/migrate-v250-colores.mjs` unifica
+  V250 Black/Gold/Pink (mismo equipo, mismo costo, 55 registros) en un modelo
+  `V250` con el color plegado al sabor — dry-run limpio, falta `--apply` con
+  la app cerrada + republicar.
 - **Anotado v1.1 (NO construir sin pedido)**: buffer reportado SEPARADO del
   margen · parser de pedidos pegados (si se hace: borrador revisable, NUNCA
   commitea solo) · bandas de precio (esperan rotación por SKU).

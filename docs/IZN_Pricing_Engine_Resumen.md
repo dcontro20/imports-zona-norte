@@ -87,6 +87,48 @@ pantallas 🎛️ Política comercial · 🏷️ Lista de precios · 🧮 Cotiza
    pedido con presupuesto abierto parecido · vencidos piden desenlace ·
    etiqueta obligatoria si no hay cliente (a quién seguir).
 
+## Ajustes post-prueba real (08/08, tras el primer uso de la Lista)
+
+- **La alerta de margen pasó a ser RELATIVA** (`margenAlertaPuntos`, 2 puntos
+  debajo del objetivo de cada escalón) en vez de un umbral absoluto. El
+  absoluto al 20% hacía saltar "margen bajo" en TODO el catálogo, porque el
+  escalón 200+ apunta a 18% por diseño — una alerta que salta siempre entrena
+  a ignorarla. El 17% absoluto tampoco alcanzaba: Geek Bar Pulse X cierra en
+  **16,7%** por cascada de anti-colapso. Además el relativo sobrevive a la
+  migración a 26/23/20/17 que el doc §9 ya planea (con absoluto volvería a
+  inundar). Hoy no alerta ningún producto; alerta cuando anti-colapso y
+  erosión de costo se suman (verificado con V150 Pro).
+- **Las alertas son una LENTE, no parte del snapshot**: los precios publicados
+  son inmutables (RN-12), pero las alertas se evalúan con la política y los
+  datos de hoy — si no, una alerta desafinada sobreviviría hasta la próxima
+  publicación.
+- **Mensaje de WhatsApp en dos monedas** con selector: ARS (al dólar del día +
+  buffer, válido 48 hs) y **USD** (precios en dólares, la conversión se explica
+  y se hace al cotizar). La versión USD no necesita cotización cargada.
+- **El ticket mínimo en pesos salió del mensaje**: asusta y casi nunca aplica
+  (20 unidades del producto más barato ya lo superan). El mínimo se comunica en
+  positivo — *"Comprás desde 20 unidades — mezclá modelos y sabores como
+  quieras"* — y sigue siendo validación bloqueante en el cotizador (RN-08).
+- **Publicar dejó de ser a ciegas**: muestra qué cambia contra la vigente
+  (modelos que cambian de precio con delta, los que entran, los que salen, si
+  cambió la política) y **si no cambia nada no genera versión** — una lista
+  idéntica con número nuevo ensucia el historial y hace dudar de cuál mandó el
+  cliente. En prod había 12 versiones publicadas, casi todas idénticas.
+- **Atajo 💲 Editar costos** desde la Lista, con vuelta automática; y los
+  modelos sin costo (RN-18) y con costos mezclados ahora se nombran, no se
+  cuentan.
+
+## Pendiente de decisión (no aplicado)
+
+- **V250 Black / Gold / Pink son el mismo equipo en 3 colores** (verificado en
+  prod: misma marca, mismo costo USD 10, listas de sabores casi idénticas, 55
+  registros) y hoy ocupan 3 renglones idénticos de la lista.
+  `scripts/migrate-v250-colores.mjs` los unifica en un modelo `V250` plegando
+  el color al sabor (`Banana Ice · Black`), sin tocar ids, stock ni costos —
+  el historial de ventas queda intacto y la granularidad de stock por color se
+  conserva. **Dry-run corrido y limpio (55 registros, cero colisiones); falta
+  correrlo con `--apply`** (con la app cerrada) y republicar la lista.
+
 ## Anotado, NO implementado (v1.1 / métricas)
 
 - Buffer del 3% reportado SEPARADO del margen (colchón cambiario, no

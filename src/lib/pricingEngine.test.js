@@ -127,7 +127,10 @@ describe("RN-05 — piso de margen bloqueante", () => {
   });
 });
 
-describe("margenAlerta — aviso temprano de erosión (alerta, no bloqueo)", () => {
+describe("margenAlertaPuntos — erosión RELATIVA al objetivo de cada escalón", () => {
+  // Relativo y no absoluto: un umbral absoluto se calibra contra el escalón
+  // más profundo y vuelve a inundar apenas cambia la política (§9 planea
+  // migrar a 26/23/20/17). Una alerta que salta siempre entrena a ignorarla.
   const politica = {
     costoAdicionalPct: 0,
     escalones: [
@@ -136,29 +139,70 @@ describe("margenAlerta — aviso temprano de erosión (alerta, no bloqueo)", () 
     ],
     redondeo: { multiplo: 0.5, direccion: "arriba" },
     margenMinimo: 0.15,
-    margenAlerta: 0.2,
+    margenAlertaPuntos: 0.02,
   };
-  it("margen entre piso y alerta ⇒ alerta con el escalón señalado, sin bloquear", () => {
-    // costo 10.5 → escalón 2: 10.5/0.82 = 12.80 → 13 → margen real 19,2%:
-    // arriba del piso (15%), debajo de la alerta (20%).
-    const calc = calcularProducto({ id: "x", costo: 10.5 }, politica);
-    const alerta = calc.alertas.find((a) => a.regla === "margenAlerta");
-    expect(alerta).toMatchObject({ desde: 100, umbral: 0.2 });
-    expect(alerta.margenReal).toBeCloseTo((13 - 10.5) / 13, 10);
-    expect(calc.publicable).toBe(true); // alerta ≠ bloqueo
-    expect(calc.bloqueantes).toEqual([]);
+
+  it("un escalón que rinde su objetivo o más NO alerta, sea cual sea el nivel absoluto", () => {
+    // Escalón 2 objetivo 18%: 10/0.82 = 12.20 → 12.5 → real 20% (arriba del
+    // objetivo). Con el umbral absoluto viejo de 20% esto alertaba igual.
+    const calc = calcularProducto({ id: "x", costo: 10 }, politica);
+    expect(calc.precios[1].margenReal).toBeCloseTo(0.2, 10);
+    expect(calc.alertas).toEqual([]);
   });
+
+  it("alerta cuando el margen real cae más de N puntos debajo del objetivo del escalón", () => {
+    // En un cálculo FRESCO el margen real nunca queda debajo del objetivo (el
+    // redondeo hacia arriba solo suma). La erosión aparece cuando un precio
+    // YA publicado se conserva mientras el costo sube (estabilidad §5.17):
+    // ese es el camino que produce estos precios, y validarProducto es la
+    // capa separada que los audita.
+    const costoRealNuevo = 11.5;
+    const precios = [
+      { desde: 10, hasta: 99, margen: 0.3, precio: 15.5, margenReal: (15.5 - costoRealNuevo) / 15.5 },
+      { desde: 100, hasta: null, margen: 0.18, precio: 14, margenReal: (14 - costoRealNuevo) / 14 },
+    ];
+    const { bloqueantes, alertas } = validarProducto({ id: "x" }, precios, politica);
+    expect(bloqueantes).toEqual([]); // 25,8% y 17,9% siguen arriba del piso 15%
+    // El primero erosionó 4,2 puntos contra su objetivo ⇒ alerta.
+    expect(alertas).toEqual([
+      expect.objectContaining({ regla: "margenAlerta", desde: 10, objetivo: 0.3, umbral: 0.28 }),
+    ]);
+    // El segundo quedó a 0,1 puntos del suyo (18%) ⇒ dentro de tolerancia.
+    expect(alertas.some((a) => a.desde === 100)).toBe(false);
+  });
+
   it("debajo del piso es bloqueante, NO alerta duplicada", () => {
     const dura = { ...politica, escalones: [{ desde: 10, hasta: null, margen: 0.1 }] };
     const calc = calcularProducto({ id: "x", costo: 10 }, dura);
     expect(calc.bloqueantes).toHaveLength(1);
     expect(calc.alertas.filter((a) => a.regla === "margenAlerta")).toEqual([]);
   });
+
   it("apagada (0 o ausente) no emite nada", () => {
-    const sin = { ...politica, margenAlerta: 0 };
-    expect(calcularProducto({ id: "x", costo: 10.5 }, sin).alertas).toEqual([]);
-    const { margenAlerta, ...ausente } = politica;
-    expect(calcularProducto({ id: "x", costo: 10.5 }, ausente).alertas).toEqual([]);
+    const erosionado = { id: "x", costo: 10.6 };
+    expect(calcularProducto(erosionado, { ...politica, margenAlertaPuntos: 0 }).alertas).toEqual([]);
+    const { margenAlertaPuntos, ...ausente } = politica;
+    expect(calcularProducto(erosionado, ausente).alertas).toEqual([]);
+  });
+
+  it("sobrevive al cambio de política que el doc §9 ya planea (26/23/20/17)", () => {
+    // El escenario de corrección del documento estratégico. Con umbral
+    // ABSOLUTO al 17% varios SKUs volverían a alertar solo por bajar la
+    // política; con el relativo, ninguno que rinda su objetivo alerta.
+    const correccion = {
+      ...POLITICA,
+      margenAlertaPuntos: 0.02,
+      escalones: [
+        { desde: 20, hasta: 49, margen: 0.26 },
+        { desde: 50, hasta: 99, margen: 0.23 },
+        { desde: 100, hasta: 199, margen: 0.2 },
+        { desde: 200, hasta: null, margen: 0.17 },
+      ],
+    };
+    for (const costo of [6.5, 7.5, 8.5, 9.75, 11.5]) {
+      const calc = calcularProducto({ id: "p", costo }, correccion);
+      expect(calc.alertas.filter((a) => a.regla === "margenAlerta")).toEqual([]);
+    }
   });
 });
 

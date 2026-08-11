@@ -95,14 +95,21 @@ export function listaEscalonesItems(lista, products = []) {
 // sin ninguna mención de tier/cliente. La conversión a pesos usa el FX del
 // día + buffer de la política CONGELADA en la lista (la misma conversión que
 // usará el cotizador: lista y presupuesto no divergen).
-export function listaEscalonesText(lista, { products = [], exchangeRate = 0, now = new Date() } = {}) {
+// `moneda`: "ARS" (default) convierte al FX del día + buffer · "USD" manda la
+// lista en dólares y no necesita cotización (se puede compartir aunque no haya
+// FX cargado); la conversión se hace recién al cotizar, y el texto lo dice.
+export function listaEscalonesText(lista, { products = [], exchangeRate = 0, now = new Date(), moneda = "ARS" } = {}) {
   const grupos = listaEscalonesItems(lista, products);
   if (!lista || grupos.length === 0) return "";
+  const enUSD = String(moneda).toUpperCase() === "USD";
   const buffer = Number(lista.politica?.bufferFxPct) || 0;
   const rate = (Number(exchangeRate) || 0) * (1 + buffer);
-  if (!(rate > 0)) return "";
+  if (!enUSD && !(rate > 0)) return "";
   const fecha = now.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
   const rango = (e) => (e.hasta == null ? `${e.desde}+` : `${e.desde}-${e.hasta}`);
+  const precio = (e) => (enUSD
+    ? `USD ${Number(e.precio).toLocaleString("es-AR", { minimumFractionDigits: 2 })}`
+    : money(e.precio * rate));
   // Los rangos salen del snapshot (arreglo, cantidad libre — jamás se asume 4).
   const escalones = grupos[0].items[0].precios;
 
@@ -110,25 +117,29 @@ export function listaEscalonesText(lista, { products = [], exchangeRate = 0, now
   lines.push("🏷️ *LISTA MAYORISTA — Imports Zona Norte*");
   lines.push(`📅 Lista ${lista.version} · ${fecha}`);
   lines.push("");
-  lines.push("💡 *El precio por unidad depende del TOTAL de unidades del pedido.* Mezclá modelos y sabores como quieras — lo que cuenta es el total.");
+  lines.push("💡 *El precio por unidad depende del TOTAL de unidades del pedido.*");
   lines.push(`Unidades: ${escalones.map(rango).join("  ·  ")}`);
   grupos.forEach(g => {
     lines.push("");
     lines.push(`*${g.marca.toUpperCase()}*`);
     g.items.forEach(f => {
-      lines.push(`• ${f.modelo}: ${f.precios.map(e => money(e.precio * rate)).join(" · ")}`);
+      lines.push(`• ${f.modelo}: ${f.precios.map(precio).join(" · ")}`);
     });
   });
   lines.push("");
-  const minimo = lista.politica?.pedidoMinimo;
-  if (Number(minimo?.unidades) > 0) {
-    const ticket = Number(minimo.ticketUSD) > 0 ? ` (ticket mínimo ${money(minimo.ticketUSD * rate)})` : "";
-    lines.push(`📦 Pedido mínimo: ${minimo.unidades} unidades${ticket}.`);
-  }
+  // El mínimo se comunica EN POSITIVO y solo en unidades (decisión de Gustavo,
+  // 2026-08-08): el ticket mínimo en pesos asusta y casi nunca aplica —
+  // 20 unidades del producto más barato ya lo superan. Sigue existiendo como
+  // validación bloqueante en el cotizador (RN-08), pero no se comunica acá.
+  // La mezcla libre va ESCRITA (es EL diferencial del negocio, no implícita).
+  const minimo = Number(lista.politica?.pedidoMinimo?.unidades) || 0;
+  if (minimo > 0) lines.push(`📦 Comprás desde ${minimo} unidades — mezclá modelos y sabores como quieras.`);
   // Misma promesa que el presupuesto (48 hs por default, de la política
   // congelada): la versión vaga ("si el dólar se mueve") es la que el
   // cliente guarda en el teléfono — alineadas las dos (gate F4).
   const vigencia = Number(lista.politica?.vigenciaHoras) || 48;
-  lines.push(`💵 Precios en pesos al dólar del ${fecha} — válidos por ${vigencia} hs.`);
+  lines.push(enUSD
+    ? `💵 Precios en dólares. La conversión a pesos se hace al dólar del día de la cotización y queda firme ${vigencia} hs.`
+    : `💵 Precios en pesos al dólar del ${fecha} — válidos por ${vigencia} hs.`);
   return lines.join("\n");
 }

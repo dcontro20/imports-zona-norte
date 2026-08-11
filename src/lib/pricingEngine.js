@@ -38,9 +38,15 @@
 //   metricaEscalon,      // "unidades" — nombre explícito de la métrica del total
 //   redondeo,            // { multiplo, direccion: "arriba" | "abajo" }
 //   margenMinimo,        // ej. 0.15 — piso duro, bloqueante (universal)
-//   margenAlerta?,       // ej. 0.20 — aviso temprano, NO bloquea (0/ausente = apagado).
+//   margenAlertaPuntos?, // ej. 0.02 — aviso temprano, NO bloquea (0/ausente = apagado).
+//                        //   RELATIVO al margen objetivo de CADA escalón: alerta si el
+//                        //   margen real cae más de N puntos debajo de su objetivo.
 //                        //   El piso es bloqueante y por eso tardío: cuando salta ya se
 //                        //   perdió margen. La alerta da margen de reacción antes.
+//                        //   Relativo y no absoluto porque un umbral absoluto se calibra
+//                        //   contra el escalón más profundo y se rompe al cambiar la
+//                        //   política (el doc §9 ya planea migrar a 26/23/20/17): pasaría
+//                        //   a saltar en todos los SKUs, que es lo que entrena a ignorarlo.
 //   validaciones: {      // opcionales: desactivadas o sin dato ⇒ no corren, no rompen
 //     conflictoCanal: { activa, umbral },  // alerta si p(escalón 1) > umbral × precioReferencia
 //     margenCliente:  { activa, umbral },  // alerta si margen del cliente < umbral
@@ -126,7 +132,7 @@ export function validarProducto(producto, precios, politica) {
   const alertas = [];
 
   const piso = Number(politica?.margenMinimo) || 0;
-  const margenAlerta = Number(politica?.margenAlerta) || 0;
+  const puntos = Number(politica?.margenAlertaPuntos) || 0;
   for (const esc of precios) {
     if (esc.margenReal < piso - EPS) {
       bloqueantes.push({
@@ -135,14 +141,17 @@ export function validarProducto(producto, precios, politica) {
         margenReal: esc.margenReal,
         minimo: piso,
       });
-    } else if (margenAlerta > 0 && esc.margenReal < margenAlerta - EPS) {
-      // Aviso temprano de erosión de margen: por encima del piso (si no, ya es
-      // bloqueante) pero debajo del umbral de alerta. No bloquea.
+    } else if (puntos > 0 && esc.margenReal < esc.margen - puntos - EPS) {
+      // Aviso temprano de erosión: por encima del piso (si no, ya es
+      // bloqueante) pero más de `puntos` debajo del objetivo de ESTE escalón.
+      // No bloquea. Un escalón que rinde su objetivo o más nunca alerta,
+      // sea cual sea el nivel absoluto de la política.
       alertas.push({
         regla: "margenAlerta",
         desde: esc.desde,
         margenReal: esc.margenReal,
-        umbral: margenAlerta,
+        objetivo: esc.margen,
+        umbral: limpiar(esc.margen - puntos),
       });
     }
   }
