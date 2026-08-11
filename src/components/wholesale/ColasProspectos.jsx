@@ -231,7 +231,7 @@ const Dato = ({ icono, children }) => (
 // Las colas de EJECUCIÓN (💬 🚶 ⏳ 📋 🤝): misma gramática entre sí — card
 // compacta, acción primaria de la etapa, y la Ficha a un tap.
 // ---------------------------------------------------------------------------
-export function ColaLista({ cola, items = [], visits = [], acciones, onFicha, onVisita, onPresentar, prioridadColor }) {
+export function ColaLista({ cola, items = [], visits = [], acciones, onFicha, onVisita, onPresentar, onLlamar, prioridadColor }) {
   const { isMobile } = useResponsive();
   // Filtro WhatsApp de la cola 💬 (F4, simplificado en G2): los 🚫 confirmados
   // ya no viven acá — la proyección los manda a su propia cola sin_whatsapp.
@@ -316,7 +316,7 @@ export function ColaLista({ cola, items = [], visits = [], acciones, onFicha, on
               <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                 {accionesDeEtapa(cola.key, p, { espera }).map(a => (
                   <MiniBtn key={a.key} color={a.color}
-                    onClick={() => a.run(p, { acciones, onVisita, onPresentar })}>{a.label}</MiniBtn>
+                    onClick={() => a.run(p, { acciones, onVisita, onPresentar, onLlamar })}>{a.label}</MiniBtn>
                 ))}
               </div>
             </div>
@@ -367,7 +367,9 @@ const A = {
   descartar:  { key: "descartar",  label: "✗ Descartar",    color: T.red,    run: (p, h) => { h.acciones?.descartar(p); h.onCerrar?.(); } },
   presentar:  { key: "presentar",  label: "💬 Presentar",   color: T.green,  run: (p, h) => h.onPresentar?.(p) },
   reescribir: { key: "reescribir", label: "💬 Reescribir",  color: T.blue,   run: (p, h) => h.onPresentar?.(p) },
-  llamar:     { key: "llamar",     label: "📞 Llamar",      color: T.blue,   run: (p) => { window.location.href = `tel:${String(p.phone).replace(/[^\d+]/g, "")}`; } },
+  // Abrir el discador NO registra nada (G3 — mismo contrato que WhatsApp):
+  // al volver, onLlamar abre la pregunta y el humano cuenta el desenlace.
+  llamar:     { key: "llamar",     label: "📞 Llamar",      color: T.blue,   run: (p, h) => { window.location.href = `tel:${String(p.phone).replace(/[^\d+]/g, "")}`; h?.onLlamar?.(p); } },
   visita:     { key: "visita",     label: "📋 Visita",      color: T.amber,  run: (p, h) => h.onVisita?.(p) },
   respondio:  { key: "respondio",  label: "🟢 Respondió",   color: T.green,  run: (p, h) => h.acciones?.respondio(p) },
   noResponde: { key: "noResponde", label: "🔴 No responde", color: T.red,    run: (p, h) => h.acciones?.noResponde(p) },

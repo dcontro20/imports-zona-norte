@@ -10,6 +10,7 @@ import { uid } from "../../helpers.js";
 import { suprimirDescubierto, puedeSuprimirse } from "../../lib/discovery/discoveryImport.js";
 import {
   marcarAnalizado, marcarMensajeEnviado, marcarRespondio, marcarNoResponde, marcarNegociacion,
+  marcarLlamada,
 } from "../../lib/prospectHechos.js";
 
 // `onHecho(prospectoActualizado, hecho)` (F5): el llamador decide qué mostrar.
@@ -87,6 +88,20 @@ export function makeProspectActions({
       // Solo el false avisa: el true llega junto al hecho "mensaje enviado",
       // que ya cuenta su propia historia (el pase a ⏳).
       if (!tiene) onHecho?.({ ...p, tieneWhatsApp: false }, "sin_whatsapp");
+    },
+    // 📞 El desenlace de la llamada, confirmado por el humano al volver del
+    // discador (G3 — mismo contrato que WhatsApp: abrir tel: no registró
+    // nada; esto es lo que pasó de verdad). La derivación hace el resto:
+    // interesado → 🤝 · visita → 🚶 · seguimiento → ⏳ · "" (no atendió)
+    // registra el intento sin mover. "No interesado" NO pasa por acá: es
+    // descartar(), la decisión de siempre.
+    llamada(p, resultado) {
+      const at = now(), por = currentUser?.name || "?";
+      setProspects(prev => prev.map(x => x.id === p.id ? marcarLlamada(x, { at, por, resultado }) : x));
+      const actualizado = marcarLlamada(p, { at, por, resultado });
+      const etiqueta = { interesado: "quedó interesado", visita: "quiere visita", seguimiento: "pidió seguimiento" }[resultado] || "no atendió";
+      logAudit?.("call", "prospect", p.id, `Llamada (${etiqueta}): ${p.businessName}`);
+      onHecho?.(actualizado, "llamada");
     },
     negociar(p) {
       const at = now();

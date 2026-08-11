@@ -45,7 +45,7 @@ const Dato = ({ label, children }) => (
 // acciones: makeProspectActions ya armado por el llamador (única fuente).
 export function ProspectFicha({
   item, prioridadColor, visits = [], auditLog = [], onClose,
-  onVisita, onPresentar, onEditar, acciones,
+  onVisita, onPresentar, onLlamar, onEditar, acciones,
 }) {
   const { isMobile } = useResponsive();
   const p = item?.prospect;
@@ -59,7 +59,7 @@ export function ProspectFicha({
   const etapaInfo = ETAPA_OP[etapa];
   const reintentar = etapa === "esperando_respuesta" && subEstadoEspera(p) === "reintentar";
   const accionesEtapa = accionesDeEtapa(etapa, p, { espera: reintentar ? "reintentar" : "" });
-  const handlers = { acciones, onVisita, onPresentar, onCerrar: onClose };
+  const handlers = { acciones, onVisita, onPresentar, onLlamar, onCerrar: onClose };
   const calif = p.calificacion || null;
   const califValores = CALIFICACION_CAMPOS.map(c => ({
     pregunta: c.pregunta,
@@ -98,7 +98,7 @@ export function ProspectFicha({
           // MiniBtn con navegación tel: (un <button> dentro de <a> es HTML
           // inválido — interactivo anidado en interactivo)
           <MiniBtn color={T.blue}
-            onClick={() => { window.location.href = `tel:${String(p.phone).replace(/[^\d+]/g, "")}`; }}>
+            onClick={() => { window.location.href = `tel:${String(p.phone).replace(/[^\d+]/g, "")}`; onLlamar?.(p); }}>
             📞 Llamar
           </MiniBtn>
         )}

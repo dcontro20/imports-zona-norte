@@ -88,3 +88,29 @@ describe("marcarWhatsApp — dato del prospecto, no hecho de etapa (handoff 2026
       "whatsapp", "prospect", "p-1", expect.stringContaining("no está en WhatsApp"));
   });
 });
+
+describe("llamada — registra el desenlace, no el acto (gate G3)", () => {
+  it("estampa el hecho con autor y desenlace, audita y avisa 'llamada'", () => {
+    const onHecho = vi.fn();
+    const { acciones, estado } = correr(prospecto(), { onHecho });
+    acciones.llamada(prospecto(), "seguimiento");
+
+    const p = estado.prospects[0];
+    expect(p.llamadaResultado).toBe("seguimiento");
+    expect(p.llamadaPor).toBe("Diego");
+    expect(p.llamadaAt).toBeTruthy();
+    expect(estado.logAudit).toHaveBeenCalledWith("call", "prospect", "p-1", expect.stringContaining("pidió seguimiento"));
+    expect(onHecho).toHaveBeenCalledWith(expect.objectContaining({ llamadaResultado: "seguimiento" }), "llamada");
+  });
+
+  it("📵 no atendió: el intento queda, nada más cambia", () => {
+    const { acciones, estado } = correr(prospecto());
+    acciones.llamada(prospecto(), "");
+    const p = estado.prospects[0];
+    expect(p.llamadaAt).toBeTruthy();
+    expect(p.llamadaResultado).toBe("");
+    expect(p.isDeleted).toBeUndefined();
+    expect(p.negociacionAt).toBeUndefined();
+    expect(estado.logAudit).toHaveBeenCalledWith("call", "prospect", "p-1", expect.stringContaining("no atendió"));
+  });
+});

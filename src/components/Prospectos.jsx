@@ -24,6 +24,7 @@ import { buildProspectRanking } from "../lib/prospectRanking.js";
 import { EmbudoOperativo } from "./wholesale/EmbudoOperativo.jsx";
 import { ProspectMap } from "./ProspectMap.jsx";
 import { PresentationMessageModal } from "./wholesale/PresentationMessageModal.jsx";
+import { CallOutcomeModal } from "./wholesale/CallOutcomeModal.jsx";
 import { ProspectFormModal } from "./wholesale/ProspectFormModal.jsx";
 import { VisitModal } from "./wholesale/VisitModal.jsx";
 import { ProspectFicha } from "./wholesale/ProspectFicha.jsx";
@@ -59,6 +60,7 @@ export function Prospectos({
   const [editando, setEditando] = useState(null);     // prospecto en edición (desde la Ficha)
   const [visitFor, setVisitFor] = useState(null);
   const [presTarget, setPresTarget] = useState(null);
+  const [llamadaTarget, setLlamadaTarget] = useState(null); // G3: la pregunta al volver del discador
   const [fichaId, setFichaId] = useState(null);       // la Ficha: el expediente permanente
   const [colaSel, setColaSel] = useState(null);       // cola elegida a mano (null = la que propone el sistema)
   const [toast, showToast] = useToast();
@@ -181,6 +183,8 @@ export function Prospectos({
     if (hecho === "descartado_sin_memoria") return showToast(`✗ ${nombre} descartado (sin datos para recordarlo)`);
     // 🚫 SÍ mueve de cola desde G2 (proyección): el toast cuenta el destino.
     if (hecho === "sin_whatsapp") return showToast(`🚫 ${nombre}: sin WhatsApp — pasa a la cola de llamadas`);
+    // 📵 no atendió no mueve: contar "fue a donde ya estaba" confundiría.
+    if (hecho === "llamada" && !p.llamadaResultado) return showToast(`📵 ${nombre}: no atendió — el intento quedó registrado`);
     // El destino que se anuncia es la COLA (lo que el usuario ve en Hoy), no
     // la etapa interna — para un 🚫 divergirían.
     const destino = [...ETAPAS_OPERATIVAS, COLA_SIN_WHATSAPP].find(e => e.key === colaOperativa(p, { visits }));
@@ -270,6 +274,7 @@ export function Prospectos({
                 onFicha={setFichaId}
                 onVisita={(p) => setVisitFor({ id: p.id, type: "prospect", name: p.businessName })}
                 onPresentar={(p) => setPresTarget(p)}
+                onLlamar={(p) => setLlamadaTarget(p)}
                 prioridadColor={(it) => PRIORIDAD_COLOR[it.chip?.prioridad] ?? T.textFaint}
               />
             )}
@@ -287,6 +292,7 @@ export function Prospectos({
             acciones={acciones}
             onVisita={(p) => setVisitFor({ id: p.id, type: "prospect", name: p.businessName })}
             onPresentar={(p) => setPresTarget(p)}
+            onLlamar={(p) => setLlamadaTarget(p)}
           />
         </div>
       )}
@@ -321,6 +327,7 @@ export function Prospectos({
           onClose={() => setFichaId(null)}
           onVisita={(p) => setVisitFor({ id: p.id, type: "prospect", name: p.businessName })}
           onPresentar={(p) => setPresTarget(p)}
+          onLlamar={(p) => setLlamadaTarget(p)}
           onEditar={(p) => setEditando(p)}
           acciones={acciones}
         />
@@ -330,6 +337,10 @@ export function Prospectos({
       <PresentationMessageModal open={!!presTarget} onClose={() => setPresTarget(null)}
         target={presTarget} onEnviado={(p) => acciones.mensajeEnviado(p)}
         onMarcarWhatsApp={(p, tiene) => acciones.marcarWhatsApp(p, tiene)} />
+      {/* G3: el desenlace de la llamada — abrir tel: no registró nada */}
+      <CallOutcomeModal target={llamadaTarget} onClose={() => setLlamadaTarget(null)}
+        onResultado={(p, resultado) => acciones.llamada(p, resultado)}
+        onDescartar={(p) => acciones.descartar(p, { motivo: "no le interesa (llamada)" })} />
       <Toast message={toast} />
     </div>
   );
