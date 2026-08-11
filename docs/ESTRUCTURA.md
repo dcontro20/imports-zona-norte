@@ -1,6 +1,6 @@
 # 📐 Estructura del sistema — snapshot automático
 
-> Actualizado: **2026-08-10** · Generado por `scripts/generate-structure-doc.mjs`
+> Actualizado: **2026-08-11** · Generado por `scripts/generate-structure-doc.mjs`
 > (cron nocturno). **No editar a mano** — los cambios se sobrescriben.
 > Para la guía humana de cómo está organizado todo, ver `MAPA_DEL_SISTEMA.md`.
 > Para decisiones y contexto, ver `CLAUDE.md` + `docs/SESSION_*.md`.
@@ -9,14 +9,14 @@
 
 | Capa | Archivos | Líneas (aprox.) |
 |---|---:|---:|
-| Componentes (pantallas + sub-piezas) | 82 | 29.974 |
+| Componentes (pantallas + sub-piezas) | 83 | 30.256 |
 | Módulos puros (cerebro de cálculos) | 20 | 2.609 |
-| Utilidades (`src/lib/`) | 68 | 7.114 |
-| Tests | 96 | — |
-| Scripts | 16 | — |
+| Utilidades (`src/lib/`) | 70 | 7.265 |
+| Tests | 100 | — |
+| Scripts | 17 | — |
 | Endpoints serverless | 2 | — |
 | Workflows GitHub Actions | 5 | — |
-| Docs (.md) | 65 | — |
+| Docs (.md) | 69 | — |
 
 ---
 
@@ -48,9 +48,9 @@ Cada archivo `.jsx` es una pantalla o módulo visible en la nav. La columna
 | Partners.jsx | 629 | — |
 | PriceLog.jsx | 620 | -- PRICE MANAGEMENT -- |
 | Procurement.jsx | 142 | Hub unificado de Abastecimiento — un solo punto de entrada para todo el ciclo de compra: Resumen (centro de comando) + Pedidos + Proveedores |
-| Products.jsx | 957 | — |
+| Products.jsx | 974 | — |
 | ProspectMap.jsx | 128 | Mapa de prospección — VISTA POR ZONA (cobertura). El mapa geográfico con pins llega junto con Google Places (2.5, diferido). Por ahora, para |
-| Prospectos.jsx | 264 | Prospectos.jsx — la estación de trabajo de ventas (ciclo v2, spec CONGELADO docs/PROSPECT_CRM_EJECUCION_SPEC.md). Una sola puerta para todo  |
+| Prospectos.jsx | 277 | Prospectos.jsx — la estación de trabajo de ventas (ciclo v2, spec CONGELADO docs/PROSPECT_CRM_EJECUCION_SPEC.md). Una sola puerta para todo  |
 | PublicCatalog.jsx | 218 | Vista pública del catálogo. Renderiza un snapshot decodificado del hash de la URL. NO requiere autenticación ni Firebase. NO tiene navegació |
 | Purchases.jsx | 1067 | — |
 | QuickSale.jsx | 334 | ============================================ QUICK SALE — Mobile-optimized one-tap sale |
@@ -129,23 +129,24 @@ Cada archivo `.jsx` es una pantalla o módulo visible en la nav. La columna
 | SupplierProfileModal.jsx | 145 | — |
 | processHelpers.js | 91 | src/components/supplier/processHelpers.js Helpers compartidos entre las tabs del módulo de Proveedores. |
 
-### `src/components/wholesale/` (13 archivos)
+### `src/components/wholesale/` (14 archivos)
 
 | Archivo | Líneas | Qué hace |
 |---|---|---|
-| ColasProspectos.jsx | 259 | ColasProspectos.jsx — la pantalla ☀️ Hoy del sistema de ejecución comercial (ciclo v2 F3, spec docs/PROSPECT_CRM_EJECUCION_SPEC.md §6): el s |
+| CallOutcomeModal.jsx | 25 | Modal de DESENLACE de llamada (gate G3, 2026-08-11) — el gemelo telefónico de la confirmación de WhatsApp: tocar 📞 abre el discador y NO re |
+| ColasProspectos.jsx | 310 | ColasProspectos.jsx — la pantalla ☀️ Hoy del sistema de ejecución comercial (ciclo v2 F3, spec docs/PROSPECT_CRM_EJECUCION_SPEC.md §6): el s |
 | Cotizador.jsx | 442 | Cotizador.jsx — 🧮 presupuestos mayoristas (Pricing Engine F5). El flujo real: la lista completa ya está en el teléfono del cliente → el |
 | DiscoveryReview.jsx | 108 | DiscoveryReview.jsx — la superficie del discovery en la app: nueva búsqueda, estado de las búsquedas en curso y descartados con memoria (con |
 | EmbudoOperativo.jsx | 153 | EmbudoOperativo.jsx — la pestaña 🎯 Embudo: dónde está parado todo. Rediseño 2026-08-07, después de prospectar de verdad. La versión anterio |
-| PresentationMessageModal.jsx | 52 | Modal compartido (Prospectos + Kioscos) para el mensaje de PRIMER CONTACTO. Preview EDITABLE → mandar por WhatsApp o copiar. Pensado para el |
-| PriceListScreen.jsx | 209 | — |
-| PricingPolicyScreen.jsx | 245 | PricingPolicyScreen.jsx — ⚙️ Política comercial del Pricing Engine. Acá el operador CONFIGURA (RN-19: ningún número de la política vive en e |
+| PresentationMessageModal.jsx | 84 | Modal compartido (Prospectos + Kioscos) para el mensaje de PRIMER CONTACTO. Preview EDITABLE → mandar por WhatsApp o copiar. Pensado para el |
+| PriceListScreen.jsx | 336 | — |
+| PricingPolicyScreen.jsx | 247 | PricingPolicyScreen.jsx — ⚙️ Política comercial del Pricing Engine. Acá el operador CONFIGURA (RN-19: ningún número de la política vive en e |
 | ProspectDiagnosisModal.jsx | 90 | Ficha de diagnóstico de un prospecto. RENDER PURO de lo que la fachada del Prospect Engine ya dejó listo (item.diagnostico / item.scoreResul |
 | ProspectFicha.jsx | 155 | ProspectFicha.jsx — la FICHA del prospecto: el EXPEDIENTE PERMANENTE, y el centro operativo del módulo. Se abre desde cualquier vista (colas |
 | ProspectFormModal.jsx | 65 | ProspectFormModal.jsx — alta/edición de prospecto. Extraído de Pipeline en F2 del mini CRM (spec docs/PROSPECT_CRM_SPEC.md) para usarlo tamb |
 | ProspectMapsLine.jsx | 21 | ProspectMapsLine.jsx — el renglón de datos de Google Maps en las cards del CRM (micro-iteración post-cierre aprobada por Gustavo 2026-08-01) |
 | VisitModal.jsx | 79 | VisitModal.jsx — registro de visita + calificación rápida (Prospect Engine). Extraído de Pipeline en F2 del mini CRM (spec docs/PROSPECT_CRM |
-| prospectActions.js | 82 | prospectActions.js — las acciones de gestión del prospecto como ÚNICA fuente: las usan las colas de ☀️ Hoy y la Ficha. Si divergieran, dos |
+| prospectActions.js | 97 | prospectActions.js — las acciones de gestión del prospecto como ÚNICA fuente: las usan las colas de ☀️ Hoy y la Ficha. Si divergieran, dos |
 
 ## 🧠 Módulos puros — el "cerebro" de cálculos (`src/`)
 
@@ -210,14 +211,14 @@ producto/cliente, métricas, sync. Sin pantalla → testeable.
 | offerCalendar.js | 68 | src/lib/offerCalendar.js Plan semanal sugerido de ofertas: qué audiencia y qué tipo de mensaje |
 | offerHistory.js | 115 | src/lib/offerHistory.js Historial de ofertas mandadas + tracking de conversión. |
 | offers.js | 319 | src/lib/offers.js Generador de mensajes de oferta para WhatsApp. Funciones PURAS que arman |
-| priceLists.js | 122 | priceLists.js — LISTAS DE PRECIOS VERSIONADAS E INMUTABLES (RN-12, RN-13). Una lista publicada es un SNAPSHOT: congela la política, los cost |
+| priceLists.js | 169 | priceLists.js — LISTAS DE PRECIOS VERSIONADAS E INMUTABLES (RN-12, RN-13). Una lista publicada es un SNAPSHOT: congela la política, los cost |
 | pricingAdapter.js | 35 | pricingAdapter.js — ADAPTADOR entre el modelo de productos de IZN y el contrato del motor (docs/addendum-portabilidad-modulo.md, capa 2). |
-| pricingEngine.js | 150 | pricingEngine.js — NÚCLEO PORTABLE del Pricing Engine. Funciones PURAS. Contrato (docs/addendum-portabilidad-modulo.md): el motor no sabe qu |
+| pricingEngine.js | 151 | pricingEngine.js — NÚCLEO PORTABLE del Pricing Engine. Funciones PURAS. Contrato (docs/addendum-portabilidad-modulo.md): el motor no sabe qu |
 | pricingPolicy.js | 84 | pricingPolicy.js — POLÍTICA COMERCIAL como datos (capa de integración). Acá vive lo que el negocio configura y el código jamás fija (RN-19): |
-| prospectActividad.js | 54 | prospectActividad.js — la sección Actividad de la Ficha (spec §Ficha.5, docs/PROSPECT_CRM_SPEC.md) como LISTA DE EVENTOS TIPADOS: |
+| prospectActividad.js | 64 | prospectActividad.js — la sección Actividad de la Ficha (spec §Ficha.5, docs/PROSPECT_CRM_SPEC.md) como LISTA DE EVENTOS TIPADOS: |
 | prospectDiagnosis.js | 115 | prospectDiagnosis.js — número → LENGUAJE. Port de la mecánica de prospect_crm/diagnosis.py de Atlas (la palabra lidera, el número respalda, |
-| prospectEtapas.js | 79 | prospectEtapas.js — el dominio de ETAPAS OPERATIVAS del sistema de ejecución comercial (spec CONGELADO: docs/PROSPECT_CRM_EJECUCION_SPEC.md, |
-| prospectHechos.js | 24 | prospectHechos.js — los HECHOS que las pantallas capturan con un tap (spec CONGELADO docs/PROSPECT_CRM_EJECUCION_SPEC.md §2, F3 del ciclo v2 |
+| prospectEtapas.js | 107 | prospectEtapas.js — el dominio de ETAPAS OPERATIVAS del sistema de ejecución comercial (spec CONGELADO: docs/PROSPECT_CRM_EJECUCION_SPEC.md, |
+| prospectHechos.js | 32 | prospectHechos.js — los HECHOS que las pantallas capturan con un tap (spec CONGELADO docs/PROSPECT_CRM_EJECUCION_SPEC.md §2, F3 del ciclo v2 |
 | prospectRanking.js | 38 | prospectRanking.js — LA FACHADA del Prospect Engine para la UI. Este es el ÚNICO módulo del engine que la capa de React debe importar. |
 | prospectRubric.js | 61 | prospectRubric.js — la rúbrica de Imports para el Prospect Engine, como DATOS. Versión izn-v1 · BORRADOR del diseño §7 (PROSPECT_ENGINE_DESI |
 | prospectScoring.js | 126 | prospectScoring.js — MOTOR genérico de evaluación de prospectos. Port fiel del núcleo puro de Atlas Prospect Intelligence (score.py + scorer |
@@ -245,8 +246,10 @@ producto/cliente, métricas, sync. Sin pantalla → testeable.
 | weeklyPromo.js | 44 | src/lib/weeklyPromo.js "Promo de la semana" — UNA promo elegida por impacto económico, estable |
 | whatIfSimulator.js | 95 | src/lib/whatIfSimulator.js Simulador what-if para tomar decisiones financieras informadas: |
 | whatsappMessage.js | 115 | src/lib/whatsappMessage.js Generadores del mensaje de stock para WhatsApp. Funciones PURAS extraídas |
+| whatsappMigration.js | 26 | whatsappMigration.js — estampa telefonoWa / telefonoInvalido sobre los prospectos (handoff 2026-08-10, Cambio 1). Pura e idempotente, mismo  |
+| whatsappPhone.js | 28 | whatsappPhone.js — normalización de teléfonos AR al formato que WhatsApp exige en sus links (549 + área + abonado, sin 0 y sin 15) + el buil |
 | wholesaleExport.js | 53 | src/lib/wholesaleExport.js Export a CSV de clientes mayoristas, prospectos y rutas. Funciones PURAS |
-| wholesaleMessage.js | 80 | src/lib/wholesaleMessage.js Generadores de mensajes B2B (mayorista): COBRANZA y PRESENTACIÓN. |
+| wholesaleMessage.js | 83 | src/lib/wholesaleMessage.js Generadores de mensajes B2B (mayorista): COBRANZA y PRESENTACIÓN. |
 
 ## ☁️ Backend — corre fuera del navegador
 
@@ -287,10 +290,11 @@ producto/cliente, métricas, sync. Sin pantalla → testeable.
 | impacto-lista-v2026-08.mjs | impacto-lista-v2026-08.mjs — TABLA DE IMPACTO POR CLIENTE (solo lectura). Insumo para la decisión abierta #1 del brief del Pricing Engine (t |
 | light-theme-restore.mjs | — |
 | migrate-remove-gustavo.mjs | — |
+| migrate-v250-colores.mjs | migrate-v250-colores.mjs — unifica "V250 Black / Gold / Pink" en UN modelo "V250" con el color plegado al sabor. |
 
 ## 🧪 Tests
 
-Tests detectados: **96**. Para correrlos: `npm test`.
+Tests detectados: **100**. Para correrlos: `npm test`.
 
 - `src/App.test.jsx`
 - `src/calcs.test.js`
@@ -302,6 +306,7 @@ Tests detectados: **96**. Para correrlos: `npm test`.
 - `src/components/purchases/purchaseHelpers.test.js`
 - `src/components/wholesale/DiscoveryReview.test.jsx`
 - `src/components/wholesale/EmbudoOperativo.test.jsx`
+- `src/components/wholesale/PresentationMessageModal.test.jsx`
 - `src/components/wholesale/prospectActions.test.js`
 - `src/executiveMetrics.test.js`
 - `src/finance.test.js`
@@ -348,6 +353,7 @@ Tests detectados: **96**. Para correrlos: `npm test`.
 - `src/lib/pricingEngine.golden.test.js`
 - `src/lib/pricingEngine.test.js`
 - `src/lib/pricingPolicy.test.js`
+- `src/lib/pricingPolicy.wiring.test.js`
 - `src/lib/prospectActividad.test.js`
 - `src/lib/prospectDiagnosis.test.js`
 - `src/lib/prospectEtapas.test.js`
@@ -372,6 +378,8 @@ Tests detectados: **96**. Para correrlos: `npm test`.
 - `src/lib/warrantyProvision.test.js`
 - `src/lib/whatIfSimulator.test.js`
 - `src/lib/whatsappMessage.test.js`
+- `src/lib/whatsappMigration.test.js`
+- `src/lib/whatsappPhone.test.js`
 - `src/lib/wholesaleExport.test.js`
 - `src/lib/wholesaleMessage.escalones.test.js`
 - `src/lib/wholesaleMessage.test.js`
@@ -413,6 +421,7 @@ Tests detectados: **96**. Para correrlos: `npm test`.
 - `docs/IZN_Discovery_Engine_Resumen.md`
 - `docs/IZN_Fix_Borrar_Mayorista_Resumen.md`
 - `docs/IZN_Front_Ventas_Resumen.md`
+- `docs/IZN_Llamadas_Cola_SinWhatsApp_Resumen.md`
 - `docs/IZN_Merge_Mayorista_Resumen.md`
 - `docs/IZN_Mobile_Hardening_Resumen.md`
 - `docs/IZN_Pricing_Engine_F0_F1_Resumen.md`
@@ -423,6 +432,7 @@ Tests detectados: **96**. Para correrlos: `npm test`.
 - `docs/IZN_Tanda_F1_Modos_Resumen.md`
 - `docs/IZN_Tanda_F_Completa_Resumen.md`
 - `docs/IZN_Textos_Mobile_Resumen.md`
+- `docs/IZN_WhatsApp_Contacto_Resumen.md`
 - `docs/MAPA_DEL_SISTEMA.md`
 - `docs/PLAN_MAYORISTA.md`
 - `docs/PLAN_MEJORAS_MAYORISTA.md`
@@ -459,6 +469,8 @@ Tests detectados: **96**. Para correrlos: `npm test`.
 - `docs/SESSION_2026-07-31_prospect_crm.md`
 - `docs/SESSION_2026-08-01_b3_backup.md`
 - `docs/SESSION_2026-08-07_pricing_engine.md`
+- `docs/SESSION_2026-08-10_whatsapp_contacto.md`
+- `docs/SESSION_2026-08-11_llamadas_cola_sin_whatsapp.md`
 - `docs/TEST_ENV_SETUP.md`
 - `docs/addendum-portabilidad-modulo.md`
 - `docs/brief-implementacion-claude-code.md`
