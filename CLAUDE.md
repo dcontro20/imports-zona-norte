@@ -336,6 +336,44 @@ A partir del 14/04/2026, GitHub está sincronizado y es la fuente de verdad del 
 
 ---
 
+## Estado del proyecto al 11/08/2026
+
+### 📞 LLAMADAS CON DESENLACE + COLA 🚫 SIN WHATSAPP — CICLO G1–G4 COMPLETO (branch `feature/llamadas-y-cola-sin-whatsapp`, PR abierto)
+
+Ciclo nacido de fricción REAL tras probar WhatsApp en prod. Gates por fase.
+Resumen: `docs/IZN_Llamadas_Cola_SinWhatsApp_Resumen.md` · Journal:
+`docs/SESSION_2026-08-11_llamadas_cola_sin_whatsapp.md`. **1527 tests verdes**
+(+33). Commits `29b80d0` → `a4b3e03` + docs. **La tabla de 7 etapas NO
+cambió — cambió qué hechos alimentan las mismas 7.**
+
+- **Matriz aprobada (no reabrir)**: llamada 🤝 interesado ⇒ Negociación ·
+  🚶 quiere visita ⇒ Para visitar · ⏳ seguimiento ⇒ Esperando (timer de
+  reintento desde la llamada) · 📵 no atendió ("") registra el INTENTO sin
+  mover ni resetear timer · ✗ no interesa = descartar con memoria (no es
+  hecho de llamada) · teléfono INVÁLIDO (dato estampado) = sin teléfono ⇒
+  Para visitar. Precedencia: recencia a TRES bandas (visita/mensaje/llamada
+  con desenlace, desempate visita > mensaje > llamada); la última llamada
+  pisa a la anterior; respondió/🤝 explícito fijan Negociación.
+- **CONTRATO (gemelo del de WhatsApp): abrir tel: no registra nada.**
+  `CallOutcomeModal` pregunta al volver; cerrar sin elegir no registra.
+  Cualquier 📞 del módulo (cola, Embudo, Ficha, incluido el secundario de la
+  Ficha) termina en la misma pregunta vía `onLlamar`.
+- **Cola 🚫 Sin WhatsApp = PROYECCIÓN** (`colaOperativa` en prospectEtapas),
+  jamás etapa: `para_contactar` + `tieneWhatsApp === false` ⇒ cola
+  `sin_whatsapp` en ☀️ Hoy (entre 💬 y 🚶, chip "Llamar", 📞 primaria). El
+  Embudo/engine/métricas siguen viendo `para_contactar`. La normalización de
+  acciones vive en `accionesDeEtapa` (única fuente, no duplicar). El plegado
+  F4 dentro de 💬 se RETIRÓ (la cola lo reemplaza); chips ✓/Por verificar
+  quedan. Un hecho nuevo: `marcarLlamada` (prospectHechos) + builder 📞 en
+  Actividad. Cero migración de datos.
+- **Previews Vercel BLOQUEADOS por Vercel Authentication** (Standard
+  Protection, default): "Request Access" para cuentas fuera del equipo. G2
+  no se probó visualmente por eso (decisión de Gustavo: seguir igual — la
+  prueba real en prod es el input del próximo ciclo). Para abrir previews
+  por URL: Settings → Deployment Protection → Vercel Authentication →
+  Disabled (no afecta el dominio de prod). El token del CLI de Vercel en la
+  Mac de Gustavo está expirado (`vercel login` lo renueva).
+
 ## Estado del proyecto al 10/08/2026
 
 ### 💬 FLUJO DE CONTACTO POR WHATSAPP — COMPLETO F1–F5 (branch `feature/mensaje-primer-contacto`)
