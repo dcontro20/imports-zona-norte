@@ -87,10 +87,83 @@ pantallas 🎛️ Política comercial · 🏷️ Lista de precios · 🧮 Cotiza
    pedido con presupuesto abierto parecido · vencidos piden desenlace ·
    etiqueta obligatoria si no hay cliente (a quién seguir).
 
+## Ajustes post-prueba real (08/08, tras el primer uso de la Lista)
+
+- **La alerta de margen pasó a ser RELATIVA** (`margenAlertaPuntos`, 2 puntos
+  debajo del objetivo de cada escalón) en vez de un umbral absoluto. El
+  absoluto al 20% hacía saltar "margen bajo" en TODO el catálogo, porque el
+  escalón 200+ apunta a 18% por diseño — una alerta que salta siempre entrena
+  a ignorarla. El 17% absoluto tampoco alcanzaba: Geek Bar Pulse X cierra en
+  **16,7%** por cascada de anti-colapso. Además el relativo sobrevive a la
+  migración a 26/23/20/17 que el doc §9 ya planea (con absoluto volvería a
+  inundar). Hoy no alerta ningún producto; alerta cuando anti-colapso y
+  erosión de costo se suman (verificado con V150 Pro).
+- **Las alertas son una LENTE, no parte del snapshot**: los precios publicados
+  son inmutables (RN-12), pero las alertas se evalúan con la política y los
+  datos de hoy — si no, una alerta desafinada sobreviviría hasta la próxima
+  publicación.
+- **Mensaje de WhatsApp en dos monedas** con selector: ARS (al dólar del día +
+  buffer, válido 48 hs) y **USD** (precios en dólares, la conversión se explica
+  y se hace al cotizar). La versión USD no necesita cotización cargada.
+- **El ticket mínimo en pesos salió del mensaje**: asusta y casi nunca aplica
+  (20 unidades del producto más barato ya lo superan). El mínimo se comunica en
+  positivo — *"Comprás desde 20 unidades — mezclá modelos y sabores como
+  quieras"* — y sigue siendo validación bloqueante en el cotizador (RN-08).
+- **Publicar dejó de ser a ciegas**: muestra qué cambia contra la vigente
+  (modelos que cambian de precio con delta, los que entran, los que salen, si
+  cambió la política) y **si no cambia nada no genera versión** — una lista
+  idéntica con número nuevo ensucia el historial y hace dudar de cuál mandó el
+  cliente. En prod había 12 versiones publicadas, casi todas idénticas.
+- **Atajo 💲 Editar costos** desde la Lista, con vuelta automática; y los
+  modelos sin costo (RN-18) y con costos mezclados ahora se nombran, no se
+  cuentan.
+
+## Migración de datos aplicada (11/08)
+
+- **V250 Black / Gold / Pink eran el mismo equipo en 3 colores** (misma marca,
+  mismo costo USD 10, listas de sabores casi idénticas) ocupando 3 renglones
+  idénticos de la lista. `scripts/migrate-v250-colores.mjs --apply` los unificó
+  en un modelo `V250` plegando el color al sabor (`Banana Ice · Black`): **55
+  registros migrados**, sin tocar ids, stock ni costos — el historial de ventas
+  quedó intacto y la granularidad de stock por color se conserva.
+  Respaldos previos: `backups/IZN_appData_pre_v250_*.json` (export completo de
+  los 19 docs) + `backups/products_pre_v250_*.json`.
+  **Queda republicar la lista**: el catálogo pasa de 16 a 14 modelos (salen los
+  3 V250 de color, entra V250) y ningún otro precio se mueve.
+
+## Verificación de la alerta contra datos reales (11/08)
+
+Corrida sobre la lista vigente de producción reproduciendo lo que hace la
+pantalla (adaptador + `alertasDeHoy` + política normalizada):
+
+- **"MARGEN BAJO": 0 de 16 productos** (antes del cambio había 15 alertas
+  guardadas en el snapshot).
+- Y por la razón correcta, no porque la alerta esté apagada: el peor margen
+  contra su objetivo es **Geek Bar Pulse X @200+ con −1,26 pts**, contra un
+  umbral de 2 pts — hay colchón, la función está activa.
+- Tras republicar (con la migración del V250 aplicada): también **0**.
+
+**Bug encontrado gracias a esta verificación**: la política llegaba CRUDA desde
+el hook a todas las pantallas. El doc `appData/pricingPolicy` no existe todavía
+(Diego nunca guardó la pantalla), así que la política sale del caché de
+localStorage — con el esquema viejo. Sin normalizar, `margenAlertaPuntos`
+llegaba `undefined` y **la alerta quedaba apagada en silencio**: no se verían
+badges, pero por el motivo equivocado. Ahora `App.jsx` normaliza una sola vez
+antes de repartir, `normalizarPolitica` ignora valores `null`/`undefined` (que
+sobreviven a JSON y pisaban el default), y un test de invariante sobre el
+fuente (`pricingPolicy.wiring.test.js`) impide que vuelva a pasar.
+
 ## Anotado, NO implementado (v1.1 / métricas)
 
 - Buffer del 3% reportado SEPARADO del margen (colchón cambiario, no
   rentabilidad).
+- **Redondeo de USD 0,25 para SKUs baratos**: en productos de costo bajo el
+  escalón de redondeo de USD 0,50 pesa más en porcentaje y el anti-colapso
+  empuja el margen hacia abajo (Geek Bar Pulse X cierra en 16,7% contra un
+  objetivo de 18%). El trade-off está aceptado — 1,3 puntos a cambio de que el
+  incentivo de volumen exista en ese SKU —, pero si entran más productos
+  baratos y el efecto se acumula, la salida es un múltiplo de redondeo menor
+  para esa franja. No hace falta ahora.
 - Parser de pedidos pegados (borrador revisable, nunca directo).
 - Bandas de precio: siguen diferidas hasta tener rotación por SKU (§8/§10).
 - Fuentes de FX adicionales se agregan como config, no como código.

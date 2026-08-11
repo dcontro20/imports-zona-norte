@@ -50,18 +50,41 @@ describe("listaEscalonesText — el mensaje compartible", () => {
     expect(txt).toContain("Unidades: 20-49  ·  50-99  ·  100-199  ·  200+");
   });
 
-  it("la mezcla libre está ESCRITA en el mensaje, no implícita", () => {
+  it("la mezcla libre está ESCRITA en el mensaje, no implícita (y una sola vez)", () => {
     expect(txt).toContain("El precio por unidad depende del TOTAL de unidades del pedido.");
-    expect(txt).toContain("Mezclá modelos y sabores como quieras");
+    expect(txt).toContain("mezclá modelos y sabores como quieras");
+    // Vive junto al mínimo, en positivo — no repetida arriba y abajo.
+    expect(txt.toLowerCase().split("mezclá modelos y sabores").length - 1).toBe(1);
   });
 
-  it("versión + fecha + disclaimer alineado con el presupuesto + mínimo de la política congelada", () => {
+  it("versión + fecha + disclaimer alineado con el presupuesto", () => {
     expect(txt).toContain("Lista v2026-08 · 07/08/2026");
     // La MISMA promesa que el presupuesto (48 hs), no la versión vaga.
     expect(txt).toContain("válidos por 48 hs");
     expect(txt).not.toContain("si el dólar se mueve");
-    expect(txt).toContain("Pedido mínimo: 20 unidades");
-    expect(txt).toContain("$206.000"); // ticket 200 USD × 1030
+  });
+
+  it("el mínimo va EN POSITIVO y solo en unidades — el ticket en pesos no se comunica", () => {
+    expect(txt).toContain("📦 Comprás desde 20 unidades — mezclá modelos y sabores como quieras.");
+    expect(txt).not.toContain("Pedido mínimo");
+    expect(txt).not.toContain("ticket");
+    expect(txt).not.toContain("$206.000"); // el ticket mínimo (200 USD × 1030) no aparece
+  });
+
+  it("versión en USD: precios en dólares y la conversión se explica, sin necesitar FX", () => {
+    // Se puede compartir aunque no haya cotización cargada — el precio en
+    // dólares no depende del FX del día.
+    const usd = listaEscalonesText(LISTA, { ...OPTS, moneda: "USD", exchangeRate: 0 });
+    expect(usd).toContain("• TE 30K: USD 13,50 · USD 13,00 · USD 12,50 · USD 12,00");
+    expect(usd).toContain("La conversión a pesos se hace al dólar del día de la cotización y queda firme 48 hs.");
+    expect(usd).not.toContain("$13.905");
+    // Lo demás es idéntico a la versión en pesos:
+    expect(usd).toContain("Comprás desde 20 unidades — mezclá modelos y sabores como quieras.");
+    expect(usd).toContain("Unidades: 20-49  ·  50-99  ·  100-199  ·  200+");
+  });
+
+  it("la versión en pesos SÍ exige cotización (no inventa un número)", () => {
+    expect(listaEscalonesText(LISTA, { ...OPTS, exchangeRate: 0 })).toBe("");
   });
 
   it("sin tiers, sin datos internos (costos/márgenes no viajan)", () => {

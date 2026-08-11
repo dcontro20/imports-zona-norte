@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { uid, formatMoney, formatDate } from "../helpers.js";
 import { Modal, Card, Btn, Input, Select, Table, Badge, SearchBar, useBodyScrollLock } from "./UI.jsx";
 import { BRANDS, BRAND_COLORS } from "../constants.js";
@@ -116,6 +116,10 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [], pur
   // la lista mayorista; cargarlo sabor por sabor invita al error de carga).
   const [costosModal, setCostosModal] = useState(false);
   const [costosDraft, setCostosDraft] = useState({});
+  // Llegada desde 🏷️ Lista de precios ("Editar costos"): abre el editor solo y
+  // recuerda a dónde volver — el costo es el único dato de entrada del motor,
+  // corregirlo no puede costar navegar y buscar el botón.
+  const [volverA, setVolverA] = useState(null);
   const [lightboxUrl, setLightboxUrl] = useState("");
   // Lock del scroll de fondo mientras el lightbox está abierto (iOS)
   useBodyScrollLock(!!lightboxUrl);
@@ -190,6 +194,24 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [], pur
     setCostosModal(true);
   };
 
+  useEffect(() => {
+    let destino = null;
+    try {
+      destino = localStorage.getItem("izn:abrirCostos");
+      if (destino) localStorage.removeItem("izn:abrirCostos");
+    } catch {}
+    if (destino) { setVolverA(destino); abrirCostosModal(); }
+  }, []); // eslint-disable-line
+
+  const cerrarCostosModal = () => {
+    setCostosModal(false);
+    if (volverA) {
+      const page = volverA;
+      setVolverA(null);
+      window.dispatchEvent(new CustomEvent("izn:navigate", { detail: { page } }));
+    }
+  };
+
   const guardarCostosPorModelo = () => {
     // Cambios calculados ANTES del setState (nada de side effects en el updater).
     const nuevosPorClave = {};
@@ -210,7 +232,7 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [], pur
       }));
       if (logAudit) logAudit("update", "product", "costos-masivo", `Actualizó costos por modelo (${cambiados.length} sabores)`);
     }
-    setCostosModal(false);
+    cerrarCostosModal();
     setToast(cambiados.length > 0 ? `✓ Costo actualizado en ${cambiados.length} sabor${cambiados.length !== 1 ? "es" : ""}` : "Sin cambios");
     setTimeout(() => setToast(""), 2600);
   };
@@ -830,7 +852,7 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [], pur
       {/* Pricing Engine F3 — costos por modelo: un solo costo por marca+modelo,
           aplicado a todos sus sabores. La vía rápida para mantener el costo de
           reposición al día (y corregir inconsistencias de carga). */}
-      <Modal open={costosModal} onClose={() => setCostosModal(false)} title="💲 Costos por modelo (USD)">
+      <Modal open={costosModal} onClose={cerrarCostosModal} title="💲 Costos por modelo (USD)">
         <p style={{ fontSize: 12, color: "#6B7794", marginTop: 0 }}>
           El costo se aplica a todos los sabores del modelo. De este dato deriva
           la lista mayorista — mantenerlo como costo de REPOSICIÓN (lo que pagarías hoy).
@@ -868,8 +890,8 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [], pur
           ));
         })()}
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 16 }}>
-          <Btn variant="secondary" onClick={() => setCostosModal(false)}>Cancelar</Btn>
-          <Btn onClick={guardarCostosPorModelo}>Guardar costos</Btn>
+          <Btn variant="secondary" onClick={cerrarCostosModal}>{volverA ? "Volver" : "Cancelar"}</Btn>
+          <Btn onClick={guardarCostosPorModelo}>{volverA ? "Guardar y volver" : "Guardar costos"}</Btn>
         </div>
       </Modal>
 

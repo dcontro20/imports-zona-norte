@@ -123,14 +123,16 @@ export const PricingPolicyScreen = ({ pricingPolicy, setPricingPolicy, logAudit 
             onChange={(e) => mutar((d) => { d.margenMinimo = pctGuardar(e.target.value); return d; })} />
         </FormRow>
         <FormRow>
-          <Input label="Alerta de margen % (aviso, no bloquea)" type="number" step="0.5" min="0" max="99"
-            value={pctVer(draft.margenAlerta)}
-            onChange={(e) => mutar((d) => { d.margenAlerta = pctGuardar(e.target.value); return d; })} />
+          <Input label="Alerta de margen: puntos debajo del objetivo (aviso, no bloquea)" type="number" step="0.5" min="0" max="99"
+            value={pctVer(draft.margenAlertaPuntos)}
+            onChange={(e) => mutar((d) => { d.margenAlertaPuntos = pctGuardar(e.target.value); return d; })} />
           <div />
         </FormRow>
         <div style={{ fontSize: 11, color: T_MUTED }}>
           El piso de margen es BLOQUEANTE: un producto que lo viola no se publica ni se cotiza.
-          La alerta avisa antes: el piso es tardío por diseño — cuando salta, ya se perdió margen.
+          La alerta avisa antes — el piso es tardío por diseño. Se mide en PUNTOS debajo del
+          margen objetivo de cada escalón (no como un % fijo): así no se desafina cuando
+          cambian los márgenes de la política, que es lo que la vuelve ruido.
         </div>
       </Card>
 
@@ -218,7 +220,7 @@ export const PricingPolicyScreen = ({ pricingPolicy, setPricingPolicy, logAudit 
                     <div style={{
                       fontSize: 10,
                       color: p.margenReal < draft.margenMinimo ? T_RED
-                        : (Number(draft.margenAlerta) > 0 && p.margenReal < draft.margenAlerta) ? T_AMBER
+                        : (Number(draft.margenAlertaPuntos) > 0 && p.margenReal < p.margen - draft.margenAlertaPuntos) ? T_AMBER
                         : T_GREEN,
                     }}>
                       {(p.margenReal * 100).toFixed(1)}%{p.ajustadoAnticolapso ? " ⚖" : ""}

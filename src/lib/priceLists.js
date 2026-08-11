@@ -178,6 +178,76 @@ export function driftContraVigente({ vigente, productosMotor, politica }) {
   };
 }
 
+// Qué cambia entre la lista vigente y una candidata (el snapshot que se
+// publicaría hoy). Sirve para que "Publicar" deje de ser un botón a ciegas:
+// se ve QUÉ va a cambiar antes de confirmar, y si no cambia nada NO se
+// genera versión nueva (una lista idéntica con número distinto es ruido:
+// ensucia el historial y hace dudar de cuál mandó el cliente).
+// Devuelve { hayCambios, cambios, entran, salen, politicaCambio }.
+export function compararSnapshots(vigente, candidato) {
+  const filasNuevas = candidato?.filas || [];
+  if (!vigente) {
+    return {
+      hayCambios: filasNuevas.length > 0,
+      cambios: [],
+      entran: filasNuevas.map(datosFila),
+      salen: [],
+      politicaCambio: false,
+    };
+  }
+  const antesPorId = new Map(vigente.filas.map((f) => [f.id, f]));
+  const cambios = [];
+  const entran = [];
+
+  for (const fila of filasNuevas) {
+    const antes = antesPorId.get(fila.id);
+    if (!antes) { entran.push(datosFila(fila)); continue; }
+    const preciosAntes = antes.precios.map((e) => e.precio);
+    const preciosAhora = fila.precios.map((e) => e.precio);
+    if (JSON.stringify(preciosAntes) === JSON.stringify(preciosAhora)) continue;
+    // El delta se mide sobre el PRIMER escalón (el precio de entrada, el que
+    // el kiosquero compara). Los demás se muestran igual, sin resumir.
+    const base = preciosAntes[0] || 0;
+    cambios.push({
+      id: fila.id, marca: fila.marca, modelo: fila.modelo,
+      antes: preciosAntes, ahora: preciosAhora,
+      deltaPct: base > 0 ? (preciosAhora[0] - base) / base : null,
+    });
+  }
+  const idsNuevos = new Set(filasNuevas.map((f) => f.id));
+  const salen = vigente.filas.filter((f) => !idsNuevos.has(f.id)).map(datosFila);
+  // La política congelada también viaja en el snapshot: si cambió (vigencia,
+  // mínimos, umbral de alerta...), publicar tiene efecto aunque ningún precio
+  // se mueva — la lista compartida y el presupuesto lo declaran.
+  const politicaCambio = JSON.stringify(vigente.politica) !== JSON.stringify(candidato?.politica);
+
+  return {
+    hayCambios: cambios.length > 0 || entran.length > 0 || salen.length > 0 || politicaCambio,
+    cambios, entran, salen, politicaCambio,
+  };
+}
+
+function datosFila(f) {
+  return { id: f.id, marca: f.marca, modelo: f.modelo, precios: f.precios.map((e) => e.precio) };
+}
+
+// Alertas de una lista publicada evaluadas con la política y los datos de HOY.
+// Los PRECIOS son inmutables (RN-12); las alertas son una LENTE sobre ellos —
+// dicen qué problema tienen hoy esos precios publicados. Recalcularlas al
+// mostrar evita dos trampas: alertas viejas que sobreviven a un cambio de
+// política (una alerta desafinada entrena a ignorarlas) y validaciones de
+// mercado que no aparecerían hasta republicar aunque el dato ya esté cargado.
+// Devuelve Map(idModelo → { bloqueantes, alertas }).
+export function alertasDeHoy(lista, productosMotor, politica) {
+  const porId = new Map((productosMotor || []).map((p) => [p.id, p]));
+  const out = new Map();
+  for (const fila of lista?.filas || []) {
+    const producto = porId.get(fila.id) || { id: fila.id };
+    out.set(fila.id, validarProducto(producto, fila.precios, politica));
+  }
+  return out;
+}
+
 // Precio de un producto (id de modelo del adaptador) en una lista publicada,
 // para el escalón que corresponde a un total de unidades. Es lo que consumirá
 // el cotizador (F5): la cotización lee la LISTA, jamás recalcula en vivo.

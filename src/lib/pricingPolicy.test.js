@@ -22,7 +22,7 @@ describe("DEFAULT_PRICING_POLICY — v2026-08 aprobada", () => {
     expect(DEFAULT_PRICING_POLICY.costoAdicionalPct).toBe(0.13);
     expect(DEFAULT_PRICING_POLICY.escalones.map((e) => e.margen)).toEqual([0.28, 0.24, 0.21, 0.18]);
     expect(DEFAULT_PRICING_POLICY.margenMinimo).toBe(0.15);
-    expect(DEFAULT_PRICING_POLICY.margenAlerta).toBe(0.2);
+    expect(DEFAULT_PRICING_POLICY.margenAlertaPuntos).toBe(0.02);
     // 200, no 220: 20× del producto de entrada (MO 20K) = USD 210 tiene que
     // pasar — "comprás desde 20 unidades" sin asteriscos (gate F4).
     expect(DEFAULT_PRICING_POLICY.pedidoMinimo).toEqual({ unidades: 20, ticketUSD: 200 });
@@ -83,10 +83,14 @@ describe("validarPolitica — consistencia de una política editada", () => {
     expect(validarPolitica(conEscalones([{ desde: 20, hasta: null, margen: 1.2 }]))).not.toEqual([]);
     expect(validarPolitica({ ...DEFAULT_PRICING_POLICY, redondeo: { multiplo: 0 } })).not.toEqual([]);
   });
-  it("la alerta de margen no puede quedar debajo del piso (nunca avisaría antes de bloquear)", () => {
-    const errores = validarPolitica({ ...DEFAULT_PRICING_POLICY, margenAlerta: 0.1 });
-    expect(errores.some((e) => e.includes("alerta de margen"))).toBe(true);
-    expect(validarPolitica({ ...DEFAULT_PRICING_POLICY, margenAlerta: 0 })).toEqual([]); // apagada es válida
+  it("la alerta de margen se mide en puntos; apagada (0) es válida", () => {
+    expect(validarPolitica({ ...DEFAULT_PRICING_POLICY, margenAlertaPuntos: 1.5 })).not.toEqual([]);
+    expect(validarPolitica({ ...DEFAULT_PRICING_POLICY, margenAlertaPuntos: 0 })).toEqual([]);
+  });
+  it("normalizar descarta el margenAlerta absoluto viejo (no queda campo inerte)", () => {
+    const politica = normalizarPolitica({ margenAlerta: 0.2, margenMinimo: 0.15 });
+    expect(politica.margenAlerta).toBeUndefined();
+    expect(politica.margenAlertaPuntos).toBe(0.02);
   });
 });
 

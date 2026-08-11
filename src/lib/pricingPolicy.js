@@ -21,7 +21,13 @@ export const DEFAULT_PRICING_POLICY = {
   ],
   redondeo: { multiplo: 0.5, direccion: "arriba" }, // §5.8 (RN-03)
   margenMinimo: 0.15,               // piso duro bloqueante (§5.10, RN-05)
-  margenAlerta: 0.2,                // aviso temprano de erosión de margen (alerta, no bloqueo)
+  // Aviso temprano de erosión (alerta, no bloqueo), RELATIVO al objetivo de
+  // cada escalón: salta si el margen real cae más de 2 puntos debajo del
+  // margen objetivo de ESE escalón. Calibrado con el catálogo real: hoy no
+  // salta en ningún producto (el peor caso es −1,26 pts, Geek Bar Pulse X en
+  // 200+ por cascada de anti-colapso) y sí saltaría tras absorber casi todo
+  // el umbral de estabilidad §5.17 (un +3% de costo cuesta ~2,2 puntos).
+  margenAlertaPuntos: 0.02,
   validaciones: {
     conflictoCanal: { activa: true, umbral: 0.85 }, // §5.11 (RN-14)
     margenCliente: { activa: true, umbral: 0.3 },   // §5.12 (RN-15)
@@ -49,6 +55,15 @@ export const DEFAULT_PRICING_POLICY = {
 export function normalizarPolitica(raw) {
   const base = DEFAULT_PRICING_POLICY;
   if (!raw || typeof raw !== "object") return { ...base };
+  // `margenAlerta` (umbral ABSOLUTO) fue reemplazado por `margenAlertaPuntos`
+  // (relativo al objetivo de cada escalón). Se descarta al normalizar para que
+  // no quede un campo inerte confundiendo en exports y backups.
+  const { margenAlerta: _retirado, ...limpio } = raw;
+  // Un campo presente pero vacío (null/undefined) tiene que CAER al default,
+  // no pisarlo: el spread copia las claves aunque valgan undefined, y `null`
+  // sobrevive a JSON — así un `margenAlertaPuntos: null` guardado apagaría la
+  // alerta en silencio.
+  raw = Object.fromEntries(Object.entries(limpio).filter(([, v]) => v != null));
   return {
     ...base,
     ...raw,
@@ -91,10 +106,8 @@ export function validarPolitica(politica) {
   });
   const margenMinimo = Number(politica?.margenMinimo);
   if (!(margenMinimo >= 0 && margenMinimo < 1)) errores.push("El margen mínimo tiene que estar entre 0% y 100%.");
-  const margenAlerta = Number(politica?.margenAlerta) || 0;
-  if (margenAlerta > 0 && margenAlerta < margenMinimo) {
-    errores.push("La alerta de margen tiene que ser mayor o igual al piso (si no, nunca avisa antes de bloquear).");
-  }
+  const puntos = Number(politica?.margenAlertaPuntos) || 0;
+  if (puntos < 0 || puntos >= 1) errores.push("La alerta de margen se mide en puntos porcentuales (entre 0 y 100).");
   if (!(Number(politica?.redondeo?.multiplo) > 0)) errores.push("El múltiplo de redondeo tiene que ser mayor que 0.");
   if (!(Number(politica?.pedidoMinimo?.unidades) >= 0)) errores.push("El mínimo de unidades no puede ser negativo.");
   if (!(Number(politica?.pedidoMinimo?.ticketUSD) >= 0)) errores.push("El mínimo de ticket no puede ser negativo.");
