@@ -26,12 +26,23 @@ const AUDIT_EVENTO = {
 
 // Hechos del ciclo v2 (prospectHechos.js §2): los que la etapa DERIVA. Cada
 // uno es un builder — la pantalla sigue sin conocer los tipos.
+// El título de la llamada cuenta el DESENLACE (gate G1): el intento fallido
+// también es actividad — "no atendió" queda a la vista para reintentar.
+const LLAMADA_TITULO = {
+  interesado: "Llamada — quedó interesado",
+  visita: "Llamada — quiere visita",
+  seguimiento: "Llamada — pidió seguimiento",
+  "": "Llamada — no atendió",
+};
+
 const HECHO_EVENTO = [
   { campo: "analizadoAt", autor: "analizadoPor", tipo: "analizado", icono: "🔍", titulo: "Analizado — vale la pena trabajarlo" },
   { campo: "mensajeEnviadoAt", autor: "mensajeEnviadoPor", tipo: "mensaje_enviado", icono: "💬", titulo: "Presentación enviada" },
   { campo: "respondioAt", tipo: "respuesta", icono: "🟢", titulo: "Respondió" },
   { campo: "noRespondeAt", tipo: "sin_respuesta", icono: "🔴", titulo: "No responde" },
   { campo: "negociacionAt", tipo: "negociacion", icono: "🤝", titulo: "Pasó a negociación" },
+  { campo: "llamadaAt", autor: "llamadaPor", tipo: "llamada", icono: "📞",
+    titulo: (p) => LLAMADA_TITULO[p?.llamadaResultado ?? ""] ?? "Llamada" },
 ];
 
 // actividadDeProspecto({ prospect, prospectId, visits, auditLog }) → eventos
@@ -46,7 +57,10 @@ export function actividadDeProspecto({ prospect = null, prospectId, visits = [],
     const at = prospect?.[h.campo];
     if (!at) continue;
     eventos.push({
-      tipo: h.tipo, icono: h.icono, titulo: h.titulo, detalle: "",
+      tipo: h.tipo, icono: h.icono,
+      // titulo puede ser función del prospecto (la llamada titula su desenlace)
+      titulo: typeof h.titulo === "function" ? h.titulo(prospect) : h.titulo,
+      detalle: "",
       at, por: (h.autor && prospect[h.autor]) || "",
     });
   }

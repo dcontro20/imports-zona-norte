@@ -268,26 +268,35 @@ describe("Prospectos — presentar deja rastro (el gap que cerró F3)", () => {
   });
 });
 
-describe("Prospectos — filtro WhatsApp en la cola 💬 (handoff 2026-08-10, F4)", () => {
-  // Tres prospectos en 💬 con el dato en sus tres estados. tieneWhatsApp lo
-  // marca la confirmación del modal (F3); acá se testea que la cola lo CONSUME.
+describe("Prospectos — cola 🚫 Sin WhatsApp (gate G2: proyección, no etapa)", () => {
+  // tieneWhatsApp lo marca la confirmación del modal (F3); desde G2 los
+  // false viven en su PROPIA cola (el plegado de F4 se retiró — era la misma
+  // idea a medio camino). Acá se testea que la pantalla CONSUME la proyección.
   const conWa = { ...conTelefono, id: "p-wa-si", businessName: "Kiosco ConWa", tieneWhatsApp: true, phone: "11-4444-0011" };
   const sinWa = { ...conTelefono, id: "p-wa-no", businessName: "Kiosco SinWa", tieneWhatsApp: false, phone: "11-4444-0012" };
   const dudoso = { ...conTelefono, id: "p-wa-nd", businessName: "Kiosco Dudoso", phone: "11-4444-0013" };
   const TRES = [conWa, sinWa, dudoso];
 
-  it("los 🚫 confirmados se ocultan por defecto; una línea los recupera", () => {
+  it("el 🚫 confirmado vive en su cola, no en 💬; la primaria es 📞 Llamar", () => {
     montar({ prospects: TRES, visits: [] });
     irA("Contactar");
     expect(screen.getByText(/Kiosco ConWa/)).toBeTruthy();
     expect(screen.getByText(/Kiosco Dudoso/)).toBeTruthy();
-    expect(screen.queryByText(/Kiosco SinWa/)).toBeNull(); // plegado, no borrado
-    fireEvent.click(screen.getByText(/1 sin WhatsApp — mostrar igual/));
+    expect(screen.queryByText(/Kiosco SinWa/)).toBeNull(); // proyectado, no borrado
+    irA("Llamar"); // la cola 🚫, entre Contactar y Visitar
     expect(screen.getByText(/Kiosco SinWa/)).toBeTruthy();
-    expect(screen.getByText("🚫 sin WhatsApp")).toBeTruthy(); // marcado al verse
+    expect(screen.queryByText(/Kiosco ConWa/)).toBeNull();
+    // La primaria del descriptor compartido: llamar primero, sin presentar.
+    expect(screen.getByText("📞 Llamar")).toBeTruthy();
+    expect(screen.queryByText("💬 Presentar")).toBeNull();
   });
 
-  it("'Con WhatsApp' muestra solo los confirmados; 'Por verificar' solo los null", () => {
+  it("la cola 🚫 vacía no aparece en la barra (regla de siempre)", () => {
+    montar({ prospects: [conWa, dudoso], visits: [] });
+    expect(screen.queryByText("Llamar")).toBeNull();
+  });
+
+  it("chips en 💬 solo para ✓/null; 'Con WhatsApp' y 'Por verificar' filtran", () => {
     montar({ prospects: TRES, visits: [] });
     irA("Contactar");
     fireEvent.click(screen.getByText("✓ Con WhatsApp (1)"));
@@ -305,6 +314,80 @@ describe("Prospectos — filtro WhatsApp en la cola 💬 (handoff 2026-08-10, F4
     expect(screen.getByText(/Kiosco Incógnita/)).toBeTruthy();
     expect(screen.queryByText(/Con WhatsApp/)).toBeNull();
     expect(screen.queryByText(/Por verificar/)).toBeNull();
+  });
+
+  it("la Ficha del 🚫 cuenta la misma historia: chip 🚫 y 📞 como acción principal", () => {
+    montar({ prospects: TRES, visits: [] });
+    irA("Llamar");
+    fireEvent.click(screen.getByText(/Kiosco SinWa/));
+    expect(screen.getByText("Ficha — Kiosco SinWa")).toBeTruthy();
+    expect(screen.getByText("🚫 Sin WhatsApp")).toBeTruthy();
+    // La primaria compartida (accionesDeEtapa normaliza la proyección).
+    expect(screen.getAllByText("📞 Llamar").length).toBeGreaterThan(0);
+    expect(screen.queryByText("💬 Presentar")).toBeNull();
+  });
+});
+
+describe("Prospectos — desenlace de llamada (gate G3)", () => {
+  // El gemelo telefónico del contrato de WhatsApp: abrir el discador no
+  // registra nada; la pregunta al volver captura lo que pasó y la derivación
+  // (testeada en prospectEtapas) acomoda al prospecto.
+  const sinWa = {
+    ...conTelefono, id: "p-wa-no", businessName: "Kiosco SinWa",
+    tieneWhatsApp: false, phone: "11-4444-0012", address: "Mitre 1200", // identidad p/ descarte con memoria
+  };
+  const llamar = (props = {}) => {
+    const m = montar({ prospects: [sinWa], visits: [], ...props });
+    irA("Llamar");
+    fireEvent.click(screen.getByText("📞 Llamar"));
+    return m;
+  };
+  const resultado = (setProspects) =>
+    setProspects.mock.calls.reduce((acc, c) => c[0](acc), [{ ...sinWa }])[0];
+
+  it("📞 abre el discador y NO registra nada: aparece la pregunta", () => {
+    const { setProspects } = llamar();
+    expect(setProspects).not.toHaveBeenCalled();
+    expect(screen.getByText("¿Cómo salió la llamada?")).toBeTruthy();
+  });
+
+  it("🤝 quedó interesado → registra el desenlace (deriva Negociación)", () => {
+    const { setProspects } = llamar();
+    fireEvent.click(screen.getByText("🤝 Quedó interesado"));
+    const p = resultado(setProspects);
+    expect(p.llamadaResultado).toBe("interesado");
+    expect(p.llamadaPor).toBe("Diego");
+  });
+
+  it("🚶 quiere visita y ⏳ seguimiento registran su desenlace", () => {
+    const { setProspects } = llamar();
+    fireEvent.click(screen.getByText("🚶 Quiere que lo visite"));
+    expect(resultado(setProspects).llamadaResultado).toBe("visita");
+
+    cleanup();
+    const m2 = llamar();
+    fireEvent.click(screen.getByText("⏳ Pidió seguimiento / info"));
+    expect(resultado(m2.setProspects).llamadaResultado).toBe("seguimiento");
+  });
+
+  it("📵 no atendió → intento registrado, sin mover de cola (toast propio)", () => {
+    const { setProspects } = llamar();
+    fireEvent.click(screen.getByText("📵 No atendió"));
+    const p = resultado(setProspects);
+    expect(p.llamadaAt).toBeTruthy();
+    expect(p.llamadaResultado).toBe("");
+    expect(p.isDeleted).toBeUndefined();
+    expect(screen.getByText(/no atendió — el intento quedó registrado/)).toBeTruthy();
+  });
+
+  it("✗ no le interesa → descartar CON memoria (no es un hecho de llamada)", () => {
+    const { setProspects, setDiscoverySuppressed } = llamar();
+    fireEvent.click(screen.getByText("✗ No le interesa — descartar"));
+    const p = resultado(setProspects);
+    expect(p.isDeleted).toBe(true);
+    expect(p.descartadoAt).toBeTruthy();
+    expect(p.llamadaResultado).toBeUndefined(); // descartar no inventa una llamada
+    expect(setDiscoverySuppressed).toHaveBeenCalled(); // la supresión recuerda
   });
 });
 

@@ -20,15 +20,22 @@ import { formatDate } from "../../helpers.js";
 import { useResponsive } from "../../App.jsx";
 import { Btn, MiniBtn, Badge } from "../UI.jsx";
 import { T } from "../../theme.js";
-import { ETAPAS_OPERATIVAS, subEstadoEspera } from "../../lib/prospectEtapas.js";
+import { ETAPAS_OPERATIVAS, COLA_SIN_WHATSAPP, subEstadoEspera } from "../../lib/prospectEtapas.js";
 import { ProspectMapsLine } from "./ProspectMapsLine.jsx";
 
 // Las colas de TRABAJO: las 7 etapas operativas menos `cliente` (que ya salió
-// del CRM hacia Kioscos). El orden ES el flujo: descubrir → analizar →
-// ejecutar → seguir → cerrar.
+// del CRM hacia Kioscos), más la PROYECCIÓN 🚫 Sin WhatsApp (gate G2: entre
+// 💬 y 🚶 — sigue siendo contactable, pero por otro canal; la etapa de esos
+// prospectos sigue siendo para_contactar). El orden ES el flujo: descubrir →
+// analizar → ejecutar → seguir → cerrar.
+const CORTO = {
+  por_analizar: "Analizar", para_contactar: "Contactar", sin_whatsapp: "Llamar",
+  para_visitar: "Visitar", esperando_respuesta: "Esperando", visitado: "Visitados", negociacion: "Cerrar",
+};
 export const COLAS = ETAPAS_OPERATIVAS
   .filter(e => e.key !== "cliente")
-  .map(e => ({ ...e, corto: { por_analizar: "Analizar", para_contactar: "Contactar", para_visitar: "Visitar", esperando_respuesta: "Esperando", visitado: "Visitados", negociacion: "Cerrar" }[e.key] }));
+  .flatMap(e => e.key === "para_contactar" ? [e, COLA_SIN_WHATSAPP] : [e])
+  .map(e => ({ ...e, corto: CORTO[e.key] }));
 
 const HORARIOS = { si: "abre todos los días", no: "abre algunos días", sin_datos: "" };
 
@@ -158,9 +165,11 @@ export function DeckAnalisis({ items = [], acciones, onFicha, herramientas = nul
           </Dato>
           {detalle && <Dato icono="🏷">{detalle}</Dato>}
           <Dato icono="📞">
-            {p.phone
+            {p.phone && !p.telefonoInvalido
               ? <>{p.phone} <span style={{ color: T.textFaint }}>· se puede contactar</span></>
-              : <span style={{ color: T.amber }}>Sin teléfono — va a la cola de visitar</span>}
+              : p.phone
+                ? <span style={{ color: T.amber }}>{p.phone} — no sirve para contactar, va a la cola de visitar</span>
+                : <span style={{ color: T.amber }}>Sin teléfono — va a la cola de visitar</span>}
           </Dato>
           {(p.web || p.redSocial) && (
             <Dato icono="🌐">
@@ -222,25 +231,19 @@ const Dato = ({ icono, children }) => (
 // Las colas de EJECUCIÓN (💬 🚶 ⏳ 📋 🤝): misma gramática entre sí — card
 // compacta, acción primaria de la etapa, y la Ficha a un tap.
 // ---------------------------------------------------------------------------
-export function ColaLista({ cola, items = [], visits = [], acciones, onFicha, onVisita, onPresentar, prioridadColor }) {
+export function ColaLista({ cola, items = [], visits = [], acciones, onFicha, onVisita, onPresentar, onLlamar, prioridadColor }) {
   const { isMobile } = useResponsive();
-  // Filtro WhatsApp de la cola 💬 (handoff 2026-08-10, Cambio 4): el dato
-  // tieneWhatsApp se construye con el uso (true/false lo marca la confirmación
-  // del modal; null = nunca se intentó). Los 🚫 confirmados sin WhatsApp se
-  // OCULTAN por defecto — siguen existiendo (visita, llamada) pero no ocupan
-  // la cola de escribir. Los chips solo aparecen cuando distinguen algo:
-  // mientras todo es "por verificar" serían ruido puro (criterio 2).
+  // Filtro WhatsApp de la cola 💬 (F4, simplificado en G2): los 🚫 confirmados
+  // ya no viven acá — la proyección los manda a su propia cola sin_whatsapp.
+  // Quedan solo ✓ confirmados y "por verificar" (null); los chips aparecen
+  // únicamente cuando distinguen algo (criterio 2: nada de ruido).
   const [filtroWa, setFiltroWa] = useState("todos"); // todos | con_wa | por_verificar
-  const [verSinWa, setVerSinWa] = useState(false);
   const esContactar = cola.key === "para_contactar";
-  const grupoWa = (p) => p.tieneWhatsApp === true ? "si" : p.tieneWhatsApp === false ? "no" : "nd";
-  const nSinWa = esContactar ? items.filter(it => grupoWa(it.prospect) === "no").length : 0;
-  const nConWa = esContactar ? items.filter(it => grupoWa(it.prospect) === "si").length : 0;
-  const conDatoWa = esContactar && (nSinWa > 0 || nConWa > 0);
-  const visibles = !conDatoWa ? items
-    : filtroWa === "con_wa" ? items.filter(it => grupoWa(it.prospect) === "si")
-    : filtroWa === "por_verificar" ? items.filter(it => grupoWa(it.prospect) === "nd")
-    : verSinWa ? items : items.filter(it => grupoWa(it.prospect) !== "no");
+  const nConWa = esContactar ? items.filter(it => it.prospect.tieneWhatsApp === true).length : 0;
+  const conDatoWa = esContactar && nConWa > 0 && nConWa < items.length;
+  const visibles = !conDatoWa || filtroWa === "todos" ? items
+    : filtroWa === "con_wa" ? items.filter(it => it.prospect.tieneWhatsApp === true)
+    : items.filter(it => it.prospect.tieneWhatsApp !== true);
 
   if (!items.length) {
     return (
@@ -259,7 +262,7 @@ export function ColaLista({ cola, items = [], visits = [], acciones, onFicha, on
             {[
               { key: "todos", label: "Todos" },
               { key: "con_wa", label: `✓ Con WhatsApp (${nConWa})` },
-              { key: "por_verificar", label: `Por verificar (${items.length - nConWa - nSinWa})` },
+              { key: "por_verificar", label: `Por verificar (${items.length - nConWa})` },
             ].map(f => {
               const sel = filtroWa === f.key;
               return (
@@ -276,12 +279,6 @@ export function ColaLista({ cola, items = [], visits = [], acciones, onFicha, on
               );
             })}
           </div>
-          {/* Los 🚫 no desaparecen: están plegados. Una línea los recupera. */}
-          {filtroWa === "todos" && nSinWa > 0 && (
-            <button onClick={() => setVerSinWa(v => !v)} style={{ ...linkBtn, marginTop: 4 }}>
-              🚫 {nSinWa} sin WhatsApp {verSinWa ? "a la vista — ocultar" : "— mostrar igual"}
-            </button>
-          )}
         </div>
       )}
       {visibles.length === 0 && (
@@ -307,9 +304,6 @@ export function ColaLista({ cola, items = [], visits = [], acciones, onFicha, on
                 </div>
                 <span style={{ flexShrink: 0, display: "flex", gap: 4, alignItems: "center" }}>
                   {espera === "reintentar" && <Badge color={T.red}>reintentar</Badge>}
-                  {/* Solo los 🚫 se marcan: el dato ganado que explica por qué
-                      esta card estaba plegada. ✓/null no gritan nada. */}
-                  {esContactar && p.tieneWhatsApp === false && <Badge color={T.red}>🚫 sin WhatsApp</Badge>}
                   <Badge color={prioridadColor?.(it) ?? T.textFaint}>{it.chip?.etiqueta}</Badge>
                 </span>
               </div>
@@ -322,7 +316,7 @@ export function ColaLista({ cola, items = [], visits = [], acciones, onFicha, on
               <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                 {accionesDeEtapa(cola.key, p, { espera }).map(a => (
                   <MiniBtn key={a.key} color={a.color}
-                    onClick={() => a.run(p, { acciones, onVisita, onPresentar })}>{a.label}</MiniBtn>
+                    onClick={() => a.run(p, { acciones, onVisita, onPresentar, onLlamar })}>{a.label}</MiniBtn>
                 ))}
               </div>
             </div>
@@ -335,12 +329,21 @@ export function ColaLista({ cola, items = [], visits = [], acciones, onFicha, on
 
 // El contexto que importa EN ESA cola (y solo ese: nada de datos de relleno).
 function contexto(colaKey, p, visits) {
-  if (colaKey === "esperando_respuesta" && p.mensajeEnviadoAt) return ` · escrito ${formatDate(p.mensajeEnviadoAt)}`;
+  if (colaKey === "esperando_respuesta") {
+    // La espera puede venir del mensaje o de la llamada-seguimiento (G1):
+    // se cuenta el toque que la abrió.
+    const llamada = p.llamadaResultado === "seguimiento" ? String(p.llamadaAt || "") : "";
+    if (llamada > String(p.mensajeEnviadoAt || "")) return ` · llamado ${formatDate(llamada)}`;
+    if (p.mensajeEnviadoAt) return ` · escrito ${formatDate(p.mensajeEnviadoAt)}`;
+  }
   if (colaKey === "visitado" || colaKey === "negociacion") {
     const v = ultimaVisitaDe(visits, p.id);
     if (v) return ` · visitado ${formatDate(v)}`;
   }
-  if (colaKey === "para_contactar" && p.analizadoAt) return ` · analizado ${formatDate(p.analizadoAt)}`;
+  // En 🚫 el último intento de llamada es el dato que importa (G3 lo registra);
+  // sin intento aún, la fecha de análisis ubica igual que en 💬.
+  if (colaKey === "sin_whatsapp" && p.llamadaAt) return ` · llamado ${formatDate(p.llamadaAt)}`;
+  if ((colaKey === "para_contactar" || colaKey === "sin_whatsapp") && p.analizadoAt) return ` · analizado ${formatDate(p.analizadoAt)}`;
   return "";
 }
 
@@ -364,7 +367,9 @@ const A = {
   descartar:  { key: "descartar",  label: "✗ Descartar",    color: T.red,    run: (p, h) => { h.acciones?.descartar(p); h.onCerrar?.(); } },
   presentar:  { key: "presentar",  label: "💬 Presentar",   color: T.green,  run: (p, h) => h.onPresentar?.(p) },
   reescribir: { key: "reescribir", label: "💬 Reescribir",  color: T.blue,   run: (p, h) => h.onPresentar?.(p) },
-  llamar:     { key: "llamar",     label: "📞 Llamar",      color: T.blue,   run: (p) => { window.location.href = `tel:${String(p.phone).replace(/[^\d+]/g, "")}`; } },
+  // Abrir el discador NO registra nada (G3 — mismo contrato que WhatsApp):
+  // al volver, onLlamar abre la pregunta y el humano cuenta el desenlace.
+  llamar:     { key: "llamar",     label: "📞 Llamar",      color: T.blue,   run: (p, h) => { window.location.href = `tel:${String(p.phone).replace(/[^\d+]/g, "")}`; h?.onLlamar?.(p); } },
   visita:     { key: "visita",     label: "📋 Visita",      color: T.amber,  run: (p, h) => h.onVisita?.(p) },
   respondio:  { key: "respondio",  label: "🟢 Respondió",   color: T.green,  run: (p, h) => h.acciones?.respondio(p) },
   noResponde: { key: "noResponde", label: "🔴 No responde", color: T.red,    run: (p, h) => h.acciones?.noResponde(p) },
@@ -373,9 +378,16 @@ const A = {
 };
 
 export function accionesDeEtapa(etapaKey, p = {}, { espera = "" } = {}) {
-  switch (etapaKey) {
+  // Proyección 🚫 (G2): la normalización vive ACÁ para que los TRES
+  // consumidores converjan — la cola llama con "sin_whatsapp", pero Embudo y
+  // Ficha llaman con la etapa (para_contactar); un prospecto confirmado sin
+  // WhatsApp trabaja por teléfono en las tres pantallas o divergen.
+  const key = etapaKey === "para_contactar" && p.tieneWhatsApp === false ? "sin_whatsapp" : etapaKey;
+  switch (key) {
     case "por_analizar":        return [A.trabajar, A.descartar];
     case "para_contactar":      return p.phone ? [A.presentar, A.llamar] : [A.presentar];
+    // El canal que queda es el teléfono; el mensaje escrito ya no aplica.
+    case "sin_whatsapp":        return [A.llamar, A.visita];
     // Sin teléfono el plan es ir, pero el mensaje sigue sirviendo (mandarlo por
     // IG, o mostrarlo en el mostrador): secundaria, no primaria.
     case "para_visitar":        return [A.visita, A.presentar];

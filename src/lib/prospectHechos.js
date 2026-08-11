@@ -18,6 +18,7 @@ export const CAMPOS_HECHO = {
   respondio: ["respondioAt"],
   noResponde: ["noRespondeAt"],
   negociacion: ["negociacionAt"],
+  llamada: ["llamadaAt", "llamadaPor", "llamadaResultado"],
 };
 
 // ✓ Trabajar: el análisis humano del descubierto. Es lo que habilita contactar
@@ -52,4 +53,23 @@ export function marcarNoResponde(p, { at } = {}) {
 // p. ej. la charla pasó en la visita).
 export function marcarNegociacion(p, { at } = {}) {
   return p ? { ...p, negociacionAt: at } : p;
+}
+
+// 📞 Llamada y su desenlace, confirmado por el humano DESPUÉS de colgar
+// (gate G1 2026-08-10 — mismo contrato que el mensaje: abrir el discador no
+// registra nada; el hecho lo confirma la persona).
+// resultado: "interesado" (deriva negociación) · "visita" (deriva 🚶) ·
+// "seguimiento" (deriva ⏳ con el timer de reintento desde la llamada) ·
+// "" = no atendió (el INTENTO queda registrado — Actividad y reintento —
+// pero no mueve de cola ni cuenta como contacto efectivo).
+// Es UN hecho con su desenlace: una llamada posterior lo pisa (la realidad
+// más nueva manda); respondioAt/negociacionAt fijan negociación permanente.
+// Hablar con alguien limpia noRespondeAt (la espera se reabre); el intento
+// fallido NO lo limpia — siguen sin responder.
+export const LLAMADA_RESULTADOS = ["interesado", "visita", "seguimiento", ""];
+export function marcarLlamada(p, { at, por, resultado = "" } = {}) {
+  if (!p) return p;
+  const r = LLAMADA_RESULTADOS.includes(resultado) ? resultado : "";
+  const base = { ...p, llamadaAt: at, llamadaPor: por || "", llamadaResultado: r };
+  return r ? { ...base, noRespondeAt: "" } : base;
 }

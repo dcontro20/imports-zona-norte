@@ -32,7 +32,7 @@ const ETAPA = Object.fromEntries(ETAPAS_OPERATIVAS.map(e => [e.key, e]));
 
 export function EmbudoOperativo({
   prospects = [], clients = [], visits = [], ranking,
-  onOpenFicha, onOpenKiosco, onNuevo, acciones, onVisita, onPresentar,
+  onOpenFicha, onOpenKiosco, onNuevo, acciones, onVisita, onPresentar, onLlamar,
 }) {
   const { isMobile } = useResponsive();
 
@@ -113,7 +113,7 @@ export function EmbudoOperativo({
                     <CardProspecto
                       key={p.id} p={p} etapa={etapa} item={ranking?.porId[p.id]}
                       onOpenFicha={onOpenFicha}
-                      handlers={{ acciones, onVisita, onPresentar }}
+                      handlers={{ acciones, onVisita, onPresentar, onLlamar }}
                     />
                   ))}
                 {n === 0 && !isMobile && (

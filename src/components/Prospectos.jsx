@@ -24,6 +24,7 @@ import { buildProspectRanking } from "../lib/prospectRanking.js";
 import { EmbudoOperativo } from "./wholesale/EmbudoOperativo.jsx";
 import { ProspectMap } from "./ProspectMap.jsx";
 import { PresentationMessageModal } from "./wholesale/PresentationMessageModal.jsx";
+import { CallOutcomeModal } from "./wholesale/CallOutcomeModal.jsx";
 import { ProspectFormModal } from "./wholesale/ProspectFormModal.jsx";
 import { VisitModal } from "./wholesale/VisitModal.jsx";
 import { ProspectFicha } from "./wholesale/ProspectFicha.jsx";
@@ -31,7 +32,7 @@ import { makeProspectActions } from "./wholesale/prospectActions.js";
 import {
   DiscoverySuppressedModal, DiscoverySearchModal, DiscoveryJobsStatus,
 } from "./wholesale/DiscoveryReview.jsx";
-import { ETAPAS_OPERATIVAS, etapaOperativa, conteoPorEtapa, subEstadoEspera, conEtapaLegacy } from "../lib/prospectEtapas.js";
+import { ETAPAS_OPERATIVAS, COLA_SIN_WHATSAPP, colaOperativa, conteoPorCola, subEstadoEspera, conEtapaLegacy } from "../lib/prospectEtapas.js";
 import { clavesDeRegistro } from "../lib/discovery/discoveryImport.js";
 import { BarraColas, DeckAnalisis, ColaLista, COLAS, PRIORIDAD_COLOR } from "./wholesale/ColasProspectos.jsx";
 
@@ -59,6 +60,7 @@ export function Prospectos({
   const [editando, setEditando] = useState(null);     // prospecto en edición (desde la Ficha)
   const [visitFor, setVisitFor] = useState(null);
   const [presTarget, setPresTarget] = useState(null);
+  const [llamadaTarget, setLlamadaTarget] = useState(null); // G3: la pregunta al volver del discador
   const [fichaId, setFichaId] = useState(null);       // la Ficha: el expediente permanente
   const [colaSel, setColaSel] = useState(null);       // cola elegida a mano (null = la que propone el sistema)
   const [toast, showToast] = useToast();
@@ -85,18 +87,19 @@ export function Prospectos({
     () => buildProspectRanking({ prospects: prospectsParaEngine, visits, clients, sales, products }),
     [prospectsParaEngine, visits, clients, sales, products],
   );
+  // Conteo por COLA (G2): la barra separa 🚫 de 💬; el Embudo sigue por etapa.
   const { conteo, vencidos } = useMemo(
-    () => conteoPorEtapa(prospects, { visits }), [prospects, visits],
+    () => conteoPorCola(prospects, { visits }), [prospects, visits],
   );
-  // Un prospecto vive en UNA cola. El orden dentro de la cola es el del
-  // ranking del engine (ya viene ordenado en ranking.items).
+  // Un prospecto vive en UNA cola (la PROYECCIÓN: colaOperativa — G2). El
+  // orden dentro de la cola es el del ranking del engine (ranking.items).
   const porCola = useMemo(() => {
     const mapa = Object.fromEntries(COLAS.map(c => [c.key, []]));
     for (const it of ranking.items) {
       const p = it.prospect;
       if (!p || p.isDeleted || p.convertedClientId) continue;
-      const etapa = etapaOperativa(p, { visits });
-      if (mapa[etapa]) mapa[etapa].push(it);
+      const cola = colaOperativa(p, { visits });
+      if (mapa[cola]) mapa[cola].push(it);
     }
     // Dentro de la espera, lo vencido primero: es lo único que pide acción.
     mapa.esperando_respuesta.sort((a, b) =>
@@ -178,9 +181,13 @@ export function Prospectos({
     if (hecho === "convertido") return showToast(`🏪 ${nombre} ya es mayorista — seguí en Kioscos`);
     if (hecho === "descartado") return showToast(`✗ ${nombre} descartado — no vuelve a aparecer`);
     if (hecho === "descartado_sin_memoria") return showToast(`✗ ${nombre} descartado (sin datos para recordarlo)`);
-    // 🚫 no mueve de cola (no es un hecho de etapa): el toast cuenta el dato.
-    if (hecho === "sin_whatsapp") return showToast(`🚫 ${nombre}: el número no está en WhatsApp`);
-    const destino = ETAPAS_OPERATIVAS.find(e => e.key === etapaOperativa(p, { visits }));
+    // 🚫 SÍ mueve de cola desde G2 (proyección): el toast cuenta el destino.
+    if (hecho === "sin_whatsapp") return showToast(`🚫 ${nombre}: sin WhatsApp — pasa a la cola de llamadas`);
+    // 📵 no atendió no mueve: contar "fue a donde ya estaba" confundiría.
+    if (hecho === "llamada" && !p.llamadaResultado) return showToast(`📵 ${nombre}: no atendió — el intento quedó registrado`);
+    // El destino que se anuncia es la COLA (lo que el usuario ve en Hoy), no
+    // la etapa interna — para un 🚫 divergirían.
+    const destino = [...ETAPAS_OPERATIVAS, COLA_SIN_WHATSAPP].find(e => e.key === colaOperativa(p, { visits }));
     if (destino) showToast(`${nombre} → ${destino.icono} ${destino.etiqueta}`);
   };
   const acciones = makeProspectActions({
@@ -267,6 +274,7 @@ export function Prospectos({
                 onFicha={setFichaId}
                 onVisita={(p) => setVisitFor({ id: p.id, type: "prospect", name: p.businessName })}
                 onPresentar={(p) => setPresTarget(p)}
+                onLlamar={(p) => setLlamadaTarget(p)}
                 prioridadColor={(it) => PRIORIDAD_COLOR[it.chip?.prioridad] ?? T.textFaint}
               />
             )}
@@ -284,6 +292,7 @@ export function Prospectos({
             acciones={acciones}
             onVisita={(p) => setVisitFor({ id: p.id, type: "prospect", name: p.businessName })}
             onPresentar={(p) => setPresTarget(p)}
+            onLlamar={(p) => setLlamadaTarget(p)}
           />
         </div>
       )}
@@ -318,6 +327,7 @@ export function Prospectos({
           onClose={() => setFichaId(null)}
           onVisita={(p) => setVisitFor({ id: p.id, type: "prospect", name: p.businessName })}
           onPresentar={(p) => setPresTarget(p)}
+          onLlamar={(p) => setLlamadaTarget(p)}
           onEditar={(p) => setEditando(p)}
           acciones={acciones}
         />
@@ -327,6 +337,10 @@ export function Prospectos({
       <PresentationMessageModal open={!!presTarget} onClose={() => setPresTarget(null)}
         target={presTarget} onEnviado={(p) => acciones.mensajeEnviado(p)}
         onMarcarWhatsApp={(p, tiene) => acciones.marcarWhatsApp(p, tiene)} />
+      {/* G3: el desenlace de la llamada — abrir tel: no registró nada */}
+      <CallOutcomeModal target={llamadaTarget} onClose={() => setLlamadaTarget(null)}
+        onResultado={(p, resultado) => acciones.llamada(p, resultado)}
+        onDescartar={(p) => acciones.descartar(p, { motivo: "no le interesa (llamada)" })} />
       <Toast message={toast} />
     </div>
   );
