@@ -102,6 +102,38 @@ export function listaEscalonesItems(lista, products = [], { modo = "catalogo" } 
   }));
 }
 
+// Separador que la migración de colores dejó en el sabor: "Banana Ice · Black"
+// (scripts/migrate-v250-colores.mjs). El color es una VARIANTE del mismo
+// sabor, no un sabor distinto.
+const SEP_VARIANTE = " · ";
+
+// Pliega las variantes de un mismo sabor en un solo renglón:
+//   ["Banana Ice · Black", "Banana Ice · Pink", "Menta"]
+//   → ["Banana Ice (Black, Pink)", "Menta"]
+// El cliente elige por SABOR; ver nueve renglones que solo difieren en el
+// color hace más largo el mensaje sin agregar una sola opción real.
+// Si un sabor existe además SIN variante, es otro SKU y va aparte.
+export function plegarVariantes(sabores = []) {
+  const porBase = new Map();
+  for (const sabor of sabores) {
+    const i = String(sabor).indexOf(SEP_VARIANTE);
+    const base = i === -1 ? String(sabor) : String(sabor).slice(0, i);
+    const variante = i === -1 ? null : String(sabor).slice(i + SEP_VARIANTE.length).trim();
+    if (!porBase.has(base)) porBase.set(base, { pelado: false, variantes: new Set() });
+    const entrada = porBase.get(base);
+    if (variante) entrada.variantes.add(variante);
+    else entrada.pelado = true;
+  }
+  const out = [];
+  for (const [base, { pelado, variantes }] of porBase) {
+    if (pelado) out.push(base);
+    if (variantes.size > 0) {
+      out.push(`${base} (${[...variantes].sort((a, b) => a.localeCompare(b, "es-AR")).join(", ")})`);
+    }
+  }
+  return out.sort((a, b) => a.localeCompare(b, "es-AR"));
+}
+
 // Sabores CON STOCK de cada modelo, ordenados alfabéticamente.
 // Solo alimenta la lista de stock inmediato: el cliente elige por sabor, y
 // decir "Ice King disponible" cuando quedan dos sabores devuelve exactamente
@@ -181,7 +213,7 @@ export function listaEscalonesText(lista, { products = [], exchangeRate = 0, now
     lines.push(`*${g.marca.toUpperCase()}*`);
     g.items.forEach(f => {
       lines.push(`• ${f.modelo}: ${f.precios.map(precio).join(" · ")}`);
-      const disponibles = sabores?.get(f.id) || [];
+      const disponibles = plegarVariantes(sabores?.get(f.id) || []);
       if (disponibles.length > 0) lines.push(`   ${disponibles.join(", ")}`);
     });
   });
