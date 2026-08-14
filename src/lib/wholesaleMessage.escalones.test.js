@@ -54,13 +54,18 @@ describe("plegarVariantes — el color es una variante, no un sabor", () => {
   it("los sabores sin variante quedan tal cual", () => {
     expect(plegarVariantes(["Watermelon Ice", "Cool Mint"])).toEqual(["Cool Mint", "Watermelon Ice"]);
   });
-  it("un sabor que existe pelado Y con variante son SKUs distintos: van los dos", () => {
-    expect(plegarVariantes(["Banana Ice", "Banana Ice · Black"]))
-      .toEqual(["Banana Ice", "Banana Ice (Black)"]);
+  // El color se aclara SOLO si hay más de uno: con un color único el
+  // paréntesis no es una opción a elegir, es lo que le va a llegar igual.
+  it("un solo color: no lo aclara", () => {
+    expect(plegarVariantes(["Minty Melon · Black"])).toEqual(["Minty Melon"]);
+    expect(plegarVariantes(["Minty Melon · Black", "Minty Melon · Black"])).toEqual(["Minty Melon"]);
   });
-  it("no inventa paréntesis con un solo color ni repite variantes", () => {
-    expect(plegarVariantes(["Minty Melon · Black", "Minty Melon · Black"]))
-      .toEqual(["Minty Melon (Black)"]);
+  it("dos o más colores: los aclara, porque ahí sí hay que elegir", () => {
+    expect(plegarVariantes(["Banana Ice · Black", "Banana Ice · Pink"]))
+      .toEqual(["Banana Ice (Black, Pink)"]);
+  });
+  it("un sabor pelado y el mismo con un color único no se duplican", () => {
+    expect(plegarVariantes(["Banana Ice", "Banana Ice · Black"])).toEqual(["Banana Ice"]);
   });
 });
 
@@ -114,8 +119,10 @@ describe("listaEscalonesText — el mensaje compartible", () => {
 
   it("versión + fecha + disclaimer alineado con el presupuesto", () => {
     expect(txt).toContain("Lista v2026-08 · 07/08/2026"); // versión en los dos
-    // La MISMA promesa que el presupuesto (48 hs), no la versión vaga.
-    expect(stk).toContain("válidos por 48 hs");
+    // Las 48 hs son del PRESUPUESTO, no de la lista: debajo de una lista,
+    // "válidos por 48 hs" se lee como que la lista vence.
+    expect(stk).toContain("Una vez que te paso el presupuesto, queda firme 48 hs.");
+    expect(stk).not.toContain("válidos por 48 hs");
     expect(stk).not.toContain("si el dólar se mueve");
   });
 
@@ -133,9 +140,11 @@ describe("listaEscalonesText — el mensaje compartible", () => {
     const usdStock = listaEscalonesText(LISTA, { ...OPTS, moneda: "USD", exchangeRate: 0, modo: "stock" });
     // Enteros sin decimales vacíos, centavos completos, y "USD" una sola vez.
     expect(usd).toContain("*TE 30K* — 13,50 / 13 / 12,50 / 12");
+    // "Precios en USD" se declara UNA sola vez: no se repite en el pie.
     expect(usdStock).toContain("*Precios en USD* — unidades:");
-    expect((usdStock.match(/USD/g) || []).length).toBe(1); // solo el encabezado
-    expect(usdStock).toContain("La conversión a pesos se hace al dólar del día de la cotización y queda firme 48 hs.");
+    expect((usdStock.match(/USD/g) || []).length).toBe(1);
+    expect(usdStock).not.toContain("Precios en dólares");
+    expect(usdStock).toContain("El precio en pesos se calcula al dólar del día.");
     expect(usd).not.toContain("13.905");
     // Lo demás es idéntico a la versión en pesos:
     expect(usdStock).toContain("Comprás desde 20 unidades — mezclá modelos y sabores como quieras.");
@@ -184,14 +193,15 @@ describe("listaEscalonesText — el mensaje compartible", () => {
 
   it("catálogo (default): van TODOS los modelos y la promesa de reposición está escrita", () => {
     expect(txt).toContain("V250"); // sin stock, igual se ofrece
-    expect(txt).toContain("🗂️ *Estos son todos los modelos que manejamos*");
-    expect(txt).toContain("lo consigo en 5 días");
+    // El catálogo se nombra por lo que ES, no por lo que falta.
+    expect(txt).toContain("🗂️ *Catálogo completo* — todos los modelos que trabajamos.");
+    expect(txt).toContain("Los que no están en la lista de stock, los traigo a pedido en 5 días.");
     expect(txt).not.toContain("entrega inmediata");
   });
 
   it("stock inmediato: solo lo que hay hoy y lo dice, con los MISMOS precios", () => {
     expect(stk).toContain("⚡ *Esto es lo que tengo acá ahora, listo para entrega*");
-    expect(stk).not.toContain("lo consigo en");
+    expect(stk).not.toContain("traigo a pedido");
     expect(stk).not.toContain("V250");
     // El precio no cambia entre listas: es la misma lista publicada.
     expect(stk).toContain("*TE 30K* — 13.905 / 13.390 / 12.875 / 12.360");
@@ -235,7 +245,7 @@ describe("listaEscalonesText — el mensaje compartible", () => {
 
   it("el plazo de reposición sale de la política, no del código", () => {
     const lista10 = { ...LISTA, politica: { ...LISTA.politica, plazoPedidoDias: 10 } };
-    expect(listaEscalonesText(lista10, OPTS)).toContain("lo consigo en 10 días");
+    expect(listaEscalonesText(lista10, OPTS)).toContain("los traigo a pedido en 10 días");
   });
 
   // Las dos listas se mandan juntas: la segunda no repite las reglas. Un
@@ -243,14 +253,18 @@ describe("listaEscalonesText — el mensaje compartible", () => {
   // Se manda PRIMERO el stock (lo que se lleva hoy) y DESPUÉS el catálogo:
   // las reglas viajan en el primero, el segundo no las repite.
   it("las reglas van en la lista de STOCK; el catálogo es la continuación", () => {
-    for (const regla of ["Comprás desde 20 unidades", "válidos por 48 hs", "unidades: 20-49", "depende del TOTAL"]) {
+    for (const regla of ["Comprás desde 20 unidades", "queda firme 48 hs", "depende del TOTAL"]) {
       expect(stk).toContain(regla);      // la que se manda primero SÍ las lleva
       expect(txt).not.toContain(regla);  // el catálogo, que va detrás, no
     }
-    // Lo que el catálogo sí conserva: identidad, versión y qué es esta lista.
-    expect(txt).toContain("*LISTA MAYORISTA — Imports Zona Norte*");
-    expect(txt).toContain("Lista v2026-08 · 07/08/2026");
-    expect(txt).toContain("lo consigo en 5 días");
+    // Lo MÍNIMO para entenderse solo va en los DOS: el catálogo se lee suelto
+    // o se reenvía, y sin la moneda son cuatro precios sin contexto.
+    for (const minimo of ["*Precios en pesos* — unidades: 20-49 / 50-99 / 100-199 / 200+",
+                          "*LISTA MAYORISTA — Imports Zona Norte*", "Lista v2026-08 · 07/08/2026"]) {
+      expect(stk).toContain(minimo);
+      expect(txt).toContain(minimo);
+    }
+    expect(txt).toContain("Catálogo completo");
   });
 
   it("cuál es la resumida se puede invertir sin tocar el modo (por si cambia el orden de envío)", () => {
