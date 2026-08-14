@@ -145,11 +145,23 @@ describe("listaEscalonesText — el mensaje compartible", () => {
 
   it("stock inmediato: solo lo que hay hoy y lo dice, con los MISMOS precios", () => {
     const stk = listaEscalonesText(LISTA, { ...OPTS, modo: "stock" });
-    expect(stk).toContain("⚡ *Disponible para entrega inmediata.*");
+    expect(stk).toContain("⚡ *Disponible para entrega inmediata*");
     expect(stk).not.toContain("conseguimos en");
     expect(stk).not.toContain("V250");
     // El precio no cambia entre listas: es la misma lista publicada.
     expect(stk).toContain("• TE 30K: $13.905 · $13.390 · $12.875 · $12.360");
+  });
+
+  it("stock inmediato avisa que las cantidades por sabor son limitadas, SIN publicarlas", () => {
+    // Las dos listas se mandan juntas: el encabezado prepara al cliente para
+    // que parte del pedido venga después. Pero la cantidad por producto no se
+    // publica — se consulta.
+    const stk = listaEscalonesText(LISTA, { ...OPTS, modo: "stock" });
+    expect(stk).toContain("las cantidades por sabor son limitadas, consultame por lo que necesites.");
+    expect(stk).not.toMatch(/stock:?\s*\d/i);
+    expect(stk).not.toContain("unidades disponibles");
+    // El catálogo NO lleva ese aviso: ahí la promesa es la reposición.
+    expect(txt).not.toContain("cantidades por sabor");
   });
 
   it("el plazo de reposición sale de la política, no del código", () => {

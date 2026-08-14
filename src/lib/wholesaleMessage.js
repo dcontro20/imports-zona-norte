@@ -137,9 +137,15 @@ export function listaEscalonesText(lista, { products = [], exchangeRate = 0, now
   // cliente entiende que puede pedir: el catálogo promete reposición, el de
   // stock promete entrega ya. Sin esta línea las dos listas son la misma con
   // renglones de menos, que es exactamente el malentendido que se quiere evitar.
+  //
+  // El de stock avisa que las cantidades POR SABOR son limitadas (2, 3, 4
+  // unidades): hay variedad, no profundidad. Las dos listas se mandan juntas
+  // —primero stock, después catálogo— así que el encabezado tiene que dejar al
+  // cliente listo para que parte del pedido venga después, en vez de armar uno
+  // que haya que romper a la mitad. Cantidades por producto NO se publican.
   const plazoDias = Number(lista.politica?.plazoPedidoDias) || 5;
   lines.push(String(modo) === "stock"
-    ? "⚡ *Disponible para entrega inmediata.*"
+    ? "⚡ *Disponible para entrega inmediata* — las cantidades por sabor son limitadas, consultame por lo que necesites."
     : `🗂️ *Estos son todos los modelos que manejamos.* Lo que no tenemos en stock inmediato lo conseguimos en ${plazoDias} días.`);
   lines.push("");
   lines.push("💡 *El precio por unidad depende del TOTAL de unidades del pedido.*");
