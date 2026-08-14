@@ -139,7 +139,10 @@ export function plegarVariantes(sabores = []) {
 // el corte por ANCHO (no por cantidad fija) mantiene los renglones parejos sea
 // cual sea el largo de los nombres. Un sabor más largo que el presupuesto se
 // lleva su renglón entero antes que partirse.
-const ANCHO_RENGLON = 46;
+// 56 (probado en el celular de Gustavo, 14/08). A 46 los nombres largos
+// —"Strawberry Apple Watermelon"— quedaban solos en su renglón. Si WhatsApp lo
+// parte feo, se vuelve a 46: es el único número a mover.
+const ANCHO_RENGLON = 56;
 export function repartirEnRenglones(sabores = [], ancho = ANCHO_RENGLON) {
   const renglones = [];
   let actual = "";
@@ -191,11 +194,15 @@ export function listaEscalonesText(lista, { products = [], exchangeRate = 0, now
   const grupos = listaEscalonesItems(lista, products, { modo });
   if (!lista || grupos.length === 0) return "";
   const esStock = String(modo) === "stock";
-  // Las dos listas se mandan JUNTAS, una atrás de la otra. La segunda no
-  // repite las reglas: cuando el cliente llega ahí ya las leyó, y un celular
-  // que arranca con cuatro renglones ya vistos esconde lo único nuevo.
-  // Por default la resumida es la de stock (decisión de Gustavo, 14/08).
-  const esContinuacion = resumido == null ? esStock : !!resumido;
+  // Las dos listas se mandan JUNTAS, una atrás de la otra: PRIMERO el stock,
+  // DESPUÉS el catálogo (decisión comercial de Gustavo, 14/08 — lo primero que
+  // abre el kiosquero tiene que ser lo que se lleva hoy; el catálogo es la
+  // ampliación). Por eso las reglas —escalones, mínimo, disclaimer del dólar—
+  // viajan en la de STOCK, y el catálogo es la continuación: cuando el cliente
+  // llega ahí ya las leyó, y un mensaje que arranca con cuatro renglones ya
+  // vistos esconde lo único nuevo.
+  // `resumido` permite invertirlo sin tocar el modo si cambia el orden de envío.
+  const esContinuacion = resumido == null ? !esStock : !!resumido;
   const enUSD = String(moneda).toUpperCase() === "USD";
   const buffer = Number(lista.politica?.bufferFxPct) || 0;
   const rate = (Number(exchangeRate) || 0) * (1 + buffer);
@@ -233,7 +240,7 @@ export function listaEscalonesText(lista, { products = [], exchangeRate = 0, now
   const plazoDias = Number(lista.politica?.plazoPedidoDias) || 5;
   lines.push(esStock
     ? "⚡ *Esto es lo que tengo acá ahora, listo para entrega* — las cantidades por sabor son limitadas."
-    : `🗂️ *Estos son todos los modelos que manejamos.* Lo que no tenemos en stock inmediato lo conseguimos en ${plazoDias} días.`);
+    : `🗂️ *Estos son todos los modelos que manejamos* — lo que no tengo acá lo consigo en ${plazoDias} días.`);
   // El bloque de reglas (escalones + moneda) va solo en la primera lista.
   if (!esContinuacion) {
     lines.push("");
