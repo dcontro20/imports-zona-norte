@@ -102,6 +102,60 @@ export function listaEscalonesItems(lista, products = [], { modo = "catalogo" } 
   }));
 }
 
+// Separador que la migración de colores dejó en el sabor: "Banana Ice · Black"
+// (scripts/migrate-v250-colores.mjs). El color es una VARIANTE del mismo
+// sabor, no un sabor distinto.
+const SEP_VARIANTE = " · ";
+
+// Pliega las variantes de un mismo sabor en un solo renglón:
+//   ["Banana Ice · Black", "Banana Ice · Pink", "Menta"]
+//   → ["Banana Ice (Black, Pink)", "Menta"]
+// El cliente elige por SABOR; ver nueve renglones que solo difieren en el
+// color hace más largo el mensaje sin agregar una sola opción real.
+// Si un sabor existe además SIN variante, es otro SKU y va aparte.
+export function plegarVariantes(sabores = []) {
+  const porBase = new Map();
+  for (const sabor of sabores) {
+    const i = String(sabor).indexOf(SEP_VARIANTE);
+    const base = i === -1 ? String(sabor) : String(sabor).slice(0, i);
+    const variante = i === -1 ? null : String(sabor).slice(i + SEP_VARIANTE.length).trim();
+    if (!porBase.has(base)) porBase.set(base, { pelado: false, variantes: new Set() });
+    const entrada = porBase.get(base);
+    if (variante) entrada.variantes.add(variante);
+    else entrada.pelado = true;
+  }
+  const out = [];
+  for (const [base, { pelado, variantes }] of porBase) {
+    if (pelado) out.push(base);
+    if (variantes.size > 0) {
+      out.push(`${base} (${[...variantes].sort((a, b) => a.localeCompare(b, "es-AR")).join(", ")})`);
+    }
+  }
+  return out.sort((a, b) => a.localeCompare(b, "es-AR"));
+}
+
+// Sabores CON STOCK de cada modelo, ordenados alfabéticamente.
+// Solo alimenta la lista de stock inmediato: el cliente elige por sabor, y
+// decir "Ice King disponible" cuando quedan dos sabores devuelve exactamente
+// el problema que esa lista viene a resolver (pedido que después hay que
+// romper). El catálogo NO los lleva: ahí la promesa es la reposición y los
+// sabores dependen de lo que se consiga.
+// Devuelve Map("Marca|Modelo" → [sabor, ...]). Sin cantidades, nunca.
+export function saboresConStock(products = []) {
+  const porModelo = new Map();
+  for (const p of products || []) {
+    if (!p || p.isDeleted || !(Number(p.stock) > 0)) continue;
+    const sabor = String(p.flavor || "").trim();
+    if (!sabor) continue;
+    const clave = `${p.brand}|${p.model}`;
+    if (!porModelo.has(clave)) porModelo.set(clave, new Set());
+    porModelo.get(clave).add(sabor);
+  }
+  return new Map(
+    [...porModelo].map(([clave, set]) => [clave, [...set].sort((a, b) => a.localeCompare(b, "es-AR"))])
+  );
+}
+
 // Texto compartible de la lista publicada, en pesos.
 // Reglas: TODOS los escalones por modelo · mezcla libre escrita arriba ·
 // versión + fecha + disclaimer del dólar (reglas de Diego, 2026-07-24) ·
@@ -117,6 +171,7 @@ export function listaEscalonesItems(lista, products = [], { modo = "catalogo" } 
 export function listaEscalonesText(lista, { products = [], exchangeRate = 0, now = new Date(), moneda = "ARS", modo = "catalogo" } = {}) {
   const grupos = listaEscalonesItems(lista, products, { modo });
   if (!lista || grupos.length === 0) return "";
+  const esStock = String(modo) === "stock";
   const enUSD = String(moneda).toUpperCase() === "USD";
   const buffer = Number(lista.politica?.bufferFxPct) || 0;
   const rate = (Number(exchangeRate) || 0) * (1 + buffer);
@@ -144,17 +199,22 @@ export function listaEscalonesText(lista, { products = [], exchangeRate = 0, now
   // cliente listo para que parte del pedido venga después, en vez de armar uno
   // que haya que romper a la mitad. Cantidades por producto NO se publican.
   const plazoDias = Number(lista.politica?.plazoPedidoDias) || 5;
-  lines.push(String(modo) === "stock"
+  lines.push(esStock
     ? "⚡ *Disponible para entrega inmediata* — las cantidades por sabor son limitadas, consultame por lo que necesites."
     : `🗂️ *Estos son todos los modelos que manejamos.* Lo que no tenemos en stock inmediato lo conseguimos en ${plazoDias} días.`);
   lines.push("");
   lines.push("💡 *El precio por unidad depende del TOTAL de unidades del pedido.*");
   lines.push(`Unidades: ${escalones.map(rango).join("  ·  ")}`);
+  // En la lista de stock, debajo de cada modelo van sus sabores disponibles.
+  // El largo no importa: las dos listas se mandan como mensajes separados.
+  const sabores = esStock ? saboresConStock(products) : null;
   grupos.forEach(g => {
     lines.push("");
     lines.push(`*${g.marca.toUpperCase()}*`);
     g.items.forEach(f => {
       lines.push(`• ${f.modelo}: ${f.precios.map(precio).join(" · ")}`);
+      const disponibles = plegarVariantes(sabores?.get(f.id) || []);
+      if (disponibles.length > 0) lines.push(`   ${disponibles.join(", ")}`);
     });
   });
   lines.push("");

@@ -3,7 +3,7 @@
 // disclaimer del dólar, solo modelos con stock. Definición comercial del
 // gate F3→F4.
 import { describe, it, expect } from "vitest";
-import { listaEscalonesItems, listaEscalonesText } from "./wholesaleMessage.js";
+import { listaEscalonesItems, listaEscalonesText, saboresConStock, plegarVariantes } from "./wholesaleMessage.js";
 import { construirSnapshot } from "./priceLists.js";
 import { DEFAULT_PRICING_POLICY } from "./pricingPolicy.js";
 
@@ -27,6 +27,42 @@ const productos = [
 
 const OPTS = { products: productos, exchangeRate: 1000, now: new Date("2026-08-07T15:00:00") };
 // FX efectivo = 1000 × (1 + buffer 3%) = 1030 — la conversión del cotizador.
+
+describe("saboresConStock", () => {
+  it("solo los que tienen stock, sin repetir, alfabéticos y sin cantidades", () => {
+    const m = saboresConStock([
+      { brand: "Elfbar", model: "TE", flavor: "Watermelon Ice", stock: 3 },
+      { brand: "Elfbar", model: "TE", flavor: "Miami Mint", stock: 1 },
+      { brand: "Elfbar", model: "TE", flavor: "Miami Mint", stock: 2 }, // mismo sabor, otro registro
+      { brand: "Elfbar", model: "TE", flavor: "Uva", stock: 0 },
+      { brand: "Elfbar", model: "TE", flavor: "Borrada", stock: 5, isDeleted: true },
+      { brand: "Elfbar", model: "TE", flavor: "   ", stock: 5 },        // sin nombre
+    ]);
+    expect(m.get("Elfbar|TE")).toEqual(["Miami Mint", "Watermelon Ice"]);
+  });
+  it("un modelo sin nada en stock no aparece en el mapa", () => {
+    expect(saboresConStock([{ brand: "Ignite", model: "V500", flavor: "A definir", stock: 0 }]).size).toBe(0);
+  });
+});
+
+describe("plegarVariantes — el color es una variante, no un sabor", () => {
+  it("junta los colores del mismo sabor en un renglón", () => {
+    expect(plegarVariantes([
+      "Banana Coconut Water · Black", "Banana Coconut Water · Pink", "Menta",
+    ])).toEqual(["Banana Coconut Water (Black, Pink)", "Menta"]);
+  });
+  it("los sabores sin variante quedan tal cual", () => {
+    expect(plegarVariantes(["Watermelon Ice", "Cool Mint"])).toEqual(["Cool Mint", "Watermelon Ice"]);
+  });
+  it("un sabor que existe pelado Y con variante son SKUs distintos: van los dos", () => {
+    expect(plegarVariantes(["Banana Ice", "Banana Ice · Black"]))
+      .toEqual(["Banana Ice", "Banana Ice (Black)"]);
+  });
+  it("no inventa paréntesis con un solo color ni repite variantes", () => {
+    expect(plegarVariantes(["Minty Melon · Black", "Minty Melon · Black"]))
+      .toEqual(["Minty Melon (Black)"]);
+  });
+});
 
 describe("listaEscalonesItems — catálogo completo vs stock inmediato", () => {
   it("por default NO filtra por stock: el catálogo es lo que se manda siempre", () => {
@@ -150,6 +186,31 @@ describe("listaEscalonesText — el mensaje compartible", () => {
     expect(stk).not.toContain("V250");
     // El precio no cambia entre listas: es la misma lista publicada.
     expect(stk).toContain("• TE 30K: $13.905 · $13.390 · $12.875 · $12.360");
+  });
+
+  it("stock inmediato lista los sabores disponibles debajo de cada modelo", () => {
+    // El cliente elige por SABOR: "Ice King disponible" con dos sabores en
+    // stock devuelve el pedido que hay que romper.
+    const productos2 = [
+      { id: "a", brand: "Elfbar", model: "TE 30K", flavor: "Watermelon Ice", stock: 3 },
+      { id: "a2", brand: "Elfbar", model: "TE 30K", flavor: "Miami Mint", stock: 2 },
+      { id: "a3", brand: "Elfbar", model: "TE 30K", flavor: "Uva", stock: 0 }, // sin stock: no va
+      { id: "b", brand: "Lost Mary", model: "MO 20K", flavor: "Ice", stock: 3 },
+    ];
+    const stk = listaEscalonesText(LISTA, { ...OPTS, products: productos2, modo: "stock" });
+    expect(stk).toContain("• TE 30K: $13.905 · $13.390 · $12.875 · $12.360\n   Miami Mint, Watermelon Ice");
+    expect(stk).not.toContain("Uva");
+    // Sin cantidades, nunca: la línea de sabores no lleva un solo dígito.
+    const lineaSabores = stk.split("\n").find(l => l.includes("Miami Mint"));
+    expect(lineaSabores).toBe("   Miami Mint, Watermelon Ice");
+    expect(lineaSabores).not.toMatch(/\d/);
+  });
+
+  it("los sabores van SOLO en la lista de stock — el catálogo queda a nivel modelo", () => {
+    const productos2 = [{ id: "a", brand: "Elfbar", model: "TE 30K", flavor: "Watermelon Ice", stock: 3 }];
+    const cat = listaEscalonesText(LISTA, { ...OPTS, products: productos2, modo: "catalogo" });
+    expect(cat).toContain("• TE 30K:");
+    expect(cat).not.toContain("Watermelon Ice");
   });
 
   it("stock inmediato avisa que las cantidades por sabor son limitadas, SIN publicarlas", () => {
