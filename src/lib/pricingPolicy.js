@@ -43,6 +43,11 @@ export const DEFAULT_PRICING_POLICY = {
   nudgeUmbralPct: 0.1,              // RN-09: a menos del 10% del siguiente escalón, avisar
   bufferFxPct: 0.03,                // §5.14 (RN-10): FX del día + buffer
   vigenciaHoras: 48,                // §5.14 (RN-11): vencimiento del presupuesto en pesos
+  // Plazo de reposición de lo que NO está en stock inmediato. El negocio vende
+  // el CATÁLOGO completo (stock en Buenos Aires + lo que se consigue), así que
+  // la promesa es parte del mensaje de la lista y no puede estar fija en el
+  // código (RN-19): si el proveedor cambia el plazo, se cambia acá.
+  plazoPedidoDias: 5,
   recargoPlazo: { pct: 0.03, dias: 7 }, // §5.13 (RN-17): contado; plazo con recargo explícito
   umbralRecalculoPct: 0.03,         // §5.17 (RN-13): recalcular solo si el costo real se movió más que esto
   fxSanidadPct: 0.1,                // banda de sanidad: un salto mayor del FX automático no se aplica solo

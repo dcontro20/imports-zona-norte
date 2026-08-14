@@ -28,15 +28,28 @@ const productos = [
 const OPTS = { products: productos, exchangeRate: 1000, now: new Date("2026-08-07T15:00:00") };
 // FX efectivo = 1000 × (1 + buffer 3%) = 1030 — la conversión del cotizador.
 
-describe("listaEscalonesItems — filas de la vigente con stock hoy", () => {
-  it("agrupa por marca alfabéticamente y excluye modelos sin stock", () => {
+describe("listaEscalonesItems — catálogo completo vs stock inmediato", () => {
+  it("por default NO filtra por stock: el catálogo es lo que se manda siempre", () => {
     const grupos = listaEscalonesItems(LISTA, productos);
-    expect(grupos.map(g => g.marca)).toEqual(["Elfbar", "Lost Mary"]); // V250 sin stock afuera
+    expect(grupos.map(g => g.marca)).toEqual(["Elfbar", "Ignite", "Lost Mary"]);
+    // V250 no tiene stock y AUN ASÍ está: se consigue, se vende.
+    expect(grupos.some(g => g.items.some(f => f.id === "Ignite|V250"))).toBe(true);
+  });
+  it("modo stock excluye los modelos sin stock hoy", () => {
+    const grupos = listaEscalonesItems(LISTA, productos, { modo: "stock" });
+    expect(grupos.map(g => g.marca)).toEqual(["Elfbar", "Lost Mary"]); // V250 afuera
     expect(grupos[0].items[0].modelo).toBe("TE 30K");
   });
   it("el stock se suma entre sabores del modelo (uno en cero no lo saca)", () => {
-    const grupos = listaEscalonesItems(LISTA, productos);
+    const grupos = listaEscalonesItems(LISTA, productos, { modo: "stock" });
     expect(grupos.some(g => g.items.some(f => f.id === "Elfbar|TE 30K"))).toBe(true);
+  });
+  it("los dos modos publican los MISMOS precios — cambia qué se ofrece, no a cuánto", () => {
+    const cat = listaEscalonesItems(LISTA, productos)
+      .flatMap(g => g.items).find(f => f.id === "Elfbar|TE 30K");
+    const stk = listaEscalonesItems(LISTA, productos, { modo: "stock" })
+      .flatMap(g => g.items).find(f => f.id === "Elfbar|TE 30K");
+    expect(stk.precios).toEqual(cat.precios);
   });
 });
 
@@ -93,10 +106,70 @@ describe("listaEscalonesText — el mensaje compartible", () => {
     expect(txt).not.toContain("costo");
   });
 
-  it("modelos sin stock no van; agrupado por marca en mayúsculas", () => {
-    expect(txt).not.toContain("V250");
+  // La pantalla ganó una vista interna con costo proveedor / costo real /
+  // margen (2026-08-14). Este test es el contrapeso: esos números existen en el
+  // snapshot y NO pueden viajar en NINGUNA de las dos listas, en ninguna moneda.
+  it("ni el costo ni el margen del snapshot llegan al mensaje, en ningún modo", () => {
+    const variantes = [
+      listaEscalonesText(LISTA, OPTS),
+      listaEscalonesText(LISTA, { ...OPTS, modo: "stock" }),
+      listaEscalonesText(LISTA, { ...OPTS, moneda: "USD" }),
+      listaEscalonesText(LISTA, { ...OPTS, moneda: "USD", modo: "stock" }),
+    ];
+    const fila = LISTA.filas.find(f => f.id === "Elfbar|TE 30K");
+    expect(fila.costo).toBe(8.5);            // los datos internos existen...
+    expect(fila.costoReal).toBeCloseTo(9.605, 3);
+    for (const t of variantes) {
+      expect(t).not.toBe("");
+      expect(t.toLowerCase()).not.toContain("costo");
+      expect(t.toLowerCase()).not.toContain("margen");
+      expect(t).not.toContain("9,605");      // ...y no salen por ningún lado
+      expect(t).not.toContain("9.605");
+      expect(t).not.toContain("8,50 ");
+      expect(t).not.toContain("28%");        // el margen objetivo del escalón
+      expect(t).not.toContain("29,5%");      // el margen real de TE 30K @20-49
+    }
+  });
+
+  it("agrupado por marca en mayúsculas", () => {
     expect(txt).toContain("*ELFBAR*");
     expect(txt).toContain("*LOST MARY*");
+  });
+
+  it("catálogo (default): van TODOS los modelos y la promesa de reposición está escrita", () => {
+    expect(txt).toContain("V250"); // sin stock, igual se ofrece
+    expect(txt).toContain("🗂️ *Estos son todos los modelos que manejamos.*");
+    expect(txt).toContain("lo conseguimos en 5 días");
+    expect(txt).not.toContain("entrega inmediata");
+  });
+
+  it("stock inmediato: solo lo que hay hoy y lo dice, con los MISMOS precios", () => {
+    const stk = listaEscalonesText(LISTA, { ...OPTS, modo: "stock" });
+    expect(stk).toContain("⚡ *Disponible para entrega inmediata.*");
+    expect(stk).not.toContain("conseguimos en");
+    expect(stk).not.toContain("V250");
+    // El precio no cambia entre listas: es la misma lista publicada.
+    expect(stk).toContain("• TE 30K: $13.905 · $13.390 · $12.875 · $12.360");
+  });
+
+  it("el plazo de reposición sale de la política, no del código", () => {
+    const lista10 = { ...LISTA, politica: { ...LISTA.politica, plazoPedidoDias: 10 } };
+    expect(listaEscalonesText(lista10, OPTS)).toContain("lo conseguimos en 10 días");
+  });
+
+  it("los dos modos comparten precios, mínimo y vigencia", () => {
+    const stk = listaEscalonesText(LISTA, { ...OPTS, modo: "stock" });
+    for (const linea of ["Comprás desde 20 unidades", "válidos por 48 hs", "Unidades: 20-49"]) {
+      expect(txt).toContain(linea);
+      expect(stk).toContain(linea);
+    }
+  });
+
+  it("ningún modo filtra el catálogo por stock al pie de la letra de RN-18: sin costo ya no está en el snapshot", () => {
+    // El snapshot solo trae modelos con costo (RN-18, priceLists.construirSnapshot).
+    // El modo catálogo no reintroduce nada: muestra exactamente las filas publicadas.
+    const idsTxt = LISTA.filas.map(f => f.modelo);
+    idsTxt.forEach(m => expect(txt).toContain(m));
   });
 
   it("no asume 4 escalones: una política de 2 produce 2 columnas", () => {
@@ -113,9 +186,13 @@ describe("listaEscalonesText — el mensaje compartible", () => {
     expect((t.match(/• TE 30K: ([^\n]+)/)?.[1].match(/\$/g) || []).length).toBe(2);
   });
 
-  it("sin lista, sin stock total o sin FX ⇒ texto vacío", () => {
+  it("sin lista o sin FX (en pesos) ⇒ texto vacío", () => {
     expect(listaEscalonesText(null, OPTS)).toBe("");
-    expect(listaEscalonesText(LISTA, { ...OPTS, products: [] })).toBe("");
     expect(listaEscalonesText(LISTA, { ...OPTS, exchangeRate: 0 })).toBe("");
+  });
+
+  it("el catálogo no depende del stock cargado; el de stock sí queda vacío sin stock", () => {
+    expect(listaEscalonesText(LISTA, { ...OPTS, products: [] })).toContain("• TE 30K:");
+    expect(listaEscalonesText(LISTA, { ...OPTS, products: [], modo: "stock" })).toBe("");
   });
 });

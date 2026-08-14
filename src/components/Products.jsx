@@ -14,6 +14,7 @@ import {
 import { calcMarginGuard } from "../pricing.js";
 import { productosParaMotor } from "../lib/pricingAdapter.js";
 import { ultimoCostoCompra, driftCostoFicha } from "../lib/costoCompras.js";
+import { parsearTablaCostos, diffCostos } from "../lib/parseCostos.js";
 
 // -- PRODUCTS / STOCK --
 
@@ -116,6 +117,12 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [], pur
   // la lista mayorista; cargarlo sabor por sabor invita al error de carga).
   const [costosModal, setCostosModal] = useState(false);
   const [costosDraft, setCostosDraft] = useState({});
+  // Pegar la lista del proveedor (2026-08-14): cada lista nueva son ~20 costos
+  // a tipear. El pegado llena el BORRADOR y muestra qué entendió; el guardado
+  // sigue siendo el mismo botón — nada se escribe sin que alguien lo mire.
+  const [pegarAbierto, setPegarAbierto] = useState(false);
+  const [pegado, setPegado] = useState("");
+  const [pegadoResultado, setPegadoResultado] = useState(null);
   // Llegada desde 🏷️ Lista de precios ("Editar costos"): abre el editor solo y
   // recuerda a dónde volver — el costo es el único dato de entrada del motor,
   // corregirlo no puede costar navegar y buscar el botón.
@@ -192,6 +199,24 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [], pur
     });
     setCostosDraft(draft);
     setCostosModal(true);
+    setPegarAbierto(false);
+    setPegado("");
+    setPegadoResultado(null);
+  };
+
+  // Vuelca lo pegado al borrador. Solo las líneas emparejadas sin ambigüedad;
+  // el resto queda listado para que se resuelva a mano (o se cree el modelo).
+  const aplicarPegado = () => {
+    const modelos = modelosCosto.map(m => ({ id: m.id, marca: m.marca, modelo: m.modelo }));
+    const { lineas, resumen } = parsearTablaCostos(pegado, modelos);
+    const actuales = new Map(modelosCosto.map(m => [m.id, Number(m.costo) || 0]));
+    const { cambios, iguales } = diffCostos(lineas, actuales);
+    setCostosDraft(d => {
+      const next = { ...d };
+      for (const l of lineas) if (l.estado === "ok") next[l.id] = l.costo;
+      return next;
+    });
+    setPegadoResultado({ lineas, resumen, cambios, iguales });
   };
 
   useEffect(() => {
@@ -857,6 +882,79 @@ export const Products = ({ products, setProducts, priceLog = [], sales = [], pur
           El costo se aplica a todos los sabores del modelo. De este dato deriva
           la lista mayorista — mantenerlo como costo de REPOSICIÓN (lo que pagarías hoy).
         </p>
+
+        {/* Pegar la lista del proveedor. Llena el borrador de abajo; guardar
+            sigue siendo un acto aparte. */}
+        <div style={{ marginBottom: 12 }}>
+          <Btn variant="secondary" onClick={() => setPegarAbierto(v => !v)} style={{ minHeight: 38, fontSize: 12 }}>
+            📋 {pegarAbierto ? "Cerrar" : "Pegar lista del proveedor"}
+          </Btn>
+        </div>
+        {pegarAbierto && (
+          <div style={{
+            border: `1px solid ${T.borderSoft}`, borderRadius: 10, padding: 12, marginBottom: 14,
+            background: "#FBF7EE",
+          }}>
+            <div style={{ fontSize: 11, color: "#6B7794", marginBottom: 6 }}>
+              Una línea por modelo: <b>nombre + costo</b>. Separador libre (tab, coma, pipe o
+              espacios). Ejemplo: <code>Geek Bar Pulse X&nbsp;&nbsp;6.00</code>
+            </div>
+            <textarea
+              value={pegado}
+              onChange={e => setPegado(e.target.value)}
+              rows={7}
+              placeholder={"Geek Bar Pulse X\t6.00\nLost Mary Dura\t8.00\nElfbar TE\t9.50"}
+              style={{
+                width: "100%", boxSizing: "border-box", padding: 10, borderRadius: 8,
+                border: "1px solid #E5DAC2", fontSize: isMobile ? 16 : 13,
+                fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", resize: "vertical",
+              }}
+            />
+            <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+              <Btn onClick={aplicarPegado} disabled={!pegado.trim()} style={{ minHeight: 38, fontSize: 12 }}>
+                Leer y cargar abajo
+              </Btn>
+              {pegadoResultado && (
+                <Btn variant="secondary" onClick={() => { setPegado(""); setPegadoResultado(null); }} style={{ minHeight: 38, fontSize: 12 }}>
+                  Limpiar
+                </Btn>
+              )}
+            </div>
+
+            {pegadoResultado && (
+              <div style={{ marginTop: 10, fontSize: 12 }}>
+                <div style={{ color: T.green, fontWeight: 700 }}>
+                  ✓ {pegadoResultado.cambios.length} costo{pegadoResultado.cambios.length !== 1 ? "s" : ""} cargado
+                  {pegadoResultado.cambios.length !== 1 ? "s" : ""} en el borrador
+                  {pegadoResultado.iguales.length > 0 && ` · ${pegadoResultado.iguales.length} ya estaba${pegadoResultado.iguales.length !== 1 ? "n" : ""} igual`}
+                </div>
+                {pegadoResultado.cambios.map(c => (
+                  <div key={c.id} style={{ color: "#3A4868", marginTop: 2 }}>
+                    • {c.etiqueta}: {c.antes > 0 ? `${c.antes} → ` : "sin costo → "}<b>{c.ahora}</b>
+                  </div>
+                ))}
+                {/* Lo que NO se aplicó, por nombre: es lo único accionable. */}
+                {pegadoResultado.lineas.filter(l => l.estado !== "ok").length > 0 && (
+                  <div style={{ marginTop: 8, color: T.amber }}>
+                    <b>Sin aplicar ({pegadoResultado.lineas.filter(l => l.estado !== "ok").length}) — revisar a mano:</b>
+                    {pegadoResultado.lineas.filter(l => l.estado !== "ok").map((l, i) => (
+                      <div key={i} style={{ marginTop: 2 }}>
+                        • «{l.raw}» —{" "}
+                        {l.estado === "sin_match" && "ese modelo no existe todavía (crealo con + Nuevo)"}
+                        {l.estado === "ambiguo" && `coincide con ${l.candidatos.map(c => c.replace("|", " ")).join(" y ")} — cargalo a mano`}
+                        {l.estado === "sin_costo" && "no se entendió un costo en la línea"}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div style={{ marginTop: 8, color: "#9AA2B3", fontSize: 11 }}>
+                  Todavía no se guardó nada. Revisá los valores abajo y tocá <b>Guardar costos</b>.
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {(() => {
           const inconsistentes = new Set(inconsistenciasCosto.map(i => i.id));
           return modelosCosto.map(m => (
