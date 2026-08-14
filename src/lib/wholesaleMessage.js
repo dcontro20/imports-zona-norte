@@ -134,6 +134,25 @@ export function plegarVariantes(sabores = []) {
   return out.sort((a, b) => a.localeCompare(b, "es-AR"));
 }
 
+// Reparte los sabores en renglones cortos separados por " · ".
+// En párrafo corrido, once sabores son un bloque que en el celular no se lee;
+// el corte por ANCHO (no por cantidad fija) mantiene los renglones parejos sea
+// cual sea el largo de los nombres. Un sabor más largo que el presupuesto se
+// lleva su renglón entero antes que partirse.
+const ANCHO_RENGLON = 46;
+export function repartirEnRenglones(sabores = [], ancho = ANCHO_RENGLON) {
+  const renglones = [];
+  let actual = "";
+  for (const sabor of sabores) {
+    if (!actual) { actual = sabor; continue; }
+    const candidato = `${actual} · ${sabor}`;
+    if (candidato.length <= ancho) actual = candidato;
+    else { renglones.push(actual); actual = sabor; }
+  }
+  if (actual) renglones.push(actual);
+  return renglones;
+}
+
 // Sabores CON STOCK de cada modelo, ordenados alfabéticamente.
 // Solo alimenta la lista de stock inmediato: el cliente elige por sabor, y
 // decir "Ice King disponible" cuando quedan dos sabores devuelve exactamente
@@ -168,19 +187,33 @@ export function saboresConStock(products = []) {
 // `modo`: "catalogo" (default, todos los modelos + la promesa de reposición) ·
 // "stock" (solo lo disponible hoy, para entrega inmediata). Los dos mandan los
 // MISMOS precios: la diferencia es qué se ofrece, no a cuánto.
-export function listaEscalonesText(lista, { products = [], exchangeRate = 0, now = new Date(), moneda = "ARS", modo = "catalogo" } = {}) {
+export function listaEscalonesText(lista, { products = [], exchangeRate = 0, now = new Date(), moneda = "ARS", modo = "catalogo", resumido = null } = {}) {
   const grupos = listaEscalonesItems(lista, products, { modo });
   if (!lista || grupos.length === 0) return "";
   const esStock = String(modo) === "stock";
+  // Las dos listas se mandan JUNTAS, una atrás de la otra. La segunda no
+  // repite las reglas: cuando el cliente llega ahí ya las leyó, y un celular
+  // que arranca con cuatro renglones ya vistos esconde lo único nuevo.
+  // Por default la resumida es la de stock (decisión de Gustavo, 14/08).
+  const esContinuacion = resumido == null ? esStock : !!resumido;
   const enUSD = String(moneda).toUpperCase() === "USD";
   const buffer = Number(lista.politica?.bufferFxPct) || 0;
   const rate = (Number(exchangeRate) || 0) * (1 + buffer);
   if (!enUSD && !(rate > 0)) return "";
   const fecha = now.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
   const rango = (e) => (e.hasta == null ? `${e.desde}+` : `${e.desde}-${e.hasta}`);
-  const precio = (e) => (enUSD
-    ? `USD ${Number(e.precio).toLocaleString("es-AR", { minimumFractionDigits: 2 })}`
-    : money(e.precio * rate));
+  // La moneda se declara UNA vez en el encabezado, no cuatro veces por
+  // renglón: "USD 14,00 · USD 13,50 · ..." gasta la mitad del ancho del
+  // celular en repetir lo mismo. Y sin decimales vacíos (14,00 → 14).
+  // 14,00 → "14" · 13,5 → "13,50": el entero no arrastra decimales vacíos, y
+  // el que tiene centavos los muestra completos (13,5 se lee como precio a
+  // medio escribir).
+  const precio = (e) => {
+    if (!enUSD) return Math.round(e.precio * rate).toLocaleString("es-AR");
+    const v = Number(e.precio);
+    const decimales = Number.isInteger(v) ? 0 : 2;
+    return v.toLocaleString("es-AR", { minimumFractionDigits: decimales, maximumFractionDigits: decimales });
+  };
   // Los rangos salen del snapshot (arreglo, cantidad libre — jamás se asume 4).
   const escalones = grupos[0].items[0].precios;
 
@@ -194,43 +227,51 @@ export function listaEscalonesText(lista, { products = [], exchangeRate = 0, now
   // renglones de menos, que es exactamente el malentendido que se quiere evitar.
   //
   // El de stock avisa que las cantidades POR SABOR son limitadas (2, 3, 4
-  // unidades): hay variedad, no profundidad. Las dos listas se mandan juntas
-  // —primero stock, después catálogo— así que el encabezado tiene que dejar al
-  // cliente listo para que parte del pedido venga después, en vez de armar uno
-  // que haya que romper a la mitad. Cantidades por producto NO se publican.
+  // unidades): hay variedad, no profundidad — así el cliente queda listo para
+  // que parte del pedido venga después, en vez de armar uno que haya que
+  // romper a la mitad. Cantidades por producto NO se publican.
   const plazoDias = Number(lista.politica?.plazoPedidoDias) || 5;
   lines.push(esStock
-    ? "⚡ *Disponible para entrega inmediata* — las cantidades por sabor son limitadas, consultame por lo que necesites."
+    ? "⚡ *Esto es lo que tengo acá ahora, listo para entrega* — las cantidades por sabor son limitadas."
     : `🗂️ *Estos son todos los modelos que manejamos.* Lo que no tenemos en stock inmediato lo conseguimos en ${plazoDias} días.`);
-  lines.push("");
-  lines.push("💡 *El precio por unidad depende del TOTAL de unidades del pedido.*");
-  lines.push(`Unidades: ${escalones.map(rango).join("  ·  ")}`);
-  // En la lista de stock, debajo de cada modelo van sus sabores disponibles.
-  // El largo no importa: las dos listas se mandan como mensajes separados.
+  // El bloque de reglas (escalones + moneda) va solo en la primera lista.
+  if (!esContinuacion) {
+    lines.push("");
+    lines.push("💡 *El precio por unidad depende del TOTAL de unidades del pedido.*");
+    lines.push(`*Precios en ${enUSD ? "USD" : "pesos"}* — unidades: ${escalones.map(rango).join(" / ")}`);
+  }
+  // En la lista de stock, debajo de cada modelo van sus sabores disponibles,
+  // repartidos en renglones cortos: en párrafo corrido, once sabores son un
+  // bloque que en el celular no se lee.
   const sabores = esStock ? saboresConStock(products) : null;
   grupos.forEach(g => {
     lines.push("");
     lines.push(`*${g.marca.toUpperCase()}*`);
     g.items.forEach(f => {
-      lines.push(`• ${f.modelo}: ${f.precios.map(precio).join(" · ")}`);
-      const disponibles = plegarVariantes(sabores?.get(f.id) || []);
-      if (disponibles.length > 0) lines.push(`   ${disponibles.join(", ")}`);
+      // Sin bullet: el modelo en negrita ya abre el renglón, y el bullet solo
+      // gasta ancho.
+      lines.push(`*${f.modelo}* — ${f.precios.map(precio).join(" / ")}`);
+      for (const renglon of repartirEnRenglones(plegarVariantes(sabores?.get(f.id) || []))) {
+        lines.push(renglon);
+      }
     });
   });
-  lines.push("");
-  // El mínimo se comunica EN POSITIVO y solo en unidades (decisión de Gustavo,
-  // 2026-08-08): el ticket mínimo en pesos asusta y casi nunca aplica —
-  // 20 unidades del producto más barato ya lo superan. Sigue existiendo como
-  // validación bloqueante en el cotizador (RN-08), pero no se comunica acá.
-  // La mezcla libre va ESCRITA (es EL diferencial del negocio, no implícita).
-  const minimo = Number(lista.politica?.pedidoMinimo?.unidades) || 0;
-  if (minimo > 0) lines.push(`📦 Comprás desde ${minimo} unidades — mezclá modelos y sabores como quieras.`);
-  // Misma promesa que el presupuesto (48 hs por default, de la política
-  // congelada): la versión vaga ("si el dólar se mueve") es la que el
-  // cliente guarda en el teléfono — alineadas las dos (gate F4).
-  const vigencia = Number(lista.politica?.vigenciaHoras) || 48;
-  lines.push(enUSD
-    ? `💵 Precios en dólares. La conversión a pesos se hace al dólar del día de la cotización y queda firme ${vigencia} hs.`
-    : `💵 Precios en pesos al dólar del ${fecha} — válidos por ${vigencia} hs.`);
+  if (!esContinuacion) {
+    lines.push("");
+    // El mínimo se comunica EN POSITIVO y solo en unidades (decisión de Gustavo,
+    // 2026-08-08): el ticket mínimo en pesos asusta y casi nunca aplica —
+    // 20 unidades del producto más barato ya lo superan. Sigue existiendo como
+    // validación bloqueante en el cotizador (RN-08), pero no se comunica acá.
+    // La mezcla libre va ESCRITA (es EL diferencial del negocio, no implícita).
+    const minimo = Number(lista.politica?.pedidoMinimo?.unidades) || 0;
+    if (minimo > 0) lines.push(`📦 Comprás desde ${minimo} unidades — mezclá modelos y sabores como quieras.`);
+    // Misma promesa que el presupuesto (48 hs por default, de la política
+    // congelada): la versión vaga ("si el dólar se mueve") es la que el
+    // cliente guarda en el teléfono — alineadas las dos (gate F4).
+    const vigencia = Number(lista.politica?.vigenciaHoras) || 48;
+    lines.push(enUSD
+      ? `💵 Precios en dólares. La conversión a pesos se hace al dólar del día de la cotización y queda firme ${vigencia} hs.`
+      : `💵 Precios en pesos al dólar del ${fecha} — válidos por ${vigencia} hs.`);
+  }
   return lines.join("\n");
 }
