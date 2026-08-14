@@ -3,7 +3,7 @@
 // disclaimer del dólar, solo modelos con stock. Definición comercial del
 // gate F3→F4.
 import { describe, it, expect } from "vitest";
-import { listaEscalonesItems, listaEscalonesText, saboresConStock } from "./wholesaleMessage.js";
+import { listaEscalonesItems, listaEscalonesText, saboresConStock, plegarVariantes } from "./wholesaleMessage.js";
 import { construirSnapshot } from "./priceLists.js";
 import { DEFAULT_PRICING_POLICY } from "./pricingPolicy.js";
 
@@ -42,6 +42,25 @@ describe("saboresConStock", () => {
   });
   it("un modelo sin nada en stock no aparece en el mapa", () => {
     expect(saboresConStock([{ brand: "Ignite", model: "V500", flavor: "A definir", stock: 0 }]).size).toBe(0);
+  });
+});
+
+describe("plegarVariantes — el color es una variante, no un sabor", () => {
+  it("junta los colores del mismo sabor en un renglón", () => {
+    expect(plegarVariantes([
+      "Banana Coconut Water · Black", "Banana Coconut Water · Pink", "Menta",
+    ])).toEqual(["Banana Coconut Water (Black, Pink)", "Menta"]);
+  });
+  it("los sabores sin variante quedan tal cual", () => {
+    expect(plegarVariantes(["Watermelon Ice", "Cool Mint"])).toEqual(["Cool Mint", "Watermelon Ice"]);
+  });
+  it("un sabor que existe pelado Y con variante son SKUs distintos: van los dos", () => {
+    expect(plegarVariantes(["Banana Ice", "Banana Ice · Black"]))
+      .toEqual(["Banana Ice", "Banana Ice (Black)"]);
+  });
+  it("no inventa paréntesis con un solo color ni repite variantes", () => {
+    expect(plegarVariantes(["Minty Melon · Black", "Minty Melon · Black"]))
+      .toEqual(["Minty Melon (Black)"]);
   });
 });
 
