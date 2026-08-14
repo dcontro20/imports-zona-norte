@@ -112,6 +112,11 @@ const SEP_VARIANTE = " · ";
 //   → ["Banana Ice (Black, Pink)", "Menta"]
 // El cliente elige por SABOR; ver nueve renglones que solo difieren en el
 // color hace más largo el mensaje sin agregar una sola opción real.
+//
+// El color se aclara SOLO cuando el sabor está en más de uno (14/08): si hay
+// un único color disponible, el paréntesis no es una opción a elegir —
+// es el color que le va a llegar igual. "(Black)" repetido seis veces era
+// ruido puro en el V250.
 // Si un sabor existe además SIN variante, es otro SKU y va aparte.
 export function plegarVariantes(sabores = []) {
   const porBase = new Map();
@@ -124,14 +129,14 @@ export function plegarVariantes(sabores = []) {
     if (variante) entrada.variantes.add(variante);
     else entrada.pelado = true;
   }
-  const out = [];
+  const out = new Set();
   for (const [base, { pelado, variantes }] of porBase) {
-    if (pelado) out.push(base);
-    if (variantes.size > 0) {
-      out.push(`${base} (${[...variantes].sort((a, b) => a.localeCompare(b, "es-AR")).join(", ")})`);
+    if (pelado || variantes.size === 1) out.add(base);
+    if (variantes.size > 1) {
+      out.add(`${base} (${[...variantes].sort((a, b) => a.localeCompare(b, "es-AR")).join(", ")})`);
     }
   }
-  return out.sort((a, b) => a.localeCompare(b, "es-AR"));
+  return [...out].sort((a, b) => a.localeCompare(b, "es-AR"));
 }
 
 // Reparte los sabores en renglones cortos separados por " · ".
@@ -238,15 +243,25 @@ export function listaEscalonesText(lista, { products = [], exchangeRate = 0, now
   // que parte del pedido venga después, en vez de armar uno que haya que
   // romper a la mitad. Cantidades por producto NO se publican.
   const plazoDias = Number(lista.politica?.plazoPedidoDias) || 5;
-  lines.push(esStock
-    ? "⚡ *Esto es lo que tengo acá ahora, listo para entrega* — las cantidades por sabor son limitadas."
-    : `🗂️ *Estos son todos los modelos que manejamos* — lo que no tengo acá lo consigo en ${plazoDias} días.`);
-  // El bloque de reglas (escalones + moneda) va solo en la primera lista.
-  if (!esContinuacion) {
-    lines.push("");
-    lines.push("💡 *El precio por unidad depende del TOTAL de unidades del pedido.*");
-    lines.push(`*Precios en ${enUSD ? "USD" : "pesos"}* — unidades: ${escalones.map(rango).join(" / ")}`);
+  if (esStock) {
+    lines.push("⚡ *Esto es lo que tengo acá ahora, listo para entrega* — las cantidades por sabor son limitadas.");
+  } else {
+    // El catálogo se nombra por lo que ES, no por lo que falta: arrancar en
+    // "lo que no tengo" pone el hueco adelante de la oferta.
+    lines.push("🗂️ *Catálogo completo* — todos los modelos que trabajamos.");
+    lines.push(`Los que no están en la lista de stock, los traigo a pedido en ${plazoDias} días.`);
   }
+  lines.push("");
+  // La moneda y los escalones van en LOS DOS mensajes: es el mínimo para que
+  // cada uno se entienda solo. El catálogo se lee suelto o se reenvía, y sin
+  // esta línea son cuatro precios sin contexto.
+  // El resto de las reglas (mezcla libre, mínimo, cómo se fija el precio) va
+  // solo en el primer mensaje. La explicación va ARRIBA de la grilla: es lo
+  // que le da sentido a los cuatro números que vienen abajo.
+  if (!esContinuacion) {
+    lines.push("💡 *El precio por unidad depende del TOTAL de unidades del pedido.*");
+  }
+  lines.push(`*Precios en ${enUSD ? "USD" : "pesos"}* — unidades: ${escalones.map(rango).join(" / ")}`);
   // En la lista de stock, debajo de cada modelo van sus sabores disponibles,
   // repartidos en renglones cortos: en párrafo corrido, once sabores son un
   // bloque que en el celular no se lee.
@@ -275,10 +290,12 @@ export function listaEscalonesText(lista, { products = [], exchangeRate = 0, now
     // Misma promesa que el presupuesto (48 hs por default, de la política
     // congelada): la versión vaga ("si el dólar se mueve") es la que el
     // cliente guarda en el teléfono — alineadas las dos (gate F4).
+    // Las 48 hs son del PRESUPUESTO, no de la lista: "válidos por 48 hs"
+    // debajo de una lista se lee como que la lista vence, y el cliente que la
+    // abre al tercer día cree que ya no sirve. La moneda tampoco se repite
+    // acá — se declara una sola vez, arriba.
     const vigencia = Number(lista.politica?.vigenciaHoras) || 48;
-    lines.push(enUSD
-      ? `💵 Precios en dólares. La conversión a pesos se hace al dólar del día de la cotización y queda firme ${vigencia} hs.`
-      : `💵 Precios en pesos al dólar del ${fecha} — válidos por ${vigencia} hs.`);
+    lines.push(`💵 El precio en pesos se calcula al dólar del día. Una vez que te paso el presupuesto, queda firme ${vigencia} hs.`);
   }
   return lines.join("\n");
 }
