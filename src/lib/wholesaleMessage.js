@@ -67,11 +67,24 @@ export function presentationMessage(target, { remitente = "" } = {}) {
 // mezcla libre va ESCRITA en el mensaje, no implícita en la grilla: es EL
 // diferencial del negocio.
 
-// Filas de la lista VIGENTE que tienen stock hoy, agrupadas por marca.
+// DOS listas, los MISMOS precios (decisión de Gustavo, 2026-08-14):
+//   "catalogo" — TODOS los modelos de la lista publicada, haya stock o no. Es
+//     el que se manda siempre: el negocio tiene stock inmediato acotado en
+//     Buenos Aires MÁS un catálogo que se consigue en pocos días, y filtrar por
+//     stock le escondía al cliente la mitad de lo que puede comprar.
+//   "stock" — solo lo que hay hoy, para el cliente que quiere algo YA.
+// Lo que NO cambia: sin COSTO no hay precio y el modelo no entra a la lista
+// (RN-18) — eso pasa al publicar el snapshot, y es otra cosa que la falta de
+// stock.
+export const MODOS_LISTA = ["catalogo", "stock"];
+
+// Filas de la lista VIGENTE agrupadas por marca.
 // El stock se suma por marca+modelo desde los productos VIVOS (no desde los
 // productIds del snapshot: un sabor agregado después de publicar cuenta).
+// `modo`: "catalogo" (default, no filtra) · "stock" (solo stock > 0).
 // Devuelve [{ marca, items: [filas del snapshot] }].
-export function listaEscalonesItems(lista, products = []) {
+export function listaEscalonesItems(lista, products = [], { modo = "catalogo" } = {}) {
+  const soloConStock = String(modo) === "stock";
   const stockPorModelo = new Map();
   for (const p of products || []) {
     if (!p || p.isDeleted) continue;
@@ -80,7 +93,7 @@ export function listaEscalonesItems(lista, products = []) {
   }
   const porMarca = {};
   for (const fila of lista?.filas || []) {
-    if ((stockPorModelo.get(fila.id) || 0) <= 0) continue;
+    if (soloConStock && (stockPorModelo.get(fila.id) || 0) <= 0) continue;
     (porMarca[fila.marca] = porMarca[fila.marca] || []).push(fila);
   }
   return Object.keys(porMarca).sort((a, b) => a.localeCompare(b)).map(marca => ({
@@ -98,8 +111,11 @@ export function listaEscalonesItems(lista, products = []) {
 // `moneda`: "ARS" (default) convierte al FX del día + buffer · "USD" manda la
 // lista en dólares y no necesita cotización (se puede compartir aunque no haya
 // FX cargado); la conversión se hace recién al cotizar, y el texto lo dice.
-export function listaEscalonesText(lista, { products = [], exchangeRate = 0, now = new Date(), moneda = "ARS" } = {}) {
-  const grupos = listaEscalonesItems(lista, products);
+// `modo`: "catalogo" (default, todos los modelos + la promesa de reposición) ·
+// "stock" (solo lo disponible hoy, para entrega inmediata). Los dos mandan los
+// MISMOS precios: la diferencia es qué se ofrece, no a cuánto.
+export function listaEscalonesText(lista, { products = [], exchangeRate = 0, now = new Date(), moneda = "ARS", modo = "catalogo" } = {}) {
+  const grupos = listaEscalonesItems(lista, products, { modo });
   if (!lista || grupos.length === 0) return "";
   const enUSD = String(moneda).toUpperCase() === "USD";
   const buffer = Number(lista.politica?.bufferFxPct) || 0;
@@ -116,6 +132,21 @@ export function listaEscalonesText(lista, { products = [], exchangeRate = 0, now
   const lines = [];
   lines.push("🏷️ *LISTA MAYORISTA — Imports Zona Norte*");
   lines.push(`📅 Lista ${lista.version} · ${fecha}`);
+  lines.push("");
+  // Qué es esta lista. Va ARRIBA de todo lo demás porque cambia lo que el
+  // cliente entiende que puede pedir: el catálogo promete reposición, el de
+  // stock promete entrega ya. Sin esta línea las dos listas son la misma con
+  // renglones de menos, que es exactamente el malentendido que se quiere evitar.
+  //
+  // El de stock avisa que las cantidades POR SABOR son limitadas (2, 3, 4
+  // unidades): hay variedad, no profundidad. Las dos listas se mandan juntas
+  // —primero stock, después catálogo— así que el encabezado tiene que dejar al
+  // cliente listo para que parte del pedido venga después, en vez de armar uno
+  // que haya que romper a la mitad. Cantidades por producto NO se publican.
+  const plazoDias = Number(lista.politica?.plazoPedidoDias) || 5;
+  lines.push(String(modo) === "stock"
+    ? "⚡ *Disponible para entrega inmediata* — las cantidades por sabor son limitadas, consultame por lo que necesites."
+    : `🗂️ *Estos son todos los modelos que manejamos.* Lo que no tenemos en stock inmediato lo conseguimos en ${plazoDias} días.`);
   lines.push("");
   lines.push("💡 *El precio por unidad depende del TOTAL de unidades del pedido.*");
   lines.push(`Unidades: ${escalones.map(rango).join("  ·  ")}`);

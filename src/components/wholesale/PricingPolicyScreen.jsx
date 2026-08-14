@@ -190,11 +190,13 @@ export const PricingPolicyScreen = ({ pricingPolicy, setPricingPolicy, logAudit 
         <FormRow>
           <Input label="Banda de sanidad del dólar %" type="number" step="1" min="0" value={pctVer(draft.fxSanidadPct)}
             onChange={(e) => mutar((d) => { d.fxSanidadPct = pctGuardar(e.target.value); return d; })} />
-          <div />
+          <Input label="Plazo de reposición (días)" type="number" min="1" value={draft.plazoPedidoDias}
+            onChange={(e) => mutar((d) => { d.plazoPedidoDias = Number(e.target.value); return d; })} />
         </FormRow>
         <div style={{ fontSize: 11, color: T_MUTED }}>
           El precio de lista es contado (RN-17). Un salto del dólar automático mayor a la banda
-          de sanidad no se aplica solo: pide confirmación.
+          de sanidad no se aplica solo: pide confirmación. El plazo de reposición es la promesa
+          que sale escrita en el mensaje del catálogo completo ("lo conseguimos en N días").
         </div>
       </Card>
 

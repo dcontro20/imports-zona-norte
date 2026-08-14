@@ -312,6 +312,15 @@ La API de dolarapi.com solo actualiza el exchangeRate si Firestore no mandó uno
 - Fechas con `formatDate()` (DD/MM/YY)
 - Hook `useResponsive()` exportado desde App.jsx para breakpoints mobile/tablet/desktop
 - No hay router — navegación por variable `page` + renderPage()
+- **Cómo leer la salida de vitest (lección 11/08/2026)**: `Test Files N failed`
+  con `Tests 1 failed` NO son tests rojos — son archivos que **no compilan** y
+  por lo tanto no se cargan; sus tests desaparecen del total **en silencio**.
+  Un error de parseo en `App.jsx` tumba de una todos los tests de componentes
+  (montan App o importan `useResponsive` desde ahí). Regla: si el TOTAL de
+  tests bajó respecto de la corrida anterior, buscar `PARSE_ERROR` /
+  `Failed Suites` antes de creerle al "1 failed". Varios conteos reportados
+  durante el ciclo del Pricing Engine (1438, 1460) venían con archivos sin
+  cargar; el número sano de esa suite es ~1548.
 - Login con Firebase Auth email/password (`docs/FIREBASE_AUTH_SETUP.md`)
 - Settings configurables vía `useSettings()` hook (lee de localStorage, re-renderiza en `izn:settings-changed`)
 

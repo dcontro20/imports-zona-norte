@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useResponsive } from "../../App.jsx";
-import { Card, Btn, Badge, Modal } from "../UI.jsx";
+import { Card, Btn, Badge, Modal, MiniBtn } from "../UI.jsx";
 import { T } from "../../theme.js";
 import { useAppContext } from "../../AppContext.js";
 import { formatMoney, formatDate } from "../../helpers.js";
@@ -9,7 +9,7 @@ import {
   listaVigente, construirSnapshot, siguienteVersion, puedePublicar, driftContraVigente,
   compararSnapshots, alertasDeHoy,
 } from "../../lib/priceLists.js";
-import { listaEscalonesText } from "../../lib/wholesaleMessage.js";
+import { listaEscalonesText, listaEscalonesItems } from "../../lib/wholesaleMessage.js";
 
 // 🏷️ Lista de precios (Pricing Engine F4). La pantalla muestra la lista
 // PUBLICADA (snapshot inmutable, RN-12) — no un cálculo en vivo: lo que se ve
@@ -22,6 +22,29 @@ import { listaEscalonesText } from "../../lib/wholesaleMessage.js";
 //  - "Copiar para WhatsApp" manda TODOS los escalones + mezcla libre escrita
 //    (definición comercial de Gustavo) con versión, fecha y disclaimer del
 //    dólar (reglas de Diego). Sin tiers, sin datos internos.
+//  - DOS listas con los MISMOS precios (2026-08-14): 🗂️ catálogo completo (lo
+//    que se manda siempre, con la promesa de reposición) y ⚡ stock inmediato.
+//    La pantalla muestra siempre todo: los modelos sin stock quedan atenuados
+//    y marcados "a pedido", nunca ocultos — lo que no está hoy igual se vende.
+//  - 👁 "Ver costos" (apagado por default) agrega costo proveedor, costo real y
+//    margen del primer escalón. Es una vista INTERNA: esos números no viajan
+//    nunca en el mensaje (hay test que lo fija).
+
+// Grupo de chips segmentado (mismo aspecto que el selector de moneda original).
+function Pills({ value, onChange, options }) {
+  return (
+    <div style={{ display: "flex", border: `1px solid ${T.border}`, borderRadius: 20, overflow: "hidden" }}>
+      {options.map(o => (
+        <button key={o.value} onClick={() => onChange(o.value)} style={{
+          padding: "8px 14px", minHeight: 38, border: "none", cursor: "pointer",
+          background: value === o.value ? T.primary : "transparent",
+          color: value === o.value ? "#fff" : T.textMuted,
+          fontSize: 12, fontWeight: 700, fontFamily: "inherit", whiteSpace: "nowrap",
+        }}>{o.label}</button>
+      ))}
+    </div>
+  );
+}
 
 export function PriceListScreen({
   products = [], priceLists = [], setPriceLists, pricingPolicy = null, logAudit,
@@ -34,6 +57,13 @@ export function PriceListScreen({
   // USD manda la lista en dólares (no necesita cotización, y la conversión
   // se explica). Dos versiones porque el cliente pide una u otra.
   const [moneda, setMoneda] = useState("ARS");
+  // Qué lista se copia: 🗂️ catálogo completo (default — es el que se manda
+  // siempre) o ⚡ solo stock inmediato. Se combina con la moneda.
+  const [modo, setModo] = useState("catalogo");
+  // Vista interna de costos. Arranca SIEMPRE apagada y no se persiste: la
+  // pantalla se muestra con el cliente al lado, y un toggle recordado entre
+  // sesiones es exactamente el que se olvida prendido.
+  const [verCostos, setVerCostos] = useState(false);
   // Publicar deja de ser a ciegas: primero se ve QUÉ cambia (preview), recién
   // después se confirma. { snapshot, cmp } mientras está abierto.
   const [preview, setPreview] = useState(null);
@@ -85,7 +115,7 @@ export function PriceListScreen({
   };
 
   const copy = () => {
-    const txt = listaEscalonesText(vigente, { products, exchangeRate, moneda });
+    const txt = listaEscalonesText(vigente, { products, exchangeRate, moneda, modo });
     if (!txt) return;
     navigator.clipboard?.writeText(txt).then(() => {
       setCopied(true);
@@ -105,6 +135,17 @@ export function PriceListScreen({
     }
     return m;
   }, [products]);
+
+  // Cuántos modelos lleva cada mensaje. El número al lado del chip evita la
+  // sorpresa de mandar una lista con la mitad de los renglones.
+  const cuentaCatalogo = vigente?.filas.length || 0;
+  const cuentaStock = useMemo(
+    () => listaEscalonesItems(vigente, products, { modo: "stock" }).reduce((n, g) => n + g.items.length, 0),
+    [vigente, products]
+  );
+  const puedeCopiar = !!vigente
+    && (moneda === "USD" || rate > 0)
+    && (modo === "catalogo" ? cuentaCatalogo > 0 : cuentaStock > 0);
 
   const grupos = useMemo(() => {
     if (!vigente) return [];
@@ -135,6 +176,45 @@ export function PriceListScreen({
     return out;
   };
 
+  // ---- Vista interna de costos (toggle 👁) -------------------------------
+  // Los números que se muestran son los del SNAPSHOT: son los que explican el
+  // precio publicado. El costo de HOY se anota al lado solo cuando difiere —
+  // ese delta es justamente lo que decide republicar.
+  const colCosto = { flex: "0 0 74px", textAlign: "right", fontSize: 11, fontWeight: 700 };
+  const anchoTabla = verCostos ? 700 : (isMobile ? 470 : 0);
+  const costoHoyPorId = useMemo(
+    () => new Map(productosMotor.map(p => [p.id, Number(p.costo) || 0])),
+    [productosMotor]
+  );
+  const usd = (v) => (Number(v) > 0 ? Number(v).toFixed(2) : "—");
+
+  const costosDeFila = (fila) => {
+    const hoy = costoHoyPorId.get(fila.id) || 0;
+    const movido = hoy > 0 && Math.abs(hoy - Number(fila.costo)) > 1e-9;
+    const margen = fila.precios?.[0]?.margenReal;
+    const objetivo = fila.precios?.[0]?.margen;
+    // Rojo si el margen quedó debajo del objetivo del escalón (la misma lente
+    // que el badge "margen bajo", acá con el número a la vista).
+    const colorMargen = margen == null ? T.textFaint
+      : margen < (Number(objetivo) || 0) - 1e-9 ? T.amber : T.green;
+    return (
+      <>
+        <span style={{ ...colCosto, color: T.textSub }}>
+          {usd(fila.costo)}
+          {movido && (
+            <span style={{ display: "block", fontSize: 9, color: T.amber, fontWeight: 700 }}>
+              hoy {usd(hoy)}
+            </span>
+          )}
+        </span>
+        <span style={{ ...colCosto, color: T.textSub }}>{usd(fila.costoReal)}</span>
+        <span style={{ ...colCosto, color: colorMargen }}>
+          {margen == null ? "—" : `${(margen * 100).toFixed(1)}%`}
+        </span>
+      </>
+    );
+  };
+
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 12 }}>
@@ -147,22 +227,38 @@ export function PriceListScreen({
           )}
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          {/* Qué lista se copia. Los dos mensajes llevan los MISMOS precios: lo
+              que cambia es qué se ofrece y qué se promete. */}
+          <Pills
+            value={modo}
+            onChange={(v) => { setModo(v); setCopied(false); }}
+            options={[
+              { value: "catalogo", label: `🗂️ Catálogo (${cuentaCatalogo})` },
+              { value: "stock", label: `⚡ Stock (${cuentaStock})` },
+            ]}
+          />
           {/* Selector de moneda del mensaje: el cliente pide una u otra. */}
-          <div style={{ display: "flex", border: `1px solid ${T.border}`, borderRadius: 20, overflow: "hidden" }}>
-            {["ARS", "USD"].map(m => (
-              <button key={m} onClick={() => { setMoneda(m); setCopied(false); }} style={{
-                padding: "8px 14px", minHeight: 38, border: "none", cursor: "pointer",
-                background: moneda === m ? T.primary : "transparent",
-                color: moneda === m ? "#fff" : T.textMuted,
-                fontSize: 12, fontWeight: 700, fontFamily: "inherit",
-              }}>{m === "ARS" ? "$ pesos" : "USD"}</button>
-            ))}
-          </div>
-          <Btn onClick={copy} disabled={!vigente || (moneda === "ARS" && !(rate > 0))}>
+          <Pills
+            value={moneda}
+            onChange={(v) => { setMoneda(v); setCopied(false); }}
+            options={[{ value: "ARS", label: "$ pesos" }, { value: "USD", label: "USD" }]}
+          />
+          <Btn onClick={copy} disabled={!puedeCopiar}>
             {copied ? "✅ Copiado" : "📋 Copiar para WhatsApp"}
           </Btn>
         </div>
       </div>
+
+      {/* El único caso en que el botón no puede: pediste stock inmediato y hoy
+          no hay nada. Se dice, no se deja un botón muerto sin explicación. */}
+      {vigente && modo === "stock" && cuentaStock === 0 && (
+        <Card style={{ marginBottom: 12, border: `1px solid ${T.amber}66`, background: `${T.amber}0D` }}>
+          <div style={{ fontSize: 13, color: T.text }}>
+            Hoy no hay stock inmediato de ningún modelo de la lista — el mensaje de
+            entrega inmediata quedaría vacío. Mandá el <b>🗂️ catálogo</b>.
+          </div>
+        </Card>
+      )}
 
       {/* Sin FX válido NO se convierte ni se comparte: se muestra USD y se
           avisa — un número inventado no lo detecta nadie hasta que un cliente
@@ -241,15 +337,37 @@ export function PriceListScreen({
         )}
       </Card>
 
+      {/* Vista INTERNA. Apagada por default: la lista se muestra en pantalla con
+          el cliente al lado y el costo no puede aparecer por descuido. */}
+      {vigente && (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+          {verCostos && (
+            <span style={{ fontSize: 11, color: T.amber, alignSelf: "center", marginRight: 10 }}>
+              Vista interna — el costo nunca sale en el mensaje al cliente.
+            </span>
+          )}
+          <MiniBtn color={verCostos ? T.amber : T.textMuted} onClick={() => setVerCostos(v => !v)}>
+            {verCostos ? "🙈 Ocultar costos" : "👁 Ver costos"}
+          </MiniBtn>
+        </div>
+      )}
+
       {!vigente ? null : grupos.map(g => (
         <Card key={g.marca} style={{ marginBottom: 12, overflowX: "auto" }}>
           <div style={{ fontWeight: 800, color: T.text, fontSize: isMobile ? 16 : 15, marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5 }}>
             {g.marca}
           </div>
-          <div style={{ minWidth: isMobile ? 470 : 0 }}>
+          <div style={{ minWidth: anchoTabla }}>
             {/* Header de escalones — derivado del snapshot (arreglo, cantidad libre) */}
             <div style={{ display: "flex", gap: 8, padding: "4px 0", borderBottom: `2px solid ${T.border}` }}>
               <span style={{ flex: "1 1 130px", minWidth: 110, fontSize: 11, color: T.textMuted, fontWeight: 700 }}>MODELO · unidades →</span>
+              {verCostos && (
+                <>
+                  <span style={{ ...colCosto, color: T.amber }}>COSTO PROV.</span>
+                  <span style={{ ...colCosto, color: T.amber }}>COSTO REAL</span>
+                  <span style={{ ...colCosto, color: T.amber }}>MARGEN {escalones[0] ? rango(escalones[0]) : ""}</span>
+                </>
+              )}
               {escalones.map(e => (
                 <span key={e.desde} style={{ flex: "0 0 84px", textAlign: "right", fontSize: 11, color: T.textMuted, fontWeight: 700 }}>{rango(e)}</span>
               ))}
@@ -260,13 +378,16 @@ export function PriceListScreen({
                 <div key={fila.id} style={{
                   display: "flex", gap: 8, alignItems: "center", padding: "10px 0",
                   borderBottom: i < g.items.length - 1 ? `1px solid ${T.borderSoft}` : "none",
-                  opacity: stock > 0 ? 1 : 0.45,
+                  opacity: stock > 0 ? 1 : 0.55,
                 }}>
                   <span style={{ flex: "1 1 130px", minWidth: 110, fontSize: isMobile ? 14 : 13, color: T.text, overflowWrap: "anywhere" }}>
                     {fila.modelo}
-                    {stock <= 0 && <span style={{ fontSize: 10, color: T.textFaint }}> · sin stock</span>}
+                    {/* "a pedido", no "sin stock": el modelo se vende igual — se
+                        consigue. La lista dejó de ser el inventario. */}
+                    {stock <= 0 && <span style={{ fontSize: 10, color: T.textFaint }}> · a pedido</span>}
                     <span style={{ display: "inline-flex", gap: 4, marginLeft: 6 }}>{badgeAlerta(fila)}</span>
                   </span>
+                  {verCostos && costosDeFila(fila)}
                   {fila.precios.map(e => (
                     <span key={e.desde} style={{ flex: "0 0 84px", textAlign: "right" }}>
                       <span style={{ display: "block", fontWeight: 800, fontSize: isMobile ? 14 : 13, color: T.green }}>
@@ -372,9 +493,12 @@ export function PriceListScreen({
 
       {vigente && (
         <p style={{ fontSize: 12, color: T.textFaint, marginTop: 4 }}>
-          {vigente.filas.length} modelos · dólar ${exchangeRate}{Number(vigente.politica?.bufferFxPct) > 0 ? ` +${Math.round(vigente.politica.bufferFxPct * 100)}% buffer` : ""} ·
+          {vigente.filas.length} modelos ({cuentaStock} con stock hoy) · dólar ${exchangeRate}{Number(vigente.politica?.bufferFxPct) > 0 ? ` +${Math.round(vigente.politica.bufferFxPct * 100)}% buffer` : ""} ·
           el texto copiado va {moneda === "USD" ? "en dólares (sirve aunque el dólar se mueva)" : "en pesos al dólar de hoy"},
-          lista solo modelos con stock, con todos los escalones y la mezcla libre explicada.
+          {modo === "stock"
+            ? " solo con los modelos disponibles hoy,"
+            : ` con el catálogo completo (lo que no está se consigue en ${Number(vigente.politica?.plazoPedidoDias) || 5} días),`}
+          {" "}con todos los escalones y la mezcla libre explicada.
         </p>
       )}
     </div>
