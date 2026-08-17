@@ -1,6 +1,6 @@
 # 📐 Estructura del sistema — snapshot automático
 
-> Actualizado: **2026-08-16** · Generado por `scripts/generate-structure-doc.mjs`
+> Actualizado: **2026-08-17** · Generado por `scripts/generate-structure-doc.mjs`
 > (cron nocturno). **No editar a mano** — los cambios se sobrescriben.
 > Para la guía humana de cómo está organizado todo, ver `MAPA_DEL_SISTEMA.md`.
 > Para decisiones y contexto, ver `CLAUDE.md` + `docs/SESSION_*.md`.
